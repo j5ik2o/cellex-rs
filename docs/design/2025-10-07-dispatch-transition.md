@@ -19,8 +19,3 @@
 3. **ドキュメント**: ガイドや README に `dispatch_all` がレガシーであることを明記し、推奨パターンを
    `run_until` 系 API へ差し替える。
 4. **将来対応**: 次期リリースで `#[deprecated]` 属性を付与し、さらにその次で削除する計画を立てる。
-
-## TODO
-- [x] README / example コードの置換（`dispatch_all` -> `run_until`）。README と `modules/actor-std/examples/tokio_run_forever.rs` を更新済み。（2025-10-07）
-- [x] `TypedRootContext` のサンプルを async 版に刷新する。Tokio サンプルを `run_until` ベースへ移行済み。（2025-10-07）
-- [x] `dispatch_all` が呼ばれる CI テストの棚卸し（テスト専用利用かどうかの確認）。`rg "dispatch_all"` により定義部のみ残存を確認、テストからの利用は解消済み。（2025-10-07）
