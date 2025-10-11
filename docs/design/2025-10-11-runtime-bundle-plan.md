@@ -18,14 +18,15 @@
 - コード位置: `modules/actor-core/src/api/actor/system.rs`
 
 ### フェーズ 2: Scheduler 抽象の切り出し（進行中）
-- `Scheduler` トレイト（spawn_actor / dispatch_next / run_forever）を定義し、`PriorityScheduler` を実装として登録。
-- `ActorRuntimeBundle` に `scheduler: Arc<dyn Scheduler>` を格納し、MailboxFactory とは独立に差し替えられるようにする。
-- MailboxFactory 側は必要な最小限のインターフェース（Queue / Signal）へ整理し、Scheduler からの依存を縮小する。
+- `Scheduler` トレイト（spawn_actor / dispatch_next / run_forever）を定義し、`PriorityScheduler` を実装として登録。`SchedulerBuilder` を公開し、プラットフォーム側でラッパを組み立てられる状態にした。
+- `ActorRuntimeBundle` は `SchedulerBuilder` を Shared で保持。Tokio/Embassy など環境依存の実装は `actor-std` / `actor-embedded` 側で拡張トレイト（`with_tokio_scheduler` / `with_embassy_scheduler`）として提供。
+- 次ステップで MailboxFactory を Builder/Handle に再分割し、Scheduler からの直接依存を解消する。
 - 進捗メモ:
   - `PriorityScheduler::spawn_actor` が `Box<ActorHandlerFn>` を受け取るようになり、今後トレイト化・オブジェクト化しやすい形に整備済み。（commit 7aea9d0 以降）
   - `ActorRuntimeBundle` が `cellex_utils_core_rs::sync::Shared` 系のハンドルで MailboxFactory / SchedulerBuilder を一貫保持するよう更新済み。DI ポリシーに沿って no_std / std 双方で同一 API を提供できる状態になった。
-  - `ActorRuntimeBundle::with_scheduler_builder(_shared)` / `scheduler_builder` を公開 API 化。外部クレートでも Shared された `SchedulerBuilder` を注入できるようになり、Embedded 向けバンドル組立ての前提が整った。
-  - `actor-embedded::embassy_scheduler_builder()` と `ActorRuntimeBundleEmbassyExt::with_embassy_scheduler()` を追加し、Embassy executor 上でも Shared ハンドル経由でスケジューラを差し替えられる最小実装を用意。
+  - `ActorRuntimeBundle::with_scheduler_builder(_shared)` / `scheduler_builder` を公開 API 化。外部クレートでも Shared された `SchedulerBuilder` を注入できるようになり、プラットフォーム別バンドル組立ての前提が整った。
+  - `actor-std::tokio_scheduler_builder()` / `ActorRuntimeBundleTokioExt::with_tokio_scheduler()` および `actor-embedded::embassy_scheduler_builder()` / `ActorRuntimeBundleEmbassyExt::with_embassy_scheduler()` を追加し、Tokio / Embassy の差し替えをそれぞれモジュール側で実装。
+  - MailboxFactory → MailboxBuilder 分割は未着手。`PriorityScheduler` から Queue/Signal 依存を切り離すための予備調査が必要。
 
 ### フェーズ 3: 追加コンポーネントの統合
 - ReceiveTimeout ドライバ、Escalation/Event リスナー、FailureHub などをバンドル内に移管。
@@ -34,7 +35,7 @@
 
 ## マイルストーン / TODO
 - [x] フェーズ 1 実装: `ActorRuntimeBundle` 追加、既存 API の 移行。（commit 7aea9d0, 843072e）
-- [ ] フェーズ 2 設計レビュー: Scheduler トレイト定義と既存テストの影響調査。
+- [ ] フェーズ 2 設計レビュー: Scheduler トレイト定義と既存テストの影響調査（MailboxBuilder 化の設計含む）。
 - [ ] フェーズ 3 要件整理: Timeout・EventListener 等の利用箇所棚卸し。
 - [ ] ドキュメント更新: README / ワークノートに新しい実行モデルのガイドを追記。
 
@@ -48,7 +49,7 @@
   - `trait Scheduler`: `spawn`, `tick`, `notify_ready`, `shutdown` を定義。protoactor-go の `Scheduler` を参考にし、タスク駆動 + コールバック登録型。
   - `SchedulerContext`: Mailbox とは無関係に Actor の ID・優先度・工場関数を受け渡す軽量 DTO を想定。
 - **PriorityScheduler のリファクタリング方針**
-  - 既存の `PriorityScheduler` は `MailboxFactory` に直接アクセスしているため、`MailboxBuilder`（Factory 的責務）と `MailboxHandle`（Scheduler から利用する操作）に分割する。
+- 既存の `PriorityScheduler` は `MailboxFactory` に直接アクセスしているため、`MailboxBuilder`（Factory 的責務）と `MailboxHandle`（Scheduler から利用する操作）に分割する。
   - 優先度キュー (`binaryheap`) と `tokio::task::JoinHandle` の管理は Scheduler 内に閉じ込める。
   - `#[cfg(feature = "embedded")]` では `heapless::binary_heap` + `embassy_executor::Spawner` ベースの実装を用意する。
 - **バックプレッシャーと計測の差し込みポイント**

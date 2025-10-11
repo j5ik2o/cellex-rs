@@ -93,8 +93,8 @@ mod tests {
   use super::*;
   use cellex_actor_core_rs::MailboxOptions;
   use cellex_actor_core_rs::{
-    actor_loop, ActorId, ActorSystem, Context, Extensions, MapSystemShared, NoopSupervisor, Props, Spawn, StateCell,
-    SystemMessage,
+    actor_loop, ActorId, ActorRuntimeBundle, ActorSystem, Context, Extensions, MapSystemShared, NoopSupervisor, Props,
+    Spawn, StateCell, SystemMessage,
   };
   use cellex_utils_std_rs::Element;
   use core::time::Duration;
@@ -217,8 +217,8 @@ mod tests {
 
   #[tokio::test]
   async fn tokio_scheduler_builder_dispatches() {
-    let factory = TokioMailboxFactory;
-    let mut scheduler = tokio_scheduler_builder().build(factory, Extensions::new());
+    let runtime = ActorRuntimeBundle::new(TokioMailboxFactory);
+    let mut scheduler = tokio_scheduler_builder().build(runtime, Extensions::new());
 
     let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
     let log_clone = log.clone();

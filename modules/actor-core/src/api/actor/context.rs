@@ -30,11 +30,15 @@ use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use super::{
   ask::create_ask_handles, ask_with_timeout, ActorRef, AskError, AskFuture, AskResult, AskTimeoutFuture, Props,
 };
+use super::system::ActorRuntimeBundle;
 use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
+
+type RuntimeParam<R> = ActorRuntimeBundle<R>;
 
 /// Typed actor execution context wrapper.
 /// 'r: lifetime of the mutable reference to ActorContext
 /// 'ctx: lifetime parameter of ActorContext itself
+
 pub struct Context<'r, 'ctx, U, R>
 where
   U: Element,
@@ -42,7 +46,7 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
-  inner: &'r mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>>,
+  inner: &'r mut ActorContext<'ctx, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>>,
   metadata: Option<MessageMetadata<R::Concurrency>>,
   extensions: Extensions,
   _marker: PhantomData<U>,
@@ -187,7 +191,9 @@ where
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
 {
-  pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>>) -> Self {
+  pub(super) fn new(
+    inner: &'r mut ActorContext<'ctx, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>>,
+  ) -> Self {
     let extensions = inner.extensions();
     Self {
       inner,
@@ -206,7 +212,7 @@ where
   }
 
   pub(super) fn with_metadata(
-    inner: &'r mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>>,
+    inner: &'r mut ActorContext<'ctx, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>>,
     metadata: MessageMetadata<R::Concurrency>,
   ) -> Self {
     let extensions = inner.extensions();
@@ -358,7 +364,7 @@ where
   ///
   /// # Returns
   /// Mutable reference to the internal `ActorContext`
-  pub fn inner(&mut self) -> &mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>> {
+  pub fn inner(&mut self) -> &mut ActorContext<'ctx, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>> {
     self.inner
   }
 

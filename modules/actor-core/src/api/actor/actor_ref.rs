@@ -7,6 +7,9 @@ use core::future::Future;
 use core::marker::PhantomData;
 
 use super::{ask::create_ask_handles, ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
+use super::system::ActorRuntimeBundle;
+
+type RuntimeParam<R> = ActorRuntimeBundle<R>;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 
 /// Typed actor reference.
@@ -21,7 +24,7 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
-  inner: InternalActorRef<DynMessage, R>,
+  inner: InternalActorRef<DynMessage, RuntimeParam<R>>,
   _marker: PhantomData<U>,
 }
 
@@ -37,7 +40,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Internal actor reference
-  pub(crate) fn new(inner: InternalActorRef<DynMessage, R>) -> Self {
+  pub(crate) fn new(inner: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self {
     Self {
       inner,
       _marker: PhantomData,

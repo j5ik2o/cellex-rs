@@ -15,13 +15,17 @@ use cellex_utils_core_rs::Element;
 
 use super::behavior::SupervisorStrategyConfig;
 use super::{ActorAdapter, Behavior, Context};
+use super::system::ActorRuntimeBundle;
 use crate::api::MessageEnvelope;
 use core::cell::RefCell;
 use core::marker::PhantomData;
 
+type RuntimeParam<R> = ActorRuntimeBundle<R>;
+
 /// Properties that hold configuration for actor spawning.
 ///
 /// Includes actor behavior, mailbox settings, supervisor strategy, and more.
+
 pub struct Props<U, R>
 where
   U: Element,
@@ -29,7 +33,7 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
-  inner: InternalProps<DynMessage, R>,
+  inner: InternalProps<DynMessage, RuntimeParam<R>>,
   _marker: PhantomData<U>,
   supervisor: SupervisorStrategyConfig,
 }
@@ -121,7 +125,8 @@ where
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();
 
-    let handler = move |ctx: &mut ActorContext<'_, DynMessage, R, dyn Supervisor<DynMessage>>, message: DynMessage| {
+    let handler =
+      move |ctx: &mut ActorContext<'_, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>>, message: DynMessage| {
       let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
         panic!("unexpected message type delivered to typed handler");
       };
@@ -153,7 +158,7 @@ where
   ///
   /// # Returns
   /// Tuple of `(InternalProps, SupervisorStrategyConfig)`
-  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, R>, SupervisorStrategyConfig) {
+  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, RuntimeParam<R>>, SupervisorStrategyConfig) {
     (self.inner, self.supervisor)
   }
 }

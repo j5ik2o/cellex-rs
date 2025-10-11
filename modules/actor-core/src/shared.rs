@@ -2,9 +2,11 @@
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
+use alloc::boxed::Box;
 use core::ops::Deref;
 
-use crate::runtime::scheduler::ReceiveTimeoutSchedulerFactory;
+use crate::api::actor::ActorRuntimeBundle;
+use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
 use crate::{FailureEvent, FailureInfo, MailboxFactory, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Element;
@@ -107,6 +109,18 @@ where
   pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>> {
     self.inner
   }
+
+  /// Adapts the factory to operate with [`ActorRuntimeBundle`] as the runtime type.
+  pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, ActorRuntimeBundle<R>>
+  where
+    R: MailboxFactory + Clone + 'static,
+    R::Queue<PriorityEnvelope<M>>: Clone,
+    R::Signal: Clone,
+    R::Producer<PriorityEnvelope<M>>: Clone, {
+    ReceiveTimeoutFactoryShared::from_shared(ArcShared::from_arc(Arc::new(ReceiveTimeoutFactoryAdapter {
+      inner: self.inner.clone(),
+    })))
+  }
 }
 
 impl<M, R> Clone for ReceiveTimeoutFactoryShared<M, R> {
@@ -122,6 +136,33 @@ impl<M, R> Deref for ReceiveTimeoutFactoryShared<M, R> {
 
   fn deref(&self) -> &Self::Target {
     &*self.inner
+  }
+}
+
+struct ReceiveTimeoutFactoryAdapter<M, R>
+where
+  M: Element + 'static,
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone, {
+  inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>,
+}
+
+impl<M, R> ReceiveTimeoutSchedulerFactory<M, ActorRuntimeBundle<R>> for ReceiveTimeoutFactoryAdapter<M, R>
+where
+  M: Element + 'static,
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone,
+{
+  fn create(
+    &self,
+    sender: <ActorRuntimeBundle<R> as MailboxFactory>::Producer<PriorityEnvelope<M>>,
+    map_system: MapSystemShared<M>,
+  ) -> Box<dyn ReceiveTimeoutScheduler> {
+    self.inner.create(sender, map_system)
   }
 }
 
