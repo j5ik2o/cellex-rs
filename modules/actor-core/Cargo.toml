@@ -20,6 +20,7 @@ std = [
   "dep:cellex-serialization-json-rs",
   "dep:cellex-serialization-prost-rs",
 ]
+postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
 
 [dependencies]
@@ -27,6 +28,7 @@ cellex-utils-core-rs = { path = "../utils-core", default-features = false, featu
 cellex-serialization-core-rs = { path = "../serialization-core", default-features = false, features = ["alloc"] }
 cellex-serialization-json-rs = { path = "../serialization-json", optional = true }
 cellex-serialization-prost-rs = { path = "../serialization-prost", optional = true }
+cellex-serialization-postcard-rs = { path = "../serialization-postcard", optional = true }
 tracing = { version = "0.1", default-features = false, features = ["std"], optional = true }
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
 spin = { version = "0.9", default-features = false, features = ["mutex", "spin_mutex", "once", "portable_atomic", "rwlock"] }

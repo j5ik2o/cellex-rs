@@ -12,6 +12,7 @@ members = [
   "modules/serialization-core",
   "modules/serialization-json",
   "modules/serialization-prost",
+  "modules/serialization-postcard",
   "platform-tests/rp2040-hw-tests",
   "platform-tests/rp2350-hw-tests",
   "platform-tests/wio-terminal-hw-tests"
@@ -36,3 +37,4 @@ tonic-types = "0.14.0"
 tracing = "0.1"
 regex = "1.11.0"
 parking_lot = "0.12"
+postcard = { version = "1.0.2", default-features = false, features = ["alloc"] }
