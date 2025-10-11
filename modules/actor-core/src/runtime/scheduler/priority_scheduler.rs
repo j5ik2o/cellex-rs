@@ -14,9 +14,9 @@ use crate::FailureInfo;
 use crate::Supervisor;
 use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
+use cellex_utils_core_rs::{Element, QueueError};
 use futures::future::select_all;
 use futures::FutureExt;
-use cellex_utils_core_rs::{Element, QueueError};
 
 use super::actor_cell::ActorCell;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};

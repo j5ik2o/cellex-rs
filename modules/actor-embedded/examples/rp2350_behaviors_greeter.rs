@@ -29,13 +29,13 @@ use rp235x_hal::{self as hal, clocks::init_clocks_and_plls, gpio::PinState, pac,
 use hal::entry;
 
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_embedded_rs::ArcMailboxFactory;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_utils_embedded_rs::{ArcCsStateCell, Element, StateCell};
+#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 
 #[derive(Clone, Copy, Debug)]
 enum Command {

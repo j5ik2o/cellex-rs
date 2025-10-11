@@ -15,10 +15,10 @@ use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 use alloc::{boxed::Box, string::String};
+use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use core::future::Future;
 use core::marker::PhantomData;
 use core::time::Duration;
-use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 
 #[cfg(target_has_atomic = "ptr")]
 type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;

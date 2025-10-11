@@ -76,8 +76,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use core::time::Duration;
 use cellex_utils_core_rs::QueueError;
+use core::time::Duration;
 
 mod api;
 #[cfg(feature = "alloc")]
@@ -151,13 +151,13 @@ mod tests {
 
   use super::*;
   use alloc::rc::Rc;
+  use cellex_utils_core_rs::{MpscBuffer, MpscHandle, MpscQueue, QueueError, RingBufferBackend, Shared, StateCell};
   use core::cell::{Ref, RefCell, RefMut};
   use core::fmt;
   use core::future::Future;
   use core::pin::Pin;
   use core::ptr;
   use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-  use cellex_utils_core_rs::{MpscBuffer, MpscHandle, MpscQueue, QueueError, RingBufferBackend, Shared, StateCell};
 
   struct TestStateCell<T>(Rc<RefCell<T>>);
 

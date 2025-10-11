@@ -17,12 +17,12 @@ use alloc::rc::Rc;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use core::cell::Cell;
 use core::cell::RefCell;
 #[cfg(feature = "std")]
 use futures::executor::block_on;
-use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]

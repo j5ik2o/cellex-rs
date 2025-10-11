@@ -64,8 +64,8 @@ mod timer;
 mod tokio_mailbox;
 mod tokio_priority_mailbox;
 
-pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
 pub use cellex_utils_std_rs::{ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn};
+pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
 pub use receive_timeout::TokioReceiveTimeoutSchedulerFactory;
 pub use runtime_driver::TokioSystemHandle;
 pub use spawn::TokioSpawner;
@@ -89,9 +89,9 @@ pub mod prelude {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use core::time::Duration;
   use cellex_actor_core_rs::MailboxOptions;
   use cellex_actor_core_rs::{actor_loop, ActorSystem, Context, Props, Spawn, StateCell, SystemMessage};
+  use core::time::Duration;
   use std::sync::{Arc, Mutex};
 
   async fn run_test_actor_loop_updates_state() {

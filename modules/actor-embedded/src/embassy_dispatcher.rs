@@ -1,8 +1,8 @@
 #![cfg(feature = "embassy_executor")]
 
-use embassy_executor::Spawner;
 use cellex_actor_core_rs::{ActorSystem, GuardianStrategy, MailboxFactory, PriorityEnvelope};
 use cellex_utils_embedded_rs::Element;
+use embassy_executor::Spawner;
 
 /// Helper to register `ActorSystem::run_forever` with Embassy's `Spawner`.
 ///

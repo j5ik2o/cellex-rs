@@ -10,9 +10,9 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 
 use crate::MapSystemShared;
+use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;
-use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 
 #[cfg(feature = "std")]
 #[derive(Debug, Clone)]

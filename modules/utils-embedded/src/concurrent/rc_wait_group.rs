@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 
+use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::signal::Signal;
-use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
 
 /// Backend for `Rc`-based wait group implementation.
 ///

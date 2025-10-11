@@ -1,9 +1,9 @@
 use crate::sync::{ArcShared, ArcStateCell};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
 use cellex_utils_core_rs::{
   Element, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
   RingBufferBackend,
 };
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
 
 /// `Arc`-based bounded MPSC queue with configurable mutex backend
 ///

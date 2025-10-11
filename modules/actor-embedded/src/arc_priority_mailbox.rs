@@ -365,9 +365,9 @@ where
 #[cfg(test)]
 mod tests {
   use super::*;
+  use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
   use core::sync::atomic::{AtomicBool, Ordering};
   use critical_section::{Impl, RawRestoreState};
-  use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
 
   fn prepare() {
     init_critical_section();

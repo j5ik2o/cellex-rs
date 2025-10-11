@@ -1,7 +1,7 @@
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
 use cellex_utils_core_rs::{
   QueueSize, Stack, StackBase, StackBuffer, StackError, StackMut, StackStorage, StackStorageBackend, StateCell,
 };
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
 
 use crate::sync::{ArcShared, ArcStateCell};
 

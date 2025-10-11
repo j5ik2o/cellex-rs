@@ -1,9 +1,9 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
-  use core::sync::atomic::{AtomicU32, Ordering};
-  use embassy_executor::Executor;
   use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
   use cellex_actor_embedded_rs::{spawn_embassy_dispatcher, LocalMailboxFactory};
+  use core::sync::atomic::{AtomicU32, Ordering};
+  use embassy_executor::Executor;
   use static_cell::StaticCell;
 
   static EXECUTOR: StaticCell<Executor> = StaticCell::new();

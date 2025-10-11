@@ -8,10 +8,10 @@ use crate::runtime::mailbox::traits::{MailboxConcurrency, ThreadSafe};
 use crate::runtime::message::{discard_metadata, store_metadata, DynMessage, MetadataKey, MetadataStorageMode};
 use crate::SystemMessage;
 use crate::{MailboxFactory, PriorityEnvelope, RuntimeBound};
-use core::marker::PhantomData;
-use core::mem::{forget, ManuallyDrop};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
+use core::marker::PhantomData;
+use core::mem::{forget, ManuallyDrop};
 
 #[cfg(target_has_atomic = "ptr")]
 type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;

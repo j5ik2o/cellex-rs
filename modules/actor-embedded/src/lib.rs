@@ -70,13 +70,13 @@ mod timer;
 pub use arc_mailbox::{ArcMailbox, ArcMailboxFactory, ArcMailboxSender};
 #[cfg(feature = "embedded_arc")]
 pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxFactory, ArcPriorityMailboxSender};
-#[cfg(feature = "embassy_executor")]
-pub use embassy_dispatcher::spawn_embassy_dispatcher;
-pub use local_mailbox::{LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
 #[cfg(feature = "embedded_arc")]
 pub use cellex_utils_embedded_rs::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
 #[cfg(feature = "embedded_rc")]
 pub use cellex_utils_embedded_rs::{RcShared, RcStateCell};
+#[cfg(feature = "embassy_executor")]
+pub use embassy_dispatcher::spawn_embassy_dispatcher;
+pub use local_mailbox::{LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
 pub use runtime_driver::EmbeddedFailureEventHub;
 pub use spawn::ImmediateSpawner;
 pub use timer::ImmediateTimer;
@@ -100,12 +100,12 @@ mod tests {
   use super::LocalMailboxFactory;
   use alloc::rc::Rc;
   use alloc::vec::Vec;
+  use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
   use core::cell::RefCell;
   use core::future::Future;
   use core::pin::Pin;
   use core::task::{Context, Poll};
   use futures::task::{waker, ArcWake};
-  use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
   use std::sync::{Arc, Condvar, Mutex};
 
   fn block_on<F: Future>(mut future: F) -> F::Output {
