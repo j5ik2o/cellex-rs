@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
-use crate::{Extensions, FailureEventListener, MailboxFactory, PriorityEnvelope};
+use crate::{Extensions, FailureEventHandler, FailureEventListener, MailboxFactory, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
@@ -21,6 +21,8 @@ where
   R::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
   pub(crate) root_event_listener: Option<FailureEventListener>,
+  /// Escalation handler invoked when failures bubble to the root guardian.
+  pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
   pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
   /// Shared registry of actor system extensions.
@@ -37,6 +39,7 @@ where
   fn default() -> Self {
     Self {
       root_event_listener: None,
+      root_escalation_handler: None,
       receive_timeout_factory: None,
       extensions: Extensions::new(),
     }
@@ -79,11 +82,13 @@ where
   ) -> Self {
     let InternalActorSystemSettings {
       root_event_listener,
+      root_escalation_handler,
       receive_timeout_factory,
       extensions,
     } = settings;
     let mut scheduler = scheduler_builder.build(mailbox_factory, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
+    scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_receive_timeout_factory(receive_timeout_factory);
     Self {
       scheduler,

@@ -6,8 +6,8 @@ use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
 use core::marker::PhantomData;
 
-use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 use super::system::ActorRuntimeBundle;
+use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 
 type RuntimeParam<R> = ActorRuntimeBundle<R>;
 

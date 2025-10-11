@@ -27,10 +27,10 @@ type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
 type AdapterFn<Ext, U> = dyn Fn(Ext) -> U;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 
+use super::system::ActorRuntimeBundle;
 use super::{
   ask::create_ask_handles, ask_with_timeout, ActorRef, AskError, AskFuture, AskResult, AskTimeoutFuture, Props,
 };
-use super::system::ActorRuntimeBundle;
 use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
 
 type RuntimeParam<R> = ActorRuntimeBundle<R>;

@@ -3,12 +3,12 @@ use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 
+use crate::api::actor::ActorRuntimeBundle;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::mailbox::traits::{MailboxConcurrency, ThreadSafe};
 use crate::runtime::message::{discard_metadata, store_metadata, DynMessage, MetadataKey, MetadataStorageMode};
 use crate::SystemMessage;
 use crate::{MailboxFactory, PriorityEnvelope, RuntimeBound};
-use crate::api::actor::ActorRuntimeBundle;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::marker::PhantomData;

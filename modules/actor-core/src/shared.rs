@@ -1,8 +1,8 @@
+use alloc::boxed::Box;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use alloc::boxed::Box;
 use core::ops::Deref;
 
 use crate::api::actor::ActorRuntimeBundle;

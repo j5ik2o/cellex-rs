@@ -1,5 +1,6 @@
 mod messages;
 mod queue_mailbox;
+pub mod spawner;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
 #[cfg(test)]
@@ -10,4 +11,5 @@ pub mod traits;
 pub use messages::PriorityChannel;
 pub use messages::{PriorityEnvelope, SystemMessage};
 pub use queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv};
+pub use spawner::PriorityMailboxSpawnerHandle;
 pub use traits::{Mailbox, MailboxFactory, MailboxPair, MailboxSignal};

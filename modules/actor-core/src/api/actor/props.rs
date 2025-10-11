@@ -14,8 +14,8 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
 use super::behavior::SupervisorStrategyConfig;
-use super::{ActorAdapter, Behavior, Context};
 use super::system::ActorRuntimeBundle;
+use super::{ActorAdapter, Behavior, Context};
 use crate::api::MessageEnvelope;
 use core::cell::RefCell;
 use core::marker::PhantomData;
@@ -125,8 +125,8 @@ where
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();
 
-    let handler =
-      move |ctx: &mut ActorContext<'_, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>>, message: DynMessage| {
+    let handler = move |ctx: &mut ActorContext<'_, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>>,
+                        message: DynMessage| {
       let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
         panic!("unexpected message type delivered to typed handler");
       };

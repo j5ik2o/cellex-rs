@@ -13,8 +13,8 @@ use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{
-  Extension, ExtensionId, Extensions, FailureEventListener, FailureEventStream, MailboxFactory, PriorityEnvelope,
-  SerializerRegistryExtension,
+  Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener, FailureEventStream, MailboxFactory,
+  PriorityEnvelope, SerializerRegistryExtension,
 };
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
@@ -48,6 +48,9 @@ where
   R::Signal: Clone, {
   mailbox_factory: ArcShared<R>,
   scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
+  receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>>,
+  root_event_listener: Option<FailureEventListener>,
+  root_escalation_handler: Option<FailureEventHandler>,
 }
 
 impl<R> ActorRuntimeBundle<R>
@@ -62,6 +65,9 @@ where
     Self {
       mailbox_factory: ArcShared::new(mailbox_factory),
       scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, ActorRuntimeBundle<R>>::priority()),
+      receive_timeout_factory: None,
+      root_event_listener: None,
+      root_escalation_handler: None,
     }
   }
 
@@ -84,6 +90,55 @@ where
   #[must_use]
   pub fn mailbox_factory_shared(&self) -> ArcShared<R> {
     self.mailbox_factory.clone()
+  }
+
+  /// Returns the receive-timeout factory configured for this bundle.
+  #[must_use]
+  pub fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>> {
+    self.receive_timeout_factory.clone()
+  }
+
+  /// Sets the receive-timeout factory using the base mailbox factory type.
+  #[must_use]
+  pub fn with_receive_timeout_factory(mut self, factory: ReceiveTimeoutFactoryShared<DynMessage, R>) -> Self {
+    self.receive_timeout_factory = Some(factory.for_runtime_bundle());
+    self
+  }
+
+  /// Sets the receive-timeout factory using a bundle-ready factory.
+  #[must_use]
+  pub fn with_receive_timeout_factory_shared(
+    mut self,
+    factory: ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>,
+  ) -> Self {
+    self.receive_timeout_factory = Some(factory);
+    self
+  }
+
+  /// Returns the root failure event listener configured for the bundle.
+  #[must_use]
+  pub fn root_event_listener(&self) -> Option<FailureEventListener> {
+    self.root_event_listener.clone()
+  }
+
+  /// Overrides the root failure event listener.
+  #[must_use]
+  pub fn with_root_event_listener(mut self, listener: Option<FailureEventListener>) -> Self {
+    self.root_event_listener = listener;
+    self
+  }
+
+  /// Returns the root escalation handler configured for the bundle.
+  #[must_use]
+  pub fn root_escalation_handler(&self) -> Option<FailureEventHandler> {
+    self.root_escalation_handler.clone()
+  }
+
+  /// Overrides the root escalation handler.
+  #[must_use]
+  pub fn with_root_escalation_handler(mut self, handler: Option<FailureEventHandler>) -> Self {
+    self.root_escalation_handler = handler;
+    self
   }
 
   /// Overrides the scheduler builder used when constructing the actor system.
@@ -282,6 +337,9 @@ where
 
   /// Creates a new actor system with a runtime bundle and configuration.
   pub fn new_with_runtime(runtime: ActorRuntimeBundle<R>, config: ActorSystemConfig<R>) -> Self {
+    let bundle_receive_timeout = runtime.receive_timeout_factory();
+    let bundle_root_listener = runtime.root_event_listener();
+    let bundle_root_handler = runtime.root_escalation_handler();
     let extensions_handle = config.extensions();
     if extensions_handle.get(serializer_extension_id()).is_none() {
       let extension = ArcShared::new(SerializerRegistryExtension::new());
@@ -290,9 +348,12 @@ where
     let extensions = extensions_handle.clone();
     let receive_timeout_factory = config
       .receive_timeout_factory()
-      .map(|factory| factory.for_runtime_bundle());
+      .map(|factory| factory.for_runtime_bundle())
+      .or(bundle_receive_timeout);
+    let root_event_listener = config.failure_event_listener().or(bundle_root_listener);
     let settings = InternalActorSystemSettings {
-      root_event_listener: config.failure_event_listener(),
+      root_event_listener,
+      root_escalation_handler: bundle_root_handler,
       receive_timeout_factory,
       extensions: extensions.clone(),
     };
