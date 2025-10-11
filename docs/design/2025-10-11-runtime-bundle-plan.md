@@ -12,12 +12,12 @@
 
 ## フェーズ別計画
 
-### フェーズ 1: ランタイムバンドルの導入
-- `ActorSystem::new(runtime: ActorRuntimeBundle)` のようにラップ構造体で受け取る。
-- 現段階では `mailbox_factory` のみ保持し、既存呼び出しと互換性を維持する。
-- バンドル構造体は `Default` 実装を持たせ、プラットフォームごとにビルダーを用意する（Tokio / Embassy / Local など）。
+### フェーズ 1: ランタイムバンドルの導入 ✅
+- `ActorSystem::new(runtime: ActorRuntimeBundle)` と同等の構造体を導入済み。
+- 現状は `mailbox_factory` のみ保持し、互換 API (`ActorSystem::new(mailbox_factory)`) と併用可能。
+- コード位置: `modules/actor-core/src/api/actor/system.rs`
 
-### フェーズ 2: Scheduler 抽象の切り出し
+### フェーズ 2: Scheduler 抽象の切り出し（進行中）
 - `Scheduler` トレイト（spawn_actor / dispatch_next / run_forever）を定義し、`PriorityScheduler` を実装として登録。
 - `ActorRuntimeBundle` に `scheduler: Arc<dyn Scheduler>` を格納し、MailboxFactory とは独立に差し替えられるようにする。
 - MailboxFactory 側は必要な最小限のインターフェース（Queue / Signal）へ整理し、Scheduler からの依存を縮小する。
@@ -28,7 +28,7 @@
 - `ActorSystemBuilder` を導入し、アプリケーション側が個別コンポーネントを上書きできる設定 API を提供する。
 
 ## マイルストーン / TODO
-- [ ] フェーズ 1 実装: `ActorRuntimeBundle` 追加、既存 API の 移行。
+- [x] フェーズ 1 実装: `ActorRuntimeBundle` 追加、既存 API の 移行。（commit 7aea9d0, 843072e）
 - [ ] フェーズ 2 設計レビュー: Scheduler トレイト定義と既存テストの影響調査。
 - [ ] フェーズ 3 要件整理: Timeout・EventListener 等の利用箇所棚卸し。
 - [ ] ドキュメント更新: README / ワークノートに新しい実行モデルのガイドを追記。
