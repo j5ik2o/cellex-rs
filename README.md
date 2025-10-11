@@ -1,72 +1,149 @@
 # cellex-rs
 
 [![ci](https://github.com/j5ik2o/cellex-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/j5ik2o/cellex-rs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/nexus-actor-core-rs.svg)](https://crates.io/crates/nexus-actor-core-rs)
-[![docs.rs](https://docs.rs/nexus-actor-core-rs/badge.svg)](https://docs.rs/nexus-actor-core-rs)
+[![crates.io](https://img.shields.io/crates/v/cellex-actor-core-rs.svg)](https://crates.io/crates/cellex-actor-core-rs)
+[![docs.rs](https://docs.rs/cellex-actor-core-rs/badge.svg)](https://docs.rs/cellex-actor-core-rs)
 [![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
 [![dependency status](https://deps.rs/repo/github/j5ik2o/cellex-rs/status.svg)](https://deps.rs/repo/github/j5ik2o/cellex-rs)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![License](https://img.shields.io/badge/License-APACHE2.0-blue.svg)](https://opensource.org/licenses/apache-2-0)
 [![](https://tokei.rs/b1/github/j5ik2o/cellex-rs)](https://github.com/XAMPPRocky/tokei)
 
-`cellex-rs` embodies the essence of the Actor Model, cleverly combining "Nexus" (connection, linkage, or center) with "actor" and the Rust programming language suffix "rs". This name represents the core principles of our project for the following reasons:
+> Typed, async-first actor runtime families for Rust — designed to scale from embedded MCUs to distributed clusters.
 
-- Connection and Interaction: Nexus symbolizes the central point where various elements connect, reflecting the communication and interaction concepts in the Actor Model. The "actor" part emphasizes the active nature of these connections.
-- Distribution and Integration: It illustrates how the distributed elements (Actors) of a system are interconnected, forming a cohesive whole. The "rs" suffix directly indicates the project's implementation in Rust, known for its focus on safe concurrency.
-- Flexibility and Resilience: Nexus suggests a dynamically formed connection point, implying the system's flexibility and resilience. The straightforward structure of "actor-rs" reflects this clarity in its very name.
-- Abstract yet Tangible Concept: While Nexus represents the essential structure and behavior of the system, "actor-rs" grounds it in the concrete implementation of actors in Rust.
-- Multifaceted Meaning: cellex-rs comprehensively expresses the diverse aspects of the Actor Model—computation, communication, structure, and interaction—while also clearly indicating the project's technical foundation.
+For the Japanese edition of this document, see `README.ja.md`.
 
-`cellex-rs` integrates the core characteristics of the Actor Model—distribution, interaction, modularity, and resilience—into a single, memorable concept. It represents not just the essence of the system's structure and behavior, but also embodies the practical spirit of the Rust community.
-This name serves as a nexus itself, connecting the theoretical underpinnings of the Actor Model with the practical implementation in Rust, all while clearly communicating its purpose and technology stack.
+## Table of Contents
+- [At a Glance](#at-a-glance)
+- [Quick Start](#quick-start)
+- [Core Capabilities](#core-capabilities)
+- [Architecture Overview](#architecture-overview)
+- [Development Workflow](#development-workflow)
+- [Name & Concept](#name--concept)
+- [Project Status](#project-status)
+- [Further Reading](#further-reading)
+- [License](#license)
 
----
+## At a Glance
 
-## Installation
+| Theme | Details |
+| --- | --- |
+| Typed behaviours | `Behavior<U, R>` DSL with Akka/Pekko-like semantics, `Context<'_, '_, U, R>` for scoped access, and `ActorRef<U, R>` for type-safe messaging |
+| Runtime portability | Works on `std`, `no_std + alloc`, Tokio, Embassy, and RP2040/RP2350-class MCUs |
+| Supervision & resiliency | Guardian hierarchies, restart/resume/stop directives, escalation sinks, and watch/unwatch notifications |
+| Scheduling | Priority-aware mailboxes, async `dispatch_next` / `run_until` APIs, and blocking loops for bare-metal hosts |
+| Ecosystem | Core runtime (`actor-core`), Tokio adapters (`actor-std`), embedded adapters (`actor-embedded`), cluster/remote modules, and shared utilities |
 
-To add `nexus-actor-core-rs` to your project, follow these steps:
+## Quick Start
 
-1. Open your `Cargo.toml` file.
+### Requirements
+- Rust stable toolchain (see `rust-toolchain.toml`)
+- `cargo` and `rustup`
+- Optional: `tokio` for host runtimes, `embassy-executor` for MCU targets
 
-2. Add the following line to the `[dependencies]` section:
-
-```toml
-nexus-actor-core-rs = "${version}"
-```
-
-Specify the version number in ${version}, for example 0.0.1.
-
-3. If you want to use the latest version, you can check it by running:
+### Install the crates
 
 ```shell
-cargo search nexus-actor-core-rs
+cargo add cellex-actor-core-rs
+# For Tokio-based hosts
+cargo add cellex-actor-std-rs --features rt-multi-thread
 ```
 
-4. To update the dependencies, run the following command in your project's root directory:
+### Minimal typed example (Tokio)
+
+```rust
+use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
+use cellex_actor_std_rs::TokioMailboxFactory;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+  let mut system: ActorSystem<u32, _> = ActorSystem::new(TokioMailboxFactory);
+  let mut root = system.root_context();
+
+  let props = Props::with_behavior(MailboxOptions::default(), || {
+    Behaviors::receive(|_ctx, value: u32| {
+      println!("received: {value}");
+      Behaviors::same()
+    })
+  });
+
+  let actor = root.spawn(props)?;
+  actor.tell(42)?;
+  root.dispatch_next().await?; // process one envelope
+
+  Ok(())
+}
+```
+
+### Cross-checks for embedded builds
 
 ```shell
-cargo update
+# RP2040 (thumbv6m)
+cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi
+# RP2350-class (thumbv8m.main)
+cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 ```
 
-Now `cellex-rs` is installed and ready to use in your project.
+## Core Capabilities
 
-Note: As versions may be updated regularly, it's recommended to check for the latest version.
+- **Typed Actor DSL** — `Behavior`, `BehaviorDirective`, and `Props` help model actor lifecycles with pure functions.
+- **Priority Mailboxes** — system envelopes and user envelopes share a mailbox while honouring control-message priority.
+- **Supervision Hierarchy** — guardians manage child actors, watchers, and escalation pathways with pluggable strategies.
+- **Async Scheduling** — `run_until`, `run_forever`, and blocking loops cover async runtimes, cooperative loops, and MCU main threads.
+- **Shared Abstractions** — `MapSystemShared`, `ReceiveTimeoutFactoryShared`, and `ArcShared` enable lock-aware sharing across std/embedded builds.
+- **Extensibility** — extensions registry, failure event hub, and remote/cluster modules prepare cellex for distributed deployments.
 
-## Developer Resources
+## Architecture Overview
 
-- [Typed Context / PID ガイドライン](docs/sources/cellex-rs/docs/typed_context_guidelines.md): ライフタイム指向設計に合わせた `ContextHandle` / `ActorContext` の扱い方や、弱参照化ポリシーをまとめています。開発時はこちらを参照してください。
-- [Dispatcher Runtime ポリシー](docs/sources/cellex-rs/docs/dispatcher_runtime_policy.md): `SingleWorkerDispatcher` など Runtime を内包する dispatcher 実装の shutdown 手順と運用上の注意点を整理しています。
-- [ベンチマークダッシュボード](https://j5ik2o.github.io/cellex-rs/bench_dashboard.html): GitHub Pages 上で週次ベンチのトレンドを確認できます。履歴 CSV は `benchmarks/history/bench_history.csv` に公開されています。
-- [ActorContext ロック計測レポート](docs/sources/cellex-rs/docs/benchmarks/tracing_actor_context.md): tokio-console/tracing を用いた ActorContext 周辺のロック待ち分析とホットスポットのまとめです。
-- [ReceiveTimeout DelayQueue PoC](docs/sources/cellex-rs/docs/benchmarks/receive_timeout_delayqueue.md): DelayQueue を用いた receive timeout の再アーム性能ベースラインと PoC コードの解説です。
-- [Actor トレイト統一リリースノート](docs/sources/cellex-rs/docs/releases/2025-09-26-actor-trait-unification.md): BaseActor 廃止と `ActorSpawnerExt` 追加に関する移行ガイドです。
-- [レガシーサンプル一覧](docs/sources/cellex-rs/docs/legacy_examples.md): 互換性維持のため `modules/actor-core/examples/legacy/` に隔離した旧サンプルの一覧です。
-- [Tokio 向けディスパッチループ例](docs/worknotes/2025-10-07-tokio-dispatcher.md): `run_until`/`run_forever` を活用した常駐タスクの起動方法と実行例。
-- [Embassy ブリッジメモ](docs/worknotes/2025-10-07-embassy-dispatcher.md): `spawn_embassy_dispatcher` で Embassy executor へ統合する手順。
-- `modules/actor-embedded/examples/embassy_run_forever.rs`: Embassy executor 上で `TypedActorSystem` を常駐させる最小サンプル。
-- [dispatch_all 非推奨ガイド](docs/design/2025-10-07-dispatch-transition.md): `dispatch_next` ベースへの移行ステップと TODO を整理しています。
+| Path | What lives here |
+| --- | --- |
+| `modules/actor-core` | Core typed runtime, behaviours, scheduler, guardians, and mailbox infrastructure |
+| `modules/actor-std` | Tokio-based mailbox factories, runtime drivers, and host integrations |
+| `modules/actor-embedded` | `no_std + alloc` adapters, Embassy dispatcher helpers, MCU examples |
+| `modules/remote-core` / `remote-std` | gRPC transport, remote endpoint supervision |
+| `modules/cluster-core` | Gossip-based membership and sharding primitives |
+| `modules/utils-*` | Shared utilities (`ArcShared`, queues, alloc-aware helpers) |
+| `docs/design` | Current design notes and transition plans (dispatch, typed DSL, mailbox split, etc.) |
+| `docs/worknotes` | Engineering notes and how-to guides (Tokio/Embassy drivers, roadmap fragments) |
 
-## 最近の API 更新 (2025-10-07)
+## Development Workflow
 
-- `QueueMailbox::recv` は `Result<M, QueueError<M>>` を返すようになりました。`Ok` 以外が返った場合は閉鎖・切断を意味するため、`match` で明示的に停止処理を入れてください。
-- `PriorityScheduler::dispatch_all` は非推奨です。`dispatch_next` / `run_until` / `run_forever` を利用してください。詳細は「dispatch_all 非推奨ガイド」を参照。
+| Purpose | Command |
+| --- | --- |
+| Format | `cargo +nightly fmt` or `makers fmt` |
+| Lint | `cargo clippy --workspace --all-targets` |
+| Test (host) | `cargo test --workspace` |
+| Coverage | `cargo make coverage` or `./coverage.sh` |
+| Cross-check (RP2040/RP2350) | see [Quick Start](#quick-start) |
+
+## Name & Concept
+
+- **Etymology:** `cellex = cell + ex`. `cell` reflects autonomous actors; `ex` (Latin: *outward*, *beyond*, *exchange*) highlights communication across clear boundaries.
+- **Meaning layers:**
+  1. *Cell Exchange* — message passing mirrors substance exchange across cell membranes.
+  2. *Cell Execute* — actors run in parallel, self-directed like cells in a living organism.
+  3. *Cell Exceed* — cooperation among actors produces emergent behaviour beyond individual components.
+- **Aesthetics:** pronounce it `cel-lex`. The familiar “cel” plus the energetic “lex” (echoing Latin *rex*) underline approachability and resilience.
+- **Project mantra:** “Like cells in a living organism, each actor in cellex operates independently yet communicates seamlessly, creating emergent intelligence through distributed coordination.”
+
+## Project Status
+
+- `QueueMailbox::recv` returns `Result<M, QueueError<M>>`; handle non-`Ok` as mailbox closure/disconnect signals.
+- `PriorityScheduler::dispatch_all` is deprecated. Prefer `dispatch_next`, `run_until`, or `run_forever` per [dispatch transition guide](docs/design/2025-10-07-dispatch-transition.md).
+- Typed DSL is available; upcoming work focuses on richer `map_system` adapters and typed system-event enums (see [Typed DSL MUST guide](docs/worknotes/2025-10-08-typed-dsl-claude-must.md)).
+
+## Further Reading
+
+- [Typed Actor 設計メモ](docs/design/2025-10-07-typed-actor-plan.md): design direction for behaviours, contexts, and system-event mapping.
+- [Dispatcher Runtime ポリシー](docs/sources/nexus-actor-rs/docs/dispatcher_runtime_policy.md): legacy (nexus-era) shutdown guidance; concepts still apply but APIs differ.
+- [ベンチマークダッシュボード](https://j5ik2o.github.io/cellex-rs/bench_dashboard.html): weekly performance snapshots (`benchmarks/history/bench_history.csv`).
+- [ActorContext ロック計測レポート](docs/sources/nexus-actor-rs/docs/benchmarks/tracing_actor_context.md): lock-wait analysis; translate API names when using cellex.
+- [ReceiveTimeout DelayQueue PoC](docs/sources/nexus-actor-rs/docs/benchmarks/receive_timeout_delayqueue.md): delay queue experiments for receive timeouts.
+- [Actor トレイト統一リリースノート](docs/sources/nexus-actor-rs/docs/releases/2025-09-26-actor-trait-unification.md): background on removing `BaseActor` and adding `ActorSpawnerExt`.
+- [レガシーサンプル一覧](docs/sources/nexus-actor-rs/docs/legacy_examples.md): legacy samples from the `nexus` era for migration reference.
+- [Tokio dispatcher how-to](docs/worknotes/2025-10-07-tokio-dispatcher.md) / [Embassy dispatcher how-to](docs/worknotes/2025-10-07-embassy-dispatcher.md).
+- `modules/actor-embedded/examples/embassy_run_forever.rs`: minimal Embassy integration sample.
+
+## License
+
+Dual-licensed under MIT and Apache-2.0. You may choose either license to govern your use of cellex.
