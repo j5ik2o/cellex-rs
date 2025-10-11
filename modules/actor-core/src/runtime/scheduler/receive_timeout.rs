@@ -4,7 +4,7 @@ use core::time::Duration;
 use cellex_utils_core_rs::Element;
 
 use crate::MapSystemShared;
-use crate::{MailboxFactory, PriorityEnvelope, QueueMailboxProducer};
+use crate::{MailboxFactory, PriorityEnvelope};
 
 /// Scheduler abstraction for managing actor `ReceiveTimeout`.
 ///
@@ -35,11 +35,12 @@ where
   M: Element + 'static,
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone, {
   /// Creates an actor-specific scheduler by receiving a priority mailbox and SystemMessage conversion function.
   fn create(
     &self,
-    sender: QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+    sender: R::Producer<PriorityEnvelope<M>>,
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler>;
 }

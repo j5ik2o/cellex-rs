@@ -14,7 +14,7 @@ default = ["alloc", "embedded_rc", "rp2040-board"]
 alloc = []
 embedded_rc = ["cellex-utils-embedded-rs/rc"]
 embedded_arc = ["cellex-utils-embedded-rs/arc", "dep:embassy-sync"]
-embassy_executor = ["dep:embassy-executor"]
+embassy_executor = ["dep:embassy-executor", "dep:embassy-futures"]
 rp2040-board = ["dep:rp2040-hal", "dep:rp2040-boot2"]
 rp2350-board = ["dep:rp235x-hal"]
 
@@ -23,6 +23,7 @@ cellex-actor-core-rs = { path = "../actor-core", default-features = false, featu
 cellex-utils-embedded-rs = { path = "../utils-embedded", default-features = false }
 critical-section = { version = "1", default-features = false }
 spin = { version = "0.10", default-features = false, features = ["mutex", "spin_mutex", "portable_atomic"] }
+async-trait = { workspace = true }
 alloc-cortex-m = { version = "0.4", optional = true }
 cortex-m = { version = "0.7", optional = true }
 cortex-m-rt = { version = "0.7", optional = true }
@@ -30,7 +31,8 @@ panic-halt = { version = "0.2", optional = true }
 rp2040-hal = { version = "0.11", default-features = false, features = ["critical-section-impl"], optional = true }
 embedded-hal = { version = "0.2", optional = true }
 embassy-sync = { version = "0.7", default-features = false, optional = true }
-embassy-executor = { version = "0.9", default-features = false, optional = true }
+embassy-executor = { version = "0.7", default-features = false, optional = true }
+embassy-futures = { version = "0.1", default-features = false, optional = true }
 portable-atomic = { version = "1.11", default-features = false, features = ["critical-section"] }
 
 [dev-dependencies]

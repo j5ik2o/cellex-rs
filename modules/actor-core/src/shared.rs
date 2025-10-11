@@ -87,8 +87,7 @@ impl<M, R> ReceiveTimeoutFactoryShared<M, R>
 where
   M: Element + 'static,
   R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone,
 {
   /// Creates a new shared factory from a concrete factory value.
   pub fn new<F>(factory: F) -> Self

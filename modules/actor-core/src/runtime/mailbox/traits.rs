@@ -4,12 +4,12 @@ use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 
 use crate::runtime::message::MetadataStorageMode;
 
-use super::queue_mailbox::MailboxOptions;
+use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
 
 /// Type alias for mailbox and producer pair.
 ///
 /// Pair of receiver and sender handles returned when creating a mailbox.
-pub type MailboxPair<Q, S> = (super::QueueMailbox<Q, S>, super::QueueMailboxProducer<Q, S>);
+pub type MailboxPair<H, P> = (H, P);
 
 /// Mailbox abstraction that decouples message queue implementations from core logic.
 ///
@@ -80,6 +80,28 @@ pub trait Mailbox<M> {
   }
 }
 
+/// Shared interface exposed by mailbox handles that can be managed by the runtime scheduler.
+pub trait MailboxHandle<M>: Mailbox<M> + Clone
+where
+  M: Element, {
+  /// Associated signal type used to block until new messages arrive.
+  type Signal: MailboxSignal;
+
+  /// Clones the underlying signal for waiters.
+  fn signal(&self) -> Self::Signal;
+
+  /// Attempts to dequeue one message without waiting.
+  fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>>;
+}
+
+/// Sending interface exposed by mailbox producers that enqueue messages.
+pub trait MailboxProducer<M>: Clone
+where
+  M: Element, {
+  /// Attempts to enqueue a message without waiting.
+  fn try_send(&self, message: M) -> Result<(), QueueError<M>>;
+}
+
 /// Notification primitive used by `QueueMailbox` to park awaiting receivers until
 /// new messages are available.
 ///
@@ -132,6 +154,16 @@ pub trait MailboxFactory {
   where
     M: Element;
 
+  /// Mailbox handle returned to the scheduler.
+  type Mailbox<M>: MailboxHandle<M, Signal = Self::Signal> + Clone
+  where
+    M: Element;
+
+  /// Producer handle used for enqueuing messages into the mailbox.
+  type Producer<M>: MailboxProducer<M> + Clone
+  where
+    M: Element;
+
   /// Creates a mailbox with the specified options.
   ///
   /// # Arguments
@@ -139,7 +171,7 @@ pub trait MailboxFactory {
   ///
   /// # Returns
   /// Pair of `(mailbox, producer)`
-  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element;
 
@@ -147,9 +179,37 @@ pub trait MailboxFactory {
   ///
   /// # Returns
   /// Pair of `(mailbox, producer)`
-  fn build_default_mailbox<M>(&self) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_default_mailbox<M>(&self) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     self.build_mailbox(MailboxOptions::default())
+  }
+}
+
+impl<M, Q, S> MailboxHandle<M> for QueueMailbox<Q, S>
+where
+  Q: QueueRw<M> + Clone,
+  S: MailboxSignal,
+  M: Element,
+{
+  type Signal = S;
+
+  fn signal(&self) -> Self::Signal {
+    self.signal().clone()
+  }
+
+  fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>> {
+    self.queue().poll()
+  }
+}
+
+impl<M, Q, S> MailboxProducer<M> for QueueMailboxProducer<Q, S>
+where
+  Q: QueueRw<M> + Clone,
+  S: MailboxSignal,
+  M: Element,
+{
+  fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
+    <QueueMailboxProducer<Q, S>>::try_send(self, message)
   }
 }

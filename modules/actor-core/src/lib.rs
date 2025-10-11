@@ -90,12 +90,15 @@ pub use api::*;
 pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
+pub use runtime::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 pub use runtime::mailbox::traits::{SingleThread, ThreadSafe};
 pub use runtime::mailbox::{PriorityEnvelope, SystemMessage};
 pub use runtime::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
 };
-pub use runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
+pub use runtime::scheduler::{
+  ActorScheduler, PriorityScheduler, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder,
+};
 pub use shared::{FailureEventHandlerShared, FailureEventListenerShared, MapSystemShared, ReceiveTimeoutFactoryShared};
 
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.

@@ -1,4 +1,5 @@
 use crate::runtime::context::InternalActorRef;
+use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::EscalationSink;
 use crate::FailureInfo;
 use crate::MailboxFactory;

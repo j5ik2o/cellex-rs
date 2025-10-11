@@ -2,6 +2,7 @@ use alloc::collections::BTreeMap;
 use core::fmt;
 
 use crate::runtime::context::InternalActorRef;
+use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::FailureInfo;

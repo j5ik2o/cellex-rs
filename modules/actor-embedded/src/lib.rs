@@ -59,10 +59,10 @@ extern crate alloc;
 mod arc_mailbox;
 #[cfg(feature = "embedded_arc")]
 mod arc_priority_mailbox;
-#[cfg(feature = "embassy_executor")]
-mod embassy_dispatcher;
 mod local_mailbox;
 mod runtime_driver;
+#[cfg(feature = "embassy_executor")]
+mod scheduler;
 mod spawn;
 mod timer;
 
@@ -75,14 +75,18 @@ pub use cellex_utils_embedded_rs::{ArcCsStateCell, ArcLocalStateCell, ArcShared,
 #[cfg(feature = "embedded_rc")]
 pub use cellex_utils_embedded_rs::{RcShared, RcStateCell};
 #[cfg(feature = "embassy_executor")]
-pub use embassy_dispatcher::spawn_embassy_dispatcher;
+mod embassy_dispatcher;
 pub use local_mailbox::{LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
 pub use runtime_driver::EmbeddedFailureEventHub;
+#[cfg(feature = "embassy_executor")]
+pub use scheduler::{embassy_scheduler_builder, ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
 pub use spawn::ImmediateSpawner;
 pub use timer::ImmediateTimer;
 
 /// Prelude that re-exports commonly used types in embedded environments.
 pub mod prelude {
+  #[cfg(feature = "embassy_executor")]
+  pub use super::{ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
   #[cfg(feature = "embedded_arc")]
   pub use super::{
     ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxFactory, ArcMailboxSender, ArcPriorityMailbox,

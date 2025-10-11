@@ -162,13 +162,21 @@ where
   RM: RawMutex,
 {
   type Concurrency = ThreadSafe;
+  type Mailbox<M>
+    = QueueMailbox<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
+  type Producer<M>
+    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
   type Queue<M>
     = ArcMpscUnboundedQueue<M, RM>
   where
     M: Element;
   type Signal = ArcSignal<RM>;
 
-  fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     let queue = ArcMpscUnboundedQueue::new();

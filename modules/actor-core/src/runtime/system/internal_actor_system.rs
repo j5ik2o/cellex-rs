@@ -1,10 +1,14 @@
 use core::convert::Infallible;
 
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::scheduler::PriorityScheduler;
+use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{Extensions, FailureEventListener, MailboxFactory, PriorityEnvelope};
+use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
+use core::marker::PhantomData;
+#[cfg(feature = "std")]
+use futures::executor::block_on;
 
 use super::InternalRootContext;
 
@@ -46,8 +50,9 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
-  pub(super) scheduler: PriorityScheduler<M, R, Strat>,
+  pub(super) scheduler: SchedulerHandle<M, R>,
   extensions: Extensions,
+  _strategy: PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
@@ -63,15 +68,28 @@ where
   }
 
   pub fn new_with_settings(mailbox_factory: R, settings: InternalActorSystemSettings<M, R>) -> Self {
+    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::priority());
+    Self::new_with_settings_and_builder(mailbox_factory, scheduler_builder, settings)
+  }
+
+  pub fn new_with_settings_and_builder(
+    mailbox_factory: R,
+    scheduler_builder: ArcShared<SchedulerBuilder<M, R>>,
+    settings: InternalActorSystemSettings<M, R>,
+  ) -> Self {
     let InternalActorSystemSettings {
       root_event_listener,
       receive_timeout_factory,
       extensions,
     } = settings;
-    let mut scheduler = PriorityScheduler::new(mailbox_factory, extensions.clone());
+    let mut scheduler = scheduler_builder.build(mailbox_factory, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_receive_timeout_factory(receive_timeout_factory);
-    Self { scheduler, extensions }
+    Self {
+      scheduler,
+      extensions,
+      _strategy: PhantomData,
+    }
   }
 }
 
@@ -90,23 +108,27 @@ where
   pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
   where
     F: FnMut() -> bool, {
-    self.scheduler.run_until(should_continue).await
+    self.run_until_impl(should_continue).await
   }
 
   pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
-    self.scheduler.run_forever().await
+    loop {
+      self.scheduler.dispatch_next().await?;
+    }
   }
 
   #[cfg(feature = "std")]
   pub fn blocking_dispatch_loop<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
   where
     F: FnMut() -> bool, {
-    self.scheduler.blocking_dispatch_loop(should_continue)
+    self.blocking_dispatch_loop_impl(should_continue)
   }
 
   #[cfg(feature = "std")]
   pub fn blocking_dispatch_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
-    self.scheduler.blocking_dispatch_forever()
+    loop {
+      block_on(self.scheduler.dispatch_next())?;
+    }
   }
 
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
@@ -131,5 +153,24 @@ where
 
   pub fn extensions(&self) -> Extensions {
     self.extensions.clone()
+  }
+
+  async fn run_until_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  where
+    F: FnMut() -> bool, {
+    while should_continue() {
+      self.scheduler.dispatch_next().await?;
+    }
+    Ok(())
+  }
+
+  #[cfg(feature = "std")]
+  fn blocking_dispatch_loop_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  where
+    F: FnMut() -> bool, {
+    while should_continue() {
+      block_on(self.scheduler.dispatch_next())?;
+    }
+    Ok(())
   }
 }

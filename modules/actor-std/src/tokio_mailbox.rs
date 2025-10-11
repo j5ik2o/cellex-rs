@@ -193,13 +193,21 @@ impl TokioMailboxFactory {
 
 impl MailboxFactory for TokioMailboxFactory {
   type Concurrency = ThreadSafe;
+  type Mailbox<M>
+    = QueueMailbox<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
+  type Producer<M>
+    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
   type Queue<M>
     = TokioQueue<M>
   where
     M: Element;
   type Signal = NotifySignal;
 
-  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     let queue = TokioQueue::with_capacity(options.capacity);

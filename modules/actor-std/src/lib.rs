@@ -59,6 +59,7 @@ pub mod failure_event_bridge;
 mod failure_event_hub;
 mod receive_timeout;
 mod runtime_driver;
+mod scheduler;
 mod spawn;
 mod timer;
 mod tokio_mailbox;
@@ -68,6 +69,7 @@ pub use cellex_utils_std_rs::{ArcShared, ArcStateCell, Shared, SharedFactory, Sh
 pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
 pub use receive_timeout::TokioReceiveTimeoutSchedulerFactory;
 pub use runtime_driver::TokioSystemHandle;
+pub use scheduler::{tokio_scheduler_builder, ActorRuntimeBundleTokioExt, TokioScheduler};
 pub use spawn::TokioSpawner;
 pub use timer::TokioTimer;
 pub use tokio_mailbox::{TokioMailbox, TokioMailboxFactory, TokioMailboxSender};
@@ -80,8 +82,8 @@ use cellex_actor_core_rs::{ActorSystemConfig, ReceiveTimeoutFactoryShared};
 pub mod prelude {
   pub use super::{
     ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn, TokioMailbox, TokioMailboxFactory, TokioMailboxSender,
-    TokioPriorityMailbox, TokioPriorityMailboxFactory, TokioPriorityMailboxSender, TokioSpawner, TokioSystemHandle,
-    TokioTimer,
+    TokioPriorityMailbox, TokioPriorityMailboxFactory, TokioPriorityMailboxSender, TokioScheduler, TokioSpawner,
+    TokioSystemHandle, TokioTimer,
   };
   pub use cellex_actor_core_rs::actor_loop;
 }
@@ -90,9 +92,20 @@ pub mod prelude {
 mod tests {
   use super::*;
   use cellex_actor_core_rs::MailboxOptions;
-  use cellex_actor_core_rs::{actor_loop, ActorSystem, Context, Props, Spawn, StateCell, SystemMessage};
+  use cellex_actor_core_rs::{
+    actor_loop, ActorId, ActorSystem, Context, Extensions, MapSystemShared, NoopSupervisor, Props, Spawn, StateCell,
+    SystemMessage,
+  };
+  use cellex_utils_std_rs::Element;
   use core::time::Duration;
   use std::sync::{Arc, Mutex};
+
+  #[derive(Clone, Debug, PartialEq, Eq)]
+  enum Message {
+    System(SystemMessage),
+  }
+
+  impl Element for Message {}
 
   async fn run_test_actor_loop_updates_state() {
     let (mailbox, sender) = TokioMailbox::new(8);
@@ -200,6 +213,33 @@ mod tests {
   #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
   async fn typed_actor_system_handles_user_messages_multi_thread() {
     run_typed_actor_system_handles_user_messages().await;
+  }
+
+  #[tokio::test]
+  async fn tokio_scheduler_builder_dispatches() {
+    let factory = TokioMailboxFactory;
+    let mut scheduler = tokio_scheduler_builder().build(factory, Extensions::new());
+
+    let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
+    let log_clone = log.clone();
+
+    scheduler
+      .spawn_actor(
+        Box::new(NoopSupervisor),
+        MailboxOptions::default(),
+        MapSystemShared::new(Message::System),
+        Box::new(move |_, msg: Message| {
+          log_clone.lock().unwrap().push(msg);
+        }),
+      )
+      .unwrap();
+
+    scheduler.dispatch_next().await.unwrap();
+
+    assert_eq!(
+      log.lock().unwrap().as_slice(),
+      &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
+    );
   }
 
   #[tokio::test(flavor = "current_thread")]

@@ -14,6 +14,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::runtime::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 use crate::runtime::guardian::{Guardian, GuardianStrategy};
+use crate::runtime::mailbox::traits::MailboxHandle;
 use crate::runtime::message::DynMessage;
 use crate::ActorId;
 use crate::ActorPath;
@@ -21,8 +22,8 @@ use crate::Extensions;
 use crate::FailureInfo;
 use crate::Supervisor;
 use crate::{Mailbox, SystemMessage};
-use crate::{MailboxFactory, PriorityEnvelope, QueueMailbox, QueueMailboxProducer};
-use cellex_utils_core_rs::{Element, QueueError, QueueRw};
+use crate::{MailboxFactory, PriorityEnvelope};
+use cellex_utils_core_rs::{Element, QueueError};
 
 use super::ReceiveTimeoutScheduler;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
@@ -31,8 +32,6 @@ pub(crate) struct ActorCell<M, R, Strat>
 where
   M: Element,
   R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
   actor_id: ActorId,
@@ -40,8 +39,8 @@ where
   watchers: Vec<ActorId>,
   actor_path: ActorPath,
   runtime: R,
-  mailbox: QueueMailbox<R::Queue<PriorityEnvelope<M>>, R::Signal>,
-  sender: QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+  mailbox: R::Mailbox<PriorityEnvelope<M>>,
+  sender: R::Producer<PriorityEnvelope<M>>,
   supervisor: Box<dyn Supervisor<M>>,
   handler: Box<ActorHandlerFn<M, R>>,
   _strategy: PhantomData<Strat>,
@@ -55,8 +54,6 @@ impl<M, R, Strat> ActorCell<M, R, Strat>
 where
   M: Element,
   R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
 {
   #[allow(clippy::too_many_arguments)]
@@ -66,8 +63,8 @@ where
     watchers: Vec<ActorId>,
     actor_path: ActorPath,
     runtime: R,
-    mailbox: QueueMailbox<R::Queue<PriorityEnvelope<M>>, R::Signal>,
-    sender: QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+    mailbox: R::Mailbox<PriorityEnvelope<M>>,
+    sender: R::Producer<PriorityEnvelope<M>>,
     supervisor: Box<dyn Supervisor<M>>,
     handler: Box<ActorHandlerFn<M, R>>,
     receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
@@ -95,7 +92,7 @@ where
 
   fn collect_envelopes(&mut self) -> Result<Vec<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {
     let mut drained = Vec::new();
-    while let Some(envelope) = self.mailbox.queue().poll()? {
+    while let Some(envelope) = self.mailbox.try_dequeue()? {
       drained.push(envelope);
     }
     if drained.len() > 1 {
@@ -158,7 +155,7 @@ where
   }
 
   pub(crate) fn signal_clone(&self) -> R::Signal {
-    self.mailbox.signal().clone()
+    self.mailbox.signal()
   }
 
   fn dispatch_envelope(

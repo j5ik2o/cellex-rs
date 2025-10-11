@@ -18,7 +18,7 @@ use cellex_serialization_json_rs::{shared_json_serializer, SERDE_JSON_SERIALIZER
 use cellex_serialization_postcard_rs::{shared_postcard_serializer, POSTCARD_SERIALIZER_ID};
 #[cfg(feature = "std")]
 use cellex_serialization_prost_rs::{shared_prost_serializer, PROST_SERIALIZER_ID};
-use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use spin::RwLock;
 
 /// 一意な Extension を識別するための ID 型。
@@ -52,7 +52,7 @@ pub fn serializer_extension_id() -> ExtensionId {
 }
 
 /// ActorSystem に組み込まれる拡張の共通インターフェース。
-pub trait Extension: Any + Send + Sync {
+pub trait Extension: Any + SharedBound {
   /// 拡張固有の ID を返します。
   fn extension_id(&self) -> ExtensionId;
 }

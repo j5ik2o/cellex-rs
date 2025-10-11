@@ -1,38 +1,34 @@
 #![cfg(feature = "embassy_executor")]
 
-use cellex_actor_core_rs::{ActorSystem, GuardianStrategy, MailboxFactory, PriorityEnvelope};
-use cellex_utils_embedded_rs::Element;
-use embassy_executor::Spawner;
-
-/// Helper to register `ActorSystem::run_forever` with Embassy's `Spawner`.
+/// Embassy 向けディスパッチタスクを定義するマクロ。
 ///
-/// # Usage Example
-/// ```ignore
-/// static SYSTEM: StaticCell<ActorSystem<MessageEnvelope<MyMsg>, LocalMailboxFactory>> = StaticCell::new();
-/// let system = SYSTEM.init_with(|| ActorSystem::new(LocalMailboxFactory::default()));
-/// spawn_embassy_dispatcher(&spawner, system).unwrap();
+/// # 使い方
 /// ```
+/// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxFactory};
+/// use cellex_actor_core_rs::{ActorRuntimeBundle, ActorSystem, ActorSystemConfig};
+/// use embassy_executor::Spawner;
 ///
-/// The `ActorSystem` must be a `'static` mutable reference. Use `StaticCell` or similar,
-/// initialize it at runtime, and then delegate to an Embassy task.
-pub fn spawn_embassy_dispatcher<M, R, Strat>(
-  spawner: &Spawner,
-  system: &'static mut ActorSystem<M, R, Strat>,
-) -> Result<(), embassy_executor::SpawnError>
-where
-  M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  Strat: GuardianStrategy<M, R> + 'static, {
-  spawner.spawn(async move {
-    match system.run_forever().await {
-      Ok(_) => unreachable!("run_forever must not resolve with Ok"),
-      Err(err) => {
-        let _ = err;
-        #[cfg(debug_assertions)]
-        panic!("Embassy dispatcher terminated unexpectedly");
+/// define_embassy_dispatcher!(
+///   pub fn dispatcher(system: ActorSystem<u32, LocalMailboxFactory>)
+/// );
+///
+/// fn start(spawner: &Spawner, system: &'static mut ActorSystem<u32, LocalMailboxFactory>) {
+///   spawner.spawn(dispatcher(system)).expect("spawn dispatcher");
+/// }
+/// ```
+#[macro_export]
+macro_rules! define_embassy_dispatcher {
+  ($vis:vis fn $name:ident(system: $system_ty:ty)) => {
+    #[embassy_executor::task]
+    $vis async fn $name(system: &'static mut $system_ty) {
+      match system.run_forever().await {
+        Ok(_) => unreachable!("run_forever must not resolve with Ok"),
+        Err(err) => {
+          let _ = err;
+          #[cfg(debug_assertions)]
+          panic!("Embassy dispatcher terminated unexpectedly");
+        }
       }
     }
-  })
+  };
 }

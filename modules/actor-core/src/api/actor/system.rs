@@ -1,7 +1,3 @@
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -10,6 +6,7 @@ use super::root_context::RootContext;
 use super::{ActorSystemHandles, ActorSystemParts, Spawn, Timer};
 use crate::api::guardian::AlwaysRestart;
 use crate::runtime::message::DynMessage;
+use crate::runtime::scheduler::SchedulerBuilder;
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
 use crate::ReceiveTimeoutFactoryShared;
@@ -17,7 +14,7 @@ use crate::{
   Extension, ExtensionId, Extensions, FailureEventListener, FailureEventStream, MailboxFactory, PriorityEnvelope,
   SerializerRegistryExtension,
 };
-use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Primary instance of the actor system.
@@ -47,7 +44,8 @@ where
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
-  mailbox_factory: R,
+  mailbox_factory: ArcShared<R>,
+  scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, R>>,
 }
 
 impl<R> ActorRuntimeBundle<R>
@@ -59,7 +57,10 @@ where
   /// Creates a new runtime bundle with the provided mailbox factory.
   #[must_use]
   pub fn new(mailbox_factory: R) -> Self {
-    Self { mailbox_factory }
+    Self {
+      mailbox_factory: ArcShared::new(mailbox_factory),
+      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, R>::priority()),
+    }
   }
 
   /// Returns a shared reference to the mailbox factory.
@@ -71,7 +72,36 @@ where
   /// Consumes the bundle and returns the mailbox factory.
   #[must_use]
   pub fn into_mailbox_factory(self) -> R {
-    self.mailbox_factory
+    self
+      .mailbox_factory
+      .try_unwrap()
+      .unwrap_or_else(|shared| (*shared).clone())
+  }
+
+  /// Returns the shared mailbox factory handle.
+  #[must_use]
+  pub fn mailbox_factory_shared(&self) -> ArcShared<R> {
+    self.mailbox_factory.clone()
+  }
+
+  /// Overrides the scheduler builder used when constructing the actor system.
+  #[must_use]
+  pub fn with_scheduler_builder(mut self, builder: SchedulerBuilder<DynMessage, R>) -> Self {
+    self.scheduler_builder = ArcShared::new(builder);
+    self
+  }
+
+  /// Overrides the scheduler builder using a pre-wrapped shared handle.
+  #[must_use]
+  pub fn with_scheduler_builder_shared(mut self, builder: ArcShared<SchedulerBuilder<DynMessage, R>>) -> Self {
+    self.scheduler_builder = builder;
+    self
+  }
+
+  /// Returns the scheduler builder configured for this runtime bundle.
+  #[must_use]
+  pub fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, R>> {
+    self.scheduler_builder.clone()
   }
 }
 
@@ -233,8 +263,9 @@ where
       extensions: extensions.clone(),
     };
     let mailbox_factory = runtime.mailbox_factory().clone();
+    let scheduler_builder = runtime.scheduler_builder();
     Self {
-      inner: InternalActorSystem::new_with_settings(mailbox_factory, settings),
+      inner: InternalActorSystem::new_with_settings_and_builder(mailbox_factory, scheduler_builder, settings),
       shutdown: ShutdownToken::default(),
       extensions,
       _marker: PhantomData,
@@ -492,3 +523,7 @@ impl Default for ShutdownToken {
     Self::new()
   }
 }
+#[cfg(not(target_has_atomic = "ptr"))]
+use alloc::rc::Rc as Arc;
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;

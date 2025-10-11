@@ -3,13 +3,14 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
+use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
 use crate::Supervisor;
-use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope, QueueMailboxProducer};
+use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use crate::runtime::scheduler::ReceiveTimeoutScheduler;
@@ -20,6 +21,7 @@ use super::{ChildSpawnSpec, InternalActorRef};
 use crate::runtime::system::InternalProps;
 use crate::MapSystemShared;
 
+/// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
 pub type ActorHandlerFn<M, R> = dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static;
 /// Context for actors to operate on themselves and child actors.
 pub struct ActorContext<'a, M, R, Sup>
@@ -28,7 +30,7 @@ where
   R: MailboxFactory,
   Sup: Supervisor<M> + ?Sized, {
   runtime: &'a R,
-  sender: &'a QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+  sender: &'a R::Producer<PriorityEnvelope<M>>,
   supervisor: &'a mut Sup,
   #[allow(dead_code)]
   pending_spawns: &'a mut Vec<ChildSpawnSpec<M, R>>,
@@ -52,7 +54,7 @@ where
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     runtime: &'a R,
-    sender: &'a QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+    sender: &'a R::Producer<PriorityEnvelope<M>>,
     supervisor: &'a mut Sup,
     pending_spawns: &'a mut Vec<ChildSpawnSpec<M, R>>,
     map_system: MapSystemShared<M>,
@@ -126,7 +128,8 @@ where
   pub(crate) fn self_ref(&self) -> InternalActorRef<M, R>
   where
     R::Queue<PriorityEnvelope<M>>: Clone,
-    R::Signal: Clone, {
+    R::Signal: Clone,
+    R::Producer<PriorityEnvelope<M>>: Clone, {
     InternalActorRef::new(self.sender.clone())
   }
 

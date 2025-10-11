@@ -1,15 +1,23 @@
+#![allow(missing_docs)]
+
 use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::Infallible;
+use core::marker::PhantomData;
+
+use async_trait::async_trait;
 
 use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
 use crate::runtime::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
+use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::runtime::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::EscalationSink;
 use crate::Extensions;
+use crate::FailureEventHandler;
+use crate::FailureEventListener;
 use crate::FailureInfo;
 use crate::Supervisor;
 use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope};
@@ -19,6 +27,7 @@ use futures::future::select_all;
 use futures::FutureExt;
 
 use super::actor_cell::ActorCell;
+use super::actor_scheduler::{ActorScheduler, SchedulerBuilder};
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 
 /// Simple scheduler implementation assuming priority mailboxes.
@@ -26,8 +35,6 @@ pub struct PriorityScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
   runtime: R,
   pub(super) guardian: Guardian<M, R, Strat>,
@@ -36,6 +43,7 @@ where
   escalation_sink: CompositeEscalationSink<M, R>,
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
   extensions: Extensions,
+  _strategy: PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
@@ -43,19 +51,9 @@ impl<M, R> PriorityScheduler<M, R, AlwaysRestart>
 where
   M: Element,
   R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
 {
   pub fn new(runtime: R, extensions: Extensions) -> Self {
-    Self {
-      runtime: runtime.clone(),
-      guardian: Guardian::new(AlwaysRestart),
-      actors: Vec::new(),
-      escalations: Vec::new(),
-      escalation_sink: CompositeEscalationSink::new(),
-      receive_timeout_factory: None,
-      extensions,
-    }
+    Self::with_strategy(runtime, AlwaysRestart, extensions)
   }
 
   pub fn with_strategy<Strat>(runtime: R, strategy: Strat, extensions: Extensions) -> PriorityScheduler<M, R, Strat>
@@ -66,10 +64,31 @@ where
       guardian: Guardian::new(strategy),
       actors: Vec::new(),
       escalations: Vec::new(),
-      escalation_sink: CompositeEscalationSink::new(),
+      escalation_sink: CompositeEscalationSink::default(),
       receive_timeout_factory: None,
       extensions,
+      _strategy: PhantomData,
     }
+  }
+}
+
+impl<M, R> SchedulerBuilder<M, R>
+where
+  M: Element,
+  R: MailboxFactory + Clone + 'static,
+{
+  pub fn priority() -> Self {
+    Self::new(|runtime, extensions| Box::new(PriorityScheduler::new(runtime, extensions)))
+  }
+
+  #[allow(dead_code)]
+  pub fn with_strategy<Strat>(self, strategy: Strat) -> Self
+  where
+    Strat: GuardianStrategy<M, R> + Clone + Send + Sync, {
+    let _ = self;
+    Self::new(move |runtime, extensions| {
+      Box::new(PriorityScheduler::with_strategy(runtime, strategy.clone(), extensions))
+    })
   }
 }
 
@@ -78,8 +97,6 @@ impl<M, R, Strat> PriorityScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
 {
   pub fn spawn_actor(
@@ -332,5 +349,62 @@ where
     let before = self.actors.len();
     self.actors.retain(|cell| !cell.is_stopped());
     before != self.actors.len()
+  }
+}
+
+#[async_trait(?Send)]
+impl<M, R, Strat> ActorScheduler<M, R> for PriorityScheduler<M, R, Strat>
+where
+  M: Element,
+  R: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, R>,
+{
+  fn spawn_actor(
+    &mut self,
+    supervisor: Box<dyn Supervisor<M>>,
+    options: MailboxOptions,
+    map_system: MapSystemShared<M>,
+    handler: Box<ActorHandlerFn<M, R>>,
+  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+    PriorityScheduler::spawn_actor(self, supervisor, options, map_system, handler)
+  }
+
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+    self.set_receive_timeout_factory(factory);
+  }
+
+  fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
+    self.set_root_event_listener(listener);
+  }
+
+  fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
+    self.set_root_escalation_handler(handler);
+  }
+
+  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+    self.set_parent_guardian(control_ref, map_system);
+  }
+
+  fn on_escalation(
+    &mut self,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+  ) {
+    self.on_escalation(handler);
+  }
+
+  fn take_escalations(&mut self) -> Vec<FailureInfo> {
+    self.take_escalations()
+  }
+
+  fn actor_count(&self) -> usize {
+    self.actor_count()
+  }
+
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+    self.drain_ready()
+  }
+
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+    PriorityScheduler::dispatch_next(self).await
   }
 }

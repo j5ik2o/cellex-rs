@@ -8,7 +8,7 @@ use core::task::{Context, Poll};
 
 use cellex_utils_core_rs::{Element, MpscBuffer, MpscHandle, MpscQueue, QueueSize, RingBufferBackend, Shared};
 
-use super::queue_mailbox::{MailboxOptions, QueueMailbox};
+use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
 use super::traits::{MailboxFactory, MailboxPair, MailboxSignal, ThreadSafe};
 
 #[derive(Clone, Debug, Default)]
@@ -134,13 +134,21 @@ impl<'a> Future for TestSignalWait<'a> {
 
 impl MailboxFactory for TestMailboxFactory {
   type Concurrency = ThreadSafe;
+  type Mailbox<M>
+    = QueueMailbox<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
+  type Producer<M>
+    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
   type Queue<M>
     = TestQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
 
-  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);

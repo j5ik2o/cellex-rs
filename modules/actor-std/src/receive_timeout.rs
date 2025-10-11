@@ -6,7 +6,7 @@
 use core::time::Duration;
 
 use cellex_actor_core_rs::{
-  DynMessage, MailboxFactory, MapSystemShared, PriorityEnvelope, QueueMailboxProducer, ReceiveTimeoutScheduler,
+  DynMessage, MailboxFactory, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler,
   ReceiveTimeoutSchedulerFactory, SystemMessage,
 };
 use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
@@ -17,10 +17,7 @@ use tokio::task::JoinHandle;
 use crate::TokioMailboxFactory;
 
 /// Producer for sending `PriorityEnvelope<DynMessage>` to Tokio mailbox.
-type TokioSender = QueueMailboxProducer<
-  <TokioMailboxFactory as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>,
-  <TokioMailboxFactory as MailboxFactory>::Signal,
->;
+type TokioSender = <TokioMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>;
 
 #[derive(Debug)]
 enum Command {

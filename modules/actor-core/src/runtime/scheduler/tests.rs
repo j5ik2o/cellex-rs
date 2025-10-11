@@ -1,4 +1,5 @@
 #![allow(deprecated, unused_imports)]
+use super::priority_scheduler::PriorityScheduler;
 use super::*;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
@@ -65,6 +66,66 @@ fn scheduler_delivers_watch_before_user_messages() {
       MapSystemShared::new(Message::System),
       Box::new(move |_, msg: Message| {
         log_clone.borrow_mut().push(msg.clone());
+      }),
+    )
+    .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  assert_eq!(
+    log.borrow().as_slice(),
+    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
+  );
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn scheduler_handle_trait_object_dispatches() {
+  use futures::executor::block_on;
+
+  let factory = TestMailboxFactory::unbounded();
+  let mut scheduler = super::SchedulerBuilder::priority().build(factory, Extensions::new());
+
+  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
+  scheduler
+    .spawn_actor(
+      Box::new(NoopSupervisor),
+      MailboxOptions::default(),
+      MapSystemShared::new(Message::System),
+      Box::new(move |_, msg: Message| {
+        log_clone.borrow_mut().push(msg);
+      }),
+    )
+    .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  assert_eq!(
+    log.borrow().as_slice(),
+    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
+  );
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn immediate_scheduler_builder_dispatches() {
+  use futures::executor::block_on;
+
+  let factory = TestMailboxFactory::unbounded();
+  let mut scheduler = super::SchedulerBuilder::immediate().build(factory, Extensions::new());
+
+  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
+  scheduler
+    .spawn_actor(
+      Box::new(NoopSupervisor),
+      MailboxOptions::default(),
+      MapSystemShared::new(Message::System),
+      Box::new(move |_, msg: Message| {
+        log_clone.borrow_mut().push(msg);
       }),
     )
     .unwrap();
@@ -180,9 +241,9 @@ fn scheduler_prioritizes_system_messages() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| {
+      Box::new(move |_, msg: Message| {
         log_clone.borrow_mut().push(msg.clone());
-      },
+      }),
     )
     .unwrap();
 
@@ -330,10 +391,10 @@ fn scheduler_blocking_dispatch_loop_stops_with_closure() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
+      Box::new(move |_, msg: Message| match msg {
         Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
         Message::System(_) => {}
-      },
+      }),
     )
     .unwrap();
 
@@ -375,14 +436,14 @@ fn scheduler_records_escalations() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
+      Box::new(move |_, msg: Message| match msg {
         Message::System(SystemMessage::Watch(_)) => {}
         Message::User(_) if panic_flag.get() => {
           panic_flag.set(false);
           panic!("boom");
         }
         _ => {}
-      },
+      }),
     )
     .unwrap();
 
@@ -420,14 +481,14 @@ fn scheduler_escalation_handler_delivers_to_parent() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
+      Box::new(move |_, msg: Message| match msg {
         Message::System(SystemMessage::Watch(_)) => {}
         Message::User(_) if panic_flag.get() => {
           panic_flag.set(false);
           panic!("boom");
         }
         _ => {}
-      },
+      }),
     )
     .unwrap();
 
@@ -473,7 +534,7 @@ fn scheduler_escalation_chain_reaches_root() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |ctx, msg: Message| match msg {
+      Box::new(move |ctx, msg: Message| match msg {
         Message::System(_) => {}
         Message::User(0) if !trigger_flag.get() => {
           trigger_flag.set(true);
@@ -495,7 +556,7 @@ fn scheduler_escalation_chain_reaches_root() {
             .unwrap();
         }
         _ => {}
-      },
+      }),
     )
     .unwrap();
 
@@ -586,14 +647,14 @@ fn scheduler_root_escalation_handler_invoked() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
+      Box::new(move |_, msg: Message| match msg {
         Message::System(SystemMessage::Watch(_)) => {}
         Message::User(_) if panic_flag.get() => {
           panic_flag.set(false);
           panic!("root boom");
         }
         _ => {}
-      },
+      }),
     )
     .unwrap();
 
@@ -642,14 +703,14 @@ fn scheduler_requeues_failed_custom_escalation() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
+      Box::new(move |_, msg: Message| match msg {
         Message::System(_) => {}
         Message::User(_) if panic_once.get() => {
           panic_once.set(false);
           panic!("custom escalation failure");
         }
         _ => {}
-      },
+      }),
     )
     .unwrap();
 
@@ -701,14 +762,14 @@ fn scheduler_root_event_listener_broadcasts() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
+      Box::new(move |_, msg: Message| match msg {
         Message::System(SystemMessage::Watch(_)) => {}
         Message::User(_) if panic_flag.get() => {
           panic_flag.set(false);
           panic!("hub boom");
         }
         _ => {}
-      },
+      }),
     )
     .unwrap();
 

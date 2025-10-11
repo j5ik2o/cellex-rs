@@ -53,8 +53,8 @@ where
 
   #[deprecated(since = "3.1.0", note = "dispatch_next / run_until を使用してください")]
   pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    #[allow(deprecated)]
-    self.system.scheduler.dispatch_all()
+    while self.system.scheduler.drain_ready()? {}
+    Ok(())
   }
 
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {

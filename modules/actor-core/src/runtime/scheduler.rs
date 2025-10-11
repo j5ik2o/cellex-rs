@@ -1,8 +1,13 @@
 mod actor_cell;
+mod actor_scheduler;
+#[cfg(any(test, feature = "test-support"))]
+mod immediate_scheduler;
 mod priority_scheduler;
 pub mod receive_timeout;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use priority_scheduler::PriorityScheduler;
+pub(crate) use actor_scheduler::SchedulerHandle;
+pub use actor_scheduler::{ActorScheduler, SchedulerBuilder};
+pub use priority_scheduler::PriorityScheduler;
 pub use receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
