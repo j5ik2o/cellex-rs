@@ -15,6 +15,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use crate::runtime::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 use crate::runtime::guardian::{Guardian, GuardianStrategy};
 use crate::runtime::mailbox::traits::MailboxHandle;
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
 use crate::ActorId;
 use crate::ActorPath;
@@ -39,6 +40,7 @@ where
   watchers: Vec<ActorId>,
   actor_path: ActorPath,
   runtime: R,
+  mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
   mailbox: R::Mailbox<PriorityEnvelope<M>>,
   sender: R::Producer<PriorityEnvelope<M>>,
   supervisor: Box<dyn Supervisor<M>>,
@@ -63,6 +65,7 @@ where
     watchers: Vec<ActorId>,
     actor_path: ActorPath,
     runtime: R,
+    mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
     mailbox: R::Mailbox<PriorityEnvelope<M>>,
     sender: R::Producer<PriorityEnvelope<M>>,
     supervisor: Box<dyn Supervisor<M>>,
@@ -76,6 +79,7 @@ where
       watchers,
       actor_path,
       runtime,
+      mailbox_spawner,
       mailbox,
       sender,
       supervisor,
@@ -187,6 +191,7 @@ where
       let receive_timeout = self.receive_timeout_scheduler.as_ref();
       let mut ctx = ActorContext::new(
         &self.runtime,
+        self.mailbox_spawner.clone(),
         &self.sender,
         self.supervisor.as_mut(),
         &mut pending_specs,
@@ -208,6 +213,7 @@ where
       let receive_timeout = self.receive_timeout_scheduler.as_ref();
       let mut ctx = ActorContext::new(
         &self.runtime,
+        self.mailbox_spawner.clone(),
         &self.sender,
         self.supervisor.as_mut(),
         &mut pending_specs,
@@ -304,6 +310,7 @@ where
       sender,
       supervisor,
       handler,
+      mailbox_spawner,
       watchers,
       map_system,
       parent_path,
@@ -320,6 +327,7 @@ where
       watchers,
       actor_path,
       self.runtime.clone(),
+      mailbox_spawner,
       mailbox,
       sender,
       supervisor,

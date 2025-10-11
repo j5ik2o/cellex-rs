@@ -10,8 +10,10 @@ use alloc::vec::Vec;
 use async_trait::async_trait;
 
 use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
+use crate::runtime::mailbox::traits::MailboxPair;
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxFactory, MailboxOptions, MapSystemShared,
+  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxFactory, MapSystemShared,
   PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
@@ -22,6 +24,20 @@ pub(crate) type SchedulerHandle<M, R> = Box<dyn ActorScheduler<M, R>>;
 type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + Send + Sync + 'static;
 #[cfg(not(target_has_atomic = "ptr"))]
 type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + 'static;
+
+/// Parameters supplied to schedulers when spawning a new actor.
+pub struct SchedulerSpawnContext<M, R>
+where
+  M: Element,
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone, {
+  pub runtime: R,
+  pub mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
+  pub map_system: MapSystemShared<M>,
+  pub mailbox: MailboxPair<R::Mailbox<PriorityEnvelope<M>>, R::Producer<PriorityEnvelope<M>>>,
+  pub handler: Box<ActorHandlerFn<M, R>>,
+}
 
 #[allow(dead_code)]
 #[async_trait(?Send)]
@@ -34,9 +50,7 @@ where
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    options: MailboxOptions,
-    map_system: MapSystemShared<M>,
-    handler: Box<ActorHandlerFn<M, R>>,
+    context: SchedulerSpawnContext<M, R>,
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>;
 
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>);

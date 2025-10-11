@@ -39,7 +39,7 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
-  /// Creates a new handle from an `ArcShared` wrapped factory.
+  /// Creates a new handle from an `ArcShared`-wrapped factory.
   #[must_use]
   pub fn new(factory: ArcShared<R>) -> Self {
     Self {
@@ -48,7 +48,7 @@ where
     }
   }
 
-  /// Spawns a mailbox using the underlying factory.
+  /// Spawns a priority mailbox using the underlying factory and provided options.
   #[must_use]
   pub fn spawn_mailbox(
     &self,

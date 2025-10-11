@@ -3,13 +3,14 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
+use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::scheduler::actor_scheduler::ActorScheduler;
+use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnContext};
 use crate::runtime::scheduler::priority_scheduler::PriorityScheduler;
+use crate::MapSystemShared;
 use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxFactory, MailboxOptions, MapSystemShared,
-  PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
+  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxFactory, PriorityEnvelope,
+  ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -61,11 +62,9 @@ where
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    options: MailboxOptions,
-    map_system: MapSystemShared<M>,
-    handler: Box<ActorHandlerFn<M, R>>,
+    context: SchedulerSpawnContext<M, R>,
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-    self.inner.spawn_actor(supervisor, options, map_system, handler)
+    self.inner.spawn_actor(supervisor, context)
   }
 
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {

@@ -4,7 +4,7 @@ use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{Extensions, FailureEventHandler, FailureEventListener, MailboxFactory, PriorityEnvelope};
-use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
 #[cfg(feature = "std")]
@@ -54,6 +54,7 @@ where
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
   pub(super) scheduler: SchedulerHandle<M, R>,
+  pub(super) runtime: ArcShared<R>,
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
 }
@@ -86,12 +87,16 @@ where
       receive_timeout_factory,
       extensions,
     } = settings;
-    let mut scheduler = scheduler_builder.build(mailbox_factory, extensions.clone());
+    let factory_shared = ArcShared::new(mailbox_factory);
+    let runtime = factory_shared.clone();
+    let factory_for_scheduler = factory_shared.with_ref(|factory| factory.clone());
+    let mut scheduler = scheduler_builder.build(factory_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_receive_timeout_factory(receive_timeout_factory);
     Self {
       scheduler,
+      runtime,
       extensions,
       _strategy: PhantomData,
     }

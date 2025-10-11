@@ -4,9 +4,9 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
-  ActorHandlerFn, ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler,
-  FailureEventListener, FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, MailboxOptions,
-  MapSystemShared, PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared, SchedulerBuilder, Supervisor,
+  ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener,
+  FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, PriorityEnvelope, PriorityScheduler,
+  ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_futures::yield_now;
@@ -61,11 +61,9 @@ where
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    options: MailboxOptions,
-    map_system: MapSystemShared<M>,
-    handler: Box<ActorHandlerFn<M, ActorRuntimeBundle<R>>>,
+    context: SchedulerSpawnContext<M, ActorRuntimeBundle<R>>,
   ) -> Result<InternalActorRef<M, ActorRuntimeBundle<R>>, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>> {
-    self.inner.spawn_actor(supervisor, options, map_system, handler)
+    self.inner.spawn_actor(supervisor, context)
   }
 
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, ActorRuntimeBundle<R>>>) {

@@ -8,7 +8,7 @@ use core::marker::PhantomData;
 
 use async_trait::async_trait;
 
-use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
+use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::runtime::supervision::CompositeEscalationSink;
@@ -20,14 +20,14 @@ use crate::FailureEventHandler;
 use crate::FailureEventListener;
 use crate::FailureInfo;
 use crate::Supervisor;
-use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope};
+use crate::{MailboxFactory, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
 use cellex_utils_core_rs::{Element, QueueError};
 use futures::future::select_all;
 use futures::FutureExt;
 
 use super::actor_cell::ActorCell;
-use super::actor_scheduler::{ActorScheduler, SchedulerBuilder};
+use super::actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 
 /// Simple scheduler implementation assuming priority mailboxes.
@@ -36,7 +36,6 @@ where
   M: Element,
   R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
-  runtime: R,
   pub(super) guardian: Guardian<M, R, Strat>,
   actors: Vec<ActorCell<M, R, Strat>>,
   escalations: Vec<FailureInfo>,
@@ -56,11 +55,10 @@ where
     Self::with_strategy(runtime, AlwaysRestart, extensions)
   }
 
-  pub fn with_strategy<Strat>(runtime: R, strategy: Strat, extensions: Extensions) -> PriorityScheduler<M, R, Strat>
+  pub fn with_strategy<Strat>(_runtime: R, strategy: Strat, extensions: Extensions) -> PriorityScheduler<M, R, Strat>
   where
     Strat: GuardianStrategy<M, R>, {
     PriorityScheduler {
-      runtime,
       guardian: Guardian::new(strategy),
       actors: Vec::new(),
       escalations: Vec::new(),
@@ -102,11 +100,16 @@ where
   pub fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    options: MailboxOptions,
-    map_system: MapSystemShared<M>,
-    handler: Box<ActorHandlerFn<M, R>>,
+    context: SchedulerSpawnContext<M, R>,
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-    let (mailbox, sender) = self.runtime.build_mailbox::<PriorityEnvelope<M>>(options);
+    let SchedulerSpawnContext {
+      runtime,
+      mailbox_spawner,
+      map_system,
+      mailbox,
+      handler,
+    } = context;
+    let (mailbox, sender) = mailbox;
     let actor_sender = sender.clone();
     let control_ref = InternalActorRef::new(actor_sender.clone());
     let watchers = vec![ActorId::ROOT];
@@ -121,7 +124,8 @@ where
       map_system,
       watchers,
       actor_path,
-      self.runtime.clone(),
+      runtime,
+      mailbox_spawner,
       mailbox,
       sender,
       supervisor,
@@ -362,11 +366,9 @@ where
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    options: MailboxOptions,
-    map_system: MapSystemShared<M>,
-    handler: Box<ActorHandlerFn<M, R>>,
+    context: SchedulerSpawnContext<M, R>,
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-    PriorityScheduler::spawn_actor(self, supervisor, options, map_system, handler)
+    PriorityScheduler::spawn_actor(self, supervisor, context)
   }
 
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {

@@ -2,8 +2,11 @@ use alloc::boxed::Box;
 
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::GuardianStrategy;
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
+use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::NoopSupervisor;
 use crate::{Extensions, MailboxFactory, PriorityEnvelope, Supervisor};
+use cellex_utils_core_rs::sync::Shared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::{InternalActorSystem, InternalProps};
@@ -45,10 +48,18 @@ where
       handler,
     } = props;
 
-    self
-      .system
-      .scheduler
-      .spawn_actor(supervisor, options, map_system, handler)
+    let runtime = self.system.runtime.with_ref(|factory| factory.clone());
+    let mailbox_spawner = PriorityMailboxSpawnerHandle::new(self.system.runtime.clone());
+    let mailbox = mailbox_spawner.spawn_mailbox(options);
+    let context = SchedulerSpawnContext {
+      runtime,
+      mailbox_spawner,
+      map_system,
+      mailbox,
+      handler,
+    };
+
+    self.system.scheduler.spawn_actor(supervisor, context)
   }
 
   #[deprecated(since = "3.1.0", note = "dispatch_next / run_until を使用してください")]

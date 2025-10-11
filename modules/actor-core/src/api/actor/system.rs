@@ -6,7 +6,7 @@ use super::root_context::RootContext;
 use super::{ActorSystemHandles, ActorSystemParts, Spawn, Timer};
 use crate::api::guardian::AlwaysRestart;
 use crate::runtime::mailbox::traits::MailboxPair;
-use crate::runtime::mailbox::MailboxOptions;
+use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
 use crate::runtime::scheduler::SchedulerBuilder;
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
@@ -139,6 +139,16 @@ where
   pub fn with_root_escalation_handler(mut self, handler: Option<FailureEventHandler>) -> Self {
     self.root_escalation_handler = handler;
     self
+  }
+
+  /// Returns a handle that can spawn priority mailboxes without exposing the factory implementation.
+  #[must_use]
+  pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, ActorRuntimeBundle<R>>
+  where
+    M: Element,
+    R::Queue<PriorityEnvelope<M>>: Clone,
+    R::Signal: Clone, {
+    PriorityMailboxSpawnerHandle::from_factory(self.clone())
   }
 
   /// Overrides the scheduler builder used when constructing the actor system.

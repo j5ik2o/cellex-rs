@@ -94,7 +94,7 @@ mod tests {
   use cellex_actor_core_rs::MailboxOptions;
   use cellex_actor_core_rs::{
     actor_loop, ActorId, ActorRuntimeBundle, ActorSystem, Context, Extensions, MapSystemShared, NoopSupervisor, Props,
-    Spawn, StateCell, SystemMessage,
+    SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
   };
   use cellex_utils_std_rs::Element;
   use core::time::Duration;
@@ -218,21 +218,24 @@ mod tests {
   #[tokio::test]
   async fn tokio_scheduler_builder_dispatches() {
     let runtime = ActorRuntimeBundle::new(TokioMailboxFactory);
-    let mut scheduler = tokio_scheduler_builder().build(runtime, Extensions::new());
+    let mut scheduler = tokio_scheduler_builder().build(runtime.clone(), Extensions::new());
 
     let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
     let log_clone = log.clone();
 
-    scheduler
-      .spawn_actor(
-        Box::new(NoopSupervisor),
-        MailboxOptions::default(),
-        MapSystemShared::new(Message::System),
-        Box::new(move |_, msg: Message| {
-          log_clone.lock().unwrap().push(msg);
-        }),
-      )
-      .unwrap();
+    let mailbox_spawner = runtime.priority_mailbox_spawner::<Message>();
+    let mailbox = mailbox_spawner.spawn_mailbox(MailboxOptions::default());
+    let context = SchedulerSpawnContext {
+      runtime,
+      mailbox_spawner,
+      map_system: MapSystemShared::new(Message::System),
+      mailbox,
+      handler: Box::new(move |_, msg: Message| {
+        log_clone.lock().unwrap().push(msg);
+      }),
+    };
+
+    scheduler.spawn_actor(Box::new(NoopSupervisor), context).unwrap();
 
     scheduler.dispatch_next().await.unwrap();
 

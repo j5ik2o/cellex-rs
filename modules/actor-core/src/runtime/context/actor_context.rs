@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use core::marker::PhantomData;
 
 use crate::runtime::mailbox::traits::MailboxProducer;
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extension;
@@ -27,9 +28,10 @@ pub type ActorHandlerFn<M, R> = dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, R
 pub struct ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized, {
   runtime: &'a R,
+  mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
   sender: &'a R::Producer<PriorityEnvelope<M>>,
   supervisor: &'a mut Sup,
   #[allow(dead_code)]
@@ -48,12 +50,13 @@ where
 impl<'a, M, R, Sup> ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized,
 {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     runtime: &'a R,
+    mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
     sender: &'a R::Producer<PriorityEnvelope<M>>,
     supervisor: &'a mut Sup,
     pending_spawns: &'a mut Vec<ChildSpawnSpec<M, R>>,
@@ -66,6 +69,7 @@ where
   ) -> Self {
     Self {
       runtime,
+      mailbox_spawner,
       sender,
       supervisor,
       pending_spawns,
@@ -95,6 +99,10 @@ where
 
   pub fn runtime(&self) -> &R {
     self.runtime
+  }
+
+  pub fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<M, R> {
+    &self.mailbox_spawner
   }
 
   pub fn supervisor(&mut self) -> &mut Sup {
@@ -141,7 +149,7 @@ where
     map_system: MapSystemShared<M>,
     handler: Box<ActorHandlerFn<M, R>>,
   ) -> InternalActorRef<M, R> {
-    let (mailbox, sender) = self.runtime.build_mailbox::<PriorityEnvelope<M>>(options);
+    let (mailbox, sender) = self.mailbox_spawner.spawn_mailbox(options);
     let actor_ref = InternalActorRef::new(sender.clone());
     let watchers = vec![self.actor_id];
     self.pending_spawns.push(ChildSpawnSpec {
@@ -149,6 +157,7 @@ where
       sender,
       supervisor,
       handler,
+      mailbox_spawner: self.mailbox_spawner.clone(),
       watchers,
       map_system,
       parent_path: self.actor_path.clone(),

@@ -17,26 +17,52 @@
 - 現状は `mailbox_factory` のみ保持し、互換 API (`ActorSystem::new(mailbox_factory)`) と併用可能。
 - コード位置: `modules/actor-core/src/api/actor/system.rs`
 
-### フェーズ 2: Scheduler 抽象の切り出し（進行中）
+### フェーズ 2: Scheduler 抽象の切り出し ✅
 - `Scheduler` トレイト（spawn_actor / dispatch_next / run_forever）を定義し、`PriorityScheduler` を実装として登録。`SchedulerBuilder` を公開し、プラットフォーム側でラッパを組み立てられる状態にした。
 - `ActorRuntimeBundle` は `SchedulerBuilder` を Shared で保持。Tokio/Embassy など環境依存の実装は `actor-std` / `actor-embedded` 側で拡張トレイト（`with_tokio_scheduler` / `with_embassy_scheduler`）として提供。
-- 次ステップで MailboxFactory を Builder/Handle に再分割し、Scheduler からの直接依存を解消する。
-- 進捗メモ:
-  - `PriorityScheduler::spawn_actor` が `Box<ActorHandlerFn>` を受け取るようになり、今後トレイト化・オブジェクト化しやすい形に整備済み。（commit 7aea9d0 以降）
-  - `ActorRuntimeBundle` が `cellex_utils_core_rs::sync::Shared` 系のハンドルで MailboxFactory / SchedulerBuilder を一貫保持するよう更新済み。DI ポリシーに沿って no_std / std 双方で同一 API を提供できる状態になった。
-  - `ActorRuntimeBundle::with_scheduler_builder(_shared)` / `scheduler_builder` を公開 API 化。外部クレートでも Shared された `SchedulerBuilder` を注入できるようになり、プラットフォーム別バンドル組立ての前提が整った。
-  - `actor-std::tokio_scheduler_builder()` / `ActorRuntimeBundleTokioExt::with_tokio_scheduler()` および `actor-embedded::embassy_scheduler_builder()` / `ActorRuntimeBundleEmbassyExt::with_embassy_scheduler()` を追加し、Tokio / Embassy の差し替えをそれぞれモジュール側で実装。
-  - MailboxFactory → MailboxBuilder 分割は未着手。`PriorityScheduler` から Queue/Signal 依存を切り離すための予備調査が必要。
+- MailboxFactory → MailboxBuilder/Handle 分解の骨子（PriorityMailboxSpawnerHandle 導入、RuntimeBundle からの共有ハンドル提供、SchedulerSpawnContext の再設計）を実装済み。Scheduler は `SchedulerSpawnContext` を介して mailbox handle を受け取り、Factory 依存を解消した。
 
-### フェーズ 3: 追加コンポーネントの統合
-- ReceiveTimeout ドライバ、Escalation/Event リスナー、FailureHub などをバンドル内に移管。
-- Host（std）、Embedded（no_std + alloc）、Remote 専用バンドルをそれぞれ定義し、必要なコンポーネントを組み合わせる。
-- `ActorSystemBuilder` を導入し、アプリケーション側が個別コンポーネントを上書きできる設定 API を提供する。
+#### フェーズ2の成果まとめ
+- Scheduler と Mailbox 生成経路の依存を切り離すためのインターフェース方針を確定。
+- RuntimeBundle で MailboxFactory を共有ハンドル化する要件定義を完了。
+- Tokio / Embassy ラッパーが SchedulerBuilder 経由で差し替え可能であることを検証済み。
+
+### フェーズ 3: 追加コンポーネントの統合（着手）
+
+#### 3-1 ReceiveTimeoutDriver 抽象化
+- `ReceiveTimeoutSchedulerFactory` を RuntimeBundle に登録し、Tokio/Embassy 向け実装をモジュール側に分離。
+- MailboxSpawner と連携する `SchedulerSpawnContext` 拡張を実装し、Scheduler がタイマーファクトリに直接アクセスしない構成を整える。
+- `ActorSystemConfig::with_receive_timeout_factory` 互換を維持しつつ、Bundle/API 双方からドライバを設定可能にする。
+
+#### 3-2 EventListener / EscalationHandler のバンドル統合
+- RuntimeBundle に Root EventListener / EscalationHandler を保持するフィールドと組み込み API を追加。
+- `InternalActorSystemSettings` へ統合し、Scheduler 初期化時にリスナーを注入する。
+- プラットフォーム別バンドル（std / embedded / remote）が独自ハンドラを簡潔に配線できる DSL を整備。
+
+#### 3-3 MetricsSink / 拡張コンポーネント
+- メトリクス送信口を抽象化する `MetricsSink` トレイトを定義し、Bundle から Scheduler / ActorSystem に注入する導線を追加。
+- 初期スコープ: `Noop`, `Prometheus`, `defmt`（embedded）実装。Remote バンドルでは gRPC 連携用の Hook を予定。
+
+#### 3-4 バンドル プロファイル定義
+- Host( std ) / Embedded ( no_std + alloc ) / Remote (std + gRPC) の 3 プロファイルを定義し、
+  - 既定 Scheduler / Mailbox / TimeoutDriver / Metrics / EventListener / EscalationHandler / FailureHub を一覧化。
+  - `ActorRuntimeBundle::host()` / `::embedded()` / `::remote()` のコンビニエンス関数で組み立てる。
+- プロファイル生成を補助する `ActorRuntimeBundleBuilder` を導入し、任意コンポーネント差し替えを可能にする。
+
+#### 3-5 ActorSystemBuilder の整備
+- RuntimeBundle と ActorSystemConfig を統合する `ActorSystemBuilder` を新設。
+- アプリケーションが Builder パターンで RuntimeBundle の個別コンポーネントを上書きできる API を提供。
+- 組み込みバンドルを起点にドライバ・イベント・メトリクスを差し替えるサンプルを docs/worknotes に追加。
+
+#### 3-6 検証計画
+- ユニットテスト: バンドル別に ReceiveTimeout / EventListener / MetricsSink が注入されることを確認するテストを `actor-core` に追加。
+- 統合テスト: `actor-std` / `actor-embedded` で同一シナリオを実行し、バンドル差し替え時の動作を検証。
+- ドキュメント: README / ワークノート / API Docs に新バンドル API の使用例を追記。
 
 ## マイルストーン / TODO
 - [x] フェーズ 1 実装: `ActorRuntimeBundle` 追加、既存 API の 移行。（commit 7aea9d0, 843072e）
-- [ ] フェーズ 2 設計レビュー: Scheduler トレイト定義と既存テストの影響調査（MailboxBuilder 化の設計含む）。
-- [ ] フェーズ 3 要件整理: Timeout・EventListener 等の利用箇所棚卸し。
+- [x] フェーズ 2 設計レビュー: Scheduler 抽象刷新と MailboxFactory 分離案の確定。
+- [ ] フェーズ 3 実装: ReceiveTimeout / Event / Metrics 統合、および Bundle Builder の提供。
 - [ ] ドキュメント更新: README / ワークノートに新しい実行モデルのガイドを追記。
 
 ## 参考リンク
