@@ -38,8 +38,9 @@ where
 
 /// Bundle that contains runtime-dependent components required by [`ActorSystem`].
 ///
-/// 今後 Scheduler や Timeout ドライバなどを追加することを見越して導入した軽量バンドル。
-/// 現時点ではメールボックスファクトリのみ保持する。
+/// This lightweight container currently stores only the mailbox factory, but it is
+/// designed to host scheduler builders, timeout drivers, and other platform-specific
+/// elements in future iterations.
 #[derive(Clone)]
 pub struct ActorRuntimeBundle<R>
 where
