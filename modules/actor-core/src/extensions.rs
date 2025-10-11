@@ -14,6 +14,7 @@ use cellex_serialization_core_rs::serializer::Serializer;
 use cellex_serialization_core_rs::RegistryError;
 #[cfg(feature = "std")]
 use cellex_serialization_json_rs::{shared_json_serializer, SERDE_JSON_SERIALIZER_ID};
+#[cfg(feature = "std")]
 use cellex_serialization_prost_rs::{shared_prost_serializer, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::sync::ArcShared;
 use spin::RwLock;
