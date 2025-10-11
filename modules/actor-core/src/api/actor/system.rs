@@ -36,6 +36,44 @@ where
   _marker: PhantomData<U>,
 }
 
+/// Bundle that contains runtime-dependent components required by [`ActorSystem`].
+///
+/// 今後 Scheduler や Timeout ドライバなどを追加することを見越して導入した軽量バンドル。
+/// 現時点ではメールボックスファクトリのみ保持する。
+#[derive(Clone)]
+pub struct ActorRuntimeBundle<R>
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone, {
+  mailbox_factory: R,
+}
+
+impl<R> ActorRuntimeBundle<R>
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+{
+  /// Creates a new runtime bundle with the provided mailbox factory.
+  #[must_use]
+  pub fn new(mailbox_factory: R) -> Self {
+    Self { mailbox_factory }
+  }
+
+  /// Returns a shared reference to the mailbox factory.
+  #[must_use]
+  pub fn mailbox_factory(&self) -> &R {
+    &self.mailbox_factory
+  }
+
+  /// Consumes the bundle and returns the mailbox factory.
+  #[must_use]
+  pub fn into_mailbox_factory(self) -> R {
+    self.mailbox_factory
+  }
+}
+
 /// Configuration options applied when constructing an [`ActorSystem`].
 pub struct ActorSystemConfig<R>
 where
@@ -172,11 +210,16 @@ where
   /// # Arguments
   /// * `mailbox_factory` - Factory that generates mailboxes
   pub fn new(mailbox_factory: R) -> Self {
-    Self::new_with_config(mailbox_factory, ActorSystemConfig::default())
+    Self::new_with_runtime(ActorRuntimeBundle::new(mailbox_factory), ActorSystemConfig::default())
   }
 
   /// Creates a new actor system with an explicit configuration.
   pub fn new_with_config(mailbox_factory: R, config: ActorSystemConfig<R>) -> Self {
+    Self::new_with_runtime(ActorRuntimeBundle::new(mailbox_factory), config)
+  }
+
+  /// Creates a new actor system with a runtime bundle and configuration.
+  pub fn new_with_runtime(runtime: ActorRuntimeBundle<R>, config: ActorSystemConfig<R>) -> Self {
     let extensions_handle = config.extensions();
     if extensions_handle.get(serializer_extension_id()).is_none() {
       let extension = ArcShared::new(SerializerRegistryExtension::new());
@@ -188,6 +231,7 @@ where
       receive_timeout_factory: config.receive_timeout_factory(),
       extensions: extensions.clone(),
     };
+    let mailbox_factory = runtime.mailbox_factory().clone();
     Self {
       inner: InternalActorSystem::new_with_settings(mailbox_factory, settings),
       shutdown: ShutdownToken::default(),
