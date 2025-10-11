@@ -42,15 +42,13 @@ where
     let InternalProps {
       options,
       map_system,
-      mut handler,
+      handler,
     } = props;
 
     self
       .system
       .scheduler
-      .spawn_actor(supervisor, options, map_system, move |ctx, msg| {
-        handler(ctx, msg);
-      })
+      .spawn_actor(supervisor, options, map_system, handler)
   }
 
   #[deprecated(since = "3.1.0", note = "dispatch_next / run_until を使用してください")]

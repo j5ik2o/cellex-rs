@@ -63,9 +63,9 @@ fn scheduler_delivers_watch_before_user_messages() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| {
+      Box::new(move |_, msg: Message| {
         log_clone.borrow_mut().push(msg.clone());
-      },
+      }),
     )
     .unwrap();
 
@@ -91,14 +91,14 @@ fn actor_context_exposes_parent_watcher() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |ctx, msg: Message| {
+      Box::new(move |ctx, msg: Message| {
         let current_watchers = ctx.watchers().to_vec();
         watchers_clone.borrow_mut().push(current_watchers);
         match msg {
           Message::User(_) => {}
           Message::System(_) => {}
         }
-      },
+      }),
     )
     .unwrap();
 
@@ -130,7 +130,7 @@ fn scheduler_dispatches_high_priority_first() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |ctx, msg: Message| match msg {
+      Box::new(move |ctx, msg: Message| match msg {
         Message::User(value) => {
           log_clone.borrow_mut().push((value, ctx.current_priority().unwrap()));
           if value == 99 {
@@ -150,7 +150,7 @@ fn scheduler_dispatches_high_priority_first() {
           }
         }
         Message::System(_) => {}
-      },
+      }),
     )
     .unwrap();
 
@@ -219,9 +219,9 @@ fn priority_actor_ref_sends_system_messages() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(|sys| sys),
-      move |_, msg: SystemMessage| {
+      Box::new(move |_, msg: SystemMessage| {
         log_clone.borrow_mut().push(msg.clone());
-      },
+      }),
     )
     .unwrap();
 
@@ -250,7 +250,7 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| {
+      Box::new(move |_, msg: Message| {
         match msg {
           Message::System(SystemMessage::Watch(_)) => {
             // Watch メッセージは監視登録のみなのでログに残さない
@@ -263,7 +263,7 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
             log_clone.borrow_mut().push(msg.clone());
           }
         }
-      },
+      }),
     )
     .unwrap();
 
@@ -294,10 +294,10 @@ fn scheduler_run_until_processes_messages() {
       Box::new(NoopSupervisor),
       MailboxOptions::default(),
       MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
+      Box::new(move |_, msg: Message| match msg {
         Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
         Message::System(_) => {}
-      },
+      }),
     )
     .unwrap();
 

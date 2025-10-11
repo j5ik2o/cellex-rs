@@ -21,6 +21,7 @@
 - `Scheduler` トレイト（spawn_actor / dispatch_next / run_forever）を定義し、`PriorityScheduler` を実装として登録。
 - `ActorRuntimeBundle` に `scheduler: Arc<dyn Scheduler>` を格納し、MailboxFactory とは独立に差し替えられるようにする。
 - MailboxFactory 側は必要な最小限のインターフェース（Queue / Signal）へ整理し、Scheduler からの依存を縮小する。
+- 進捗メモ: `PriorityScheduler::spawn_actor` が `Box<ActorHandlerFn>` を受け取るようになり、今後トレイト化・オブジェクト化しやすい形に整備済み。（commit 7aea9d0 以降）
 
 ### フェーズ 3: 追加コンポーネントの統合
 - ReceiveTimeout ドライバ、Escalation/Event リスナー、FailureHub などをバンドル内に移管。

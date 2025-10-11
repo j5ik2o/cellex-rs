@@ -3,7 +3,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::Infallible;
 
-use crate::runtime::context::{ActorContext, ActorHandlerFn, InternalActorRef};
+use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
 use crate::runtime::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::runtime::supervision::CompositeEscalationSink;
 use crate::ActorId;
@@ -82,18 +82,15 @@ where
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
 {
-  pub fn spawn_actor<F>(
+  pub fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     options: MailboxOptions,
     map_system: MapSystemShared<M>,
-    handler: F,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
-  where
-    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static, {
+    handler: Box<ActorHandlerFn<M, R>>,
+  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
     let (mailbox, sender) = self.runtime.build_mailbox::<PriorityEnvelope<M>>(options);
     let actor_sender = sender.clone();
-    let handler_box: Box<ActorHandlerFn<M, R>> = Box::new(handler);
     let control_ref = InternalActorRef::new(actor_sender.clone());
     let watchers = vec![ActorId::ROOT];
     let primary_watcher = watchers.first().copied();
@@ -111,7 +108,7 @@ where
       mailbox,
       sender,
       supervisor,
-      handler_box,
+      handler,
       self.receive_timeout_factory.clone(),
       self.extensions.clone(),
     );
