@@ -1,0 +1,19 @@
+[package]
+name = "cellex-utils-core-rs"
+version = "0.0.1"
+edition = "2021"
+description = "no_std friendly utilities for Cellex Actor"
+license = "MIT OR Apache-2.0"
+keywords = ["cellex", "actor", "utils", "no_std"]
+categories = ["concurrency", "embedded", "no-std"]
+repository = "https://github.com/j5ik2o/cellex-rs"
+readme = "../../README.md"
+
+[features]
+default = ["alloc"]
+alloc = []
+std = ["alloc"]
+
+[dependencies]
+async-trait = { version = "0.1.82", default-features = false }
+critical-section = { version = "1", optional = false }

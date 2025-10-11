@@ -1,0 +1,23 @@
+[package]
+name = "cellex-utils-std-rs"
+version = "0.0.1"
+edition = "2021"
+description = "Utility library for Cellex Actor"
+license = "MIT OR Apache-2.0"
+keywords = [ "cellex", "actor", "utils" ]
+categories = [ "concurrency", "asynchronous", "network-programming" ]
+readme = "../../README.md"
+repository = "https://github.com/j5ik2o/cellex-rs"
+
+[dependencies]
+futures = { workspace = true }
+async-trait = { workspace = true }
+dashmap = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tokio-condvar = "0.3.0"
+tracing = { workspace = true }
+parking_lot = { workspace = true }
+cellex-utils-core-rs = { version = "0.0.1", path = "../utils-core", features = ["std"] }
+cellex-actor-core-rs = { version = "0.0.1", path = "../actor-core", default-features = false, features = ["alloc"] }

@@ -1,0 +1,17 @@
+[package]
+name = "cellex-remote-core-rs"
+version = "0.0.1"
+edition = "2021"
+description = "Remote messaging core scaffolding"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = ["std"]
+alloc = []
+std = ["alloc", "cellex-actor-core-rs/std"]
+
+[dependencies]
+cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc"] }
+
+[dev-dependencies]
+cellex-actor-std-rs = { path = "../actor-std" }
