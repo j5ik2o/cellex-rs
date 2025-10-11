@@ -9,11 +9,12 @@ use core::any::Any;
 use core::fmt::{self, Debug, Formatter};
 use portable_atomic::{AtomicI32, Ordering};
 
-#[cfg(feature = "std")]
-use cellex_serialization_core_rs::json::{shared_json_serializer, SERDE_JSON_SERIALIZER_ID};
 use cellex_serialization_core_rs::registry::InMemorySerializerRegistry;
 use cellex_serialization_core_rs::serializer::Serializer;
 use cellex_serialization_core_rs::RegistryError;
+#[cfg(feature = "std")]
+use cellex_serialization_json_rs::{shared_json_serializer, SERDE_JSON_SERIALIZER_ID};
+use cellex_serialization_prost_rs::{shared_prost_serializer, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::sync::ArcShared;
 use spin::RwLock;
 
@@ -175,6 +176,10 @@ impl SerializerRegistryExtension {
     {
       if self.registry.get(SERDE_JSON_SERIALIZER_ID).is_none() {
         let serializer = shared_json_serializer();
+        let _ = self.registry.register(serializer);
+      }
+      if self.registry.get(PROST_SERIALIZER_ID).is_none() {
+        let serializer = shared_prost_serializer();
         let _ = self.registry.register(serializer);
       }
     }

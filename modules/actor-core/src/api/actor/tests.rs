@@ -24,12 +24,12 @@ use alloc::string::String;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use cellex_serialization_json_rs::SERDE_JSON_SERIALIZER_ID;
+use cellex_utils_core_rs::{Element, QueueError};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context as TaskContext, Poll, RawWaker, RawWakerVTable, Waker};
-use cellex_serialization_core_rs::json::SERDE_JSON_SERIALIZER_ID;
-use cellex_utils_core_rs::{Element, QueueError};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -45,10 +45,10 @@ struct ChildMessage {
 impl Element for ParentMessage {}
 impl Element for ChildMessage {}
 
+use cellex_utils_core_rs::sync::ArcShared;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use futures::executor::block_on;
 use futures::future;
-use cellex_utils_core_rs::sync::ArcShared;
 
 #[derive(Debug)]
 struct CounterExtension {

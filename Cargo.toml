@@ -10,6 +10,8 @@ members = [
   "modules/remote-core",
   "modules/cluster-core",
   "modules/serialization-core",
+  "modules/serialization-json",
+  "modules/serialization-prost",
   "platform-tests/rp2040-hw-tests",
   "platform-tests/rp2350-hw-tests",
   "platform-tests/wio-terminal-hw-tests"

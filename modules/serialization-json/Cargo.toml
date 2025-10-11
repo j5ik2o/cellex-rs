@@ -1,0 +1,18 @@
+[package]
+name = "cellex-serialization-json-rs"
+version = "0.0.1"
+edition = "2021"
+description = "serde_json-backed serializer implementation for Cellex"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/j5ik2o/cellex-rs"
+readme = "../../README.md"
+
+[features]
+default = ["std"]
+std = ["cellex-serialization-core-rs/std", "cellex-utils-core-rs/std"]
+
+[dependencies]
+cellex-serialization-core-rs = { path = "../serialization-core", default-features = false, features = ["alloc"] }
+cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
