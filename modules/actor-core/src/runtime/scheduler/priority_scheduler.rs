@@ -28,7 +28,7 @@ use futures::FutureExt;
 
 use super::actor_cell::ActorCell;
 use super::actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
-use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
+use crate::{MapSystemShared, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub struct PriorityScheduler<M, R, Strat = AlwaysRestart>
@@ -41,6 +41,7 @@ where
   escalations: Vec<FailureInfo>,
   escalation_sink: CompositeEscalationSink<M, R>,
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  metrics_sink: Option<MetricsSinkShared>,
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
 }
@@ -64,6 +65,7 @@ where
       escalations: Vec::new(),
       escalation_sink: CompositeEscalationSink::default(),
       receive_timeout_factory: None,
+      metrics_sink: None,
       extensions,
       _strategy: PhantomData,
     }
@@ -233,6 +235,10 @@ where
     }
   }
 
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink;
+  }
+
   pub fn on_escalation<F>(&mut self, handler: F)
   where
     F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
@@ -373,38 +379,42 @@ where
   }
 
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
-    self.set_receive_timeout_factory(factory);
+    PriorityScheduler::set_receive_timeout_factory(self, factory);
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    self.set_root_event_listener(listener);
+    PriorityScheduler::set_root_event_listener(self, listener);
   }
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
-    self.set_root_escalation_handler(handler);
+    PriorityScheduler::set_root_escalation_handler(self, handler);
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    PriorityScheduler::set_metrics_sink(self, sink);
   }
 
   fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
-    self.set_parent_guardian(control_ref, map_system);
+    PriorityScheduler::set_parent_guardian(self, control_ref, map_system);
   }
 
   fn on_escalation(
     &mut self,
     handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
   ) {
-    self.on_escalation(handler);
+    PriorityScheduler::on_escalation(self, handler);
   }
 
   fn take_escalations(&mut self) -> Vec<FailureInfo> {
-    self.take_escalations()
+    PriorityScheduler::take_escalations(self)
   }
 
   fn actor_count(&self) -> usize {
-    self.actor_count()
+    PriorityScheduler::actor_count(self)
   }
 
   fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
-    self.drain_ready()
+    PriorityScheduler::drain_ready(self)
   }
 
   async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {

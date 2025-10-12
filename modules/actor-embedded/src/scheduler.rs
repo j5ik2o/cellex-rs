@@ -5,8 +5,9 @@ use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
   ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener,
-  FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, PriorityEnvelope, PriorityScheduler,
-  ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
+  FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, MapSystemShared, MetricsSinkShared,
+  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext,
+  Supervisor,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_futures::yield_now;
@@ -76,6 +77,10 @@ where
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
     PriorityScheduler::set_root_escalation_handler(&mut self.inner, handler);
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    PriorityScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
   fn set_parent_guardian(

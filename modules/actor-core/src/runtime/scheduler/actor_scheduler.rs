@@ -14,7 +14,7 @@ use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
 use crate::runtime::mailbox::traits::MailboxPair;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxFactory, MapSystemShared,
-  PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
+  MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use cellex_utils_core_rs::{Element, QueueError};
@@ -54,6 +54,8 @@ where
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>;
 
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>);
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>);
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>);
 
