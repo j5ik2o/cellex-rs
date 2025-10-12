@@ -71,13 +71,6 @@ impl TestHarnessBundle {
     self
   }
 
-  /// Overrides the mailbox runtime used by the bundle.
-  #[must_use]
-  pub fn with_mailbox_runtime(mut self, runtime: TestMailboxRuntime) -> Self {
-    self.mailbox_factory = ArcShared::new(MailboxHandleFactoryStub::from_runtime(runtime));
-    self
-  }
-
   /// Overrides the failure event listener applied at the root guardian.
   #[must_use]
   pub fn with_root_event_listener(mut self, listener: Option<FailureEventListener>) -> Self {
@@ -127,12 +120,6 @@ impl TestHarnessBundle {
   /// Provides mutable access to the extension registry for customisation in tests.
   pub fn extensions_mut(&mut self) -> &mut Extensions {
     &mut self.extensions
-  }
-
-  /// Accessor for the underlying mailbox runtime stub.
-  #[must_use]
-  pub fn mailbox_factory(&self) -> MailboxHandleFactoryStub<TestMailboxRuntime> {
-    self.mailbox_factory.with_ref(|stub| stub.clone())
   }
 }
 
