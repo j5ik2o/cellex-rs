@@ -44,3 +44,36 @@ where
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler>;
 }
+
+/// `ReceiveTimeoutScheduler` implementation that performs no scheduling.
+#[derive(Default)]
+pub struct NoopReceiveTimeoutScheduler;
+
+impl ReceiveTimeoutScheduler for NoopReceiveTimeoutScheduler {
+  fn set(&mut self, _duration: core::time::Duration) {}
+
+  fn cancel(&mut self) {}
+
+  fn notify_activity(&mut self) {}
+}
+
+/// Factory that returns [`NoopReceiveTimeoutScheduler`].
+#[derive(Debug, Default, Clone)]
+pub struct NoopReceiveTimeoutSchedulerFactory;
+
+impl<M, R> ReceiveTimeoutSchedulerFactory<M, R> for NoopReceiveTimeoutSchedulerFactory
+where
+  M: Element + 'static,
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone,
+{
+  fn create(
+    &self,
+    _sender: R::Producer<PriorityEnvelope<M>>,
+    _map_system: MapSystemShared<M>,
+  ) -> Box<dyn ReceiveTimeoutScheduler> {
+    Box::new(NoopReceiveTimeoutScheduler::default())
+  }
+}

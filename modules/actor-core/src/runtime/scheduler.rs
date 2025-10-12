@@ -10,4 +10,6 @@ mod tests;
 pub(crate) use actor_scheduler::SchedulerHandle;
 pub use actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
 pub use priority_scheduler::PriorityScheduler;
-pub use receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
+pub use receive_timeout::{
+  NoopReceiveTimeoutSchedulerFactory, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
+};

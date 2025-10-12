@@ -98,8 +98,8 @@ pub use runtime::message::{
 };
 pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 pub use runtime::scheduler::{
-  ActorScheduler, PriorityScheduler, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder,
-  SchedulerSpawnContext,
+  ActorScheduler, NoopReceiveTimeoutSchedulerFactory, PriorityScheduler, ReceiveTimeoutScheduler,
+  ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
 };
 pub use shared::{FailureEventHandlerShared, FailureEventListenerShared, MapSystemShared, ReceiveTimeoutFactoryShared};
 
