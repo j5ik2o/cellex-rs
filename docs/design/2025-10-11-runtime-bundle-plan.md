@@ -137,7 +137,7 @@
 #### 事前準備 (0.5 日)
 1. `protoactor-go/actor/mailbox` 実装の `producer` / `invoker` 分離例を再読し、Rust 化する際の責務境界を整理する。
 2. 現行 `MailboxFactory` の利用箇所を `rg "MailboxFactory" -g"*.rs" modules/actor-core` で洗い出し、Builder/Handle それぞれに置き換える必要がある API を一覧化する。
-3. 旧実装（`docs/sources/cellex-rs-old/`）の Mailbox 関連を確認し、再利用可能なテストケースやベンチマークがあればメモする。
+3. 旧実装（`docs/sources/cellex-rs-old/`）の Mailbox 関連を確認し、再利用可能なテストケースやベンチマークがあればメモする。 → AGENTS.mdが間違っていました。再度AGENTS.mdを確認して。
 
 #### 実装ステップ (1.5 日)
 1. 型設計
@@ -178,9 +178,10 @@
 - `SchedulerSpawnContext` は `mailbox_spawner` の代わりに `MailboxHandleFactoryStub` を受け取り、Scheduler 側で必要なタイミングにハンドルを派生させる構造へ移行（`modules/actor-core/src/runtime/scheduler/actor_scheduler.rs:29`）。
 - `PriorityScheduler` / `InternalRootContext` / 各テストを新しいコンテキスト構造に合わせて更新し、`MailboxFactory` 直接依存を段階的に縮小（例: `modules/actor-core/src/runtime/system/internal_root_context.rs:49`、`modules/actor-core/src/runtime/scheduler/priority_scheduler.rs:105`）。
 - `ActorRuntimeBundle::priority_mailbox_spawner` は束縛中のランタイムクローンから stub を作成する実装へ変更し、外部呼び出しでも統一的に MailboxHandle を取得可能にした。
+- RuntimeBundle / ActorSystemConfig に `MetricsSinkShared` を追加し、スケジューラ初期化時に `set_metrics_sink` で注入されるパスを整備。Tokio / Embassy ラッパーおよび `PriorityScheduler`／`ImmediateScheduler` にハンドラを実装し、設定値の優先順位（Config > Bundle）をユニットテスト化した。
 
 #### 参考ソース確認メモ
-- 2025-10-11 時点でリポジトリ内に `docs/sources/cellex-rs-old/` ディレクトリは存在しない。`find docs -maxdepth 4 -name "*cellex*"` や `rg "cellex-rs-old" -n` を実行したが、参照のみで実体は未配置。
+- 2025-10-11 時点でリポジトリ内に `docs/sources/cellex-rs-old/` ディレクトリは存在しない。`find docs -maxdepth 4 -name "*cellex*"` や `rg "cellex-rs-old" -n` を実行したが、参照のみで実体は未配置。→ 旧実装は `docs/sources/nexus-actor-rs/`でした。
 - 旧実装を参照する必要がある場合は、アーカイブ取得手段（過去リポジトリや別ブランチ、外部ストレージ）を確認するタスクを別途起票する。
 - 当面は `docs/sources/nexus-actor-rs/` および protoactor-go の実装を一次資料として用いる。
 
