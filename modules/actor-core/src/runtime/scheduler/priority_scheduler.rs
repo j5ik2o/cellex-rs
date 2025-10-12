@@ -380,6 +380,7 @@ where
 
   fn record_messages_dequeued(&self, count: usize) {
     self.record_repeated(MetricsEvent::MailboxDequeued, count);
+    self.record_repeated(MetricsEvent::MailboxEnqueued, count);
   }
 
   fn record_repeated(&self, event: MetricsEvent, count: usize) {

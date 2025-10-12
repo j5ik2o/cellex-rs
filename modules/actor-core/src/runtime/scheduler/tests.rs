@@ -223,12 +223,29 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 
   {
     let recorded = events.lock().unwrap();
-    let registered = recorded.iter().filter(|event| matches!(event, MetricsEvent::ActorRegistered)).count();
-    let deregistered = recorded.iter().filter(|event| matches!(event, MetricsEvent::ActorDeregistered)).count();
-    let dequeued = recorded.iter().filter(|event| matches!(event, MetricsEvent::MailboxDequeued)).count();
+    let registered = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::ActorRegistered))
+      .count();
+    let deregistered = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::ActorDeregistered))
+      .count();
+    let dequeued = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::MailboxDequeued))
+      .count();
+    let enqueued = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::MailboxEnqueued))
+      .count();
     assert_eq!(registered, 1);
     assert_eq!(deregistered, 1);
-    assert!(dequeued >= 1, "expected at least one MailboxDequeued event, got {recorded:?}");
+    assert!(
+      dequeued >= 1,
+      "expected at least one MailboxDequeued event, got {recorded:?}"
+    );
+    assert_eq!(enqueued, dequeued);
   }
 }
 
