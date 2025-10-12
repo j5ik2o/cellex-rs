@@ -6,8 +6,8 @@
 use core::time::Duration;
 
 use cellex_actor_core_rs::{
-  DynMessage, MailboxFactory, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler,
-  ReceiveTimeoutSchedulerFactory, SystemMessage,
+  ActorRuntimeBundle, DynMessage, MailboxFactory, MapSystemShared, PriorityEnvelope, ReceiveTimeoutDriver,
+  ReceiveTimeoutFactoryShared, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SystemMessage,
 };
 use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
 use futures::future::poll_fn;
@@ -110,6 +110,24 @@ impl ReceiveTimeoutSchedulerFactory<DynMessage, TokioMailboxFactory> for TokioRe
   fn create(&self, sender: TokioSender, map_system: MapSystemShared<DynMessage>) -> Box<dyn ReceiveTimeoutScheduler> {
     let (tx, handle) = TokioReceiveTimeoutScheduler::spawn_task(sender, map_system);
     Box::new(TokioReceiveTimeoutScheduler { tx, handle })
+  }
+}
+
+/// Runtime driver that provisions Tokio receive-timeout factories on demand.
+#[derive(Debug, Default, Clone)]
+pub struct TokioReceiveTimeoutDriver;
+
+impl TokioReceiveTimeoutDriver {
+  /// Creates a new driver instance.
+  #[must_use]
+  pub fn new() -> Self {
+    Self
+  }
+}
+
+impl ReceiveTimeoutDriver<TokioMailboxFactory> for TokioReceiveTimeoutDriver {
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<TokioMailboxFactory>> {
+    ReceiveTimeoutFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new()).for_runtime_bundle()
   }
 }
 

@@ -4,8 +4,8 @@ use std::vec::Vec;
 use cellex_actor_core_rs::{
   ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener,
   FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext,
-  Supervisor,
+  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, SchedulerBuilder,
+  SchedulerSpawnContext, Supervisor,
 };
 use cellex_utils_std_rs::{Element, QueueError};
 use tokio::task::yield_now;
@@ -125,7 +125,7 @@ where
   SchedulerBuilder::new(|runtime, extensions| Box::new(TokioScheduler::new(runtime, extensions)))
 }
 
-use crate::{TokioMailboxFactory, TokioReceiveTimeoutSchedulerFactory};
+use crate::{TokioMailboxFactory, TokioReceiveTimeoutDriver};
 
 /// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `ActorRuntimeBundle` に適用する。
 pub trait ActorRuntimeBundleTokioExt {
@@ -135,13 +135,8 @@ pub trait ActorRuntimeBundleTokioExt {
 
 impl ActorRuntimeBundleTokioExt for ActorRuntimeBundle<TokioMailboxFactory> {
   fn with_tokio_scheduler(self) -> ActorRuntimeBundle<TokioMailboxFactory> {
-    let bundle = self.with_scheduler_builder(tokio_scheduler_builder());
-    if bundle.receive_timeout_factory().is_some() {
-      bundle
-    } else {
-      bundle.with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(
-        TokioReceiveTimeoutSchedulerFactory::new(),
-      ))
-    }
+    self
+      .with_scheduler_builder(tokio_scheduler_builder())
+      .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(TokioReceiveTimeoutDriver::new())))
   }
 }

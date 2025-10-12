@@ -67,7 +67,7 @@ mod tokio_priority_mailbox;
 
 pub use cellex_utils_std_rs::{ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn};
 pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
-pub use receive_timeout::TokioReceiveTimeoutSchedulerFactory;
+pub use receive_timeout::{TokioReceiveTimeoutDriver, TokioReceiveTimeoutSchedulerFactory};
 pub use runtime_driver::TokioSystemHandle;
 pub use scheduler::{tokio_scheduler_builder, ActorRuntimeBundleTokioExt, TokioScheduler};
 pub use spawn::TokioSpawner;
@@ -224,13 +224,11 @@ mod tests {
     let log_clone = log.clone();
 
     let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
-    let mailbox_spawner = mailbox_factory.priority_spawner::<Message>();
-    let mailbox = mailbox_spawner.spawn_mailbox(MailboxOptions::default());
     let context = SchedulerSpawnContext {
       runtime,
       mailbox_factory,
       map_system: MapSystemShared::new(Message::System),
-      mailbox,
+      mailbox_options: MailboxOptions::default(),
       handler: Box::new(move |_, msg: Message| {
         log_clone.lock().unwrap().push(msg);
       }),
@@ -249,7 +247,12 @@ mod tests {
   #[test]
   fn tokio_bundle_sets_default_receive_timeout_factory() {
     let bundle = ActorRuntimeBundle::new(TokioMailboxFactory).with_tokio_scheduler();
-    assert!(bundle.receive_timeout_factory().is_some());
+    let factory_from_bundle = bundle.receive_timeout_factory();
+    let factory_from_driver = bundle.receive_timeout_driver_factory();
+    assert!(
+      factory_from_bundle.is_some() || factory_from_driver.is_some(),
+      "Tokio バンドルは ReceiveTimeout ドライバまたはファクトリを提供する想定"
+    );
   }
 
   #[tokio::test(flavor = "current_thread")]
