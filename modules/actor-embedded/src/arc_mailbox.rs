@@ -10,6 +10,7 @@ use core::task::{Context, Poll};
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 use embassy_sync::signal::Signal;
 
+use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
   Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
@@ -199,6 +200,10 @@ where
   pub fn inner(&self) -> &QueueMailbox<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 impl<M, RM> Mailbox<M> for ArcMailbox<M, RM>
@@ -236,6 +241,10 @@ where
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
   }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 impl<M, RM> ArcMailboxSender<M, RM>
@@ -254,5 +263,9 @@ where
 
   pub fn inner(&self) -> &QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
+  }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }

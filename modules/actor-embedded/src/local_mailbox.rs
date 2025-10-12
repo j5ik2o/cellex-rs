@@ -6,6 +6,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
+use cellex_actor_core_rs::MetricsSinkShared;
 #[cfg(feature = "embedded_rc")]
 use cellex_actor_core_rs::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
@@ -299,6 +300,11 @@ where
   pub fn inner(&self) -> &QueueMailbox<LocalQueue<M>, LocalSignal> {
     &self.inner
   }
+
+  /// Assigns a metrics sink to the underlying mailbox.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 impl<M> Mailbox<M> for LocalMailbox<M>
@@ -334,6 +340,10 @@ where
 
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -396,6 +406,11 @@ where
   /// A reference to the `QueueMailboxProducer`
   pub fn inner(&self) -> &QueueMailboxProducer<LocalQueue<M>, LocalSignal> {
     &self.inner
+  }
+
+  /// Assigns a metrics sink to the underlying producer.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 

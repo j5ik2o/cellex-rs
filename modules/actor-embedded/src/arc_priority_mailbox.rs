@@ -4,6 +4,7 @@ use core::marker::PhantomData;
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 
+use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::{
   Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv,
 };
@@ -282,6 +283,10 @@ where
   pub fn inner(&self) -> &QueueMailbox<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 impl<M, RM> Mailbox<PriorityEnvelope<M>> for ArcPriorityMailbox<M, RM>
@@ -317,6 +322,10 @@ where
 
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -359,6 +368,10 @@ where
 
   pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
     &self.inner
+  }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
