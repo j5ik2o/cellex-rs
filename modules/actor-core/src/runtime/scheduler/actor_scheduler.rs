@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 
 use async_trait::async_trait;
 
+use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
 use crate::runtime::mailbox::traits::MailboxPair;
-use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxFactory, MapSystemShared,
   PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
@@ -33,10 +33,9 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   pub runtime: R,
-  pub mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
+  pub mailbox_factory: MailboxHandleFactoryStub<R>,
   pub map_system: MapSystemShared<M>,
   pub mailbox: MailboxPair<R::Mailbox<PriorityEnvelope<M>>, R::Producer<PriorityEnvelope<M>>>,
-  // TODO: ActorRuntimeBundle から MailboxHandle を直接受け取る導線を追加する。
   pub handler: Box<ActorHandlerFn<M, R>>,
 }
 

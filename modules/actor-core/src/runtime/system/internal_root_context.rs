@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 
+use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::GuardianStrategy;
-use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::NoopSupervisor;
 use crate::{Extensions, MailboxFactory, PriorityEnvelope, Supervisor};
@@ -49,11 +49,12 @@ where
     } = props;
 
     let runtime = self.system.runtime.with_ref(|factory| factory.clone());
-    let mailbox_spawner = PriorityMailboxSpawnerHandle::new(self.system.runtime.clone());
+    let mailbox_factory = MailboxHandleFactoryStub::new(self.system.runtime.clone());
+    let mailbox_spawner = mailbox_factory.priority_spawner();
     let mailbox = mailbox_spawner.spawn_mailbox(options);
     let context = SchedulerSpawnContext {
       runtime,
-      mailbox_spawner,
+      mailbox_factory,
       map_system,
       mailbox,
       handler,

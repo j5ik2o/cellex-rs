@@ -104,11 +104,12 @@ where
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
     let SchedulerSpawnContext {
       runtime,
-      mailbox_spawner,
+      mailbox_factory,
       map_system,
       mailbox,
       handler,
     } = context;
+    let mailbox_spawner = mailbox_factory.priority_spawner();
     let (mailbox, sender) = mailbox;
     let actor_sender = sender.clone();
     let control_ref = InternalActorRef::new(actor_sender.clone());

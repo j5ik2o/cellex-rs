@@ -173,6 +173,12 @@
 - **no_std 対応の破綻**: `Arc` 依存や `tokio` 特有型が紛れ込むリスク → `cfg(feature = "std")` ガードと `alloc` ベースの抽象に限定するコードレビュー項目を追加。
 - **パフォーマンス劣化**: Handle 経由呼び出しで余計な `Arc` クローンが発生 → Criterion ベンチを `modules/actor-core/benches` に追加し、メッセージ吞吐の回帰比較を行う。
 
+#### 2025-10-12 実装ログ（進捗）
+- `MailboxHandleFactoryStub<R>` を公開構造体として定義し、`from_runtime`/`priority_spawner` を通じてランタイムに依存した MailboxHandle を生成できるようにした（`modules/actor-core/src/api/actor/system.rs:104`）。
+- `SchedulerSpawnContext` は `mailbox_spawner` の代わりに `MailboxHandleFactoryStub` を受け取り、Scheduler 側で必要なタイミングにハンドルを派生させる構造へ移行（`modules/actor-core/src/runtime/scheduler/actor_scheduler.rs:29`）。
+- `PriorityScheduler` / `InternalRootContext` / 各テストを新しいコンテキスト構造に合わせて更新し、`MailboxFactory` 直接依存を段階的に縮小（例: `modules/actor-core/src/runtime/system/internal_root_context.rs:49`、`modules/actor-core/src/runtime/scheduler/priority_scheduler.rs:105`）。
+- `ActorRuntimeBundle::priority_mailbox_spawner` は束縛中のランタイムクローンから stub を作成する実装へ変更し、外部呼び出しでも統一的に MailboxHandle を取得可能にした。
+
 #### 参考ソース確認メモ
 - 2025-10-11 時点でリポジトリ内に `docs/sources/cellex-rs-old/` ディレクトリは存在しない。`find docs -maxdepth 4 -name "*cellex*"` や `rg "cellex-rs-old" -n` を実行したが、参照のみで実体は未配置。
 - 旧実装を参照する必要がある場合は、アーカイブ取得手段（過去リポジトリや別ブランチ、外部ストレージ）を確認するタスクを別途起票する。

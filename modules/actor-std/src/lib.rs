@@ -93,8 +93,8 @@ mod tests {
   use super::*;
   use cellex_actor_core_rs::MailboxOptions;
   use cellex_actor_core_rs::{
-    actor_loop, ActorId, ActorRuntimeBundle, ActorSystem, Context, Extensions, MapSystemShared, NoopSupervisor, Props,
-    SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
+    actor_loop, ActorId, ActorRuntimeBundle, ActorSystem, Context, Extensions, MailboxHandleFactoryStub,
+    MapSystemShared, NoopSupervisor, Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
   };
   use cellex_utils_std_rs::Element;
   use core::time::Duration;
@@ -223,11 +223,12 @@ mod tests {
     let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
     let log_clone = log.clone();
 
-    let mailbox_spawner = runtime.priority_mailbox_spawner::<Message>();
+    let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+    let mailbox_spawner = mailbox_factory.priority_spawner::<Message>();
     let mailbox = mailbox_spawner.spawn_mailbox(MailboxOptions::default());
     let context = SchedulerSpawnContext {
       runtime,
-      mailbox_spawner,
+      mailbox_factory,
       map_system: MapSystemShared::new(Message::System),
       mailbox,
       handler: Box::new(move |_, msg: Message| {

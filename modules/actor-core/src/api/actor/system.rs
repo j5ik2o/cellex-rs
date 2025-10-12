@@ -43,8 +43,6 @@ where
   R::Signal: Clone, {
   mailbox_factory: ArcShared<R>,
   scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
-  #[allow(dead_code)]
-  mailbox_handle_factory: Option<MailboxHandleFactoryStub<R>>,
 }
 
 impl<R> ActorRuntimeBundleCore<R>
@@ -55,10 +53,10 @@ where
 {
   #[must_use]
   pub(crate) fn new(mailbox_factory: R) -> Self {
+    let shared_factory = ArcShared::new(mailbox_factory);
     Self {
-      mailbox_factory: ArcShared::new(mailbox_factory),
+      mailbox_factory: shared_factory,
       scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, ActorRuntimeBundle<R>>::priority()),
-      mailbox_handle_factory: None,
     }
   }
 
@@ -91,26 +89,17 @@ where
   ) {
     self.scheduler_builder = builder;
   }
-
-  #[allow(dead_code)]
-  pub(crate) fn set_mailbox_handle_factory(&mut self, factory: Option<MailboxHandleFactoryStub<R>>) {
-    self.mailbox_handle_factory = factory;
-  }
-
-  #[must_use]
-  #[allow(dead_code)]
-  pub(crate) fn mailbox_handle_factory(&self) -> Option<MailboxHandleFactoryStub<R>> {
-    self.mailbox_handle_factory.clone()
-  }
 }
 
+/// Shared handle used to expose mailbox construction capabilities to the scheduler layer without
+/// leaking the underlying mailbox factory implementation.
 #[derive(Clone)]
-pub(crate) struct MailboxHandleFactoryStub<R>
+pub struct MailboxHandleFactoryStub<R>
 where
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
-  _factory: ArcShared<R>,
+  factory: ArcShared<R>,
 }
 
 impl<R> MailboxHandleFactoryStub<R>
@@ -120,33 +109,26 @@ where
   R::Signal: Clone,
 {
   #[must_use]
-  #[allow(dead_code)]
   pub(crate) fn new(factory: ArcShared<R>) -> Self {
-    Self { _factory: factory }
+    Self { factory }
   }
 
+  /// Creates a stub by cloning the provided runtime and wrapping it in a shared handle.
   #[must_use]
-  #[allow(dead_code)]
-  pub(crate) fn from_factory(factory: R) -> Self {
-    Self {
-      _factory: ArcShared::new(factory),
-    }
+  pub fn from_runtime(runtime: R) -> Self
+  where
+    R: Clone, {
+    Self::new(ArcShared::new(runtime))
   }
 
+  /// Returns a priority mailbox spawner for the given message type using the stored factory.
   #[must_use]
-  #[allow(dead_code)]
-  pub(crate) fn factory(&self) -> ArcShared<R> {
-    self._factory.clone()
-  }
-
-  #[must_use]
-  #[allow(dead_code)]
-  pub(crate) fn priority_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, R>
+  pub fn priority_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, R>
   where
     M: Element,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone, {
-    PriorityMailboxSpawnerHandle::new(self._factory.clone())
+    PriorityMailboxSpawnerHandle::new(self.factory.clone())
   }
 }
 
@@ -259,7 +241,7 @@ where
     M: Element,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone, {
-    PriorityMailboxSpawnerHandle::from_factory(self.clone())
+    MailboxHandleFactoryStub::from_runtime(self.clone()).priority_spawner()
   }
 
   /// Overrides the scheduler builder used when constructing the actor system.
@@ -283,20 +265,6 @@ where
   #[must_use]
   pub fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>> {
     self.core.scheduler_builder()
-  }
-
-  #[must_use]
-  #[allow(dead_code)]
-  pub(crate) fn mailbox_handle_factory_stub(&self) -> Option<MailboxHandleFactoryStub<R>> {
-    self.core.mailbox_handle_factory()
-  }
-
-  #[must_use]
-  #[allow(dead_code)]
-  pub(crate) fn with_mailbox_handle_factory_stub(mut self) -> Self {
-    let factory = MailboxHandleFactoryStub::new(self.core.mailbox_factory_shared());
-    self.core.set_mailbox_handle_factory(Some(factory));
-    self
   }
 }
 

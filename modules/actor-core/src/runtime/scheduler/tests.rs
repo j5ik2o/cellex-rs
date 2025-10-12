@@ -1,10 +1,10 @@
 #![allow(deprecated, unused_imports)]
 use super::priority_scheduler::PriorityScheduler;
 use super::*;
+use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::mailbox::test_support::TestMailboxFactory;
-use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::ActorHandlerFn;
 use crate::ActorId;
@@ -17,8 +17,6 @@ use crate::{FailureEventHandler, FailureEventListener, MapSystemShared};
 use crate::{MailboxFactory, PriorityEnvelope};
 use crate::{MailboxOptions, Supervisor, SystemMessage};
 use alloc::rc::Rc;
-#[cfg(feature = "std")]
-use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
@@ -67,11 +65,12 @@ where
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  let mailbox_spawner = PriorityMailboxSpawnerHandle::from_factory(runtime.clone());
+  let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+  let mailbox_spawner = mailbox_factory.priority_spawner();
   let mailbox = mailbox_spawner.spawn_mailbox(options);
   let context = SchedulerSpawnContext {
     runtime,
-    mailbox_spawner,
+    mailbox_factory,
     map_system,
     mailbox,
     handler,
