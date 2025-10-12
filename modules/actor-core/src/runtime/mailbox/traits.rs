@@ -3,6 +3,7 @@ use core::future::Future;
 use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 
 use crate::runtime::message::MetadataStorageMode;
+use crate::runtime::metrics::MetricsSinkShared;
 
 use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
 
@@ -78,6 +79,9 @@ pub trait Mailbox<M> {
   fn is_closed(&self) -> bool {
     false
   }
+
+  /// Injects a metrics sink for enqueue instrumentation. Default: no-op.
+  fn set_metrics_sink(&mut self, _sink: Option<MetricsSinkShared>) {}
 }
 
 /// Shared interface exposed by mailbox handles that can be managed by the runtime scheduler.
@@ -100,6 +104,9 @@ where
   M: Element, {
   /// Attempts to enqueue a message without waiting.
   fn try_send(&self, message: M) -> Result<(), QueueError<M>>;
+
+  /// Injects a metrics sink for enqueue instrumentation. Default: no-op.
+  fn set_metrics_sink(&mut self, _sink: Option<MetricsSinkShared>) {}
 }
 
 /// Notification primitive used by `QueueMailbox` to park awaiting receivers until
@@ -211,5 +218,9 @@ where
 {
   fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
     <QueueMailboxProducer<Q, S>>::try_send(self, message)
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    <QueueMailboxProducer<Q, S>>::set_metrics_sink(self, sink);
   }
 }

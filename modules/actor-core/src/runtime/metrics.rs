@@ -4,6 +4,7 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
+use core::fmt;
 
 /// メトリクスイベントを表す種別。
 ///
@@ -65,6 +66,12 @@ impl Clone for MetricsSinkShared {
     Self {
       inner: self.inner.clone(),
     }
+  }
+}
+
+impl fmt::Debug for MetricsSinkShared {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str("MetricsSinkShared(..)")
   }
 }
 
