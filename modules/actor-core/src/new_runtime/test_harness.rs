@@ -5,6 +5,7 @@
 use alloc::sync::Arc;
 
 use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::Shared;
 
 use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;
@@ -82,6 +83,38 @@ impl TestHarnessBundle {
   pub fn with_root_escalation_handler(mut self, handler: Option<FailureEventHandler>) -> Self {
     self.root_escalation_handler = handler;
     self
+  }
+
+  /// Overrides the receive-timeout factory used across the system.
+  #[must_use]
+  pub fn with_receive_timeout_factory(
+    mut self,
+    factory: Option<ReceiveTimeoutFactoryShared<DynMessage, TestMailboxRuntime>>,
+  ) -> Self {
+    self.receive_timeout_factory = factory;
+    self
+  }
+
+  /// Accessor for the receive-timeout factory (useful in tests).
+  #[must_use]
+  pub fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, TestMailboxRuntime>> {
+    self.receive_timeout_factory.clone()
+  }
+
+  /// Overrides the scheduler builder.
+  #[must_use]
+  pub fn with_scheduler_builder(
+    mut self,
+    builder: SharedSchedulerBuilder<TestMailboxRuntime>,
+  ) -> Self {
+    self.scheduler_builder = ArcShared::new(builder);
+    self
+  }
+
+  /// Accessor for the scheduler builder handle.
+  #[must_use]
+  pub fn scheduler_builder(&self) -> SharedSchedulerBuilder<TestMailboxRuntime> {
+    self.scheduler_builder.with_ref(|builder| builder.clone())
   }
 
   /// Provides mutable access to the extension registry for customisation in tests.
