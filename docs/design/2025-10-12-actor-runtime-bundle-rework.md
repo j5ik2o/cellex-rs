@@ -61,8 +61,8 @@ where
 ```
 
 ### バンドル具象型
-- `HostTokioBundle`: ホスト環境 (Tokio runtime) 向けの新バンドル。`TokioMailboxRuntime` と `TokioReceiveTimeoutSchedulerFactory` を再利用しつつ、新規 `TokioSchedulerNew` で `PriorityScheduler` に `tokio::task::yield_now` を差し込む。
-- `EmbeddedBundle`: 組み込み（`no_std`）向け。`LocalMailboxRuntime` と `NoopReceiveTimeoutSchedulerFactory` を束ねた最小構成を提供し、`embedded_arc`/`embedded_rc` いずれのランタイム構成でも流用可能。
+- `HostTokioBundleNew`: ホスト環境 (Tokio runtime) 向けの既定構成。
+- `EmbeddedBundleNew`: 組み込み（`no_std` + Embassy/Tokio）向け。初期段階では `Noop` 実装でテストベースを用意し、後続で最適化。
 - `TestHarnessBundle`: ユニットテスト専用の簡易構成。既存の `TestMailboxRuntime` を再利用。
 
 ### 既存 API との橋渡し
@@ -80,8 +80,8 @@ where
 | `RuntimeParts<R>` | struct | `InternalActorSystem` に渡す構成要素の束 | MailboxRuntime・Scheduler・TimeoutFactory を保持 |
 | `NewInternalActorSystem<M, B, Strat>` | struct | 既存 `InternalActorSystem` との橋渡し層 | 現状は `DynMessage` 固定で運用 |
 | `NewActorSystem<U, B, Strat>` | struct | 新 API の `ActorSystem` | `Async` 共有モデルに最適化 |
-| `HostTokioBundle` | struct | Tokio ホスト向けバンドル | `modules/actor-std/src/new_runtime/host_tokio.rs` に配置 |
-| `EmbeddedBundle` | struct | 組み込み向けバンドル | `modules/actor-embedded/src/new_runtime/embedded.rs` に配置 |
+| `HostTokioBundleNew` | struct | Tokio ホスト向けバンドル | `new_runtime/host_tokio.rs` に配置 |
+| `EmbeddedBundleNew` | struct | 組み込み向けバンドル | `new_runtime/embedded.rs` に配置 |
 | `TestHarnessBundle` | struct | テスト専用バンドル | `new_runtime/test_harness.rs` に配置 |
 
 ## モジュール構成案（core クレート）
@@ -100,9 +100,7 @@ where
 ## 内部構成と橋渡し方針
 - `NewActorSystem` 直下に新しい内部構造体 `NewInternalActorSystem<M, B, Strat>` を設け、既存 `InternalActorSystem<DynMessage, B::MailboxRuntime>` をフィールドとして保持する薄いラッパ層を実装する（現状 `M = DynMessage` で運用）。
 - `NewInternalActorSystem::from_bundle(bundle)` は `bundle.runtime_parts()` から得られる `RuntimeParts<B::MailboxRuntime>` を展開し、必要な `ArcShared<R>` や設定値へ変換したうえで既存 `InternalActorSystem` を構築する責務を担う。
-- `RuntimeParts<R, M>` は `M` を導入し、将来的に `DynMessage` 固定からの汎用化を可能にした。既定値は `DynMessage` のままだが、ReceiveTimeout やスケジューラを別メッセージ型へ差し替えやすくなっている。
-- `RuntimeParts<R>`（`M = DynMessage` 既定）には MailboxRuntime 本体、Scheduler ファクトリ、ReceiveTimeout ファクトリなどを格納し、旧 API が要求する依存をまとめて受け渡す。共通部品は既存実装（`modules/actor-*` 配下のユーティリティなど）を再利用し、新規コードは薄いラッパや構成要素の結合に限定する。`TestHarnessBundle` の実装では `MailboxHandleFactoryStub`、`SchedulerBuilder::<DynMessage, _>::priority()`、`NoopReceiveTimeoutSchedulerFactory` をそのまま活用しているほか、`HostTokioBundle`／`EmbeddedBundle` でも同じパターンで再利用している。
-- `HostTokioBundle` は `TokioSchedulerNew` を介して `PriorityScheduler` に `tokio::task::yield_now()` を挿入し、従来の協調的スケジューリングを維持したまま新 API に適応する。`EmbeddedBundle` は `LocalMailboxRuntime` と `NoopReceiveTimeoutSchedulerFactory` を束ねた最小構成を提供し、`embedded_arc` / `embedded_rc` の両構成で再利用できる。
+- `RuntimeParts<R>` には MailboxRuntime 本体、Scheduler ファクトリ、ReceiveTimeout ファクトリなどを格納し、旧 API が要求する依存をまとめて受け渡す。共通部品は既存実装（`modules/actor-*` 配下のユーティリティなど）を再利用し、新規コードは薄いラッパや構成要素の結合に限定する。`TestHarnessBundle` の実装では `MailboxHandleFactoryStub`、`SchedulerBuilder::<DynMessage, _>::priority()`、`NoopReceiveTimeoutSchedulerFactory` をそのまま活用している。
 - `GuardianStrategy` など旧 API のジェネリクスは依然として `MailboxRuntime` を型引数に取るため、新 API 側では明示的に `B::MailboxRuntime` を利用する型境界を文書化・実装する。
 - これにより `NewActorSystem` 本体は `B: NewActorRuntimeBundle` の抽象に集中でき、既存実装の型境界（`MailboxRuntime` など）を `new_runtime` 内部に閉じ込めることが可能になる。
 - 将来的に `InternalActorSystem` 自体を刷新する場合も、`NewInternalActorSystem` の内部実装を差し替えるだけで新 API の表面を保てる。
@@ -136,7 +134,7 @@ where
 ## TODO / オープン課題
 - [ ] 優先度:高 `NewActorRuntimeBundle` / `NewMailboxRuntime` の設計詳細を詰め、必須メソッドとライフタイム境界を決定する（依存: フェーズA）。
 - [ ] 優先度:高 コア trait 名称（`ActorRuntimeBundle` vs `ActorRuntime` など）を確定し、ドキュメントとコードの命名を統一する（依存: フェーズA）。
-- [x] 優先度:高 `RuntimeParts` と `NewActorRuntimeBundle::runtime_parts()` の仕様を策定し、旧 API へ受け渡す構造と型制約を整理する（依存: フェーズA、2025-10-12 `RuntimeParts<R, M>` で対応）。
+- [ ] 優先度:高 `RuntimeParts` と `NewActorRuntimeBundle::runtime_parts()` の仕様を策定し、旧 API へ受け渡す構造と型制約を整理する（依存: フェーズA）。
 - [ ] 優先度:中 互換アダプタで再利用する設定型の洗い出しと、既存 API とのマッピング表作成（依存: フェーズA）。
 - [ ] 優先度:中 組み込みターゲット向けの `Noop` Mailbox/Scheduler 実装プロトタイプ作成（依存: フェーズA）。
 - [ ] 優先度:低 新旧 API の共存期間を想定した deprecation ポリシー案の策定（依存: フェーズD）。

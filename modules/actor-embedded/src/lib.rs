@@ -67,8 +67,6 @@ mod runtime_driver;
 mod scheduler;
 mod spawn;
 mod timer;
-#[cfg(feature = "new-runtime")]
-pub mod new_runtime;
 
 #[cfg(feature = "embedded_arc")]
 pub use arc_mailbox::{ArcMailbox, ArcMailboxRuntime, ArcMailboxSender};
@@ -88,8 +86,6 @@ pub use runtime_driver::EmbeddedFailureEventHub;
 pub use scheduler::{embassy_scheduler_builder, ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
 pub use spawn::ImmediateSpawner;
 pub use timer::ImmediateTimer;
-#[cfg(feature = "new-runtime")]
-pub use new_runtime::EmbeddedBundle;
 
 /// Prelude that re-exports commonly used types in embedded environments.
 pub mod prelude {
