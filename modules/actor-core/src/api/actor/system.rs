@@ -35,6 +35,121 @@ where
   _marker: PhantomData<U>,
 }
 
+#[derive(Clone)]
+pub(crate) struct ActorRuntimeBundleCore<R>
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone, {
+  mailbox_factory: ArcShared<R>,
+  scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
+  #[allow(dead_code)]
+  mailbox_handle_factory: Option<MailboxHandleFactoryStub<R>>,
+}
+
+impl<R> ActorRuntimeBundleCore<R>
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+{
+  #[must_use]
+  pub(crate) fn new(mailbox_factory: R) -> Self {
+    Self {
+      mailbox_factory: ArcShared::new(mailbox_factory),
+      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, ActorRuntimeBundle<R>>::priority()),
+      mailbox_handle_factory: None,
+    }
+  }
+
+  #[must_use]
+  pub(crate) fn mailbox_factory(&self) -> &R {
+    &self.mailbox_factory
+  }
+
+  #[must_use]
+  pub(crate) fn mailbox_factory_shared(&self) -> ArcShared<R> {
+    self.mailbox_factory.clone()
+  }
+
+  #[must_use]
+  pub(crate) fn into_mailbox_factory(self) -> R {
+    self
+      .mailbox_factory
+      .try_unwrap()
+      .unwrap_or_else(|shared| (*shared).clone())
+  }
+
+  #[must_use]
+  pub(crate) fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>> {
+    self.scheduler_builder.clone()
+  }
+
+  pub(crate) fn set_scheduler_builder(
+    &mut self,
+    builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
+  ) {
+    self.scheduler_builder = builder;
+  }
+
+  #[allow(dead_code)]
+  pub(crate) fn set_mailbox_handle_factory(&mut self, factory: Option<MailboxHandleFactoryStub<R>>) {
+    self.mailbox_handle_factory = factory;
+  }
+
+  #[must_use]
+  #[allow(dead_code)]
+  pub(crate) fn mailbox_handle_factory(&self) -> Option<MailboxHandleFactoryStub<R>> {
+    self.mailbox_handle_factory.clone()
+  }
+}
+
+#[derive(Clone)]
+pub(crate) struct MailboxHandleFactoryStub<R>
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone, {
+  _factory: ArcShared<R>,
+}
+
+impl<R> MailboxHandleFactoryStub<R>
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+{
+  #[must_use]
+  #[allow(dead_code)]
+  pub(crate) fn new(factory: ArcShared<R>) -> Self {
+    Self { _factory: factory }
+  }
+
+  #[must_use]
+  #[allow(dead_code)]
+  pub(crate) fn from_factory(factory: R) -> Self {
+    Self {
+      _factory: ArcShared::new(factory),
+    }
+  }
+
+  #[must_use]
+  #[allow(dead_code)]
+  pub(crate) fn factory(&self) -> ArcShared<R> {
+    self._factory.clone()
+  }
+
+  #[must_use]
+  #[allow(dead_code)]
+  pub(crate) fn priority_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, R>
+  where
+    M: Element,
+    R::Queue<PriorityEnvelope<M>>: Clone,
+    R::Signal: Clone, {
+    PriorityMailboxSpawnerHandle::new(self._factory.clone())
+  }
+}
+
 /// Bundle that contains runtime-dependent components required by [`ActorSystem`].
 ///
 /// This lightweight container currently stores only the mailbox factory, but it is
@@ -46,8 +161,7 @@ where
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
-  mailbox_factory: ArcShared<R>,
-  scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
+  core: ActorRuntimeBundleCore<R>,
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>>,
   root_event_listener: Option<FailureEventListener>,
   root_escalation_handler: Option<FailureEventHandler>,
@@ -63,8 +177,7 @@ where
   #[must_use]
   pub fn new(mailbox_factory: R) -> Self {
     Self {
-      mailbox_factory: ArcShared::new(mailbox_factory),
-      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, ActorRuntimeBundle<R>>::priority()),
+      core: ActorRuntimeBundleCore::new(mailbox_factory),
       receive_timeout_factory: None,
       root_event_listener: None,
       root_escalation_handler: None,
@@ -74,22 +187,20 @@ where
   /// Returns a shared reference to the mailbox factory.
   #[must_use]
   pub fn mailbox_factory(&self) -> &R {
-    &self.mailbox_factory
+    self.core.mailbox_factory()
   }
 
   /// Consumes the bundle and returns the mailbox factory.
   #[must_use]
   pub fn into_mailbox_factory(self) -> R {
-    self
-      .mailbox_factory
-      .try_unwrap()
-      .unwrap_or_else(|shared| (*shared).clone())
+    let Self { core, .. } = self;
+    core.into_mailbox_factory()
   }
 
   /// Returns the shared mailbox factory handle.
   #[must_use]
   pub fn mailbox_factory_shared(&self) -> ArcShared<R> {
-    self.mailbox_factory.clone()
+    self.core.mailbox_factory_shared()
   }
 
   /// Returns the receive-timeout factory configured for this bundle.
@@ -154,7 +265,7 @@ where
   /// Overrides the scheduler builder used when constructing the actor system.
   #[must_use]
   pub fn with_scheduler_builder(mut self, builder: SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>) -> Self {
-    self.scheduler_builder = ArcShared::new(builder);
+    self.core.set_scheduler_builder(ArcShared::new(builder));
     self
   }
 
@@ -164,14 +275,28 @@ where
     mut self,
     builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
   ) -> Self {
-    self.scheduler_builder = builder;
+    self.core.set_scheduler_builder(builder);
     self
   }
 
   /// Returns the scheduler builder configured for this runtime bundle.
   #[must_use]
   pub fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>> {
-    self.scheduler_builder.clone()
+    self.core.scheduler_builder()
+  }
+
+  #[must_use]
+  #[allow(dead_code)]
+  pub(crate) fn mailbox_handle_factory_stub(&self) -> Option<MailboxHandleFactoryStub<R>> {
+    self.core.mailbox_handle_factory()
+  }
+
+  #[must_use]
+  #[allow(dead_code)]
+  pub(crate) fn with_mailbox_handle_factory_stub(mut self) -> Self {
+    let factory = MailboxHandleFactoryStub::new(self.core.mailbox_factory_shared());
+    self.core.set_mailbox_handle_factory(Some(factory));
+    self
   }
 }
 

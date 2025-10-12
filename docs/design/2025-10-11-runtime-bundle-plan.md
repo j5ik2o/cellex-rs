@@ -127,6 +127,112 @@
 3. ReceiveTimeoutDriver の抽象化と tokio 実装を同 PR に含め、テストを `#[cfg(feature = "tokio" )]` で分離。
 4. Embedded バンドルの PoC を `modules/actor-embedded` に追加し、`cargo check --target thumbv6m-none-eabi` を通す。
 
+### MailboxFactory 再分割 詳細作業計画
+
+#### ゴールと成果物
+- MailboxFactory を `MailboxBuilder` と `MailboxHandle`（仮称）に明確分離し、Scheduler 側が Builder 実装へ直接依存しない構造を確立する。
+- `ActorRuntimeBundle` が Mailbox 生成ハンドルを共有資源として保持し、Scheduler 初期化時は `SchedulerSpawnContext` 経由でハンドルを受け取るフローを完成させる。
+- 既存ユニットテスト群（`modules/actor-core/src/api/actor/tests.rs` 等）を全てパスさせ、クロスビルド (`thumbv6m-none-eabi` / `thumbv8m.main-none-eabi`) を阻害しないことを確認する。
+
+#### 事前準備 (0.5 日)
+1. `protoactor-go/actor/mailbox` 実装の `producer` / `invoker` 分離例を再読し、Rust 化する際の責務境界を整理する。
+2. 現行 `MailboxFactory` の利用箇所を `rg "MailboxFactory" -g"*.rs" modules/actor-core` で洗い出し、Builder/Handle それぞれに置き換える必要がある API を一覧化する。
+3. 旧実装（`docs/sources/cellex-rs-old/`）の Mailbox 関連を確認し、再利用可能なテストケースやベンチマークがあればメモする。
+
+#### 実装ステップ (1.5 日)
+1. 型設計
+   - `modules/actor-core/src/runtime/mailbox/` に `mailbox_builder.rs`（仮）と `mailbox_handle.rs` を追加し、Builder/Handle のトレイト定義と最小限のデフォルト実装を用意。
+   - `MailboxFactory` は暫定で Builder/Handle 両方をカプセル化する façade として残し、既存呼び出しへの移行期間を確保。
+2. RuntimeBundle 拡張
+   - `ActorRuntimeBundle` に `mailbox_handle: Arc<dyn MailboxHandle>` フィールドを追加し、Builder 注入パスとは独立に Handle を Scheduler へ配布できるようにする。
+   - `ActorRuntimeBundleBuilder`（未実装の場合は仮組み）に Builder/Handle 両方の setter を追加し、Tokio / Embedded プロファイルでのデフォルト値を定義。
+3. Scheduler 連携
+   - `PriorityScheduler` 内の `MailboxFactory` 直接参照を `SchedulerSpawnContext::mailbox_handle()` へ差し替える。
+   - `SchedulerSpawnContext` に Builder ではなく Handle を注入するためのコンストラクタ／ Getter を追加し、コンテキスト生成箇所を更新。
+4. Mailbox 実装更新
+   - 標準 Mailbox (`default_mailbox.rs` など) を Builder/Handle に準拠するよう改修し、`PriorityMailboxSpawnerHandle` 等の命名や共有方法を見直す。
+   - 必要に応じて `Arc<dyn MailboxInvoker>` など補助トレイトを導入し、Handle が Scheduler スレッドセーフ性を保証できるよう調整。
+5. 互換レイヤー整備
+   - 既存 `ActorSystem::new(mailbox_factory)` 呼び出しを非推奨にし、新 API への誘導をコメントとドキュメントで明示。
+   - 互換期間中は `MailboxFactory` が内部で Builder/Handle 両方を生成・返却する暫定実装を提供し、段階的に呼び出し側を差し替える。
+
+#### テスト・検証 (0.5 日)
+- `cargo test -p nexus-actor-core-rs` を実行し、Mailbox 差し替えテスト（特にスケジューラとの統合テスト）を追加して成功を確認。
+- `cargo check -p nexus-actor-core-rs --target thumbv6m-none-eabi` および `--target thumbv8m.main-none-eabi` を実行し、no_std 対応が壊れていないことを保証。
+- MailboxFactory 移行に伴う API 変更点を `CHANGELOG.md` または設計ドキュメントに追記し、後続フェーズの依存チームへ共有。
+
+#### 品質ゲートとレビュー
+- Pull Request では以下を必須エビデンスとして添付：
+  - 実行コマンドログ（`cargo test` / `cargo check --target ...`）。
+  - 新旧構造のクラス図またはシーケンス図を docs/worknotes/ に配置し、PR から参照。
+  - Scheduler 側で MailboxFactory への直接依存がゼロになったことを示す `rg` 結果の抜粋。
+- コードレビューではコンカレンシー安全性（`Send` / `Sync` 境界）とハンドルのライフタイム設計を重点確認ポイントに設定。
+
+#### リスクと緩和策
+- **API 破壊の波及**: Builder/Handle 追加で呼び出し側修正が広範囲に及ぶ → 互換レイヤーを段階的に残し、モジュール別に PR を分割。
+- **no_std 対応の破綻**: `Arc` 依存や `tokio` 特有型が紛れ込むリスク → `cfg(feature = "std")` ガードと `alloc` ベースの抽象に限定するコードレビュー項目を追加。
+- **パフォーマンス劣化**: Handle 経由呼び出しで余計な `Arc` クローンが発生 → Criterion ベンチを `modules/actor-core/benches` に追加し、メッセージ吞吐の回帰比較を行う。
+
+#### 参考ソース確認メモ
+- 2025-10-11 時点でリポジトリ内に `docs/sources/cellex-rs-old/` ディレクトリは存在しない。`find docs -maxdepth 4 -name "*cellex*"` や `rg "cellex-rs-old" -n` を実行したが、参照のみで実体は未配置。
+- 旧実装を参照する必要がある場合は、アーカイブ取得手段（過去リポジトリや別ブランチ、外部ストレージ）を確認するタスクを別途起票する。
+- 当面は `docs/sources/nexus-actor-rs/` および protoactor-go の実装を一次資料として用いる。
+
+### ActorRuntimeBundle MailboxHandle 配線設計案
+
+#### 目的
+- Scheduler と Mailbox の疎結合化を進める上で、RuntimeBundle から Scheduler へ MailboxHandle を安全かつ明示的に供給する経路を定義する。
+- Host / Embedded / Remote など異なるプロファイルで共通の抽象を使い回し、将来的な Builder 差し替えにも耐える構造を用意する。
+
+#### コンポーネント構成案
+- `MailboxBuilder`: 各アクターの Mailbox を生成する責務を持つトレイト。`fn build(&self, spec: &SpawnSpec) -> MailboxPair` を想定。
+- `MailboxHandle`: 生成済み Mailbox に対して enqueue / metrics / diagnostics を提供する操作インターフェース。Scheduler 側は Handle を通じてのみメッセージ操作を行う。
+- `MailboxRegistry`: `Arc<dyn MailboxHandleFactory>` のように、Builder から Handle を生成して共有する補助構造。RuntimeBundle 内部で保持。
+- `SchedulerSpawnContext`: Scheduler 起動時に RuntimeBundle から引き渡される初期化コンテキスト。`fn mailbox_handle(&self) -> Arc<dyn MailboxHandle>` を公開。
+- `ActorRuntimeBundleCore`: RuntimeBundle の内部構造体。`mailbox_builder`, `mailbox_handle_factory`, `scheduler_builder` などをフィールドとしてまとめ、フィーチャごとに組み替える。
+
+#### シーケンス概要
+1. アプリケーションが `ActorRuntimeBundle::host()` 等でデフォルトバンドルを生成し、必要に応じて `.with_mailbox_builder(...)` `.with_mailbox_handle_factory(...)` で差し替え。
+2. `ActorSystemBuilder::build()` が RuntimeBundle から `SchedulerBuilder` を取得し、`SchedulerBuilder::build(context)` を呼び出す。
+3. `SchedulerSpawnContext` 生成時に `mailbox_handle_factory.provision()` を呼び、Scheduler へ `Arc<dyn MailboxHandle>` を渡す。
+4. Scheduler は Handle 経由で Mailbox に enqueue し、Builder との直接結合は発生しない。
+5. 新しい Mailbox が必要になった場合は Scheduler から Handle 経由で要求を発行し、Handle が内部で Builder を呼び出して `MailboxPair` を作成する（必要なら lazy-init）。
+
+#### API ドラフト
+```rust
+pub trait MailboxHandle: Send + Sync {
+  fn enqueue_user(&self, msg: PriorityEnvelope);
+  fn enqueue_system(&self, msg: SystemMessage);
+  fn stats(&self) -> MailboxStats;
+}
+
+pub trait MailboxHandleFactory: Send + Sync {
+  fn provision(&self) -> Arc<dyn MailboxHandle>;
+}
+
+pub struct ActorRuntimeBundle {
+  mailbox_builder: Arc<dyn MailboxBuilder>,
+  mailbox_handle_factory: Arc<dyn MailboxHandleFactory>,
+  scheduler_builder: Arc<dyn SchedulerBuilder>,
+  // ...
+}
+
+impl SchedulerSpawnContext {
+  pub fn mailbox_handle(&self) -> Arc<dyn MailboxHandle> { /* ... */ }
+}
+```
+
+#### 追加検討事項
+- no_std 環境では `Arc` が使えないため、`Shared<dyn MailboxHandle>` のような抽象ジャケットを導入し、バックエンドを `Arc` / `Rc` / `StaticRef` で切り替えられるようにする。
+- `MailboxHandle` がトレース計測を担うかは検討が必要。`MailboxMetricsHook` のようなプラガブルなフックを Handle へ注入する案を比較する。
+- Handle のライフサイクル管理（shutdown 時の drain / cancel）をどう扱うかを明文化する。必要であれば `MailboxHandle::shutdown()` を追加。
+- Scheduler から Builder へのエラーパスは Handle が吸収し、`MailboxProvisionError` として上位へ伝播させる。エラー種別とリトライ戦略をドキュメント化する。
+
+#### 次アクション
+- `ActorRuntimeBundleCore` の型定義ドラフトを `modules/actor-core/src/api/actor/system.rs` に追加し、テスト用のスタブ実装を用意する。
+- `SchedulerSpawnContext` の生成箇所（`runtime/scheduler/actor_scheduler.rs` など）を洗い出し、Handle 導線を差し込むための TODO コメントを設定する。
+- no_std 用の `Shared` 抽象を `utils` クレートから再利用できるかを調査し、必要に応じて共通トレイトを拡張する。
+
 ## 用語整理
 - **ActorRuntimeBundle**: ActorSystem を起動するためのコンポーネント集合。環境ごとに差し替え可能。
 - **Scheduler**: Mailbox からメッセージを取り出し、Actor を評価する駆動ループ。

@@ -36,6 +36,7 @@ where
   pub mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
   pub map_system: MapSystemShared<M>,
   pub mailbox: MailboxPair<R::Mailbox<PriorityEnvelope<M>>, R::Producer<PriorityEnvelope<M>>>,
+  // TODO: ActorRuntimeBundle から MailboxHandle を直接受け取る導線を追加する。
   pub handler: Box<ActorHandlerFn<M, R>>,
 }
 
