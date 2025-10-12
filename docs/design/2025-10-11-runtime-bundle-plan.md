@@ -180,6 +180,7 @@
 - `ActorRuntimeBundle::priority_mailbox_spawner` は束縛中のランタイムクローンから stub を作成する実装へ変更し、外部呼び出しでも統一的に MailboxHandle を取得可能にした。
 - RuntimeBundle / ActorSystemConfig に `MetricsSinkShared` を追加し、スケジューラ初期化時に `set_metrics_sink` で注入されるパスを整備。Tokio / Embassy ラッパーおよび `PriorityScheduler`／`ImmediateScheduler` にハンドラを実装し、設定値の優先順位（Config > Bundle）をユニットテスト化した。
 - `PriorityScheduler` 内でアクター登録／停止およびメッセージの enqueue/dequeue 時に `MetricsEvent` を発行し、テストで `MailboxEnqueued` / `MailboxDequeued` の対が届くことを検証した。
+- RuntimeBundle 拡張で Tokio/Embassy 向け `ReceiveTimeoutSchedulerFactory` を自動登録（Tokio: `TokioReceiveTimeoutSchedulerFactory`, Embedded: `NoopReceiveTimeoutSchedulerFactory`）し、`Noop` ドライバを追加して全環境で ReceiveTimeout 依存が解決されるようにした。
 
 #### 参考ソース確認メモ
 - 2025-10-11 時点でリポジトリ内に `docs/sources/cellex-rs-old/` ディレクトリは存在しない。`find docs -maxdepth 4 -name "*cellex*"` や `rg "cellex-rs-old" -n` を実行したが、参照のみで実体は未配置。→ 旧実装は `docs/sources/nexus-actor-rs/`でした。
