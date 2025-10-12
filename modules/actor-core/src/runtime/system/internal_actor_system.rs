@@ -3,7 +3,9 @@ use core::convert::Infallible;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
-use crate::{Extensions, FailureEventHandler, FailureEventListener, MailboxFactory, PriorityEnvelope};
+use crate::{
+  Extensions, FailureEventHandler, FailureEventListener, MailboxFactory, MetricsSinkShared, PriorityEnvelope,
+};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
@@ -25,6 +27,8 @@ where
   pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
   pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  /// Metrics sink shared across the actor runtime.
+  pub(crate) metrics_sink: Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
   pub(crate) extensions: Extensions,
 }
@@ -41,6 +45,7 @@ where
       root_event_listener: None,
       root_escalation_handler: None,
       receive_timeout_factory: None,
+      metrics_sink: None,
       extensions: Extensions::new(),
     }
   }
@@ -85,6 +90,7 @@ where
       root_event_listener,
       root_escalation_handler,
       receive_timeout_factory,
+      metrics_sink,
       extensions,
     } = settings;
     let factory_shared = ArcShared::new(mailbox_factory);
@@ -94,6 +100,7 @@ where
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_receive_timeout_factory(receive_timeout_factory);
+    scheduler.set_metrics_sink(metrics_sink);
     Self {
       scheduler,
       runtime,

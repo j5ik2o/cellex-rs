@@ -96,6 +96,7 @@ pub use runtime::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, Syste
 pub use runtime::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
 };
+pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 pub use runtime::scheduler::{
   ActorScheduler, PriorityScheduler, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder,
   SchedulerSpawnContext,
