@@ -17,7 +17,7 @@
    - `Any + Send + Sync` を継承し、std 側アダプタがダウンキャスト可能にする。
    - 拡張用メソッドはデフォルト実装で no-op。
 2. **CoreContextBuilder / CoreProps**
-   - actor-core に `CoreProps` 構造体を追加し、必要最小限のプロデューサ（`ActorFactory`、`MailboxFactory`）を保持。
+   - actor-core に `CoreProps` 構造体を追加し、必要最小限のプロデューサ（`ActorFactory`、`MailboxRuntime`）を保持。
    - 生成時に CoreMailbox を要求し、std 側で Tokio mailboxes をラップ。
    - Middleware など std 特有の項目は adapter 側で持ち、core からは `Extensions` 的な Hook だけを受け取る。
 3. **エラーハンドリング**

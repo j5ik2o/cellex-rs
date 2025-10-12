@@ -131,7 +131,7 @@ pub trait SupervisorStrategy<M>: Send + 'static {
 
 pub struct Guardian<R>
 where
-  R: MailboxFactory,
+  R: MailboxRuntime,
 {
   children: HashMap<ActorId, PriorityActorRef<SystemMessage, R>>,
   strategy: Box<dyn SupervisorStrategy<Message>>, // protoactor-go の OneForOne 相当
@@ -139,7 +139,7 @@ where
 
 impl<R> Guardian<R>
 where
-  R: MailboxFactory,
+  R: MailboxRuntime,
 {
   pub fn add_child(&mut self, id: ActorId, control_ref: PriorityActorRef<SystemMessage, R>) { ... }
   pub fn stop_child(&mut self, id: ActorId) { control_ref.try_send_system(SystemMessage::Stop); }

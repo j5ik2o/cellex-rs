@@ -22,7 +22,7 @@ Shared ベースの `SchedulerBuilder`/`ActorScheduler` 抽象を導入したこ
    - 詳細要件:
      1. `actor-embedded::embassy_scheduler_builder()` を提供し、`SchedulerBuilder::new` を通じて Embassy ラッパを生成。（✅ 実装済み）
      2. `ActorRuntimeBundleEmbassyExt::with_embassy_scheduler()` 経由でランタイム構築時の差し替えを簡素化（✅ 実装済み）。
-     3. Mailbox 側は `LocalMailbox` を基本とし、`MailboxFactory` の `Concurrency = SingleThread` パスを利用。
+     3. Mailbox 側は `LocalMailbox` を基本とし、`MailboxRuntime` の `Concurrency = SingleThread` パスを利用。
      4. ReceiveTimeout は `embassy_time::Timer` を想定。TimeoutDriver 抽象導入後はランタイムバンドル経由で差し替える。
      5. デバッグ／検証用に `embassy_executor::Executor::run(|spawner| ...)` を使った最小構成サンプルを追加し、クロスビルド (`thumbv6m-none-eabi`) が通ることを CI で保証。
 
@@ -44,7 +44,7 @@ Shared ベースの `SchedulerBuilder`/`ActorScheduler` 抽象を導入したこ
 
 ## 既知の課題
 - `ActorScheduler` トレイトのオプション API（Escalation など）は default 実装を提供済みだが、各スケジューラで適宜 override する必要がある。
-- `InternalActorRef` が `MailboxFactory::Producer` 境界に `RuntimeBound` を要求しているため、no_std で `Rc` を使う場合の Send/Sync 条件を調整する必要がある。EmbassyScheduler 実装時に合わせて検証する。
+- `InternalActorRef` が `MailboxRuntime::Producer` 境界に `RuntimeBound` を要求しているため、no_std で `Rc` を使う場合の Send/Sync 条件を調整する必要がある。EmbassyScheduler 実装時に合わせて検証する。
 - `Shared` のフォールバック戦略（ArcShared/RcShared）の動作確認が不足している。`ActorRuntimeBundle` 側で Shared を統一使用する流れに沿って、Runtime 側の API からも Shared をそのまま受け渡す設計を徹底する。
 - `ActorSystemBuilder` に Scheduler 差し替え API を公開するかどうかは Step 3 で再検討。
 

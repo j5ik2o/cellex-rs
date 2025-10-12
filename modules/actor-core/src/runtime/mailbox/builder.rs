@@ -1,11 +1,11 @@
-use crate::runtime::mailbox::traits::{MailboxFactory, MailboxHandle, MailboxPair, MailboxProducer, MailboxSignal};
+use crate::runtime::mailbox::traits::{MailboxRuntime, MailboxHandle, MailboxPair, MailboxProducer, MailboxSignal};
 use crate::runtime::mailbox::MailboxOptions;
 use crate::PriorityEnvelope;
 use cellex_utils_core_rs::Element;
 
 /// Builder abstraction specialised for priority mailboxes.
 ///
-/// このトレイトは優先度付きメールボックスを生成する責務を `MailboxFactory`
+/// このトレイトは優先度付きメールボックスを生成する責務を `MailboxRuntime`
 /// から切り出し、スケジューラ層が具象ファクトリ型へ直接依存しないようにする。
 pub trait PriorityMailboxBuilder<M>: Clone
 where
@@ -29,7 +29,7 @@ where
 impl<M, R> PriorityMailboxBuilder<M> for R
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -38,10 +38,10 @@ where
   type Signal = R::Signal;
 
   fn build_priority_mailbox(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox, Self::Producer> {
-    MailboxFactory::build_mailbox::<PriorityEnvelope<M>>(self, options)
+    MailboxRuntime::build_mailbox::<PriorityEnvelope<M>>(self, options)
   }
 
   fn build_default_priority_mailbox(&self) -> MailboxPair<Self::Mailbox, Self::Producer> {
-    MailboxFactory::build_default_mailbox::<PriorityEnvelope<M>>(self)
+    MailboxRuntime::build_default_mailbox::<PriorityEnvelope<M>>(self)
   }
 }

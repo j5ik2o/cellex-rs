@@ -4,15 +4,15 @@
 ///
 /// # 使い方
 /// ```
-/// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxFactory};
+/// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
 /// use cellex_actor_core_rs::{ActorRuntimeBundle, ActorSystem, ActorSystemConfig};
 /// use embassy_executor::Spawner;
 ///
 /// define_embassy_dispatcher!(
-///   pub fn dispatcher(system: ActorSystem<u32, LocalMailboxFactory>)
+///   pub fn dispatcher(system: ActorSystem<u32, LocalMailboxRuntime>)
 /// );
 ///
-/// fn start(spawner: &Spawner, system: &'static mut ActorSystem<u32, LocalMailboxFactory>) {
+/// fn start(spawner: &Spawner, system: &'static mut ActorSystem<u32, LocalMailboxRuntime>) {
 ///   spawner.spawn(dispatcher(system)).expect("spawn dispatcher");
 /// }
 /// ```

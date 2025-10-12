@@ -3,7 +3,7 @@ use std::vec::Vec;
 
 use cellex_actor_core_rs::{
   ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener,
-  FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, MapSystemShared, MetricsSinkShared,
+  FailureInfo, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
   PriorityEnvelope, PriorityScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, SchedulerBuilder,
   SchedulerSpawnContext, Supervisor,
 };
@@ -16,7 +16,7 @@ use tokio::task::yield_now;
 pub struct TokioScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, ActorRuntimeBundle<R>>, {
   inner: PriorityScheduler<M, ActorRuntimeBundle<R>, Strat>,
 }
@@ -24,7 +24,7 @@ where
 impl<M, R> TokioScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
 {
   /// `PriorityScheduler` を用いた既定構成を作成する。
   pub fn new(runtime: ActorRuntimeBundle<R>, extensions: Extensions) -> Self {
@@ -37,7 +37,7 @@ where
 impl<M, R, Strat> TokioScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, ActorRuntimeBundle<R>>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
@@ -52,7 +52,7 @@ where
 impl<M, R, Strat> ActorScheduler<M, ActorRuntimeBundle<R>> for TokioScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, ActorRuntimeBundle<R>>,
@@ -119,22 +119,22 @@ where
 pub fn tokio_scheduler_builder<M, R>() -> SchedulerBuilder<M, ActorRuntimeBundle<R>>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   SchedulerBuilder::new(|runtime, extensions| Box::new(TokioScheduler::new(runtime, extensions)))
 }
 
-use crate::{TokioMailboxFactory, TokioReceiveTimeoutDriver};
+use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};
 
 /// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `ActorRuntimeBundle` に適用する。
 pub trait ActorRuntimeBundleTokioExt {
   /// スケジューラを Tokio 実装へ差し替える。
-  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<TokioMailboxFactory>;
+  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<TokioMailboxRuntime>;
 }
 
-impl ActorRuntimeBundleTokioExt for ActorRuntimeBundle<TokioMailboxFactory> {
-  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<TokioMailboxFactory> {
+impl ActorRuntimeBundleTokioExt for ActorRuntimeBundle<TokioMailboxRuntime> {
+  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<TokioMailboxRuntime> {
     self
       .with_scheduler_builder(tokio_scheduler_builder())
       .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(TokioReceiveTimeoutDriver::new())))

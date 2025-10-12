@@ -9,7 +9,7 @@ use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalProps;
 use crate::Supervisor;
 use crate::SystemMessage;
-use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope};
+use crate::{MailboxRuntime, MailboxOptions, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
@@ -29,7 +29,7 @@ type RuntimeParam<R> = ActorRuntimeBundle<R>;
 pub struct Props<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -41,7 +41,7 @@ where
 impl<U, R> Props<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

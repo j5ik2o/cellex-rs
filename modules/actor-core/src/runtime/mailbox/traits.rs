@@ -149,7 +149,7 @@ impl MailboxConcurrency for SingleThread {}
 ///
 /// Generates mailbox and queue implementations according to
 /// specific async runtimes (Tokio, Async-std, etc.).
-pub trait MailboxFactory {
+pub trait MailboxRuntime {
   /// Declares the concurrency mode for this factory.
   type Concurrency: MailboxConcurrency + MetadataStorageMode;
 

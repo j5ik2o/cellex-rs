@@ -7,7 +7,7 @@ use alloc::sync::Arc;
 use crate::api::supervision::{NoopSupervisor, Supervisor, SupervisorDirective};
 use crate::api::MessageEnvelope;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
-use crate::MailboxFactory;
+use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
 use crate::SystemMessage;
@@ -140,7 +140,7 @@ where
 pub enum BehaviorDirective<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -154,7 +154,7 @@ where
 pub struct BehaviorState<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   handler: Box<ReceiveFn<U, R>>,
@@ -165,7 +165,7 @@ where
 impl<U, R> BehaviorState<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
@@ -194,7 +194,7 @@ where
 pub enum Behavior<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   /// Message receiving state
@@ -208,7 +208,7 @@ where
 impl<U, R> Behavior<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
@@ -315,7 +315,7 @@ impl Behaviors {
   pub fn receive<U, R, F>(handler: F) -> Behavior<U, R>
   where
     U: Element,
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
@@ -327,7 +327,7 @@ impl Behaviors {
   pub fn same<U, R>() -> BehaviorDirective<U, R>
   where
     U: Element,
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone, {
     BehaviorDirective::Same
@@ -337,7 +337,7 @@ impl Behaviors {
   pub fn receive_message<U, R, F>(handler: F) -> Behavior<U, R>
   where
     U: Element,
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
@@ -349,7 +349,7 @@ impl Behaviors {
   pub fn transition<U, R>(behavior: Behavior<U, R>) -> BehaviorDirective<U, R>
   where
     U: Element,
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone, {
     BehaviorDirective::Become(behavior)
@@ -359,7 +359,7 @@ impl Behaviors {
   pub fn stopped<U, R>() -> BehaviorDirective<U, R>
   where
     U: Element,
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone, {
     BehaviorDirective::Become(Behavior::stopped())
@@ -369,7 +369,7 @@ impl Behaviors {
   pub fn supervise<U, R>(behavior: Behavior<U, R>) -> SuperviseBuilder<U, R>
   where
     U: Element,
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone, {
     SuperviseBuilder { behavior }
@@ -379,7 +379,7 @@ impl Behaviors {
   pub fn setup<U, R, F>(init: F) -> Behavior<U, R>
   where
     U: Element,
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
@@ -392,7 +392,7 @@ impl Behaviors {
 pub struct SuperviseBuilder<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   behavior: Behavior<U, R>,
@@ -401,7 +401,7 @@ where
 impl<U, R> SuperviseBuilder<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
@@ -424,7 +424,7 @@ where
 pub struct ActorAdapter<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   behavior_factory: ArcShared<dyn Fn() -> Behavior<U, R> + 'static>,
@@ -435,7 +435,7 @@ where
 impl<U, R> ActorAdapter<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

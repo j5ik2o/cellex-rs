@@ -56,7 +56,7 @@
 - **エンタープライズ**: LTS ブランチ、サポート API（ダンプ収集・構成検証ツール）、Transport プラグイン認証プロセスを提供。契約に応じて独自 Transport やセキュリティ拡張を追加。
 
 ## 拡張ポイント
-- `SchedulerProvider`, `MailboxFactory`, `TransportFactory`, `MembershipBackend`, `ObservationSink`, `ManagementPort` をトレイト化し、feature gate で実装を選択。
+- `SchedulerProvider`, `MailboxRuntime`, `TransportFactory`, `MembershipBackend`, `ObservationSink`, `ManagementPort` をトレイト化し、feature gate で実装を選択。
 - Serializer 抽象 (`Serializer`, `Deserializer`) を導入し、Protobuf/CBOR/FlatBuffer を選択可能に。no_std ではメモリフットプリントに応じた serializer を選べる。
 
 ## テスト・検証計画

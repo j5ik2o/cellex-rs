@@ -53,11 +53,11 @@ cargo add cellex-actor-std-rs --features rt-multi-thread
 
 ```rust
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
-use cellex_actor_std_rs::TokioMailboxFactory;
+use cellex_actor_std_rs::TokioMailboxRuntime;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-  let mut system: ActorSystem<u32, _> = ActorSystem::new(TokioMailboxFactory);
+  let mut system: ActorSystem<u32, _> = ActorSystem::new(TokioMailboxRuntime);
   let mut root = system.root_context();
 
   let props = Props::with_behavior(MailboxOptions::default(), || {

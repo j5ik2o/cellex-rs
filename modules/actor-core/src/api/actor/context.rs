@@ -5,7 +5,7 @@ use crate::ActorPath;
 use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
-use crate::MailboxFactory;
+use crate::MailboxRuntime;
 use crate::PriorityEnvelope;
 use crate::RuntimeBound;
 use crate::Supervisor;
@@ -42,7 +42,7 @@ type RuntimeParam<R> = ActorRuntimeBundle<R>;
 pub struct Context<'r, 'ctx, U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -186,7 +186,7 @@ impl ContextLogger {
 impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
@@ -611,7 +611,7 @@ where
   where
     Resp: Element,
     U: Element,
-    R: MailboxFactory<Concurrency = C> + Clone + 'static,
+    R: MailboxRuntime<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let dispatcher = self.dispatcher_for::<Resp>().ok_or(AskError::MissingResponder)?;
@@ -629,7 +629,7 @@ pub struct MessageAdapterRef<Ext, U, R>
 where
   Ext: Element,
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   target: ActorRef<U, R>,
@@ -640,7 +640,7 @@ impl<Ext, U, R> MessageAdapterRef<Ext, U, R>
 where
   Ext: Element,
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {

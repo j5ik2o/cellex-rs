@@ -69,16 +69,16 @@ mod spawn;
 mod timer;
 
 #[cfg(feature = "embedded_arc")]
-pub use arc_mailbox::{ArcMailbox, ArcMailboxFactory, ArcMailboxSender};
+pub use arc_mailbox::{ArcMailbox, ArcMailboxRuntime, ArcMailboxSender};
 #[cfg(feature = "embedded_arc")]
-pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxFactory, ArcPriorityMailboxSender};
+pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxRuntime, ArcPriorityMailboxSender};
 #[cfg(feature = "embedded_arc")]
 pub use cellex_utils_embedded_rs::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
 #[cfg(feature = "embedded_rc")]
 pub use cellex_utils_embedded_rs::{RcShared, RcStateCell};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
-pub use local_mailbox::{LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
+pub use local_mailbox::{LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
 #[cfg(feature = "embassy_executor")]
 pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 pub use runtime_driver::EmbeddedFailureEventHub;
@@ -93,10 +93,10 @@ pub mod prelude {
   pub use super::{ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
   #[cfg(feature = "embedded_arc")]
   pub use super::{
-    ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxFactory, ArcMailboxSender, ArcPriorityMailbox,
-    ArcPriorityMailboxFactory, ArcPriorityMailboxSender, ArcShared, ArcStateCell,
+    ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxRuntime, ArcMailboxSender, ArcPriorityMailbox,
+    ArcPriorityMailboxRuntime, ArcPriorityMailboxSender, ArcShared, ArcStateCell,
   };
-  pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
+  pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
   #[cfg(feature = "embedded_rc")]
   pub use super::{RcShared, RcStateCell};
 }
@@ -105,7 +105,7 @@ pub mod prelude {
 mod tests {
   extern crate std;
 
-  use super::LocalMailboxFactory;
+  use super::LocalMailboxRuntime;
   use alloc::rc::Rc;
   use alloc::vec::Vec;
   use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
@@ -154,7 +154,7 @@ mod tests {
 
   #[test]
   fn typed_actor_system_dispatch_next_processes_message() {
-    let factory = LocalMailboxFactory::default();
+    let factory = LocalMailboxRuntime::default();
     let mut system: ActorSystem<u32, _> = ActorSystem::new(factory);
 
     let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));

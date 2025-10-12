@@ -8,7 +8,7 @@ use crate::runtime::context::InternalActorRef;
 use crate::runtime::mailbox::traits::{MailboxConcurrency, ThreadSafe};
 use crate::runtime::message::{discard_metadata, store_metadata, DynMessage, MetadataKey, MetadataStorageMode};
 use crate::SystemMessage;
-use crate::{MailboxFactory, PriorityEnvelope, RuntimeBound};
+use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::marker::PhantomData;
@@ -53,7 +53,7 @@ where
   /// * `actor_ref` - Actor reference to send to
   pub(crate) fn from_factory_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self
   where
-    R: MailboxFactory<Concurrency = C> + Clone + 'static,
+    R: MailboxRuntime<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
@@ -131,7 +131,7 @@ impl InternalMessageSender {
   #[allow(dead_code)]
   pub(crate) fn from_internal_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self
   where
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();

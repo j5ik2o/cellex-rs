@@ -14,7 +14,7 @@ use crate::runtime::scheduler::SchedulerBuilder;
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
 use crate::{
-  Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener, FailureEventStream, MailboxFactory,
+  Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener, FailureEventStream, MailboxRuntime,
   PriorityEnvelope, SerializerRegistryExtension,
 };
 use crate::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
@@ -27,7 +27,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub struct ActorSystem<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>, {
@@ -40,7 +40,7 @@ where
 #[derive(Clone)]
 pub(crate) struct ActorRuntimeBundleCore<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   mailbox_factory: ArcShared<R>,
@@ -49,7 +49,7 @@ where
 
 impl<R> ActorRuntimeBundleCore<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -98,7 +98,7 @@ where
 #[derive(Clone)]
 pub struct MailboxHandleFactoryStub<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   factory: ArcShared<R>,
@@ -107,7 +107,7 @@ where
 
 impl<R> MailboxHandleFactoryStub<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -158,7 +158,7 @@ where
 #[derive(Clone)]
 pub struct ActorRuntimeBundle<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   core: ActorRuntimeBundleCore<R>,
@@ -171,7 +171,7 @@ where
 
 impl<R> ActorRuntimeBundle<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -341,9 +341,9 @@ where
   }
 }
 
-impl<R> MailboxFactory for ActorRuntimeBundle<R>
+impl<R> MailboxRuntime for ActorRuntimeBundle<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
 {
   type Concurrency = R::Concurrency;
   type Mailbox<M>
@@ -370,7 +370,7 @@ where
 /// Configuration options applied when constructing an [`ActorSystem`].
 pub struct ActorSystemConfig<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   /// Listener invoked when failures bubble up to the root guardian.
@@ -385,7 +385,7 @@ where
 
 impl<R> Default for ActorSystemConfig<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -401,7 +401,7 @@ where
 
 impl<R> ActorSystemConfig<R>
 where
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -508,7 +508,7 @@ where
 pub struct ActorSystemRunner<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>, {
@@ -519,7 +519,7 @@ where
 impl<U, R> ActorSystem<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -591,7 +591,7 @@ where
 impl<U, R, Strat> ActorSystem<U, R, Strat>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>,
@@ -736,7 +736,7 @@ where
 impl<U, R, Strat> ActorSystemRunner<U, R, Strat>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>,

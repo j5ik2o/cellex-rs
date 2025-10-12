@@ -26,7 +26,7 @@ use crate::Extensions;
 use crate::FailureInfo;
 use crate::Supervisor;
 use crate::SystemMessage;
-use crate::{MailboxFactory, PriorityEnvelope};
+use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::ReceiveTimeoutScheduler;
@@ -35,7 +35,7 @@ use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 pub(crate) struct ActorCell<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
   actor_id: ActorId,
@@ -58,7 +58,7 @@ where
 impl<M, R, Strat> ActorCell<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   #[allow(clippy::too_many_arguments)]
@@ -99,7 +99,7 @@ where
 
   pub(crate) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>)
   where
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {

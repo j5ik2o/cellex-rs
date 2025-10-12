@@ -6,7 +6,7 @@ pub mod middleware;
 pub mod snapshot;
 
 pub use core::{
-  CoreActorContext, CoreActorContextBuilder, CoreActorContextSnapshot, CoreActorSystemId, CoreMailboxFactory,
+  CoreActorContext, CoreActorContextBuilder, CoreActorContextSnapshot, CoreActorSystemId, CoreMailboxRuntime,
   CoreProps, CorePropsFactory, CoreReceiverInvocation, CoreSenderInvocation, CoreSenderSnapshot,
   CoreSupervisorStrategyHandle,
 };

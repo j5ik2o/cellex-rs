@@ -1,8 +1,8 @@
 # Actor Runtime 抽象リファクタリング計画 (2025-10-11)
 
 ## 現状の課題
-- `ActorSystem::new` は `R: MailboxFactory` だけを受け取っており、Scheduler や ReceiveTimeout ドライバなど実行基盤の差し替えが想定されていない。
-- `PriorityScheduler<R>` が `MailboxFactory` に強く依存しているため、Mailbox と Scheduler が実質的に結合している。
+- `ActorSystem::new` は `R: MailboxRuntime` だけを受け取っており、Scheduler や ReceiveTimeout ドライバなど実行基盤の差し替えが想定されていない。
+- `PriorityScheduler<R>` が `MailboxRuntime` に強く依存しているため、Mailbox と Scheduler が実質的に結合している。
 - Embedded / Tokio / Remote など異なるプラットフォーム向けに必要なコンポーネント（Scheduler、Timeout、EventListener、Metrics 等）をまとめて提供する仕組みが存在しない。
 
 ## ゴール
@@ -33,11 +33,11 @@
 ### フェーズ 2: Scheduler 抽象の切り出し ✅
 - `Scheduler` トレイト（spawn_actor / dispatch_next / run_forever）を定義し、`PriorityScheduler` を実装として登録。`SchedulerBuilder` を公開し、プラットフォーム側でラッパを組み立てられる状態にした。
 - `ActorRuntimeBundle` は `SchedulerBuilder` を Shared で保持。Tokio/Embassy など環境依存の実装は `actor-std` / `actor-embedded` 側で拡張トレイト（`with_tokio_scheduler` / `with_embassy_scheduler`）として提供。
-- MailboxFactory → MailboxBuilder/Handle 分解の骨子（PriorityMailboxSpawnerHandle 導入、RuntimeBundle からの共有ハンドル提供、SchedulerSpawnContext の再設計）を実装済み。Scheduler は `SchedulerSpawnContext` を介して mailbox handle を受け取り、Factory 依存を解消した。
+- MailboxRuntime → MailboxBuilder/Handle 分解の骨子（PriorityMailboxSpawnerHandle 導入、RuntimeBundle からの共有ハンドル提供、SchedulerSpawnContext の再設計）を実装済み。Scheduler は `SchedulerSpawnContext` を介して mailbox handle を受け取り、Factory 依存を解消した。
 
 #### フェーズ2の成果まとめ
 - Scheduler と Mailbox 生成経路の依存を切り離すためのインターフェース方針を確定。
-- RuntimeBundle で MailboxFactory を共有ハンドル化する要件定義を完了。
+- RuntimeBundle で MailboxRuntime を共有ハンドル化する要件定義を完了。
 - Tokio / Embassy ラッパーが SchedulerBuilder 経由で差し替え可能であることを検証済み。
 
 ### フェーズ 3: 追加コンポーネントの統合（着手）
@@ -74,7 +74,7 @@
 
 ## マイルストーン / TODO
 - [x] フェーズ 1 実装: `ActorRuntimeBundle` 追加、既存 API の 移行。（commit 7aea9d0, 843072e）
-- [x] フェーズ 2 設計レビュー: Scheduler 抽象刷新と MailboxFactory 分離案の確定。
+- [x] フェーズ 2 設計レビュー: Scheduler 抽象刷新と MailboxRuntime 分離案の確定。
 - [ ] フェーズ 3 実装: ReceiveTimeout / Event / Metrics 統合、および Bundle Builder の提供。
 - [ ] ドキュメント更新: README / ワークノートに新しい実行モデルのガイドを追記。
 
@@ -88,7 +88,7 @@
   - `trait Scheduler`: `spawn`, `tick`, `notify_ready`, `shutdown` を定義。protoactor-go の `Scheduler` を参考にし、タスク駆動 + コールバック登録型。
   - `SchedulerContext`: Mailbox とは無関係に Actor の ID・優先度・工場関数を受け渡す軽量 DTO を想定。
 - **PriorityScheduler のリファクタリング方針**
-- 既存の `PriorityScheduler` は `MailboxFactory` に直接アクセスしているため、`MailboxBuilder`（Factory 的責務）と `MailboxHandle`（Scheduler から利用する操作）に分割する。
+- 既存の `PriorityScheduler` は `MailboxRuntime` に直接アクセスしているため、`MailboxBuilder`（Factory 的責務）と `MailboxHandle`（Scheduler から利用する操作）に分割する。
   - 優先度キュー (`binaryheap`) と `tokio::task::JoinHandle` の管理は Scheduler 内に閉じ込める。
   - `#[cfg(feature = "embedded")]` では `heapless::binary_heap` + `embassy_executor::Spawner` ベースの実装を用意する。
 - **バックプレッシャーと計測の差し込みポイント**
@@ -136,58 +136,58 @@
 
 ## 直近アクションプラン
 1. Scheduler トレイトドラフトを PR にまとめ、`PriorityScheduler` を一時的に adapter 経由で接続。
-2. MailboxFactory の再分割（Builder / Handle）を実施し、Scheduler からの依存を解消。
+2. MailboxRuntime の再分割（Builder / Handle）を実施し、Scheduler からの依存を解消。
 3. ReceiveTimeoutDriver の抽象化と tokio 実装を同 PR に含め、テストを `#[cfg(feature = "tokio" )]` で分離。
 4. Embedded バンドルの PoC を `modules/actor-embedded` に追加し、`cargo check --target thumbv6m-none-eabi` を通す。
 
-### MailboxFactory 再分割 詳細作業計画
+### MailboxRuntime 再分割 詳細作業計画
 
 - **優先度**: MUST（M0）
 - **ステータス**: In Progress（第一イテレーション着手準備完了）
 - **第一イテレーション（MUST 範囲）**:
-  - `MailboxBuilder` / `MailboxHandle` トレイトを定義し、既存 `MailboxFactory` から移譲する最小実装を用意する。
+  - `MailboxBuilder` / `MailboxHandle` トレイトを定義し、既存 `MailboxRuntime` から移譲する最小実装を用意する。
   - `ActorRuntimeBundle` / `SchedulerSpawnContext` に Handle 供給パスを追加し、`PriorityScheduler` から Factory 依存を排除する。
   - 既存の標準 Mailbox を新トレイトに適合させる（Tokio 向けの1系統のみ）。
   - ユニットテスト 1 件（`PriorityScheduler` が Handle 経由で enqueue できること）を整備し、`cargo check --target thumbv6m-none-eabi` を確認する。
   - 旧 API (`ActorSystem::new(mailbox_factory)`) は内部的に新実装を呼び出す互換層を追加する。
 
 #### ゴールと成果物
-- MailboxFactory を `MailboxBuilder` と `MailboxHandle`（仮称）に明確分離し、Scheduler 側が Builder 実装へ直接依存しない構造を確立する。
+- MailboxRuntime を `MailboxBuilder` と `MailboxHandle`（仮称）に明確分離し、Scheduler 側が Builder 実装へ直接依存しない構造を確立する。
 - `ActorRuntimeBundle` が Mailbox 生成ハンドルを共有資源として保持し、Scheduler 初期化時は `SchedulerSpawnContext` 経由でハンドルを受け取るフローを完成させる。
 - 既存ユニットテスト群（`modules/actor-core/src/api/actor/tests.rs` 等）を全てパスさせ、クロスビルド (`thumbv6m-none-eabi` / `thumbv8m.main-none-eabi`) を阻害しないことを確認する。
 
 #### 事前準備 (0.5 日)
 1. `protoactor-go/actor/mailbox` 実装の `producer` / `invoker` 分離例を再読し、Rust 化する際の責務境界を整理する。
-2. 現行 `MailboxFactory` の利用箇所を `rg "MailboxFactory" -g"*.rs" modules/actor-core` で洗い出し、Builder/Handle それぞれに置き換える必要がある API を一覧化する。
+2. 現行 `MailboxRuntime` の利用箇所を `rg "MailboxRuntime" -g"*.rs" modules/actor-core` で洗い出し、Builder/Handle それぞれに置き換える必要がある API を一覧化する。
 3. 旧実装（`docs/sources/cellex-rs-old/`）の Mailbox 関連を確認し、再利用可能なテストケースやベンチマークがあればメモする。 → AGENTS.mdが間違っていました。再度AGENTS.mdを確認して。
 
 #### 実装ステップ (1.5 日)
 1. 型設計
    - `modules/actor-core/src/runtime/mailbox/` に `mailbox_builder.rs`（仮）と `mailbox_handle.rs` を追加し、Builder/Handle のトレイト定義と最小限のデフォルト実装を用意。
-   - `MailboxFactory` は暫定で Builder/Handle 両方をカプセル化する façade として残し、既存呼び出しへの移行期間を確保。
+   - `MailboxRuntime` は暫定で Builder/Handle 両方をカプセル化する façade として残し、既存呼び出しへの移行期間を確保。
 2. RuntimeBundle 拡張
    - `ActorRuntimeBundle` に `mailbox_handle: Arc<dyn MailboxHandle>` フィールドを追加し、Builder 注入パスとは独立に Handle を Scheduler へ配布できるようにする（第一イテレーションでは Host/Tokio のみ）。
    - `ActorRuntimeBundleBuilder`（未実装の場合は仮組み）に Builder/Handle 両方の setter を追加し、Tokio デフォルトを設定。Embedded は TODO へ記載。
 3. Scheduler 連携
-   - `PriorityScheduler` 内の `MailboxFactory` 直接参照を `SchedulerSpawnContext::mailbox_handle()` へ差し替える。
+   - `PriorityScheduler` 内の `MailboxRuntime` 直接参照を `SchedulerSpawnContext::mailbox_handle()` へ差し替える。
    - `SchedulerSpawnContext` に Builder ではなく Handle を注入するためのコンストラクタ／ Getter を追加し、コンテキスト生成箇所を更新。
 4. Mailbox 実装更新
    - 標準 Mailbox (`default_mailbox.rs` など) を Builder/Handle に準拠するよう改修し、`PriorityMailboxSpawnerHandle` 等の命名や共有方法を見直す（再設計が必要な箇所は TODO 化）。
    - 必要に応じて `Arc<dyn MailboxInvoker>` など補助トレイトを導入し、Handle が Scheduler スレッドセーフ性を保証できるよう調整（第一段階では既存の安全境界を流用）。
 5. 互換レイヤー整備
    - 既存 `ActorSystem::new(mailbox_factory)` 呼び出しを非推奨にし、新 API への誘導をコメントとドキュメントで明示。
-   - 互換期間中は `MailboxFactory` が内部で Builder/Handle 両方を生成・返却する暫定実装を提供し、段階的に呼び出し側を差し替える。
+   - 互換期間中は `MailboxRuntime` が内部で Builder/Handle 両方を生成・返却する暫定実装を提供し、段階的に呼び出し側を差し替える。
 
 #### テスト・検証 (0.5 日)
 - `cargo test -p nexus-actor-core-rs` を実行し、Mailbox 差し替えテスト（特にスケジューラとの統合テスト）を追加して成功を確認。
 - `cargo check -p nexus-actor-core-rs --target thumbv6m-none-eabi` および `--target thumbv8m.main-none-eabi` を実行し、no_std 対応が壊れていないことを保証。
-- MailboxFactory 移行に伴う API 変更点を `CHANGELOG.md` または設計ドキュメントに追記し、後続フェーズの依存チームへ共有。
+- MailboxRuntime 移行に伴う API 変更点を `CHANGELOG.md` または設計ドキュメントに追記し、後続フェーズの依存チームへ共有。
 
 #### 品質ゲートとレビュー
 - Pull Request では以下を必須エビデンスとして添付：
   - 実行コマンドログ（`cargo test` / `cargo check --target ...`）。
   - 新旧構造のクラス図またはシーケンス図を docs/worknotes/ に配置し、PR から参照。
-  - Scheduler 側で MailboxFactory への直接依存がゼロになったことを示す `rg` 結果の抜粋。
+  - Scheduler 側で MailboxRuntime への直接依存がゼロになったことを示す `rg` 結果の抜粋。
 - コードレビューではコンカレンシー安全性（`Send` / `Sync` 境界）とハンドルのライフタイム設計を重点確認ポイントに設定。
 
 #### リスクと緩和策
@@ -198,7 +198,7 @@
 #### 2025-10-12 実装ログ（進捗）
 - `MailboxHandleFactoryStub<R>` を公開構造体として定義し、`from_runtime`/`priority_spawner` を通じてランタイムに依存した MailboxHandle を生成できるようにした（`modules/actor-core/src/api/actor/system.rs:104`）。
 - `SchedulerSpawnContext` は `mailbox_spawner` の代わりに `MailboxHandleFactoryStub` を受け取り、Scheduler 側で必要なタイミングにハンドルを派生させる構造へ移行（`modules/actor-core/src/runtime/scheduler/actor_scheduler.rs:29`）。
-- `PriorityScheduler` / `InternalRootContext` / 各テストを新しいコンテキスト構造に合わせて更新し、`MailboxFactory` 直接依存を段階的に縮小（例: `modules/actor-core/src/runtime/system/internal_root_context.rs:49`、`modules/actor-core/src/runtime/scheduler/priority_scheduler.rs:105`）。
+- `PriorityScheduler` / `InternalRootContext` / 各テストを新しいコンテキスト構造に合わせて更新し、`MailboxRuntime` 直接依存を段階的に縮小（例: `modules/actor-core/src/runtime/system/internal_root_context.rs:49`、`modules/actor-core/src/runtime/scheduler/priority_scheduler.rs:105`）。
 - `ActorRuntimeBundle::priority_mailbox_spawner` は束縛中のランタイムクローンから stub を作成する実装へ変更し、外部呼び出しでも統一的に MailboxHandle を取得可能にした。
 - RuntimeBundle / ActorSystemConfig に `MetricsSinkShared` を追加し、スケジューラ初期化時に `set_metrics_sink` で注入されるパスを整備。Tokio / Embassy ラッパーおよび `PriorityScheduler`／`ImmediateScheduler` にハンドラを実装し、設定値の優先順位（Config > Bundle）をユニットテスト化した。
 - `PriorityScheduler` 内でアクター登録／停止およびメッセージの enqueue/dequeue 時に `MetricsEvent` を発行し、テストで `MailboxEnqueued` / `MailboxDequeued` の対が届くことを検証した。

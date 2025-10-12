@@ -1,13 +1,13 @@
 use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::SystemMessage;
-use crate::{MailboxFactory, PriorityEnvelope, RuntimeBound};
+use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Actor reference. Wraps QueueMailboxProducer and provides message sending API.
 pub struct InternalActorRef<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   sender: R::Producer<PriorityEnvelope<M>>,
@@ -16,7 +16,7 @@ where
 unsafe impl<M, R> Send for InternalActorRef<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
   R::Signal: Clone + RuntimeBound,
 {
@@ -25,7 +25,7 @@ where
 unsafe impl<M, R> Sync for InternalActorRef<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
   R::Signal: Clone + RuntimeBound,
 {
@@ -34,7 +34,7 @@ where
 impl<M, R> Clone for InternalActorRef<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
@@ -49,7 +49,7 @@ where
 impl<M, R> InternalActorRef<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
@@ -88,7 +88,7 @@ where
 
 impl<R> InternalActorRef<SystemMessage, R>
 where
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Producer<PriorityEnvelope<SystemMessage>>: Clone,
 {
   #[allow(dead_code)]

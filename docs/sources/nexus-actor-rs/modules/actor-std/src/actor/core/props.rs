@@ -11,7 +11,7 @@ use once_cell::sync::Lazy;
 use tokio::sync::{Mutex, RwLock};
 
 use nexus_actor_core_rs::context::core::CoreSpawnAdapter;
-use nexus_actor_core_rs::context::{CoreMailboxFactory, CoreProps};
+use nexus_actor_core_rs::context::{CoreMailboxRuntime, CoreProps};
 use nexus_actor_core_rs::runtime::CoreRuntime;
 
 use crate::actor::actor_system::ActorSystem;
@@ -514,7 +514,7 @@ impl Props {
       .mailbox_producer
       .clone()
       .unwrap_or_else(|| DEFAULT_MAILBOX_PRODUCER.clone());
-    let mailbox_factory: CoreMailboxFactory = {
+    let mailbox_factory: CoreMailboxRuntime = {
       let producer = mailbox_producer.clone();
       Arc::new(move || {
         let producer = producer.clone();

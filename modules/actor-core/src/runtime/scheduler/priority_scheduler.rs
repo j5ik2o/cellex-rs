@@ -20,7 +20,7 @@ use crate::FailureEventHandler;
 use crate::FailureEventListener;
 use crate::FailureInfo;
 use crate::Supervisor;
-use crate::{MailboxFactory, PriorityEnvelope};
+use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
 use cellex_utils_core_rs::{Element, QueueError};
 use futures::future::select_all;
@@ -34,7 +34,7 @@ use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFact
 pub struct PriorityScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   pub(super) guardian: Guardian<M, R, Strat>,
   actors: Vec<ActorCell<M, R, Strat>>,
@@ -50,7 +50,7 @@ where
 impl<M, R> PriorityScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
 {
   pub fn new(runtime: R, extensions: Extensions) -> Self {
     Self::with_strategy(runtime, AlwaysRestart, extensions)
@@ -75,7 +75,7 @@ where
 impl<M, R> SchedulerBuilder<M, R>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
 {
   pub fn priority() -> Self {
     Self::new(|runtime, extensions| Box::new(PriorityScheduler::new(runtime, extensions)))
@@ -96,7 +96,7 @@ where
 impl<M, R, Strat> PriorityScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   pub fn spawn_actor(
@@ -408,7 +408,7 @@ where
 impl<M, R, Strat> ActorScheduler<M, R> for PriorityScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   fn spawn_actor(

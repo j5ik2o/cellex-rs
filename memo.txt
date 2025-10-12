@@ -1,5 +1,5 @@
-・ActorRuntimeBundle を介した Runtime 抽象への移行は完了。今後は MailboxFactory → MailboxBuilder/Handle への分割を進めたい。
-    ・PriorityScheduler・Guardian・ActorCell など、「R: MailboxFactory」依存を Runtime 抽象（ActorRuntimeBundle）＋ Builder/
+・ActorRuntimeBundle を介した Runtime 抽象への移行は完了。今後は MailboxRuntime → MailboxBuilder/Handle への分割を進めたい。
+    ・PriorityScheduler・Guardian・ActorCell など、「R: MailboxRuntime」依存を Runtime 抽象（ActorRuntimeBundle）＋ Builder/
   Handle
     に置き換える。
     ・ReceiveTimeoutFactoryShared のアダプタ導入済み。Timeout 周りの API も Runtime 抽象に合わせて再確認する。

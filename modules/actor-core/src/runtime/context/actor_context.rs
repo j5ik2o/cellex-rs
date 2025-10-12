@@ -11,7 +11,7 @@ use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
 use crate::Supervisor;
-use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope};
+use crate::{MailboxRuntime, MailboxOptions, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use crate::runtime::scheduler::ReceiveTimeoutScheduler;
@@ -28,7 +28,7 @@ pub type ActorHandlerFn<M, R> = dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, R
 pub struct ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   Sup: Supervisor<M> + ?Sized, {
   runtime: &'a R,
   mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
@@ -50,7 +50,7 @@ where
 impl<'a, M, R, Sup> ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   Sup: Supervisor<M> + ?Sized,
 {
   #[allow(clippy::too_many_arguments)]
@@ -189,7 +189,7 @@ where
     props: InternalProps<M, R>,
   ) -> InternalActorRef<M, R>
   where
-    R: MailboxFactory + Clone + 'static, {
+    R: MailboxRuntime + Clone + 'static, {
     let InternalProps {
       options,
       map_system,

@@ -232,13 +232,13 @@ where
 /// Configures the capacity of control and regular queues and the number of priority levels,
 /// and creates mailbox instances.
 #[derive(Clone, Debug)]
-pub struct TokioPriorityMailboxFactory {
+pub struct TokioPriorityMailboxRuntime {
   control_capacity_per_level: usize,
   regular_capacity: usize,
   levels: usize,
 }
 
-impl Default for TokioPriorityMailboxFactory {
+impl Default for TokioPriorityMailboxRuntime {
   fn default() -> Self {
     Self {
       control_capacity_per_level: DEFAULT_CAPACITY,
@@ -248,7 +248,7 @@ impl Default for TokioPriorityMailboxFactory {
   }
 }
 
-impl TokioPriorityMailboxFactory {
+impl TokioPriorityMailboxRuntime {
   /// Creates a new factory instance
   ///
   /// # Arguments
@@ -347,7 +347,7 @@ where
   ///
   /// `(TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)` - Tuple of mailbox and sender handle
   pub fn new(control_capacity_per_level: usize) -> (Self, TokioPriorityMailboxSender<M>) {
-    TokioPriorityMailboxFactory::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
+    TokioPriorityMailboxRuntime::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
   }
 
   /// Returns a reference to the internal `QueueMailbox`
@@ -541,7 +541,7 @@ mod tests {
   use cellex_utils_std_rs::{QueueSize, DEFAULT_PRIORITY};
 
   async fn run_priority_runtime_orders_messages() {
-    let factory = TokioPriorityMailboxFactory::default();
+    let factory = TokioPriorityMailboxRuntime::default();
     let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
     sender
@@ -579,7 +579,7 @@ mod tests {
   }
 
   async fn run_priority_sender_defaults_work() {
-    let factory = TokioPriorityMailboxFactory::new(4).with_regular_capacity(4);
+    let factory = TokioPriorityMailboxRuntime::new(4).with_regular_capacity(4);
     let (mailbox, sender) = factory.mailbox::<u8>(MailboxOptions::default());
 
     sender
@@ -603,7 +603,7 @@ mod tests {
   }
 
   async fn run_control_queue_preempts_regular_messages() {
-    let factory = TokioPriorityMailboxFactory::default();
+    let factory = TokioPriorityMailboxRuntime::default();
     let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
     sender
@@ -633,7 +633,7 @@ mod tests {
   }
 
   async fn run_priority_mailbox_capacity_split() {
-    let factory = TokioPriorityMailboxFactory::default();
+    let factory = TokioPriorityMailboxRuntime::default();
     let options = MailboxOptions::with_capacities(QueueSize::limited(2), QueueSize::limited(2));
     let (mailbox, sender) = factory.mailbox::<u8>(options);
 

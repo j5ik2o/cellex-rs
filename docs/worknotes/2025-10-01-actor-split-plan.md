@@ -39,19 +39,19 @@
 - EndpointSupervisor で EndpointManager の既存 `WatchRegistry` を再利用し、再起動時も監視スナップショットを維持するよう更新。`RemoteProcess` / `EndpointManager` 間で `WatchRegistry` を参照して重複 watch/unwatch を抑制し、イベント／テレメトリとワーカーメッセージ送信を整合。
 - CoreMailboxQueue を trait object 化し、MPSC／Ring／Priority ベースキューを `CoreMailboxQueue` に直結するアダプタを導入して、SyncMailboxQueueHandles から共通取得できるよう統一。
 - Supervisor 向けに `ErrorReasonCore`・`CoreSupervisor*` トレイト族を actor-core へ追加し、tokio 依存を std 層アダプタへ閉じ込める準備（設計メモ `docs/design/2025-10-01-supervisor-trait-refactor.md` 作成）。
-- dispatch ベンチマークを CoreSchedulerDispatcher ベースへ更新し、TokioRuntimeContextDispatcher の残存依存を除去。Props → CoreMailbox 経路の CoreMailboxFactory 利用をユニットテストで検証し、CoreMailbox 契約を破綻なく再確認。
+- dispatch ベンチマークを CoreSchedulerDispatcher ベースへ更新し、TokioRuntimeContextDispatcher の残存依存を除去。Props → CoreMailbox 経路の CoreMailboxRuntime 利用をユニットテストで検証し、CoreMailbox 契約を破綻なく再確認。
 - ActorContext／Guardian の障害処理を CoreSupervisorStrategy / CoreSupervisor 経由に統合し、RestartStatistics のクロック情報を保持したままコアトラッカーと往復させるアダプタを整備。ガーディアン経路・ルート監督でも CoreRuntime 依存に揃え、再起動閾値の判定が tokio 非依存で成立することを確認。
 - DefaultMailbox のタスク協調を `poll_fn` ベースのランタイム非依存 `yield` に置換し、Throttler／Dispatcher の TokioMutex 依存も runtime 抽象経由に統一。CoreMailboxQueue のテストを追加して core 抽象からのメールボックス操作を検証。
 - SingleWorkerDispatcher の tokio ランタイム生成を `runtime::build_single_worker_runtime()` に集約し、Tokio runtime ライフサイクル管理を専用 helper へ委譲。Dispatcher や Mailbox 経由の Tokio sync primitives は `StdAsyncMutex` / `StdAsyncRwLock` 再エクスポートを通じて参照する構成に整理。
 - CoreRuntimeConfig／CoreRuntime に AsyncYield を取り込み、TokioRuntime から yielder 抽象を渡す経路を整備。`runtime_yield_now()` も core 抽象経由の yield を優先し、Mailbox／Dispatcher の協調実行を Tokio 依存から切り離した。
-- Props 経由の MailboxFactory で CoreRuntime の AsyncYield を Mailbox に注入し、DefaultMailbox／MailboxHandle 双方がランタイム非依存な協調実行を選択できるよう整備。AsyncYield を利用した協調実行テストを追加し、CoreMailboxFactory の契約が維持されることを検証。
+- Props 経由の MailboxRuntime で CoreRuntime の AsyncYield を Mailbox に注入し、DefaultMailbox／MailboxHandle 双方がランタイム非依存な協調実行を選択できるよう整備。AsyncYield を利用した協調実行テストを追加し、CoreMailboxRuntime の契約が維持されることを検証。
 - MailboxMetricsCollector を CoreScheduler 駆動へ移行し、Tokio `spawn`/`interval` 依存を排除。CoreRuntime に同期したポーリングとハンドルキャンセルのテストを追加し、Supervisor／ガーディアン経路のランタイム抽象化を完了。
 - RestartStatistics を CoreRuntime の FailureClock から初期化するルートを追加し、`with_runtime` テストで再起動ウィンドウがコア抽象に基づいて進むことを検証。Tokio 依存のタイムソースを排除し CoreRuntime 提供の時計に一元化。
 - OneForOneStrategy の Supervisor テストを拡充し、CoreRuntime 由来の FailureClock で再起動ウィンドウ閾値が判定されることをシナリオ単位で検証。
 - StdSupervisorContext へ CoreRuntime の FailureClock を保持させ、RestartStatistics が CoreRestartTracker から直接 InstantFailureClock を再利用できるように拡張。SupervisorAdapter 周りのテストを追加し、Mailbox／Supervisor 抽象がランタイム非依存で動作することを確認。
 - AllForOneStrategy／ExponentialBackoffStrategy を CoreRuntime FailureClock 前提に再テストし、時間窓を跨いだ再起動判定とバックオフ更新がコアクロックで安定することを確認。
 - SupervisorStrategyHandle を CoreSupervisorStrategyHandle ベースへ置き換え、OneForOne／AllForOne／ExponentialBackoff／Restarting 各戦略を CoreSupervisorStrategy 実装に移行。関連テストを CoreRuntime 経由で呼び出すよう更新し、remote 側は標準戦略ハンドルを利用する構成に整理。
-- Mailbox／Supervisor 系の Tokio 依存を core 抽象＋std アダプタへ集約。Mailbox は CoreMailbox トレイトと CoreMailboxFactory で統合し、Supervisor は CoreSupervisorStrategy へ一本化。std 層は `StdSupervisorContext`／`StdSupervisorAdapter`／Tokio 同期プリミティブのみを提供し、remote/guardian も共通ハンドル利用へ移行。
+- Mailbox／Supervisor 系の Tokio 依存を core 抽象＋std アダプタへ集約。Mailbox は CoreMailbox トレイトと CoreMailboxRuntime で統合し、Supervisor は CoreSupervisorStrategy へ一本化。std 層は `StdSupervisorContext`／`StdSupervisorAdapter`／Tokio 同期プリミティブのみを提供し、remote/guardian も共通ハンドル利用へ移行。
 - Props が `CoreProps` を内部に保持するよう再構成し、actor-std の拡張設定（メールボックス生成・ミドルウェア・メトリクス）が core 抽象を通じて供給されるよう統一。`core_props()` は保持済み CoreProps を返し、no_std 層が必要とする最小 API を actor-core で完結させた。
 - MessageHandles と PidSet を CoreMessageHandles/CorePidSet として actor-core へ移植。std 層は Tokio ベースの `AsyncMutex`／`AsyncRwLock` を注入するラッパーのみとなり、alloc 環境でも共通ロジックが利用可能に。
 - CoreActorError・CoreReceiverInvocation と MessageEnvelope の Core⇔Std 変換 API を整備し、ReceiverSnapshot から core 呼び出しデータを直接得られるようにして Props／ActorContext の no_std 化基盤を拡充（2025-10-02）。

@@ -4,7 +4,7 @@ use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, MailboxFactory, MetricsSinkShared, PriorityEnvelope,
+  Extensions, FailureEventHandler, FailureEventListener, MailboxRuntime, MetricsSinkShared, PriorityEnvelope,
 };
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
@@ -18,7 +18,7 @@ use super::InternalRootContext;
 pub struct InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
@@ -36,7 +36,7 @@ where
 impl<M, R> Default for InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -54,7 +54,7 @@ where
 pub(crate) struct InternalActorSystem<M, R, Strat = AlwaysRestart>
 where
   M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
@@ -69,7 +69,7 @@ where
 impl<M, R> InternalActorSystem<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -115,7 +115,7 @@ where
 impl<M, R, Strat> InternalActorSystem<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
