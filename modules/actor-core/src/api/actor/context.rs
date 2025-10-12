@@ -232,7 +232,7 @@ where
   /// Applies the provided closure to the extension identified by `id`.
   pub fn extension<E, F, T>(&self, id: ExtensionId, f: F) -> Option<T>
   where
-    E: Extension,
+    E: Extension + 'static,
     F: FnOnce(&E) -> T, {
     self.extensions.with::<E, _, _>(id, f)
   }

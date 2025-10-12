@@ -198,6 +198,7 @@ impl Element for ParentMessage {}
 impl Element for ChildMessage {}
 
 use cellex_utils_core_rs::sync::ArcShared;
+use core::any::Any;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use futures::executor::block_on;
 use futures::future;
@@ -232,6 +233,10 @@ impl CounterExtension {
 impl Extension for CounterExtension {
   fn extension_id(&self) -> ExtensionId {
     self.id
+  }
+
+  fn as_any(&self) -> &dyn Any {
+    self
   }
 }
 

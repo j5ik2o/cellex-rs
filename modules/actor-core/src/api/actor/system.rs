@@ -466,7 +466,7 @@ where
   /// Registers an extension handle in the configuration.
   pub fn with_extension_handle<E>(self, extension: ArcShared<E>) -> Self
   where
-    E: Extension, {
+    E: Extension + 'static, {
     let extensions = &self.extensions;
     extensions.register(extension);
     self
@@ -475,7 +475,7 @@ where
   /// Registers an extension value in the configuration by wrapping it with `ArcShared`.
   pub fn with_extension_value<E>(self, extension: E) -> Self
   where
-    E: Extension, {
+    E: Extension + 'static, {
     self.with_extension_handle(ArcShared::new(extension))
   }
 
@@ -492,7 +492,7 @@ where
   /// Registers an extension on the existing registry.
   pub fn register_extension<E>(&self, extension: ArcShared<E>)
   where
-    E: Extension, {
+    E: Extension + 'static, {
     self.extensions.register(extension);
   }
 
@@ -638,7 +638,7 @@ where
   /// Applies a closure to the specified extension and returns its result.
   pub fn extension<E, F, T>(&self, id: ExtensionId, f: F) -> Option<T>
   where
-    E: Extension,
+    E: Extension + 'static,
     F: FnOnce(&E) -> T, {
     self.extensions.with::<E, _, _>(id, f)
   }
@@ -646,7 +646,7 @@ where
   /// Registers an extension handle with the running actor system.
   pub fn register_extension<E>(&self, extension: ArcShared<E>)
   where
-    E: Extension, {
+    E: Extension + 'static, {
     self.extensions.register(extension);
   }
 
@@ -658,7 +658,7 @@ where
   /// Registers an extension value by wrapping it with `ArcShared`.
   pub fn register_extension_value<E>(&self, extension: E)
   where
-    E: Extension, {
+    E: Extension + 'static, {
     self.register_extension(ArcShared::new(extension));
   }
 

@@ -55,6 +55,9 @@ pub fn serializer_extension_id() -> ExtensionId {
 pub trait Extension: Any + SharedBound {
   /// 拡張固有の ID を返します。
   fn extension_id(&self) -> ExtensionId;
+
+   /// Returns a type-erased `Any` reference for downcasting.
+   fn as_any(&self) -> &dyn Any;
 }
 
 /// 登録済み Extension 群を管理するスロットコンテナ。
@@ -80,7 +83,7 @@ impl Extensions {
   /// 型付き Extension を登録します。
   pub fn register<E>(&self, extension: ArcShared<E>)
   where
-    E: Extension, {
+    E: Extension + 'static, {
     let id = extension.extension_id();
     if id < 0 {
       return;
@@ -123,14 +126,11 @@ impl Extensions {
   /// 指定 ID の Extension に対してクロージャを適用します。
   pub fn with<E, F, R>(&self, id: ExtensionId, f: F) -> Option<R>
   where
-    E: Extension,
+    E: Extension + 'static,
     F: FnOnce(&E) -> R, {
     let guard = self.slots.read();
     guard.get(id as usize).and_then(|slot| {
-      slot.as_ref().and_then(|handle| {
-        let ext = &**handle as &dyn Any;
-        ext.downcast_ref::<E>().map(f)
-      })
+      slot.as_ref().and_then(|handle| (*handle).as_any().downcast_ref::<E>().map(f))
     })
   }
 }
@@ -213,6 +213,10 @@ impl Extension for SerializerRegistryExtension {
   fn extension_id(&self) -> ExtensionId {
     self.id
   }
+
+  fn as_any(&self) -> &dyn Any {
+    self
+  }
 }
 
 #[cfg(test)]
@@ -240,6 +244,10 @@ mod tests {
   impl Extension for DummyExtension {
     fn extension_id(&self) -> ExtensionId {
       self.id
+    }
+
+    fn as_any(&self) -> &dyn Any {
+      self
     }
   }
 
