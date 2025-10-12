@@ -1,8 +1,9 @@
 use core::marker::PhantomData;
 
-use crate::runtime::mailbox::traits::MailboxPair;
+use crate::runtime::mailbox::traits::{Mailbox, MailboxPair, MailboxProducer};
 use crate::runtime::mailbox::MailboxOptions;
 use crate::runtime::mailbox::PriorityMailboxBuilder;
+use crate::runtime::metrics::MetricsSinkShared;
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::Element;
 
@@ -12,6 +13,7 @@ where
   M: Element,
   B: PriorityMailboxBuilder<M>, {
   builder: ArcShared<B>,
+  metrics_sink: Option<MetricsSinkShared>,
   _marker: PhantomData<M>,
 }
 
@@ -23,6 +25,7 @@ where
   fn clone(&self) -> Self {
     Self {
       builder: self.builder.clone(),
+      metrics_sink: self.metrics_sink.clone(),
       _marker: PhantomData,
     }
   }
@@ -38,6 +41,7 @@ where
   pub fn new(builder: ArcShared<B>) -> Self {
     Self {
       builder,
+      metrics_sink: None,
       _marker: PhantomData,
     }
   }
@@ -48,13 +52,37 @@ where
     &self,
     options: MailboxOptions,
   ) -> MailboxPair<<B as PriorityMailboxBuilder<M>>::Mailbox, <B as PriorityMailboxBuilder<M>>::Producer> {
-    self.builder.with_ref(|builder| builder.build_priority_mailbox(options))
+    let metrics_sink = self.metrics_sink.clone();
+    self.builder.with_ref(|builder| {
+      let (mut mailbox, mut producer) = builder.build_priority_mailbox(options);
+      if let Some(sink) = metrics_sink.clone() {
+        mailbox.set_metrics_sink(Some(sink.clone()));
+        producer.set_metrics_sink(Some(sink));
+      }
+      (mailbox, producer)
+    })
   }
 
   /// Returns the shared builder handle.
   #[must_use]
   pub fn builder(&self) -> ArcShared<B> {
     self.builder.clone()
+  }
+
+  /// Configures the metrics sink to be applied to newly spawned mailboxes.
+  pub fn with_metrics_sink(mut self, sink: Option<MetricsSinkShared>) -> Self {
+    self.metrics_sink = sink;
+    self
+  }
+
+  /// Mutable setter variant for tests/customization.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink;
+  }
+
+  /// Returns the configured metrics sink.
+  pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+    self.metrics_sink.clone()
   }
 }
 
