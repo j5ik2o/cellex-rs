@@ -304,7 +304,9 @@ where
     let mut processed_any = false;
     for idx in 0..len {
       let cell = &mut self.actors[idx];
-      if cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)? > 0 {
+      let processed = cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+      if processed > 0 {
+        self.record_messages_dequeued(processed);
         processed_any = true;
       }
     }
@@ -317,12 +319,14 @@ where
     }
 
     let mut new_children = Vec::new();
-    let processed = self.actors[index]
+    let processed_count = self.actors[index]
       .wait_and_process(&mut self.guardian, &mut new_children, &mut self.escalations)
-      .await?
-      > 0;
+      .await?;
+    if processed_count > 0 {
+      self.record_messages_dequeued(processed_count);
+    }
 
-    self.finish_cycle(new_children, processed)
+    self.finish_cycle(new_children, processed_count > 0)
   }
 
   fn finish_cycle(
@@ -333,9 +337,7 @@ where
     if !new_children.is_empty() {
       let added = new_children.len();
       self.actors.extend(new_children);
-      for _ in 0..added {
-        self.record_metric(MetricsEvent::ActorRegistered);
-      }
+      self.record_repeated(MetricsEvent::ActorRegistered, added);
     }
 
     let handled = self.handle_escalations()?;
@@ -366,17 +368,30 @@ where
     self.actors.retain(|cell| !cell.is_stopped());
     let removed = before.saturating_sub(self.actors.len());
     if removed > 0 {
-      for _ in 0..removed {
-        self.record_metric(MetricsEvent::ActorDeregistered);
-      }
+      self.record_repeated(MetricsEvent::ActorDeregistered, removed);
       return true;
     }
     false
   }
 
   fn record_metric(&self, event: MetricsEvent) {
+    self.record_repeated(event, 1);
+  }
+
+  fn record_messages_dequeued(&self, count: usize) {
+    self.record_repeated(MetricsEvent::MailboxDequeued, count);
+  }
+
+  fn record_repeated(&self, event: MetricsEvent, count: usize) {
+    if count == 0 {
+      return;
+    }
     if let Some(sink) = &self.metrics_sink {
-      sink.with_ref(|sink| sink.record(event));
+      sink.with_ref(|sink| {
+        for _ in 0..count {
+          sink.record(event);
+        }
+      });
     }
   }
 }

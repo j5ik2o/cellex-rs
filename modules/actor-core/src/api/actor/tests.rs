@@ -789,8 +789,8 @@ mod metrics_injection {
   use crate::runtime::mailbox::test_support::TestMailboxFactory;
   use crate::runtime::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::{
-    ActorRuntimeBundle, ActorSystem, ActorSystemConfig, MailboxFactory, MetricsEvent, MetricsSink, MetricsSinkShared,
-    Supervisor,
+    ActorRuntimeBundle, ActorSystem, ActorSystemConfig, DynMessage, MailboxFactory, MetricsEvent, MetricsSink,
+    MetricsSinkShared, Supervisor,
   };
   use alloc::boxed::Box;
   use core::marker::PhantomData;
