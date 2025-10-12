@@ -10,7 +10,7 @@ use async_trait::async_trait;
 
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
-use crate::runtime::mailbox::traits::MailboxProducer;
+use crate::runtime::mailbox::traits::{Mailbox, MailboxProducer};
 use crate::runtime::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
@@ -111,8 +111,12 @@ where
       mailbox,
       handler,
     } = context;
-    let mailbox_spawner = mailbox_factory.priority_spawner();
-    let (mailbox, sender) = mailbox;
+    let mailbox_factory = mailbox_factory.with_metrics_sink(self.metrics_sink.clone());
+    let mut mailbox_spawner = mailbox_factory.priority_spawner();
+    mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
+    let (mut mailbox, mut sender) = mailbox;
+    mailbox.set_metrics_sink(self.metrics_sink.clone());
+    sender.set_metrics_sink(self.metrics_sink.clone());
     let actor_sender = sender.clone();
     let control_ref = InternalActorRef::new(actor_sender.clone());
     let watchers = vec![ActorId::ROOT];
@@ -122,7 +126,7 @@ where
       self
         .guardian
         .register_child(control_ref.clone(), map_system.clone(), primary_watcher, &parent_path)?;
-    let cell = ActorCell::new(
+    let mut cell = ActorCell::new(
       actor_id,
       map_system,
       watchers,
@@ -136,6 +140,7 @@ where
       self.receive_timeout_factory.clone(),
       self.extensions.clone(),
     );
+    cell.set_metrics_sink(self.metrics_sink.clone());
     self.actors.push(cell);
     self.record_metric(MetricsEvent::ActorRegistered);
     Ok(control_ref)
@@ -237,7 +242,10 @@ where
   }
 
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink;
+    self.metrics_sink = sink.clone();
+    for actor in &mut self.actors {
+      actor.set_metrics_sink(sink.clone());
+    }
   }
 
   pub fn on_escalation<F>(&mut self, handler: F)
@@ -380,7 +388,6 @@ where
 
   fn record_messages_dequeued(&self, count: usize) {
     self.record_repeated(MetricsEvent::MailboxDequeued, count);
-    self.record_repeated(MetricsEvent::MailboxEnqueued, count);
   }
 
   fn record_repeated(&self, event: MetricsEvent, count: usize) {

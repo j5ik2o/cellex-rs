@@ -14,15 +14,18 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::runtime::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 use crate::runtime::guardian::{Guardian, GuardianStrategy};
-use crate::runtime::mailbox::traits::MailboxHandle;
+use crate::runtime::mailbox::traits::{
+  Mailbox as MailboxTrait, MailboxHandle, MailboxProducer as MailboxProducerTrait,
+};
 use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
+use crate::runtime::metrics::MetricsSinkShared;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extensions;
 use crate::FailureInfo;
 use crate::Supervisor;
-use crate::{Mailbox, SystemMessage};
+use crate::SystemMessage;
 use crate::{MailboxFactory, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -92,6 +95,17 @@ where
     };
     cell.configure_receive_timeout_factory(receive_timeout_factory);
     cell
+  }
+
+  pub(crate) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>)
+  where
+    R: MailboxFactory + Clone + 'static,
+    R::Queue<PriorityEnvelope<M>>: Clone,
+    R::Signal: Clone,
+    R::Producer<PriorityEnvelope<M>>: Clone, {
+    MailboxTrait::set_metrics_sink(&mut self.mailbox, sink.clone());
+    MailboxProducerTrait::set_metrics_sink(&mut self.sender, sink.clone());
+    self.mailbox_spawner.set_metrics_sink(sink);
   }
 
   fn collect_envelopes(&mut self) -> Result<Vec<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {
@@ -321,7 +335,7 @@ where
     let primary_watcher = watchers.first().copied();
     let (actor_id, actor_path) =
       guardian.register_child(control_ref, map_system.clone(), primary_watcher, &parent_path)?;
-    let cell = ActorCell::new(
+    let mut cell = ActorCell::new(
       actor_id,
       map_system,
       watchers,
@@ -335,6 +349,8 @@ where
       self.receive_timeout_factory.clone(),
       extensions,
     );
+    let sink = self.mailbox_spawner.metrics_sink();
+    cell.set_metrics_sink(sink);
     new_children.push(cell);
     Ok(())
   }
