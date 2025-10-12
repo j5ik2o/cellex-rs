@@ -61,6 +61,7 @@ where
   pub(super) scheduler: SchedulerHandle<M, R>,
   pub(super) runtime: ArcShared<R>,
   extensions: Extensions,
+  metrics_sink: Option<MetricsSinkShared>,
   _strategy: PhantomData<Strat>,
 }
 
@@ -99,12 +100,13 @@ where
     let mut scheduler = scheduler_builder.build(factory_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
-    scheduler.set_receive_timeout_factory(receive_timeout_factory);
-    scheduler.set_metrics_sink(metrics_sink);
+    scheduler.set_receive_timeout_factory(receive_timeout_factory.clone());
+    scheduler.set_metrics_sink(metrics_sink.clone());
     Self {
       scheduler,
       runtime,
       extensions,
+      metrics_sink,
       _strategy: PhantomData,
     }
   }
@@ -170,6 +172,10 @@ where
 
   pub fn extensions(&self) -> Extensions {
     self.extensions.clone()
+  }
+
+  pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+    self.metrics_sink.clone()
   }
 
   async fn run_until_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
