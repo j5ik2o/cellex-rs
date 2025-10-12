@@ -3,6 +3,9 @@ use core::time::Duration;
 
 use cellex_utils_core_rs::Element;
 
+use crate::api::actor::ActorRuntimeBundle;
+use crate::runtime::message::DynMessage;
+use crate::shared::{ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared};
 use crate::MapSystemShared;
 use crate::{MailboxFactory, PriorityEnvelope};
 
@@ -75,5 +78,21 @@ where
     _map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler> {
     Box::new(NoopReceiveTimeoutScheduler::default())
+  }
+}
+
+/// Driver that always provides [`NoopReceiveTimeoutSchedulerFactory`].
+#[derive(Debug, Default, Clone)]
+pub struct NoopReceiveTimeoutDriver;
+
+impl<R> ReceiveTimeoutDriver<R> for NoopReceiveTimeoutDriver
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<DynMessage>>: Clone,
+{
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>> {
+    ReceiveTimeoutFactoryShared::new(NoopReceiveTimeoutSchedulerFactory::default()).for_runtime_bundle()
   }
 }

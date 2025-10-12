@@ -6,10 +6,12 @@ use alloc::sync::Arc;
 use core::ops::Deref;
 
 use crate::api::actor::ActorRuntimeBundle;
+use crate::runtime::message::DynMessage;
 use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
 use crate::{FailureEvent, FailureInfo, MailboxFactory, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::Shared;
 
 #[cfg(target_has_atomic = "ptr")]
 type MapSystemFn<M> = dyn Fn(SystemMessage) -> M + Send + Sync;
@@ -163,6 +165,75 @@ where
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler> {
     self.inner.create(sender, map_system)
+  }
+}
+
+/// Trait representing a runtime-specific provider for receive-timeout scheduler factories.
+pub trait ReceiveTimeoutDriver<R>: Send + Sync
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<DynMessage>>: Clone, {
+  /// Builds a shared factory bound to [`ActorRuntimeBundle`] for the given runtime.
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>;
+}
+
+/// Shared wrapper around a [`ReceiveTimeoutDriver`] implementation.
+pub struct ReceiveTimeoutDriverShared<R> {
+  inner: ArcShared<dyn ReceiveTimeoutDriver<R>>,
+}
+
+impl<R> ReceiveTimeoutDriverShared<R>
+where
+  R: MailboxFactory + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<DynMessage>>: Clone,
+{
+  /// Creates a new shared driver from a concrete driver value.
+  pub fn new<D>(driver: D) -> Self
+  where
+    D: ReceiveTimeoutDriver<R> + 'static, {
+    Self {
+      inner: ArcShared::from_arc(Arc::new(driver)),
+    }
+  }
+
+  /// Wraps an existing shared driver.
+  pub fn from_shared(inner: ArcShared<dyn ReceiveTimeoutDriver<R>>) -> Self {
+    Self { inner }
+  }
+
+  /// Consumes the wrapper and returns the underlying shared handle.
+  pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutDriver<R>> {
+    self.inner
+  }
+
+  /// Builds a factory by delegating to the underlying driver.
+  pub fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>> {
+    self.inner.with_ref(|driver| driver.build_factory())
+  }
+
+  /// Returns the inner shared handle.
+  pub fn as_shared(&self) -> &ArcShared<dyn ReceiveTimeoutDriver<R>> {
+    &self.inner
+  }
+}
+
+impl<R> Clone for ReceiveTimeoutDriverShared<R> {
+  fn clone(&self) -> Self {
+    Self {
+      inner: self.inner.clone(),
+    }
+  }
+}
+
+impl<R> Deref for ReceiveTimeoutDriverShared<R> {
+  type Target = dyn ReceiveTimeoutDriver<R>;
+
+  fn deref(&self) -> &Self::Target {
+    &*self.inner
   }
 }
 

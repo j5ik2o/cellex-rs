@@ -98,10 +98,13 @@ pub use runtime::message::{
 };
 pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 pub use runtime::scheduler::{
-  ActorScheduler, NoopReceiveTimeoutSchedulerFactory, PriorityScheduler, ReceiveTimeoutScheduler,
-  ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
+  ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory, PriorityScheduler,
+  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
 };
-pub use shared::{FailureEventHandlerShared, FailureEventListenerShared, MapSystemShared, ReceiveTimeoutFactoryShared};
+pub use shared::{
+  FailureEventHandlerShared, FailureEventListenerShared, MapSystemShared, ReceiveTimeoutDriver,
+  ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
+};
 
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.
 #[cfg(target_has_atomic = "ptr")]
