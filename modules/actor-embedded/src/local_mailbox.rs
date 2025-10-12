@@ -12,7 +12,7 @@ use cellex_actor_core_rs::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  Mailbox, MailboxRuntime, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 #[cfg(not(feature = "embedded_rc"))]

@@ -23,7 +23,6 @@ std = [
 ]
 postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
-new-runtime = ["alloc"]
 
 [dependencies]
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }

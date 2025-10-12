@@ -11,7 +11,7 @@ use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
 use crate::Supervisor;
-use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
+use crate::{MailboxRuntime, MailboxOptions, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use crate::runtime::scheduler::ReceiveTimeoutScheduler;

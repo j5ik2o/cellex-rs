@@ -82,8 +82,6 @@ use core::time::Duration;
 mod api;
 #[cfg(feature = "alloc")]
 mod extensions;
-#[cfg(feature = "new-runtime")]
-mod new_runtime;
 mod runtime;
 mod shared;
 
@@ -92,8 +90,6 @@ pub use api::*;
 pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
-#[cfg(feature = "new-runtime")]
-pub use new_runtime::*;
 pub use runtime::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 pub use runtime::mailbox::traits::{SingleThread, ThreadSafe};
 pub use runtime::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};

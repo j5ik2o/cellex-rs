@@ -137,19 +137,6 @@ where
     PriorityMailboxSpawnerHandle::new(self.factory.clone()).with_metrics_sink(self.metrics_sink.clone())
   }
 
-  /// Returns the shared runtime instance used by this factory.
-  #[must_use]
-  #[allow(dead_code)]
-  pub(crate) fn runtime_shared(&self) -> ArcShared<R> {
-    self.factory.clone()
-  }
-
-  /// Returns the metrics sink applied to spawned mailboxes, if any.
-  #[must_use]
-  pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
-    self.metrics_sink.clone()
-  }
-
   /// Returns a new stub with the provided metrics sink.
   #[must_use]
   pub fn with_metrics_sink(mut self, sink: Option<MetricsSinkShared>) -> Self {

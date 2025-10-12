@@ -3,7 +3,7 @@ use std::sync::Arc;
 use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  Mailbox, MailboxRuntime, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 use cellex_utils_std_rs::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue};

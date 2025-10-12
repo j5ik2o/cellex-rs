@@ -9,7 +9,7 @@ use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalProps;
 use crate::Supervisor;
 use crate::SystemMessage;
-use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
+use crate::{MailboxRuntime, MailboxOptions, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
