@@ -179,6 +179,7 @@
 - `PriorityScheduler` / `InternalRootContext` / 各テストを新しいコンテキスト構造に合わせて更新し、`MailboxFactory` 直接依存を段階的に縮小（例: `modules/actor-core/src/runtime/system/internal_root_context.rs:49`、`modules/actor-core/src/runtime/scheduler/priority_scheduler.rs:105`）。
 - `ActorRuntimeBundle::priority_mailbox_spawner` は束縛中のランタイムクローンから stub を作成する実装へ変更し、外部呼び出しでも統一的に MailboxHandle を取得可能にした。
 - RuntimeBundle / ActorSystemConfig に `MetricsSinkShared` を追加し、スケジューラ初期化時に `set_metrics_sink` で注入されるパスを整備。Tokio / Embassy ラッパーおよび `PriorityScheduler`／`ImmediateScheduler` にハンドラを実装し、設定値の優先順位（Config > Bundle）をユニットテスト化した。
+- `PriorityScheduler` 内でアクター登録／停止およびメッセージデキュー時に `MetricsEvent` を発行し、`MailboxDequeued` を含むイベントが `MetricsSink` に流れることをテストで検証した。
 
 #### 参考ソース確認メモ
 - 2025-10-11 時点でリポジトリ内に `docs/sources/cellex-rs-old/` ディレクトリは存在しない。`find docs -maxdepth 4 -name "*cellex*"` や `rg "cellex-rs-old" -n` を実行したが、参照のみで実体は未配置。→ 旧実装は `docs/sources/nexus-actor-rs/`でした。
