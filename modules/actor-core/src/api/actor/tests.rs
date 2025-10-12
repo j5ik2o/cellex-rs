@@ -43,6 +43,157 @@ struct ChildMessage {
   text: String,
 }
 
+mod receive_timeout_injection {
+  use super::*;
+  use crate::runtime::mailbox::test_support::TestMailboxFactory;
+  use crate::runtime::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
+  use crate::{
+    ActorRuntimeBundle, ActorSystem, ActorSystemConfig, DynMessage, MailboxFactory, MailboxOptions, MapSystemShared,
+    PriorityEnvelope, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
+  };
+  use alloc::boxed::Box;
+  use core::time::Duration;
+  use futures::executor::block_on;
+  use std::sync::atomic::{AtomicUsize, Ordering};
+  use std::sync::Arc;
+
+  #[derive(Clone)]
+  struct CountingFactory {
+    calls: Arc<AtomicUsize>,
+  }
+
+  impl CountingFactory {
+    fn new(calls: Arc<AtomicUsize>) -> Self {
+      Self { calls }
+    }
+  }
+
+  struct CountingScheduler;
+
+  impl ReceiveTimeoutScheduler for CountingScheduler {
+    fn set(&mut self, _duration: Duration) {}
+
+    fn cancel(&mut self) {}
+
+    fn notify_activity(&mut self) {}
+  }
+
+  impl ReceiveTimeoutSchedulerFactory<DynMessage, TestMailboxFactory> for CountingFactory {
+    fn create(
+      &self,
+      _sender: <TestMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>,
+      _map_system: MapSystemShared<DynMessage>,
+    ) -> Box<dyn ReceiveTimeoutScheduler> {
+      self.calls.fetch_add(1, Ordering::SeqCst);
+      Box::new(CountingScheduler)
+    }
+  }
+
+  #[derive(Clone)]
+  struct CountingDriver {
+    driver_calls: Arc<AtomicUsize>,
+    factory_calls: Arc<AtomicUsize>,
+  }
+
+  impl CountingDriver {
+    fn new(driver_calls: Arc<AtomicUsize>, factory_calls: Arc<AtomicUsize>) -> Self {
+      Self {
+        driver_calls,
+        factory_calls,
+      }
+    }
+  }
+
+  impl ReceiveTimeoutDriver<TestMailboxFactory> for CountingDriver {
+    fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<TestMailboxFactory>> {
+      self.driver_calls.fetch_add(1, Ordering::SeqCst);
+      ReceiveTimeoutFactoryShared::new(CountingFactory::new(self.factory_calls.clone())).for_runtime_bundle()
+    }
+  }
+
+  fn spawn_test_actor(system: &mut ActorSystem<u32, TestMailboxFactory, AlwaysRestart>) {
+    let props = Props::new(MailboxOptions::default(), |_, _: u32| {});
+    let mut root = system.root_context();
+    let actor_ref = root.spawn(props).expect("spawn actor");
+    actor_ref.tell(0).expect("tell");
+    block_on(root.dispatch_next()).expect("dispatch");
+  }
+
+  #[test]
+  fn actor_system_uses_driver_receive_timeout_when_no_bundle_or_config() {
+    let factory = TestMailboxFactory::unbounded();
+    let driver_calls = Arc::new(AtomicUsize::new(0));
+    let factory_calls = Arc::new(AtomicUsize::new(0));
+
+    let runtime = ActorRuntimeBundle::new(factory.clone()).with_receive_timeout_driver(Some(
+      ReceiveTimeoutDriverShared::new(CountingDriver::new(driver_calls.clone(), factory_calls.clone())),
+    ));
+
+    let config = ActorSystemConfig::default();
+
+    let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
+    spawn_test_actor(&mut system);
+
+    assert_eq!(driver_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(factory_calls.load(Ordering::SeqCst), 1);
+  }
+
+  #[test]
+  fn actor_system_prefers_bundle_factory_over_driver() {
+    let factory = TestMailboxFactory::unbounded();
+    let driver_calls = Arc::new(AtomicUsize::new(0));
+    let driver_factory_calls = Arc::new(AtomicUsize::new(0));
+    let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
+
+    let runtime = ActorRuntimeBundle::new(factory.clone())
+      .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(CountingDriver::new(
+        driver_calls.clone(),
+        driver_factory_calls.clone(),
+      ))))
+      .with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(CountingFactory::new(
+        bundle_factory_calls.clone(),
+      )));
+
+    let config = ActorSystemConfig::default();
+
+    let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
+    spawn_test_actor(&mut system);
+
+    assert_eq!(bundle_factory_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(driver_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(driver_factory_calls.load(Ordering::SeqCst), 0);
+  }
+
+  #[test]
+  fn actor_system_prefers_config_factory_over_driver_and_bundle() {
+    let factory = TestMailboxFactory::unbounded();
+    let driver_calls = Arc::new(AtomicUsize::new(0));
+    let driver_factory_calls = Arc::new(AtomicUsize::new(0));
+    let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
+    let config_factory_calls = Arc::new(AtomicUsize::new(0));
+
+    let runtime = ActorRuntimeBundle::new(factory.clone())
+      .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(CountingDriver::new(
+        driver_calls.clone(),
+        driver_factory_calls.clone(),
+      ))))
+      .with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(CountingFactory::new(
+        bundle_factory_calls.clone(),
+      )));
+
+    let config = ActorSystemConfig::default().with_receive_timeout_factory(Some(ReceiveTimeoutFactoryShared::new(
+      CountingFactory::new(config_factory_calls.clone()),
+    )));
+
+    let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
+    spawn_test_actor(&mut system);
+
+    assert_eq!(config_factory_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(bundle_factory_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(driver_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(driver_factory_calls.load(Ordering::SeqCst), 0);
+  }
+}
 impl Element for ParentMessage {}
 impl Element for ChildMessage {}
 
