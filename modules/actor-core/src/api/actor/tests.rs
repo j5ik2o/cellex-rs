@@ -12,6 +12,7 @@ use crate::runtime::mailbox::test_support::TestMailboxFactory;
 use crate::runtime::message::{take_metadata, DynMessage};
 use crate::ActorId;
 use crate::MailboxOptions;
+use crate::MapSystemShared;
 use crate::PriorityEnvelope;
 use crate::SystemMessage;
 use crate::ThreadSafe;
@@ -781,4 +782,146 @@ fn ask_future_cancelled_on_drop() {
   let (future, responder) = create_ask_handles::<u32, ThreadSafe>();
   drop(future);
   drop(responder);
+}
+
+mod metrics_injection {
+  use super::*;
+  use crate::runtime::mailbox::test_support::TestMailboxFactory;
+  use crate::runtime::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
+  use crate::{
+    ActorRuntimeBundle, ActorSystem, ActorSystemConfig, MailboxFactory, MetricsEvent, MetricsSink, MetricsSinkShared,
+    Supervisor,
+  };
+  use alloc::boxed::Box;
+  use core::marker::PhantomData;
+  use std::sync::{Arc, Mutex};
+
+  #[derive(Clone)]
+  struct TaggedSink {
+    _id: &'static str,
+  }
+
+  impl MetricsSink for TaggedSink {
+    fn record(&self, _event: MetricsEvent) {}
+  }
+
+  struct RecordingScheduler<M, R> {
+    metrics: Arc<Mutex<Option<usize>>>,
+    _marker: PhantomData<(M, R)>,
+  }
+
+  impl<M, R> RecordingScheduler<M, R> {
+    fn new(metrics: Arc<Mutex<Option<usize>>>) -> Self {
+      Self {
+        metrics,
+        _marker: PhantomData,
+      }
+    }
+  }
+
+  fn make_scheduler_builder(
+    metrics: Arc<Mutex<Option<usize>>>,
+  ) -> SchedulerBuilder<DynMessage, ActorRuntimeBundle<TestMailboxFactory>> {
+    SchedulerBuilder::new(move |_runtime, _extensions| {
+      Box::new(RecordingScheduler::<DynMessage, ActorRuntimeBundle<TestMailboxFactory>>::new(metrics.clone()))
+    })
+  }
+
+  #[async_trait::async_trait(?Send)]
+  impl<M, R> ActorScheduler<M, R> for RecordingScheduler<M, R>
+  where
+    M: Element,
+    R: MailboxFactory + Clone + 'static,
+    R::Queue<PriorityEnvelope<M>>: Clone,
+    R::Signal: Clone,
+  {
+    fn spawn_actor(
+      &mut self,
+      _supervisor: Box<dyn Supervisor<M>>,
+      _context: SchedulerSpawnContext<M, R>,
+    ) -> Result<crate::runtime::context::InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+      Err(QueueError::Disconnected)
+    }
+
+    fn set_receive_timeout_factory(&mut self, _factory: Option<crate::ReceiveTimeoutFactoryShared<M, R>>) {}
+
+    fn set_root_event_listener(&mut self, _listener: Option<crate::FailureEventListener>) {}
+
+    fn set_root_escalation_handler(&mut self, _handler: Option<crate::FailureEventHandler>) {}
+
+    fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+      let mut slot = self.metrics.lock().unwrap();
+      *slot = sink.map(|shared| shared.with_ref(|inner| inner as *const _ as *const () as usize));
+    }
+
+    fn set_parent_guardian(
+      &mut self,
+      _control_ref: crate::runtime::context::InternalActorRef<M, R>,
+      _map_system: MapSystemShared<M>,
+    ) {
+    }
+
+    fn on_escalation(
+      &mut self,
+      _handler: Box<dyn FnMut(&crate::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+    ) {
+    }
+
+    fn take_escalations(&mut self) -> Vec<crate::FailureInfo> {
+      Vec::new()
+    }
+
+    fn actor_count(&self) -> usize {
+      0
+    }
+
+    fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+      Ok(false)
+    }
+
+    async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+      Ok(())
+    }
+  }
+
+  #[test]
+  fn actor_system_prefers_config_metrics_sink_over_bundle() {
+    let factory = TestMailboxFactory::unbounded();
+    let recorded = Arc::new(Mutex::new(None));
+    let recorded_clone = recorded.clone();
+
+    let runtime_sink = MetricsSinkShared::new(TaggedSink { _id: "runtime" });
+    let config_sink = MetricsSinkShared::new(TaggedSink { _id: "config" });
+    let config_ptr = config_sink.with_ref(|inner| inner as *const _ as *const () as usize);
+
+    let runtime = ActorRuntimeBundle::new(factory.clone())
+      .with_scheduler_builder(make_scheduler_builder(recorded_clone.clone()))
+      .with_metrics_sink_shared(runtime_sink);
+
+    let config = ActorSystemConfig::default().with_metrics_sink_shared(config_sink);
+
+    let _system = ActorSystem::<DynMessage, TestMailboxFactory>::new_with_runtime(runtime, config);
+
+    assert_eq!(*recorded.lock().unwrap(), Some(config_ptr));
+  }
+
+  #[test]
+  fn actor_system_uses_bundle_metrics_when_config_absent() {
+    let factory = TestMailboxFactory::unbounded();
+    let recorded = Arc::new(Mutex::new(None));
+    let recorded_clone = recorded.clone();
+
+    let runtime_sink = MetricsSinkShared::new(TaggedSink { _id: "runtime" });
+    let runtime_ptr = runtime_sink.with_ref(|inner| inner as *const _ as *const () as usize);
+
+    let runtime = ActorRuntimeBundle::new(factory)
+      .with_scheduler_builder(make_scheduler_builder(recorded_clone.clone()))
+      .with_metrics_sink_shared(runtime_sink);
+
+    let config = ActorSystemConfig::default();
+
+    let _system = ActorSystem::<DynMessage, TestMailboxFactory>::new_with_runtime(runtime, config);
+
+    assert_eq!(*recorded.lock().unwrap(), Some(runtime_ptr));
+  }
 }

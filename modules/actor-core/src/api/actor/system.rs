@@ -8,6 +8,7 @@ use crate::api::guardian::AlwaysRestart;
 use crate::runtime::mailbox::traits::MailboxPair;
 use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
+use crate::runtime::metrics::MetricsSinkShared;
 use crate::runtime::scheduler::SchedulerBuilder;
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
@@ -147,6 +148,7 @@ where
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>>,
   root_event_listener: Option<FailureEventListener>,
   root_escalation_handler: Option<FailureEventHandler>,
+  metrics_sink: Option<MetricsSinkShared>,
 }
 
 impl<R> ActorRuntimeBundle<R>
@@ -163,6 +165,7 @@ where
       receive_timeout_factory: None,
       root_event_listener: None,
       root_escalation_handler: None,
+      metrics_sink: None,
     }
   }
 
@@ -231,6 +234,26 @@ where
   #[must_use]
   pub fn with_root_escalation_handler(mut self, handler: Option<FailureEventHandler>) -> Self {
     self.root_escalation_handler = handler;
+    self
+  }
+
+  /// Returns the metrics sink configured for this bundle.
+  #[must_use]
+  pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+    self.metrics_sink.clone()
+  }
+
+  /// Overrides the metrics sink.
+  #[must_use]
+  pub fn with_metrics_sink(mut self, sink: Option<MetricsSinkShared>) -> Self {
+    self.metrics_sink = sink;
+    self
+  }
+
+  /// Sets the metrics sink using a concrete shared handle.
+  #[must_use]
+  pub fn with_metrics_sink_shared(mut self, sink: MetricsSinkShared) -> Self {
+    self.metrics_sink = Some(sink);
     self
   }
 
@@ -304,6 +327,8 @@ where
   failure_event_listener: Option<FailureEventListener>,
   /// Receive-timeout scheduler factory used by all actors spawned in the system.
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, R>>,
+  /// Metrics sink shared across the actor runtime.
+  metrics_sink: Option<MetricsSinkShared>,
   /// Extension registry configured for the actor system.
   extensions: Extensions,
 }
@@ -318,6 +343,7 @@ where
     Self {
       failure_event_listener: None,
       receive_timeout_factory: None,
+      metrics_sink: None,
       extensions: Extensions::new(),
     }
   }
@@ -341,6 +367,19 @@ where
     self
   }
 
+  /// Sets the metrics sink.
+  pub fn with_metrics_sink(mut self, sink: Option<MetricsSinkShared>) -> Self {
+    self.metrics_sink = sink;
+    self
+  }
+
+  /// Sets the metrics sink using a concrete shared handle.
+  #[must_use]
+  pub fn with_metrics_sink_shared(mut self, sink: MetricsSinkShared) -> Self {
+    self.metrics_sink = Some(sink);
+    self
+  }
+
   /// Mutable setter for the failure event listener.
   pub fn set_failure_event_listener(&mut self, listener: Option<FailureEventListener>) {
     self.failure_event_listener = listener;
@@ -351,12 +390,21 @@ where
     self.receive_timeout_factory = factory;
   }
 
+  /// Mutable setter for the metrics sink.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink;
+  }
+
   pub(crate) fn failure_event_listener(&self) -> Option<FailureEventListener> {
     self.failure_event_listener.clone()
   }
 
   pub(crate) fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, R>> {
     self.receive_timeout_factory.clone()
+  }
+
+  pub(crate) fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+    self.metrics_sink.clone()
   }
 
   /// Replaces the extension registry in the configuration.
@@ -454,10 +502,12 @@ where
       .map(|factory| factory.for_runtime_bundle())
       .or(bundle_receive_timeout);
     let root_event_listener = config.failure_event_listener().or(bundle_root_listener);
+    let metrics_sink = config.metrics_sink().or_else(|| runtime.metrics_sink());
     let settings = InternalActorSystemSettings {
       root_event_listener,
       root_escalation_handler: bundle_root_handler,
       receive_timeout_factory,
+      metrics_sink,
       extensions: extensions.clone(),
     };
     let scheduler_builder = runtime.scheduler_builder();
