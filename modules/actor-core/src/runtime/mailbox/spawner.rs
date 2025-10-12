@@ -1,49 +1,43 @@
 use core::marker::PhantomData;
 
-use crate::runtime::mailbox::traits::{MailboxFactory, MailboxHandle, MailboxPair, MailboxProducer};
+use crate::runtime::mailbox::traits::MailboxPair;
 use crate::runtime::mailbox::MailboxOptions;
-use crate::PriorityEnvelope;
+use crate::runtime::mailbox::PriorityMailboxBuilder;
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::Element;
 
 /// Shared handle that can spawn priority mailboxes without exposing the underlying factory.
-pub struct PriorityMailboxSpawnerHandle<M, R>
+pub struct PriorityMailboxSpawnerHandle<M, B>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
-  factory: ArcShared<R>,
+  B: PriorityMailboxBuilder<M>, {
+  builder: ArcShared<B>,
   _marker: PhantomData<M>,
 }
 
-impl<M, R> Clone for PriorityMailboxSpawnerHandle<M, R>
+impl<M, B> Clone for PriorityMailboxSpawnerHandle<M, B>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  B: PriorityMailboxBuilder<M>,
 {
   fn clone(&self) -> Self {
     Self {
-      factory: self.factory.clone(),
+      builder: self.builder.clone(),
       _marker: PhantomData,
     }
   }
 }
 
-impl<M, R> PriorityMailboxSpawnerHandle<M, R>
+impl<M, B> PriorityMailboxSpawnerHandle<M, B>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  B: PriorityMailboxBuilder<M>,
 {
   /// Creates a new handle from an `ArcShared`-wrapped factory.
   #[must_use]
-  pub fn new(factory: ArcShared<R>) -> Self {
+  pub fn new(builder: ArcShared<B>) -> Self {
     Self {
-      factory,
+      builder,
       _marker: PhantomData,
     }
   }
@@ -53,31 +47,37 @@ where
   pub fn spawn_mailbox(
     &self,
     options: MailboxOptions,
-  ) -> MailboxPair<R::Mailbox<PriorityEnvelope<M>>, R::Producer<PriorityEnvelope<M>>> {
-    self
-      .factory
-      .with_ref(|factory| factory.build_mailbox::<PriorityEnvelope<M>>(options))
+  ) -> MailboxPair<<B as PriorityMailboxBuilder<M>>::Mailbox, <B as PriorityMailboxBuilder<M>>::Producer> {
+    self.builder.with_ref(|builder| builder.build_priority_mailbox(options))
   }
 
-  /// Returns the shared factory handle.
+  /// Returns the shared builder handle.
   #[must_use]
-  pub fn factory(&self) -> ArcShared<R> {
-    self.factory.clone()
+  pub fn builder(&self) -> ArcShared<B> {
+    self.builder.clone()
+  }
+}
+
+impl<M, B> PriorityMailboxSpawnerHandle<M, B>
+where
+  M: Element,
+  B: PriorityMailboxBuilder<M>,
+{
+  /// Wraps a builder value in `ArcShared` and returns a spawner handle.
+  #[must_use]
+  pub fn from_builder(builder: B) -> Self {
+    Self::new(ArcShared::new(builder))
   }
 }
 
 impl<M, R> PriorityMailboxSpawnerHandle<M, R>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Mailbox<PriorityEnvelope<M>>: MailboxHandle<PriorityEnvelope<M>>,
-  R::Producer<PriorityEnvelope<M>>: MailboxProducer<PriorityEnvelope<M>>,
+  R: PriorityMailboxBuilder<M> + Clone,
 {
-  /// Wraps a factory value in `ArcShared` and returns a spawner handle.
+  /// Wraps a factory implementing [`PriorityMailboxBuilder`] and returns a spawner handle.
   #[must_use]
   pub fn from_factory(factory: R) -> Self {
-    Self::new(ArcShared::new(factory))
+    Self::from_builder(factory)
   }
 }

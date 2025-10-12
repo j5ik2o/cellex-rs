@@ -1,3 +1,4 @@
+pub mod builder;
 mod messages;
 mod queue_mailbox;
 pub mod spawner;
@@ -7,6 +8,7 @@ pub mod test_support;
 mod tests;
 pub mod traits;
 
+pub use builder::PriorityMailboxBuilder;
 #[cfg(any(test, feature = "test-support"))]
 pub use messages::PriorityChannel;
 pub use messages::{PriorityEnvelope, SystemMessage};
