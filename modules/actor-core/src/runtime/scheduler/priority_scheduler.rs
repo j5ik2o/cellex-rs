@@ -28,7 +28,7 @@ use futures::FutureExt;
 
 use super::actor_cell::ActorCell;
 use super::actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
-use crate::{MapSystemShared, MetricsSinkShared, ReceiveTimeoutFactoryShared};
+use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub struct PriorityScheduler<M, R, Strat = AlwaysRestart>
@@ -137,6 +137,7 @@ where
       self.extensions.clone(),
     );
     self.actors.push(cell);
+    self.record_metric(MetricsEvent::ActorRegistered);
     Ok(control_ref)
   }
 
@@ -330,7 +331,11 @@ where
     processed_any: bool,
   ) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
     if !new_children.is_empty() {
+      let added = new_children.len();
       self.actors.extend(new_children);
+      for _ in 0..added {
+        self.record_metric(MetricsEvent::ActorRegistered);
+      }
     }
 
     let handled = self.handle_escalations()?;
@@ -359,7 +364,20 @@ where
   fn prune_stopped(&mut self) -> bool {
     let before = self.actors.len();
     self.actors.retain(|cell| !cell.is_stopped());
-    before != self.actors.len()
+    let removed = before.saturating_sub(self.actors.len());
+    if removed > 0 {
+      for _ in 0..removed {
+        self.record_metric(MetricsEvent::ActorDeregistered);
+      }
+      return true;
+    }
+    false
+  }
+
+  fn record_metric(&self, event: MetricsEvent) {
+    if let Some(sink) = &self.metrics_sink {
+      sink.with_ref(|sink| sink.record(event));
+    }
   }
 }
 

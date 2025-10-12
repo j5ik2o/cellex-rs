@@ -13,8 +13,8 @@ use crate::FailureInfo;
 use crate::NoopSupervisor;
 #[cfg(feature = "std")]
 use crate::SupervisorDirective;
+use crate::{DynMessage, MailboxFactory, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
 use crate::{FailureEventHandler, FailureEventListener, MapSystemShared};
-use crate::{MailboxFactory, PriorityEnvelope};
 use crate::{MailboxOptions, Supervisor, SystemMessage};
 use alloc::rc::Rc;
 use alloc::vec;
@@ -25,6 +25,8 @@ use core::cell::Cell;
 use core::cell::RefCell;
 #[cfg(feature = "std")]
 use futures::executor::block_on;
+#[cfg(feature = "std")]
+use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
@@ -50,6 +52,26 @@ enum Message {
 
 #[cfg(feature = "std")]
 impl cellex_utils_core_rs::Element for Message {}
+
+#[cfg(feature = "std")]
+#[derive(Clone)]
+struct EventRecordingSink {
+  events: Arc<Mutex<Vec<MetricsEvent>>>,
+}
+
+#[cfg(feature = "std")]
+impl EventRecordingSink {
+  fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
+    Self { events }
+  }
+}
+
+#[cfg(feature = "std")]
+impl MetricsSink for EventRecordingSink {
+  fn record(&self, event: MetricsEvent) {
+    self.events.lock().unwrap().push(event);
+  }
+}
 
 #[cfg(feature = "std")]
 fn spawn_with_runtime<M, R>(
@@ -167,6 +189,45 @@ fn immediate_scheduler_builder_dispatches() {
     log.borrow().as_slice(),
     &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
   );
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn priority_scheduler_emits_actor_lifecycle_metrics() {
+  let factory = TestMailboxFactory::unbounded();
+  let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
+  let events = Arc::new(Mutex::new(Vec::new()));
+  scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
+
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(|sys| DynMessage::new(sys)),
+    Box::new(|_, _msg: DynMessage| {}),
+  )
+  .unwrap();
+
+  {
+    let recorded = events.lock().unwrap();
+    assert_eq!(recorded.as_slice(), &[MetricsEvent::ActorRegistered]);
+  }
+
+  actor_ref
+    .sender()
+    .try_send(PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| DynMessage::new(sys)))
+    .unwrap();
+  block_on(scheduler.dispatch_next()).unwrap();
+  scheduler.drain_ready().unwrap();
+
+  {
+    let recorded = events.lock().unwrap();
+    assert_eq!(
+      recorded.as_slice(),
+      &[MetricsEvent::ActorRegistered, MetricsEvent::ActorDeregistered]
+    );
+  }
 }
 
 #[cfg(feature = "std")]

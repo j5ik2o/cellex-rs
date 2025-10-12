@@ -802,7 +802,9 @@ mod metrics_injection {
   }
 
   impl MetricsSink for TaggedSink {
-    fn record(&self, _event: MetricsEvent) {}
+    fn record(&self, _event: MetricsEvent) {
+      let _ = self._id;
+    }
   }
 
   struct RecordingScheduler<M, R> {
