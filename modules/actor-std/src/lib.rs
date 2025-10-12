@@ -246,6 +246,12 @@ mod tests {
     );
   }
 
+  #[test]
+  fn tokio_bundle_sets_default_receive_timeout_factory() {
+    let bundle = ActorRuntimeBundle::new(TokioMailboxFactory).with_tokio_scheduler();
+    assert!(bundle.receive_timeout_factory().is_some());
+  }
+
   #[tokio::test(flavor = "current_thread")]
   async fn receive_timeout_triggers() {
     run_receive_timeout_triggers().await;

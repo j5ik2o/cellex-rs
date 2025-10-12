@@ -125,23 +125,23 @@ where
   SchedulerBuilder::new(|runtime, extensions| Box::new(TokioScheduler::new(runtime, extensions)))
 }
 
-/// `ActorRuntimeBundle` に Tokio スケジューラを組み込むための拡張トレイト。
-pub trait ActorRuntimeBundleTokioExt<R>
-where
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
-  R::Signal: Clone, {
+use crate::{TokioMailboxFactory, TokioReceiveTimeoutSchedulerFactory};
+
+/// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `ActorRuntimeBundle` に適用する。
+pub trait ActorRuntimeBundleTokioExt {
   /// スケジューラを Tokio 実装へ差し替える。
-  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<R>;
+  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<TokioMailboxFactory>;
 }
 
-impl<R> ActorRuntimeBundleTokioExt<R> for ActorRuntimeBundle<R>
-where
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
-  R::Signal: Clone,
-{
-  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<R> {
-    self.with_scheduler_builder(tokio_scheduler_builder())
+impl ActorRuntimeBundleTokioExt for ActorRuntimeBundle<TokioMailboxFactory> {
+  fn with_tokio_scheduler(self) -> ActorRuntimeBundle<TokioMailboxFactory> {
+    let bundle = self.with_scheduler_builder(tokio_scheduler_builder());
+    if bundle.receive_timeout_factory().is_some() {
+      bundle
+    } else {
+      bundle.with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(
+        TokioReceiveTimeoutSchedulerFactory::new(),
+      ))
+    }
   }
 }
