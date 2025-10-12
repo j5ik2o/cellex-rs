@@ -13,10 +13,12 @@ repository = "https://github.com/j5ik2o/cellex-rs"
 default = ["rt-multi-thread"]
 rt-multi-thread = ["tokio/rt-multi-thread"]
 rt-current-thread = ["tokio/rt"]
+new-runtime = ["cellex-actor-core-rs/new-runtime"]
 
 [dependencies]
 cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc", "std"] }
 cellex-utils-std-rs = { path = "../utils-std" }
+cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
 futures = "0.3"
 async-trait = { workspace = true }
 tokio = { version = "1.37.0", default-features = false, features = ["macros", "sync", "time", "signal"] }

@@ -64,6 +64,8 @@ mod spawn;
 mod timer;
 mod tokio_mailbox;
 mod tokio_priority_mailbox;
+#[cfg(feature = "new-runtime")]
+pub mod new_runtime;
 
 pub use cellex_utils_std_rs::{ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn};
 pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
@@ -74,6 +76,8 @@ pub use spawn::TokioSpawner;
 pub use timer::TokioTimer;
 pub use tokio_mailbox::{TokioMailbox, TokioMailboxRuntime, TokioMailboxSender};
 pub use tokio_priority_mailbox::{TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender};
+#[cfg(feature = "new-runtime")]
+pub use new_runtime::HostTokioBundle;
 
 #[cfg(test)]
 use cellex_actor_core_rs::{ActorSystemConfig, ReceiveTimeoutFactoryShared};
