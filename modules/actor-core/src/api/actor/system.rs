@@ -24,7 +24,6 @@ use cellex_utils_core_rs::{Element, QueueError};
 /// Primary instance of the actor system.
 ///
 /// Responsible for actor spawning, management, and message dispatching.
-#[deprecated(since = "0.1.0", note = "Use NewActorSystem with a NewActorRuntimeBundle instead")]
 pub struct ActorSystem<U, R, Strat = AlwaysRestart>
 where
   U: Element,
@@ -170,7 +169,6 @@ where
 /// designed to host scheduler builders, timeout drivers, and other platform-specific
 /// elements in future iterations.
 #[derive(Clone)]
-#[deprecated(since = "0.1.0", note = "Use a NewActorRuntimeBundle implementation instead")]
 pub struct ActorRuntimeBundle<R>
 where
   R: MailboxRuntime + Clone + 'static,
@@ -383,7 +381,6 @@ where
 }
 
 /// Configuration options applied when constructing an [`ActorSystem`].
-#[deprecated(since = "0.1.0", note = "Use NewActorSystem with bundle-specified configuration instead")]
 pub struct ActorSystemConfig<R>
 where
   R: MailboxRuntime + Clone + 'static,
