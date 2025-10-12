@@ -60,6 +60,8 @@ mod arc_mailbox;
 #[cfg(feature = "embedded_arc")]
 mod arc_priority_mailbox;
 mod local_mailbox;
+#[cfg(feature = "embassy_executor")]
+mod receive_timeout;
 mod runtime_driver;
 #[cfg(feature = "embassy_executor")]
 mod scheduler;
@@ -77,6 +79,8 @@ pub use cellex_utils_embedded_rs::{RcShared, RcStateCell};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
 pub use local_mailbox::{LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
+#[cfg(feature = "embassy_executor")]
+pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 pub use runtime_driver::EmbeddedFailureEventHub;
 #[cfg(feature = "embassy_executor")]
 pub use scheduler::{embassy_scheduler_builder, ActorRuntimeBundleEmbassyExt, EmbassyScheduler};

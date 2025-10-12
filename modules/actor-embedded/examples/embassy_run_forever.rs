@@ -18,7 +18,7 @@ mod sample {
     let executor = EXECUTOR.init(Executor::new());
 
     executor.run(|spawner| {
-      let runtime = ActorRuntimeBundle::new(LocalMailboxFactory::default()).with_embassy_scheduler();
+      let runtime = ActorRuntimeBundle::new(LocalMailboxFactory::default()).with_embassy_scheduler(spawner);
       let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, ActorSystemConfig::default()));
 
       {

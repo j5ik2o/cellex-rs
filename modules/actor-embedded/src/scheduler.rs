@@ -6,11 +6,14 @@ use alloc::vec::Vec;
 use cellex_actor_core_rs::{
   ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener,
   FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, MapSystemShared, MetricsSinkShared,
-  NoopReceiveTimeoutSchedulerFactory, PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared,
-  SchedulerBuilder, SchedulerSpawnContext, Supervisor,
+  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext,
+  Supervisor,
 };
 use cellex_utils_embedded_rs::Element;
+use embassy_executor::Spawner;
 use embassy_futures::yield_now;
+
+use crate::receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 
 /// Embassy 用スケジューラ。
 ///
@@ -136,7 +139,7 @@ where
   R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
   R::Signal: Clone, {
   /// スケジューラを Embassy 実装へ差し替える。
-  fn with_embassy_scheduler(self) -> ActorRuntimeBundle<R>;
+  fn with_embassy_scheduler(self, spawner: &'static Spawner) -> ActorRuntimeBundle<R>;
 }
 
 impl<R> ActorRuntimeBundleEmbassyExt<R> for ActorRuntimeBundle<R>
@@ -145,13 +148,13 @@ where
   R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
   R::Signal: Clone,
 {
-  fn with_embassy_scheduler(self) -> ActorRuntimeBundle<R> {
+  fn with_embassy_scheduler(self, spawner: &'static Spawner) -> ActorRuntimeBundle<R> {
     let bundle = self.with_scheduler_builder(embassy_scheduler_builder());
     if bundle.receive_timeout_factory().is_some() {
       bundle
     } else {
       bundle.with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(
-        NoopReceiveTimeoutSchedulerFactory::default(),
+        EmbassyReceiveTimeoutSchedulerFactory::<R>::new(spawner),
       ))
     }
   }

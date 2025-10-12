@@ -14,7 +14,7 @@ default = ["alloc", "embedded_rc", "rp2040-board"]
 alloc = []
 embedded_rc = ["cellex-utils-embedded-rs/rc"]
 embedded_arc = ["cellex-utils-embedded-rs/arc", "dep:embassy-sync"]
-embassy_executor = ["dep:embassy-executor", "dep:embassy-futures"]
+embassy_executor = ["dep:embassy-executor", "dep:embassy-futures", "dep:embassy-time", "dep:embassy-sync"]
 rp2040-board = ["dep:rp2040-hal", "dep:rp2040-boot2"]
 rp2350-board = ["dep:rp235x-hal"]
 
@@ -33,6 +33,7 @@ embedded-hal = { version = "0.2", optional = true }
 embassy-sync = { version = "0.7", default-features = false, optional = true }
 embassy-executor = { version = "0.7", default-features = false, optional = true }
 embassy-futures = { version = "0.1", default-features = false, optional = true }
+embassy-time = { version = "0.5", default-features = false, optional = true }
 portable-atomic = { version = "1.11", default-features = false, features = ["critical-section"] }
 
 [dev-dependencies]
