@@ -1,4 +1,4 @@
-#![cfg(all(feature = "std", feature = "new-runtime"))]
+#![cfg(feature = "std")]
 #![allow(deprecated)]
 
 use super::ask::create_ask_handles;
@@ -8,7 +8,6 @@ use super::{ask_with_timeout, AskError};
 use crate::api::guardian::AlwaysRestart;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 use crate::next_extension_id;
-use crate::new_runtime::{NewActorSystem, TestHarnessBundle};
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::message::{take_metadata, DynMessage};
 use crate::ActorId;
@@ -48,8 +47,10 @@ mod receive_timeout_injection {
   use super::*;
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
-  use crate::new_runtime::{NewActorSystem, TestHarnessBundle};
-  use crate::{DynMessage, MailboxOptions, MailboxRuntime, MapSystemShared, PriorityEnvelope, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
+  use crate::{
+    ActorRuntimeBundle, ActorSystem, ActorSystemConfig, DynMessage, MailboxOptions, MailboxRuntime, MapSystemShared,
+    PriorityEnvelope, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
+  };
   use alloc::boxed::Box;
   use core::time::Duration;
   use futures::executor::block_on;
@@ -110,7 +111,7 @@ mod receive_timeout_injection {
     }
   }
 
-  fn spawn_test_actor(system: &mut NewActorSystem<u32, TestHarnessBundle, AlwaysRestart>) {
+  fn spawn_test_actor(system: &mut ActorSystem<u32, TestMailboxRuntime, AlwaysRestart>) {
     let props = Props::new(MailboxOptions::default(), |_, _: u32| {});
     let mut root = system.root_context();
     let actor_ref = root.spawn(props).expect("spawn actor");
@@ -124,11 +125,13 @@ mod receive_timeout_injection {
     let driver_calls = Arc::new(AtomicUsize::new(0));
     let factory_calls = Arc::new(AtomicUsize::new(0));
 
-    let runtime = TestHarnessBundle::new().with_receive_timeout_driver(Some(
+    let runtime = ActorRuntimeBundle::new(factory.clone()).with_receive_timeout_driver(Some(
       ReceiveTimeoutDriverShared::new(CountingDriver::new(driver_calls.clone(), factory_calls.clone())),
     ));
 
-    let mut system: NewActorSystem<u32, _, AlwaysRestart> = NewActorSystem::new(runtime);
+    let config = ActorSystemConfig::default();
+
+    let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
     spawn_test_actor(&mut system);
 
     assert_eq!(driver_calls.load(Ordering::SeqCst), 1);
@@ -142,7 +145,7 @@ mod receive_timeout_injection {
     let driver_factory_calls = Arc::new(AtomicUsize::new(0));
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
 
-    let runtime = TestHarnessBundle::new()
+    let runtime = ActorRuntimeBundle::new(factory.clone())
       .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(CountingDriver::new(
         driver_calls.clone(),
         driver_factory_calls.clone(),
@@ -151,7 +154,9 @@ mod receive_timeout_injection {
         bundle_factory_calls.clone(),
       )));
 
-    let mut system: NewActorSystem<u32, _, AlwaysRestart> = NewActorSystem::new(runtime);
+    let config = ActorSystemConfig::default();
+
+    let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
     spawn_test_actor(&mut system);
 
     assert_eq!(bundle_factory_calls.load(Ordering::SeqCst), 1);
@@ -167,7 +172,7 @@ mod receive_timeout_injection {
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
     let config_factory_calls = Arc::new(AtomicUsize::new(0));
 
-    let runtime = TestHarnessBundle::new()
+    let runtime = ActorRuntimeBundle::new(factory.clone())
       .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(CountingDriver::new(
         driver_calls.clone(),
         driver_factory_calls.clone(),
@@ -176,11 +181,11 @@ mod receive_timeout_injection {
         bundle_factory_calls.clone(),
       )));
 
-    let runtime = runtime.with_receive_timeout_factory(Some(ReceiveTimeoutFactoryShared::new(
+    let config = ActorSystemConfig::default().with_receive_timeout_factory(Some(ReceiveTimeoutFactoryShared::new(
       CountingFactory::new(config_factory_calls.clone()),
     )));
 
-    let mut system: NewActorSystem<u32, _, AlwaysRestart> = NewActorSystem::new(runtime);
+    let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
     spawn_test_actor(&mut system);
 
     assert_eq!(config_factory_calls.load(Ordering::SeqCst), 1);
