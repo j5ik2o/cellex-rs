@@ -9,14 +9,15 @@ use crate::runtime::mailbox::traits::MailboxPair;
 use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
+use crate::runtime::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
 use crate::runtime::scheduler::SchedulerBuilder;
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
-use crate::ReceiveTimeoutFactoryShared;
 use crate::{
   Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener, FailureEventStream, MailboxFactory,
   PriorityEnvelope, SerializerRegistryExtension,
 };
+use crate::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -162,6 +163,7 @@ where
   R::Signal: Clone, {
   core: ActorRuntimeBundleCore<R>,
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>>,
+  receive_timeout_driver: Option<ReceiveTimeoutDriverShared<R>>,
   root_event_listener: Option<FailureEventListener>,
   root_escalation_handler: Option<FailureEventHandler>,
   metrics_sink: Option<MetricsSinkShared>,
@@ -179,6 +181,7 @@ where
     Self {
       core: ActorRuntimeBundleCore::new(mailbox_factory),
       receive_timeout_factory: None,
+      receive_timeout_driver: Some(ReceiveTimeoutDriverShared::new(NoopReceiveTimeoutDriver::default())),
       root_event_listener: None,
       root_escalation_handler: None,
       metrics_sink: None,
@@ -210,6 +213,12 @@ where
     self.receive_timeout_factory.clone()
   }
 
+  /// Returns the receive-timeout driver configured for this bundle.
+  #[must_use]
+  pub fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<R>> {
+    self.receive_timeout_driver.clone()
+  }
+
   /// Sets the receive-timeout factory using the base mailbox factory type.
   #[must_use]
   pub fn with_receive_timeout_factory(mut self, factory: ReceiveTimeoutFactoryShared<DynMessage, R>) -> Self {
@@ -225,6 +234,29 @@ where
   ) -> Self {
     self.receive_timeout_factory = Some(factory);
     self
+  }
+
+  /// Overrides the receive-timeout driver.
+  #[must_use]
+  pub fn with_receive_timeout_driver(mut self, driver: Option<ReceiveTimeoutDriverShared<R>>) -> Self {
+    self.receive_timeout_driver = driver;
+    self
+  }
+
+  /// Mutably overrides the receive-timeout driver.
+  pub fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<R>>) {
+    self.receive_timeout_driver = driver;
+  }
+
+  /// Returns a factory built by the configured receive-timeout driver, if any.
+  #[must_use]
+  pub fn receive_timeout_driver_factory(
+    &self,
+  ) -> Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>> {
+    self
+      .receive_timeout_driver
+      .as_ref()
+      .map(|driver| driver.build_factory())
   }
 
   /// Returns the root failure event listener configured for the bundle.
@@ -518,7 +550,8 @@ where
     let receive_timeout_factory = config
       .receive_timeout_factory()
       .map(|factory| factory.for_runtime_bundle())
-      .or(bundle_receive_timeout);
+      .or(bundle_receive_timeout)
+      .or_else(|| runtime.receive_timeout_driver_factory());
     let root_event_listener = config.failure_event_listener().or(bundle_root_listener);
     let metrics_sink = config.metrics_sink().or_else(|| runtime.metrics_sink());
     let settings = InternalActorSystemSettings {

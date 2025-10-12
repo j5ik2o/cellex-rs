@@ -51,13 +51,11 @@ where
     let runtime = self.system.runtime.with_ref(|factory| factory.clone());
     let mut mailbox_factory = MailboxHandleFactoryStub::new(self.system.runtime.clone());
     mailbox_factory.set_metrics_sink(self.system.metrics_sink());
-    let mailbox_spawner = mailbox_factory.priority_spawner();
-    let mailbox = mailbox_spawner.spawn_mailbox(options);
     let context = SchedulerSpawnContext {
       runtime,
       mailbox_factory,
       map_system,
-      mailbox,
+      mailbox_options: options,
       handler,
     };
 

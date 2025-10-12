@@ -108,13 +108,13 @@ where
       runtime,
       mailbox_factory,
       map_system,
-      mailbox,
+      mailbox_options,
       handler,
     } = context;
     let mailbox_factory = mailbox_factory.with_metrics_sink(self.metrics_sink.clone());
     let mut mailbox_spawner = mailbox_factory.priority_spawner();
     mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
-    let (mut mailbox, mut sender) = mailbox;
+    let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
     mailbox.set_metrics_sink(self.metrics_sink.clone());
     sender.set_metrics_sink(self.metrics_sink.clone());
     let actor_sender = sender.clone();

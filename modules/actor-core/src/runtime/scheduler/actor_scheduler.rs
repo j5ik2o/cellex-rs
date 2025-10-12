@@ -11,7 +11,7 @@ use async_trait::async_trait;
 
 use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
-use crate::runtime::mailbox::traits::MailboxPair;
+use crate::MailboxOptions;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxFactory, MapSystemShared,
   MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
@@ -35,7 +35,7 @@ where
   pub runtime: R,
   pub mailbox_factory: MailboxHandleFactoryStub<R>,
   pub map_system: MapSystemShared<M>,
-  pub mailbox: MailboxPair<R::Mailbox<PriorityEnvelope<M>>, R::Producer<PriorityEnvelope<M>>>,
+  pub mailbox_options: MailboxOptions,
   pub handler: Box<ActorHandlerFn<M, R>>,
 }
 

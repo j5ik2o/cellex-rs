@@ -88,13 +88,11 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
-  let mailbox_spawner = mailbox_factory.priority_spawner();
-  let mailbox = mailbox_spawner.spawn_mailbox(options);
   let context = SchedulerSpawnContext {
     runtime,
     mailbox_factory,
     map_system,
-    mailbox,
+    mailbox_options: options,
     handler,
   };
   scheduler.spawn_actor(supervisor, context)
