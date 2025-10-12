@@ -101,6 +101,7 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   factory: ArcShared<R>,
+  metrics_sink: Option<MetricsSinkShared>,
 }
 
 impl<R> MailboxHandleFactoryStub<R>
@@ -111,7 +112,10 @@ where
 {
   #[must_use]
   pub(crate) fn new(factory: ArcShared<R>) -> Self {
-    Self { factory }
+    Self {
+      factory,
+      metrics_sink: None,
+    }
   }
 
   /// Creates a stub by cloning the provided runtime and wrapping it in a shared handle.
@@ -129,7 +133,19 @@ where
     M: Element,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone, {
-    PriorityMailboxSpawnerHandle::new(self.factory.clone())
+    PriorityMailboxSpawnerHandle::new(self.factory.clone()).with_metrics_sink(self.metrics_sink.clone())
+  }
+
+  /// Returns a new stub with the provided metrics sink.
+  #[must_use]
+  pub fn with_metrics_sink(mut self, sink: Option<MetricsSinkShared>) -> Self {
+    self.metrics_sink = sink;
+    self
+  }
+
+  /// Mutable setter for the metrics sink.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink;
   }
 }
 
@@ -264,7 +280,9 @@ where
     M: Element,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone, {
-    MailboxHandleFactoryStub::from_runtime(self.clone()).priority_spawner()
+    MailboxHandleFactoryStub::from_runtime(self.clone())
+      .with_metrics_sink(self.metrics_sink.clone())
+      .priority_spawner()
   }
 
   /// Overrides the scheduler builder used when constructing the actor system.
