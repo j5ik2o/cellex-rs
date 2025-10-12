@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
+use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::{
   Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv,
 };
@@ -357,6 +358,11 @@ where
   pub fn inner(&self) -> &QueueMailbox<TokioPriorityQueues<M>, NotifySignal> {
     &self.inner
   }
+
+  /// Assigns a metrics sink to the underlying mailbox.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 impl<M> Mailbox<PriorityEnvelope<M>> for TokioPriorityMailbox<M>
@@ -391,6 +397,10 @@ where
 
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -517,6 +527,11 @@ where
   /// An immutable reference to the internal producer
   pub fn inner(&self) -> &QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal> {
     &self.inner
+  }
+
+  /// Assigns a metrics sink to the underlying producer.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 

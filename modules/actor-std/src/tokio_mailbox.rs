@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
   Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
@@ -297,6 +298,10 @@ where
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
   }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 impl<M> TokioMailboxSender<M>
@@ -338,6 +343,11 @@ where
   /// An immutable reference to the internal producer
   pub fn inner(&self) -> &QueueMailboxProducer<TokioQueue<M>, NotifySignal> {
     &self.inner
+  }
+
+  /// Assigns a metrics sink to the underlying producer.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
