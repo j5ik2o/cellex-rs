@@ -6,8 +6,8 @@ use alloc::vec::Vec;
 use cellex_actor_core_rs::{
   ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener,
   FailureInfo, GuardianStrategy, InternalActorRef, MailboxFactory, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext,
-  Supervisor,
+  NoopReceiveTimeoutSchedulerFactory, PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared,
+  SchedulerBuilder, SchedulerSpawnContext, Supervisor,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_futures::yield_now;
@@ -146,6 +146,13 @@ where
   R::Signal: Clone,
 {
   fn with_embassy_scheduler(self) -> ActorRuntimeBundle<R> {
-    self.with_scheduler_builder(embassy_scheduler_builder())
+    let bundle = self.with_scheduler_builder(embassy_scheduler_builder());
+    if bundle.receive_timeout_factory().is_some() {
+      bundle
+    } else {
+      bundle.with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(
+        NoopReceiveTimeoutSchedulerFactory::default(),
+      ))
+    }
   }
 }
