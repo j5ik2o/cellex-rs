@@ -4,8 +4,8 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
-  MailboxRuntime, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
-  GuardianStrategy, InternalActorRef, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
+  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, GuardianStrategy,
+  InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
   ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
 };
 use cellex_utils_embedded_rs::Element;

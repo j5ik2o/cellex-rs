@@ -69,7 +69,7 @@ mod spawn;
 mod timer;
 
 #[cfg(feature = "embedded_arc")]
-pub use arc_mailbox::{ArcMailboxRuntime, ArcMailbox, ArcMailboxSender};
+pub use arc_mailbox::{ArcMailbox, ArcMailboxRuntime, ArcMailboxSender};
 #[cfg(feature = "embedded_arc")]
 pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxRuntime, ArcPriorityMailboxSender};
 #[cfg(feature = "embedded_arc")]
@@ -78,7 +78,7 @@ pub use cellex_utils_embedded_rs::{ArcCsStateCell, ArcLocalStateCell, ArcShared,
 pub use cellex_utils_embedded_rs::{RcShared, RcStateCell};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
-pub use local_mailbox::{LocalMailboxRuntime, LocalMailbox, LocalMailboxSender};
+pub use local_mailbox::{LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
 #[cfg(feature = "embassy_executor")]
 pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 pub use runtime_driver::EmbeddedFailureEventHub;
@@ -93,10 +93,10 @@ pub mod prelude {
   pub use super::{ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
   #[cfg(feature = "embedded_arc")]
   pub use super::{
-    ArcMailboxRuntime, ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxSender, ArcPriorityMailbox,
+    ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxRuntime, ArcMailboxSender, ArcPriorityMailbox,
     ArcPriorityMailboxRuntime, ArcPriorityMailboxSender, ArcShared, ArcStateCell,
   };
-  pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailboxRuntime, LocalMailbox, LocalMailboxSender};
+  pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
   #[cfg(feature = "embedded_rc")]
   pub use super::{RcShared, RcStateCell};
 }

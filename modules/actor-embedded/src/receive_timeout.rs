@@ -11,8 +11,8 @@ use embassy_sync::signal::Signal;
 use embassy_time::{Duration as EmbassyDuration, Timer};
 
 use cellex_actor_core_rs::{
-  MailboxRuntime, DynMessage, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
-  SystemMessage,
+  DynMessage, MailboxRuntime, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler,
+  ReceiveTimeoutSchedulerFactory, SystemMessage,
 };
 
 /// Internal shared state manipulated by both scheduler commands and the worker task.

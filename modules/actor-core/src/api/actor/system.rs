@@ -14,7 +14,7 @@ use crate::runtime::scheduler::SchedulerBuilder;
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
 use crate::{
-  MailboxRuntime, Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener, FailureEventStream,
+  Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener, FailureEventStream, MailboxRuntime,
   PriorityEnvelope, SerializerRegistryExtension,
 };
 use crate::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
@@ -392,24 +392,15 @@ where
     RuntimeEnv::receive_timeout_driver(self)
   }
 
-  fn with_receive_timeout_factory(
-    self,
-    factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>,
-  ) -> Self {
+  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>) -> Self {
     RuntimeEnv::with_receive_timeout_factory(self, factory)
   }
 
-  fn with_receive_timeout_factory_shared(
-    self,
-    factory: ReceiveTimeoutFactoryShared<DynMessage, Self>,
-  ) -> Self {
+  fn with_receive_timeout_factory_shared(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self>) -> Self {
     RuntimeEnv::with_receive_timeout_factory_shared(self, factory)
   }
 
-  fn with_receive_timeout_driver(
-    self,
-    driver: Option<ReceiveTimeoutDriverShared<Self::Base>>,
-  ) -> Self {
+  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) -> Self {
     RuntimeEnv::with_receive_timeout_driver(self, driver)
   }
 
@@ -453,8 +444,7 @@ where
   where
     M: Element,
     <Self::Base as crate::MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-    <Self::Base as crate::MailboxRuntime>::Signal: Clone,
-  {
+    <Self::Base as crate::MailboxRuntime>::Signal: Clone, {
     RuntimeEnv::priority_mailbox_spawner(self)
   }
 
@@ -462,10 +452,7 @@ where
     RuntimeEnv::with_scheduler_builder(self, builder)
   }
 
-  fn with_scheduler_builder_shared(
-    self,
-    builder: ArcShared<SchedulerBuilder<DynMessage, Self>>,
-  ) -> Self {
+  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self>>) -> Self {
     RuntimeEnv::with_scheduler_builder_shared(self, builder)
   }
 

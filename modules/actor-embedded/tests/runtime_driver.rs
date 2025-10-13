@@ -14,10 +14,10 @@ use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, ImmediateSpawner, Immedi
 #[test]
 fn embedded_actor_runtime_dispatches_message() {
   let components = ActorSystemParts::new(
-      RuntimeEnv::new(LocalMailboxRuntime::default()),
-      ImmediateSpawner,
-      ImmediateTimer,
-      EmbeddedFailureEventHub::new(),
+    RuntimeEnv::new(LocalMailboxRuntime::default()),
+    ImmediateSpawner,
+    ImmediateTimer,
+    EmbeddedFailureEventHub::new(),
   );
   let (mut system, _) = ActorSystem::from_parts(components);
 

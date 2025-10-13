@@ -1,6 +1,6 @@
+use crate::runtime::mailbox::traits::ActorRuntime;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalRootContext;
-use crate::runtime::mailbox::traits::ActorRuntime;
 use crate::{ActorRef, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
 use alloc::boxed::Box;
 use cellex_utils_core_rs::{Element, QueueError};

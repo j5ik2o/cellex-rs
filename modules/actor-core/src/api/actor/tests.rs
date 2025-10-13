@@ -47,8 +47,8 @@ struct ChildMessage {
 }
 
 mod receive_timeout_injection {
-  use super::*;
   use super::TestRuntime;
+  use super::*;
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::{
@@ -130,9 +130,8 @@ mod receive_timeout_injection {
     let factory_calls = Arc::new(AtomicUsize::new(0));
 
     let runtime: TestRuntime = RuntimeEnv::new(factory.clone()).with_receive_timeout_driver(Some(
-      ReceiveTimeoutDriverShared::new(
-      CountingDriver::new(driver_calls.clone(), factory_calls.clone()),
-    )));
+      ReceiveTimeoutDriverShared::new(CountingDriver::new(driver_calls.clone(), factory_calls.clone())),
+    ));
 
     let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default();
 
@@ -361,7 +360,9 @@ fn typed_actor_system_handles_user_messages() {
   assert_eq!(log.borrow().as_slice(), &[11]);
 }
 
-fn spawn_actor_with_counter_extension<R>(runtime: R) -> (
+fn spawn_actor_with_counter_extension<R>(
+  runtime: R,
+) -> (
   ActorSystem<u32, R, AlwaysRestart>,
   ExtensionId,
   ArcShared<CounterExtension>,
@@ -369,8 +370,7 @@ fn spawn_actor_with_counter_extension<R>(runtime: R) -> (
 where
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   let extension = CounterExtension::new();
   let extension_id = extension.extension_id();
   let extension_handle = ArcShared::new(extension);
@@ -393,15 +393,17 @@ fn actor_context_accesses_registered_extension() {
   );
 
   let props = Props::with_behavior(MailboxOptions::default(), move || {
-    Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, RuntimeEnv<TestMailboxRuntime>>, msg: u32| {
-      let _ = msg;
-      ctx
-        .extension::<CounterExtension, _, _>(extension_id, |ext| {
-          ext.increment();
-        })
-        .expect("extension registered");
-      Behaviors::same()
-    })
+    Behaviors::receive(
+      move |ctx: &mut Context<'_, '_, u32, RuntimeEnv<TestMailboxRuntime>>, msg: u32| {
+        let _ = msg;
+        ctx
+          .extension::<CounterExtension, _, _>(extension_id, |ext| {
+            ext.increment();
+          })
+          .expect("extension registered");
+        Behaviors::same()
+      },
+    )
   });
 
   let actor_ref = root.spawn(props).expect("spawn actor");
@@ -958,8 +960,8 @@ mod metrics_injection {
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::{
-    MailboxRuntime, ActorSystem, ActorSystemConfig, DynMessage, MetricsEvent, MetricsSink, MetricsSinkShared, RuntimeEnv,
-    Supervisor,
+    ActorSystem, ActorSystemConfig, DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared,
+    RuntimeEnv, Supervisor,
   };
   use alloc::boxed::Box;
   use core::marker::PhantomData;

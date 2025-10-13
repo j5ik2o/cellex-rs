@@ -123,8 +123,7 @@ where
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();
 
-    let handler = move |ctx: &mut ActorContext<'_, DynMessage, R, dyn Supervisor<DynMessage>>,
-                        message: DynMessage| {
+    let handler = move |ctx: &mut ActorContext<'_, DynMessage, R, dyn Supervisor<DynMessage>>, message: DynMessage| {
       let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
         panic!("unexpected message type delivered to typed handler");
       };

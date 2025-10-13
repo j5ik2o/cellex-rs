@@ -7,8 +7,8 @@ use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::metrics::MetricsSinkShared;
 use crate::runtime::scheduler::SchedulerBuilder;
 use crate::{
-  FailureEventHandler, FailureEventListener, PriorityEnvelope, PriorityMailboxSpawnerHandle, ReceiveTimeoutDriverShared,
-  ReceiveTimeoutFactoryShared,
+  FailureEventHandler, FailureEventListener, PriorityEnvelope, PriorityMailboxSpawnerHandle,
+  ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
 };
 
 use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
@@ -223,26 +223,17 @@ pub trait ActorRuntime: MailboxRuntime + Clone {
   fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Base>>;
 
   /// Overrides the receive-timeout factory using the base mailbox runtime type.
-  fn with_receive_timeout_factory(
-    self,
-    factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>,
-  ) -> Self
+  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>) -> Self
   where
     Self: Sized;
 
   /// Overrides the receive-timeout factory using a runtime-specific factory.
-  fn with_receive_timeout_factory_shared(
-    self,
-    factory: ReceiveTimeoutFactoryShared<DynMessage, Self>,
-  ) -> Self
+  fn with_receive_timeout_factory_shared(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self>) -> Self
   where
     Self: Sized;
 
   /// Overrides the receive-timeout driver.
-  fn with_receive_timeout_driver(
-    self,
-    driver: Option<ReceiveTimeoutDriverShared<Self::Base>>,
-  ) -> Self
+  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) -> Self
   where
     Self: Sized;
 
@@ -294,10 +285,7 @@ pub trait ActorRuntime: MailboxRuntime + Clone {
     Self: Sized;
 
   /// Overrides the scheduler builder using a shared handle.
-  fn with_scheduler_builder_shared(
-    self,
-    builder: ArcShared<SchedulerBuilder<DynMessage, Self>>,
-  ) -> Self
+  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self>>) -> Self
   where
     Self: Sized;
 

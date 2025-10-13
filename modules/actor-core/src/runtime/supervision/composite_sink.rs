@@ -1,8 +1,8 @@
 use crate::runtime::context::InternalActorRef;
 use crate::FailureInfo;
 use crate::MapSystemShared;
-use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink};
+use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::{CustomEscalationSink, ParentGuardianSink};

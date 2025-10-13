@@ -3,8 +3,8 @@
 use super::*;
 use crate::runtime::guardian::AlwaysRestart;
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;
-use crate::RuntimeEnv;
 use crate::runtime::message::DynMessage;
+use crate::RuntimeEnv;
 use crate::{MailboxOptions, SystemMessage};
 use alloc::rc::Rc;
 use alloc::vec::Vec;

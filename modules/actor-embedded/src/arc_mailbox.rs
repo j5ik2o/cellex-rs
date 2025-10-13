@@ -13,7 +13,7 @@ use embassy_sync::signal::Signal;
 use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  MailboxRuntime, Mailbox, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 use cellex_utils_embedded_rs::queue::mpsc::ArcMpscUnboundedQueue;

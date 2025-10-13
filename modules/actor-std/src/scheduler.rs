@@ -2,8 +2,8 @@ use std::boxed::Box;
 use std::vec::Vec;
 
 use cellex_actor_core_rs::{
-  MailboxRuntime, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
-  GuardianStrategy, InternalActorRef, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
+  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, GuardianStrategy,
+  InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
   ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder, SchedulerSpawnContext,
   Supervisor,
 };

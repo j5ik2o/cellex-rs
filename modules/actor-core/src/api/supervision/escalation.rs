@@ -3,8 +3,8 @@ use core::marker::PhantomData;
 use cellex_utils_core_rs::Element;
 
 use super::failure::FailureEvent;
-use crate::{MailboxRuntime, FailureInfo, PriorityEnvelope};
 use crate::{FailureEventHandlerShared, FailureEventListenerShared};
+use crate::{FailureInfo, MailboxRuntime, PriorityEnvelope};
 
 /// Handler for notifying failure events externally.
 ///

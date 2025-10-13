@@ -72,7 +72,7 @@ pub use runtime_driver::TokioSystemHandle;
 pub use scheduler::{tokio_scheduler_builder, ActorRuntimeBundleTokioExt, TokioScheduler};
 pub use spawn::TokioSpawner;
 pub use timer::TokioTimer;
-pub use tokio_mailbox::{TokioMailboxRuntime, TokioMailbox, TokioMailboxSender};
+pub use tokio_mailbox::{TokioMailbox, TokioMailboxRuntime, TokioMailboxSender};
 pub use tokio_priority_mailbox::{TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender};
 
 #[cfg(test)]
@@ -81,7 +81,7 @@ use cellex_actor_core_rs::{ActorSystemConfig, ReceiveTimeoutFactoryShared};
 /// A prelude module that provides commonly used re-exported types and traits.
 pub mod prelude {
   pub use super::{
-    ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn, TokioMailboxRuntime, TokioMailbox, TokioMailboxSender,
+    ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn, TokioMailbox, TokioMailboxRuntime, TokioMailboxSender,
     TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender, TokioScheduler, TokioSpawner,
     TokioSystemHandle, TokioTimer,
   };

@@ -13,7 +13,7 @@ use crate::FailureInfo;
 use crate::NoopSupervisor;
 #[cfg(feature = "std")]
 use crate::SupervisorDirective;
-use crate::{MailboxRuntime, DynMessage, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
+use crate::{DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
 use crate::{FailureEventHandler, FailureEventListener, MapSystemShared};
 use crate::{MailboxOptions, Supervisor, SystemMessage};
 use alloc::rc::Rc;

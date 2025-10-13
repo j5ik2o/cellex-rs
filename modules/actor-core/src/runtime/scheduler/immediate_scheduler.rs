@@ -9,7 +9,7 @@ use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnC
 use crate::runtime::scheduler::priority_scheduler::PriorityScheduler;
 use crate::MapSystemShared;
 use crate::{
-  MailboxRuntime, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MetricsSinkShared,
+  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxRuntime, MetricsSinkShared,
   PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::{Element, QueueError};

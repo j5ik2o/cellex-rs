@@ -8,7 +8,7 @@ use core::ops::Deref;
 use crate::api::actor::RuntimeEnv;
 use crate::runtime::message::DynMessage;
 use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
-use crate::{MailboxRuntime, FailureEvent, FailureInfo, PriorityEnvelope, SystemMessage};
+use crate::{FailureEvent, FailureInfo, MailboxRuntime, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Element;
 use cellex_utils_core_rs::Shared;
