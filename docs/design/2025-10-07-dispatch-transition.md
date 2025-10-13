@@ -1,21 +1,17 @@
 # dispatch_all 段階的非推奨ガイド (2025-10-07)
 
-## 背景
-`PriorityScheduler::dispatch_all` は初期設計の同期 API として残っているが、Tokio / Embassy を含む各
-ランタイムから自然に扱える `dispatch_next` / `run_until` / `run_forever` が整備されたため、今後は
-非推奨とし段階的に置き換える。
+## 現状サマリ (2025-10-13)
+- `PriorityScheduler::dispatch_all` は呼び出し時に `tracing::warn!` を出すのみで、API 自体は依然として公開されている。
+- `run_until` / `dispatch_next` / `run_forever` への移行先は実装済みで、Tokio／Embassy いずれの環境でも利用可能。
+- README は非推奨を明記済みだが、コード上の利用箇所やテストはまだ `dispatch_all` を参照している。
 
-## 現状
-- `dispatch_all` 呼び出し時に `tracing::warn!` を一度だけ発行し、移行を促す。
-- 同期版の実装は `drain_ready_cycle` を共有するため、即時の挙動変更は発生しない。
-- `run_until` / `run_forever` / `blocking_dispatch_loop` / `blocking_dispatch_forever` を用いれば、従来の
-  同期ループと同等の機能を提供可能。
+## 未解決課題
+- [MUST] `PriorityScheduler::dispatch_all` と `RootContext::dispatch_all` に `#[deprecated(since = "0.2.0", note = "...")]` を付与し、コンパイル時に警告を出す。
+- [MUST] テスト／サンプルから `dispatch_all` 呼び出しを排除し、`run_until` または `dispatch_next` への移行を完了させる。
+- [SHOULD] `dispatch_all` を利用している外部 API（`actor-core` の sync ラッパ等）の代替手順をドキュメント化する。
+- [SHOULD] 削除フェーズのマイルストーンを設定し、CHANGELOG にロードマップを追記する。
 
-## 推奨移行ステップ
-1. **アプリケーションコード**: `dispatch_all` を呼び出している箇所を `run_until` もしくは `dispatch_next`
-   ループに置換する。Tokio などの async ランタイムでは `run_forever` をタスクとして起動する。
-2. **テストコード**: 同期テストの場合は `futures::executor::block_on(scheduler.run_until(...))` を使用し、
-   明示的にループ回数を制御する。
-3. **ドキュメント**: ガイドや README に `dispatch_all` がレガシーであることを明記し、推奨パターンを
-   `run_until` 系 API へ差し替える。
-4. **将来対応**: 次期リリースで `#[deprecated]` 属性を付与し、さらにその次で削除する計画を立てる。
+## 優先アクション
+1. `#[deprecated]` 属性を追加し、ビルド警告が発生することを確認する。
+2. `modules/actor-core/src/api/actor/tests.rs` など残存する呼び出しを `dispatch_next` ベースへ書き換える。
+3. CHANGELOG と README に移行手順と削除予定バージョンを追記する。

@@ -1,37 +1,18 @@
 # 基本機能パリティ TODO（protoactor-go 対比）
 
-protoactor-go の `actor` パッケージで提供される基本機能と比較し、現状の `nexus-actor-core-rs` / `actor-std-rs` に不足している要素を整理する。以下は優先度高の TODO として扱う。
+## 現状サマリ (2025-10-13)
+- Ask 系 API（`request*`, `AskFuture`, `respond` など）は typed センダー経由で統合済み。
+- ReceiveTimeout 抽象と `Context::set_receive_timeout` / `cancel_receive_timeout` は実装され、Tokio ランタイム向けドライバも導入済み。
+- Guardian と EscalationSink は core 側に集約され、監視者リストの自動管理が動作している。
 
-## TODO / Progress
+## 未解決課題
+- [MUST] ReceiveTimeout: `NotInfluenceReceiveTimeout` マーカー／ハンドルを `modules/` 配下に実装し、ユーザーメッセージからタイマーを制御できるようにする。Embedded 用ドライバ（Embassy）と統合テストも未整備。
+- [MUST] ライフサイクルイベント（`Started`, `Stopping`, `Stopped`, `Restarting` 等）と `become_stacked` 互換 API を Behavior DSL に追加する。
+- [MUST] `Context::watch` / `unwatch` / `stop` / `poison` など監視・停止 API を公開し、SystemMessage の配信保証テストを整備する。
+- [SHOULD] `OneForOneStrategy` / `AllForOneStrategy` / `ExponentialBackoffStrategy` 等のスーパーバイザ戦略を GuardianStrategy 実装として提供する。
+- [SHOULD] `ProcessRegistry` 相当の仕組み（PID 解決と DeadLetter 連携）を Rust 版に設計し、remote との互換性を確認する。
 
-- [x] **Ask 系 API を整備する**（2025-10-08 完了）
-
-  - `Context::request` / `Context::request_future` / `Context::respond` / `Context::forward` を追加済み。`request_future_with_timeout` でタイムアウトを付与した `AskFuture` も提供。
-  - `ActorRef` 側に `request(_future)` / `request_with_sender` / `request_future_with_timeout` を公開し、caller 側の ergonomics を改善。
-  - `AskFuture` に `AskError::Timeout` / `ResponderDropped` などの終端状態を実装し、軽量なユニットテストを追加。
-
-- [ ] **ReceiveTimeout をユーザー API に統合する**
-
-   - `Context::set_receive_timeout` / `Context::cancel_receive_timeout` を公開し、`NotInfluenceReceiveTimeout` 相当のメッセージフラグを導入する。
-   - `ActorContextExtras` / `DelayQueueTimer` の PoC を本番ロジックへ統合し、`ReceiveTimeout` シグナルを `Behavior` DSL に届ける。
-   - 参考: protoactor-go `Context.SetReceiveTimeout` / `Context.CancelReceiveTimeout`、`receive_timeout` ミドルウェア実装。
-
-- [ ] **ライフサイクル・ビヘイビア制御を拡張する**
-
-   - `Started` / `Stopping` / `Stopped` / `Restarting` など、protoactor-go がメッセージとして提供するライフサイクルイベントを `Signal` 拡張として DSL に取り込む。
-   - `Behavior::become` / `become_stacked` / `unbecome_stacked` に相当する API を追加し、ステートマシン構築の柔軟性を向上させる。
-   - 参考: protoactor-go `behavior.go` (`Become`, `BecomeStacked`, `UnbecomeStacked`)、`lifecycle_test.go`。
-
-- [ ] **監視と停止手段の API を強化する**
-
-   - ユーザー向けに `Context::watch` / `Context::unwatch` / `Context::stop` / `Context::poison` を公開し、停止フロー（即時停止・ポイズン）を選択できるようにする。
-   - 監視時に Watch/Unwatch の `SystemMessage` が確実に配送される統合テストを追加する。
-   - 参考: protoactor-go `Context.Watch` / `Context.Unwatch` / `Context.Stop` / `Context.Poison` と、それに付随する `ProcessRegistry` の扱い。
-
-- [ ] **ガーディアン／スーパーバイザ戦略のバリエーションを追加する**
-
-   - `OneForOneStrategy` / `AllForOneStrategy` / 指数バックオフ戦略を `GuardianStrategy` 実装として提供する。
-   - 戦略切り替え API とテスト（プロセス再起動シナリオ）を整備し、`SupervisorDirective` のバリエーションを網羅する。
-   - 参考: protoactor-go `strategy_one_for_one.go` / `strategy_all_for_one.go` / `strategy_exponential_backoff.go`。
-
-各項目の進捗を追跡する際は、関連する設計メモ（例: `docs/design/2025-10-07-typed-actor-plan.md`、`docs/worknotes/...`）にも反映すること。
+## 優先アクション
+1. ReceiveTimeout まわりのマーカー型とハンドル API を追加し、Tokio ドライバのリグレッションテストを更新する。
+2. Behavior DSL へライフサイクル Signal と stackable `become` を実装し、protoactor-go とのパリティテストを追加する。
+3. 監視／停止 API とスーパーバイザ戦略の実装計画を具体化し、順次 PR に分割して着手する。
