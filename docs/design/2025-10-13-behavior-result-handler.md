@@ -14,14 +14,14 @@
   スーパービジョンを起動する。
 - 既存の `Behavior::receive` 等は内部的に `Ok(…)` を返すラッパーとして実装し、既存コードへの破壊的変更を避ける。
 - `ActorFailure` は `Box<dyn BehaviorFailure>` を保持する薄いコンテナとし、エラー情報は `BehaviorFailure`
-  トレイトで抽象化する。`From<anyhow::Error>` 等の拡張は `BehaviorFailure` 実装として提供する。
+  トレイトで抽象化する。`From<E>` 実装などで任意のエラー型を `BehaviorFailure` 実装経由で包む。
 
 ## データモデル拡張
 - `BehaviorFailure` トレイトを新設し、Supervisor 戦略が型ダウンキャストできるよう `as_any` を必須メソッドとする。
-- 標準実装として文字列メッセージ／`anyhow::Error` を包む `DefaultBehaviorFailure` を用意し、
+- 標準実装として文字列メッセージを包む `DefaultBehaviorFailure` を用意し、
   `BehaviorFailure` を実装していないエラー型も簡単に包めるようにする。
-  - `DefaultBehaviorFailure` は `message: Cow<'static, str>` と任意の `source: Option<anyhow::Error>` を保持し、
-    Supervisor で共通的に扱える最小限の情報セットを提供する。
+  - `DefaultBehaviorFailure` は `message: Cow<'static, str>` と `debug: Option<String>` を保持し、
+    Supervisor で共通に参照できる最小限の情報セットを提供する。
 - `ActorFailure` は Display/Debug を委譲しつつ `Box<dyn BehaviorFailure + Send + Sync>` を保持する構造体として再設計する。
 - これによりカスタム Supervisor 戦略は `failure.behavior().as_any().downcast_ref::<FooError>()` のように具象型へアクセス可能。
 - 既存の文字列のみのエラー表現は廃止し、少なくとも原因・オリジナルのエラー型・付随情報をトレイト経由で取得できるようにする。
@@ -75,7 +75,7 @@ impl ActorFailure {
 2. `BehaviorFailure` インターフェース整備
    - `BehaviorFailure` トレイトを定義し、`fn as_any(&self) -> &dyn Any` を必須とする。
    - 表示用の `fmt_message` などはデフォルト実装を提供し、最低限 `Debug`/`Display` での出力が保証されるようにする。
-   - `DefaultBehaviorFailure`（仮称）で文字列・`anyhow::Error` を包み、`From<E>` 実装で自動ラップできるようにする。
+   - `DefaultBehaviorFailure`（仮称）で文字列と `Debug` 表現を包み、`From<E>` 実装で自動ラップできるようにする。
 3. `ActorCell` 更新
    - Dispatch 時に `Result` を取り出し、`Err` の場合は `FailureInfo` を生成して `guardian.notify_failure` へ渡す。
    - panic (`catch_unwind`) 路を既存通り維持しつつ、`Err`/panic 双方を `FailureInfo` として扱う。
