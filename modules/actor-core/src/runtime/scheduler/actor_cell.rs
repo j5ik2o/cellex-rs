@@ -217,9 +217,10 @@ where
         self.extensions.clone(),
       );
       ctx.enter_priority(priority);
-      (self.handler)(&mut ctx, message);
+      let handler_result = (self.handler)(&mut ctx, message);
       ctx.notify_receive_timeout_activity(influences_receive_timeout);
       ctx.exit_priority();
+      handler_result
     }));
 
     #[cfg(not(feature = "std"))]
@@ -239,15 +240,24 @@ where
         self.extensions.clone(),
       );
       ctx.enter_priority(priority);
-      (self.handler)(&mut ctx, message);
+      let handler_result = (self.handler)(&mut ctx, message);
       ctx.notify_receive_timeout_activity(influences_receive_timeout);
       ctx.exit_priority();
       self.supervisor.after_handle();
-      for spec in pending_specs.into_iter() {
-        self.register_child_from_spec(spec, guardian, new_children)?;
-      }
-      if should_stop {
-        self.mark_stopped(guardian);
+      match handler_result {
+        Ok(()) => {
+          for spec in pending_specs.into_iter() {
+            self.register_child_from_spec(spec, guardian, new_children)?;
+          }
+          if should_stop {
+            self.mark_stopped(guardian);
+          }
+        }
+        Err(err) => {
+          if let Some(info) = guardian.notify_failure(self.actor_id, &err)? {
+            escalations.push(info);
+          }
+        }
       }
       Ok(())
     }
@@ -257,12 +267,21 @@ where
       self.supervisor.after_handle();
 
       match result {
-        Ok(()) => {
-          for spec in pending_specs.into_iter() {
-            self.register_child_from_spec(spec, guardian, new_children)?;
-          }
-          if should_stop {
-            self.mark_stopped(guardian);
+        Ok(handler_result) => {
+          match handler_result {
+            Ok(()) => {
+              for spec in pending_specs.into_iter() {
+                self.register_child_from_spec(spec, guardian, new_children)?;
+              }
+              if should_stop {
+                self.mark_stopped(guardian);
+              }
+            }
+            Err(err) => {
+              if let Some(info) = guardian.notify_failure(self.actor_id, &err)? {
+                escalations.push(info);
+              }
+            }
           }
           Ok(())
         }

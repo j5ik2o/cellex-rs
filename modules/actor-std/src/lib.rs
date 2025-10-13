@@ -231,6 +231,7 @@ mod tests {
       mailbox_options: MailboxOptions::default(),
       handler: Box::new(move |_, msg: Message| {
         log_clone.lock().unwrap().push(msg);
+        Ok(())
       }),
     };
 

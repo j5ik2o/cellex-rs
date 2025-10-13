@@ -1,4 +1,5 @@
 use crate::runtime::context::{ActorContext, ActorHandlerFn};
+use crate::ActorFailure;
 use crate::MapSystemShared;
 use crate::Supervisor;
 use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
@@ -26,7 +27,7 @@ where
   pub fn new(
     options: MailboxOptions,
     map_system: MapSystemShared<M>,
-    handler: impl for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
+    handler: impl for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) -> Result<(), ActorFailure> + 'static,
   ) -> Self {
     Self {
       options,

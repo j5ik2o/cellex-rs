@@ -5,6 +5,7 @@ use core::marker::PhantomData;
 
 use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
+use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extension;
@@ -23,7 +24,8 @@ use crate::runtime::system::InternalProps;
 use crate::MapSystemShared;
 
 /// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
-pub type ActorHandlerFn<M, R> = dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static;
+pub type ActorHandlerFn<M, R> =
+  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) -> Result<(), ActorFailure> + 'static;
 /// Context for actors to operate on themselves and child actors.
 pub struct ActorContext<'a, M, R, Sup>
 where
@@ -175,11 +177,15 @@ where
   where
     F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
     S: Supervisor<M> + 'static, {
+    let mut handler = handler;
     self.enqueue_spawn(
       Box::new(supervisor),
       options,
       self.map_system.clone(),
-      Box::new(handler),
+      Box::new(move |ctx, message| {
+        handler(ctx, message);
+        Ok(())
+      }),
     )
   }
 
