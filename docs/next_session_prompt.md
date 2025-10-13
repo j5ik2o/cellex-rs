@@ -1,72 +1,65 @@
 # 継続作業プロンプト（次セッション引き継ぎ用）
 
 ## 現状
-- リファクタ済みで全テスト成功（`cargo test --workspace`）。
-- 抽象の意味整理が完了。
-  - 旧 `MailboxRuntime` → `ActorRuntime`（trait）
-  - 旧 `ActorRuntimeBundle` → `RuntimeEnv<R>`（struct）、`RuntimeEnvCore<R>` も導入
-- コアは `RuntimeEnv<R: ActorRuntime>` が R を保持し、`ActorRuntime` を実装して内包 R に委譲。
-- 代表参照:
-  - `modules/actor-core/src/api/actor/system.rs:27` ActorSystem は `R: ActorRuntime` を受けつつ内部は `RuntimeEnv<R>`
-  - `modules/actor-core/src/api/actor/system.rs:342` `impl<R> ActorRuntime for RuntimeEnv<R>`
-  - `type RuntimeParam<R> = RuntimeEnv<R>` が複数箇所に存在（例: `modules/actor-core/src/api/actor/context.rs:36`）
+- 旧 `ActorRuntime` トレイトがメールボックス工場の責務と高レベル環境機能を同居させており、依存方向の整理が進んでいない。
+- `RuntimeEnvCore<R>` / `RuntimeEnv<R>` は既存どおり `R` を保持し、型 `R` からメールボックス生成ロジックを委譲する構造になっている。
+- `ActorSystem<U, R, Strat>` は `R: ActorRuntime` を要求し、`RuntimeEnv` を直接差し込む前提で構成されている。
+- 既存テストはグリーン（直近は `cargo test --workspace` 済）。
 
 ## 目的
-- 依存方向を反転できる設計へ移行準備。「ActorRuntime 内に RuntimeEnv を内包できる」構造へ段階移行。
-- 直ちに完全反転はせず、ブリッジトレイトで滑らかに切り替え可能にする。
+- メールボックス工場インターフェイスと高レベル環境インターフェイスを分離し、責務を明確化する。
+- `RuntimeEnv` はこれまでどおり `MailboxRuntime`（旧 `ActorRuntime`）を保持しつつ、新しい `ActorRuntime` を実装して高レベル API を提供できるようにする。
+- `ActorSystem` / `InternalActorSystem` などの利用側は、新 `ActorRuntime` を受け取り `RuntimeEnv` を差し込める設計に移行する。
+- 将来的な `TokioActorRuntime` / `EmbassyActorRuntime` などの facade 追加を容易にする。
 
-## 方針（段階移行・低リスク）
-1) ブリッジ導入（RuntimeEnvAccess）
-   - 例：
-     - `trait RuntimeEnvAccess: ActorRuntime { type Base: ActorRuntime; fn env(&self) -> &RuntimeEnv<Self::Base>; }`
-     - 初期実装：`impl<R: ActorRuntime + Clone + 'static> RuntimeEnvAccess for RuntimeEnv<R> { type Base = R; fn env(&self) -> &RuntimeEnv<R> { self } }`
-   - 目的：既存の `RuntimeEnv<R>` も、将来の「内包型R」も、同じ API（`env()`）で扱えるようにする。
+## 方針
+1. **トレイトのリネーム** (AIでやると遅いのでIDEでリファクタリング済み)
+   - `modules/actor-core/src/runtime/mailbox/traits.rs` にある現行 `trait ActorRuntime` を `trait MailboxRuntime` にリネーム。
+   - 依存ファイルの `use` とジェネリクス境界を総置換。
+   - テスト／ドキュメント内の呼称も `MailboxRuntime` に揃える。
 
-2) 消費側の境界を `RuntimeEnvAccess` に寄せる
-   - `ActorSystem` の `where` を `R: ActorRuntime + Clone + 'static` から `R: ActorRuntime + RuntimeEnvAccess + Clone + 'static` へ。
-   - `InternalActorSystem<..., RuntimeEnv<R>, ...>` を `InternalActorSystem<..., R, ...>` に変更。
-   - `type RuntimeParam<R> = RuntimeEnv<R>` を `type RuntimeParam<R> = R` に変更。
-     - 対象ファイル：
-       - `modules/actor-core/src/api/actor/context.rs:36`
-       - `modules/actor-core/src/api/actor/actor_ref.rs:12`
-       - `modules/actor-core/src/api/actor/props.rs:23`
-       - `modules/actor-core/src/api/messaging/message_envelope.rs:538`
-       - `modules/actor-core/src/api/actor/root_context.rs:12`
-   - 上記で `RuntimeEnv` 固有 API が必要な箇所は `r.env().<method>` に差し替え（例：`priority_mailbox_spawner`、`scheduler_builder`、`receive_timeout_factory`）。
+2. **新しい `ActorRuntime` トレイトを定義**
+   - 旧 `RuntimeEnv` が外部へ提供している高レベルメソッド（`mailbox_runtime`、`scheduler_builder`、`receive_timeout_*`、`metrics_sink` など）を洗い出し、新`trait ActorRuntime: MailboxRuntime` として定義。
+   - トレイトは `RuntimeEnv` と将来の facade 型が実装できるように、既存 API をそのままインターフェイス化する。
 
-3) スケジューラ系のジェネリクス切替
-   - `SchedulerBuilder<DynMessage, RuntimeEnv<R>>` → `SchedulerBuilder<DynMessage, R>`。
-   - ビルダー/スケジューラ実装で `R: RuntimeEnvAccess` を参照し、`env()` 経由で必要リソースへアクセス。
-   - 主な対象：`modules/actor-core/src/runtime/scheduler/` 配下（`actor_scheduler.rs`, `priority_scheduler.rs`, `immediate_scheduler.rs` など）と、利用側の `api/actor/system.rs`。
+3. **`RuntimeEnv` に新トレイトを実装**
+   - `impl<R: MailboxRuntime + Clone + 'static> ActorRuntime for RuntimeEnv<R>` を追加し、既存メソッドを委譲。
+   - `ActorRuntime` 実装内で `RuntimeEnv` の状態管理（タイムアウト、メトリクス等）をそのまま活かす。
+   - `RuntimeEnvCore`/`RuntimeEnv` の内部構造は変更しない。
 
-4) 既存 API の互換維持
-   - `RuntimeEnv<R>` は当面存置（`impl ActorRuntime` も維持）。
-   - 将来、「TokioActorRuntime」等の具体ランタイムへ `RuntimeEnvAccess` を実装し、`RuntimeEnv` 内包構造へ差し替え。
+4. **利用側を新トレイトに更新**
+   - `ActorSystem<U, R, Strat>`、`ActorSystemConfig<R>`、`InternalActorSystem<M, R, Strat>` などで `R: ActorRuntime` を要求するよう調整。
+   - `ReceiveTimeoutFactoryShared<DynMessage, R>` など型引数の更新を忘れずに行う。
+   - 既存の `type RuntimeParam<R>` など `RuntimeEnv` 固有型エイリアスがあれば廃止／整理。
 
-5) ドキュメント/用語統一
-   - docs 配下の `MailboxRuntime` 記述を `ActorRuntime` / `RuntimeEnv` に置換。
-   - 設計メモの依存説明を「R: ActorRuntime」「RuntimeEnv<R> = 束」に更新。
+5. **ドキュメントとコメントの同期**
+   - `docs` 配下の旧用語（`MailboxRuntime` → `ActorRuntime`）を新しい区分に合わせて更新。
+   - 仕様メモに「ユーザは `MailboxRuntime` を実装しつつ facade を選択できる」設計意図を明記。
+
+6. **将来拡張の下準備**
+   - `TokioActorRuntime` や `EmbassyActorRuntime` のような facade 型を追加する際の雛形を検討（`RuntimeEnv` を内包しつつ `ActorRuntime` を実装する構造）。
+   - 必要ならテストサポート用のダミー facade を追加して API 適合性を確認。
 
 ## 受け入れ条件
-- `cargo test --workspace` 成功。
-- RP2040/RP2350 クロスチェック（任意）：
+- `cargo test --workspace` が成功すること。
+- `cargo clippy`は不要。実装優先です。
+- 可能なら RP2040/RP2350 向けクロスチェック：
   - `cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi`
   - `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi`
-- `cargo clippy --workspace --all-targets` で新規警告を増やさない。
 
 ## 参考ファイル
+- `modules/actor-core/src/runtime/mailbox/traits.rs`
 - `modules/actor-core/src/api/actor/system.rs`
 - `modules/actor-core/src/api/actor/{context.rs, actor_ref.rs, props.rs, root_context.rs}`
-- `modules/actor-core/src/api/messaging/message_envelope.rs:538`
-- `modules/actor-core/src/runtime/scheduler/*`
+- `modules/actor-core/src/runtime/system/internal_actor_system.rs`
+- `modules/actor-core/src/api/messaging/message_envelope.rs`
 
 ## 注意
-- mod.rs 禁止（2018 モジュール）。
-- rustdoc は英語、それ以外は日本語コメント。
-- 破壊的変更は許容だが、段階移行でテストグリーンを維持。
+- mod.rs 禁止（2018 モジュール規則）。
+- rustdoc (`///`, `//!`) は英語、それ以外のコメントは日本語。
+- 破壊的変更は許容。ただし段階的にコンパイルを維持しながら進める。
 
 ## 実行コマンド例
 - `cargo test --workspace`
 - `cargo clippy --workspace --all-targets`
 - `cargo +nightly fmt`
-

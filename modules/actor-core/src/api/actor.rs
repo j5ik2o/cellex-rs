@@ -15,7 +15,7 @@ mod system_support;
 mod tests;
 
 pub use crate::runtime::mailbox::{
-  ActorRuntime, Mailbox, MailboxOptions, MailboxPair, MailboxSignal, PriorityEnvelope, QueueMailbox,
+  MailboxRuntime, Mailbox, MailboxOptions, MailboxPair, MailboxSignal, PriorityEnvelope, QueueMailbox,
   QueueMailboxProducer, QueueMailboxRecv, SystemMessage,
 };
 pub use crate::runtime::message::DynMessage as RuntimeMessage;

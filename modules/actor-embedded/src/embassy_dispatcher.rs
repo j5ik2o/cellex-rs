@@ -4,7 +4,7 @@
 ///
 /// # 使い方
 /// ```
-/// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalActorRuntime};
+/// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
 /// use cellex_actor_core_rs::{RuntimeEnv, ActorSystem, ActorSystemConfig};
 /// use embassy_executor::Spawner;
 ///
@@ -12,7 +12,7 @@
 ///   pub fn dispatcher(system: ActorSystem<u32, LocalMailboxRuntime>)
 /// );
 ///
-/// fn start(spawner: &Spawner, system: &'static mut ActorSystem<u32, LocalActorRuntime>) {
+/// fn start(spawner: &Spawner, system: &'static mut ActorSystem<u32, LocalMailboxRuntime>) {
 ///   spawner.spawn(dispatcher(system)).expect("spawn dispatcher");
 /// }
 /// ```

@@ -8,7 +8,7 @@ use core::ops::Deref;
 use crate::api::actor::RuntimeEnv;
 use crate::runtime::message::DynMessage;
 use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
-use crate::{ActorRuntime, FailureEvent, FailureInfo, PriorityEnvelope, SystemMessage};
+use crate::{MailboxRuntime, FailureEvent, FailureInfo, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Element;
 use cellex_utils_core_rs::Shared;
@@ -90,7 +90,7 @@ pub struct ReceiveTimeoutFactoryShared<M, R> {
 impl<M, R> ReceiveTimeoutFactoryShared<M, R>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Producer<PriorityEnvelope<M>>: Clone,
 {
   /// Creates a new shared factory from a concrete factory value.
@@ -115,7 +115,7 @@ where
   /// Adapts the factory to operate with [`RuntimeEnv`] as the runtime type.
   pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, RuntimeEnv<R>>
   where
-    R: ActorRuntime + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
@@ -144,7 +144,7 @@ impl<M, R> Deref for ReceiveTimeoutFactoryShared<M, R> {
 struct ReceiveTimeoutFactoryAdapter<M, R>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone, {
@@ -154,14 +154,14 @@ where
 impl<M, R> ReceiveTimeoutSchedulerFactory<M, RuntimeEnv<R>> for ReceiveTimeoutFactoryAdapter<M, R>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
 {
   fn create(
     &self,
-    sender: <RuntimeEnv<R> as ActorRuntime>::Producer<PriorityEnvelope<M>>,
+    sender: <RuntimeEnv<R> as MailboxRuntime>::Producer<PriorityEnvelope<M>>,
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler> {
     self.inner.create(sender, map_system)
@@ -171,7 +171,7 @@ where
 /// Trait representing a runtime-specific provider for receive-timeout scheduler factories.
 pub trait ReceiveTimeoutDriver<R>: Send + Sync
 where
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone, {
@@ -186,7 +186,7 @@ pub struct ReceiveTimeoutDriverShared<R> {
 
 impl<R> ReceiveTimeoutDriverShared<R>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,

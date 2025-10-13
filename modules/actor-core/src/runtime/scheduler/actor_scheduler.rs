@@ -13,7 +13,7 @@ use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
 use crate::MailboxOptions;
 use crate::{
-  ActorRuntime, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MapSystemShared, MetricsSinkShared,
+  MailboxRuntime, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MapSystemShared, MetricsSinkShared,
   PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
@@ -29,7 +29,7 @@ type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + 'static;
 pub struct SchedulerSpawnContext<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   pub runtime: R,
@@ -44,7 +44,7 @@ where
 pub trait ActorScheduler<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   fn spawn_actor(
@@ -81,7 +81,7 @@ where
 pub struct SchedulerBuilder<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   factory: ArcShared<FactoryFn<M, R>>,
@@ -90,7 +90,7 @@ where
 impl<M, R> SchedulerBuilder<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

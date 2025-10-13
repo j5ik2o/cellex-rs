@@ -59,7 +59,7 @@ where
   /// Tuple of mailbox factory and `ActorSystemHandles`
   pub fn split(self) -> (MF, ActorSystemHandles<S, T, E>) {
     let Self {
-      actor_runtime: mailbox_factory,
+      actor_runtime,
       spawner,
       timer,
       event_stream,
@@ -71,7 +71,7 @@ where
       event_stream,
     };
 
-    (mailbox_factory, handles)
+    (actor_runtime, handles)
   }
 }
 

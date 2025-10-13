@@ -4,7 +4,7 @@ use super::*;
 use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::mailbox::test_support::TestActorRuntime;
+use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::ActorHandlerFn;
 use crate::ActorId;
@@ -13,7 +13,7 @@ use crate::FailureInfo;
 use crate::NoopSupervisor;
 #[cfg(feature = "std")]
 use crate::SupervisorDirective;
-use crate::{ActorRuntime, DynMessage, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
+use crate::{MailboxRuntime, DynMessage, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
 use crate::{FailureEventHandler, FailureEventListener, MapSystemShared};
 use crate::{MailboxOptions, Supervisor, SystemMessage};
 use alloc::rc::Rc;
@@ -36,7 +36,7 @@ struct AlwaysEscalate;
 impl<M, R> GuardianStrategy<M, R> for AlwaysEscalate
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn core::fmt::Debug) -> SupervisorDirective {
     SupervisorDirective::Escalate
@@ -84,7 +84,7 @@ fn spawn_with_runtime<M, R>(
 ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
@@ -101,7 +101,7 @@ where
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_delivers_watch_before_user_messages() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
@@ -132,7 +132,7 @@ fn scheduler_delivers_watch_before_user_messages() {
 fn scheduler_handle_trait_object_dispatches() {
   use futures::executor::block_on;
 
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler = super::SchedulerBuilder::priority().build(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
@@ -163,7 +163,7 @@ fn scheduler_handle_trait_object_dispatches() {
 fn immediate_scheduler_builder_dispatches() {
   use futures::executor::block_on;
 
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler = super::SchedulerBuilder::immediate().build(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
@@ -192,7 +192,7 @@ fn immediate_scheduler_builder_dispatches() {
 #[cfg(feature = "std")]
 #[test]
 fn priority_scheduler_emits_actor_lifecycle_metrics() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
   let events = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
@@ -272,7 +272,7 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 #[cfg(feature = "std")]
 #[test]
 fn actor_context_exposes_parent_watcher() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let watchers_log: Rc<RefCell<Vec<Vec<ActorId>>>> = Rc::new(RefCell::new(Vec::new()));
@@ -312,7 +312,7 @@ fn actor_context_exposes_parent_watcher() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_dispatches_high_priority_first() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<(u32, i8)>>> = Rc::new(RefCell::new(Vec::new()));
@@ -363,7 +363,7 @@ fn scheduler_dispatches_high_priority_first() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_prioritizes_system_messages() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
@@ -403,7 +403,7 @@ fn scheduler_prioritizes_system_messages() {
 #[cfg(feature = "std")]
 #[test]
 fn priority_actor_ref_sends_system_messages() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<SystemMessage, _> = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<SystemMessage>>> = Rc::new(RefCell::new(Vec::new()));
@@ -433,7 +433,7 @@ fn priority_actor_ref_sends_system_messages() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_notifies_guardian_and_restarts_on_panic() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
     PriorityScheduler::new(factory.clone(), Extensions::new());
 
@@ -481,7 +481,7 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_run_until_processes_messages() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
     PriorityScheduler::new(factory.clone(), Extensions::new());
 
@@ -519,7 +519,7 @@ fn scheduler_run_until_processes_messages() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_blocking_dispatch_loop_stops_with_closure() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
     PriorityScheduler::new(factory.clone(), Extensions::new());
 
@@ -558,7 +558,7 @@ fn scheduler_blocking_dispatch_loop_stops_with_closure() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_records_escalations() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
     PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
@@ -607,12 +607,12 @@ fn scheduler_records_escalations() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_escalation_handler_delivers_to_parent() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
     PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
   let (parent_mailbox, parent_sender) = factory.build_default_mailbox::<PriorityEnvelope<Message>>();
-  let parent_ref: InternalActorRef<Message, TestActorRuntime> = InternalActorRef::new(parent_sender);
+  let parent_ref: InternalActorRef<Message, TestMailboxRuntime> = InternalActorRef::new(parent_sender);
   scheduler.set_parent_guardian(parent_ref, MapSystemShared::new(Message::System));
 
   let should_panic = Rc::new(Cell::new(true));
@@ -656,7 +656,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_escalation_chain_reaches_root() {
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
     PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
@@ -772,7 +772,7 @@ fn scheduler_escalation_chain_reaches_root() {
 fn scheduler_root_escalation_handler_invoked() {
   use std::sync::{Arc as StdArc, Mutex};
 
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
     PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
@@ -820,7 +820,7 @@ fn scheduler_root_escalation_handler_invoked() {
 fn scheduler_requeues_failed_custom_escalation() {
   use core::cell::Cell;
 
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
     PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
@@ -884,7 +884,7 @@ fn scheduler_root_event_listener_broadcasts() {
   use crate::FailureEventStream;
   use std::sync::{Arc as StdArc, Mutex};
 
-  let factory = TestActorRuntime::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
     PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 

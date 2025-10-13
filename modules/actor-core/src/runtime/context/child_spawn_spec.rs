@@ -6,7 +6,7 @@ use crate::ActorId;
 use crate::ActorPath;
 use crate::Extensions;
 use crate::Supervisor;
-use crate::{ActorRuntime, PriorityEnvelope};
+use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::Element;
 
 use super::ActorHandlerFn;
@@ -16,7 +16,7 @@ use crate::MapSystemShared;
 pub struct ChildSpawnSpec<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone, {
+  R: MailboxRuntime + Clone, {
   /// Mailbox instance assigned to the child actor.
   pub mailbox: R::Mailbox<PriorityEnvelope<M>>,
   /// Producer handle used to send messages to the child actor.

@@ -4,7 +4,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
-  ActorRuntime, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
+  MailboxRuntime, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
   GuardianStrategy, InternalActorRef, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
   ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
 };
@@ -20,7 +20,7 @@ use crate::receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 pub struct EmbassyScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, RuntimeEnv<R>>, {
   inner: PriorityScheduler<M, RuntimeEnv<R>, Strat>,
 }
@@ -28,7 +28,7 @@ where
 impl<M, R> EmbassyScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
 {
   /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
   pub fn new(runtime: RuntimeEnv<R>, extensions: Extensions) -> Self {
@@ -41,7 +41,7 @@ where
 impl<M, R, Strat> EmbassyScheduler<M, R, Strat>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, RuntimeEnv<R>>,
 {
   /// 任意の GuardianStrategy を適用した構成を作成する。
@@ -56,7 +56,7 @@ where
 impl<M, R, Strat> ActorScheduler<M, RuntimeEnv<R>> for EmbassyScheduler<M, R, Strat>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, RuntimeEnv<R>>,
@@ -121,7 +121,7 @@ where
 pub fn embassy_scheduler_builder<M, R>() -> SchedulerBuilder<M, RuntimeEnv<R>>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   SchedulerBuilder::new(|runtime, extensions| Box::new(EmbassyScheduler::new(runtime, extensions)))
@@ -130,7 +130,7 @@ where
 /// `ActorRuntimeBundle` に Embassy スケジューラを組み込むための拡張トレイト。
 pub trait ActorRuntimeBundleEmbassyExt<R>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
   R::Signal: Clone, {
   /// スケジューラを Embassy 実装へ差し替える。
@@ -139,7 +139,7 @@ where
 
 impl<R> ActorRuntimeBundleEmbassyExt<R> for RuntimeEnv<R>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
   R::Signal: Clone,
 {

@@ -1,7 +1,7 @@
 use crate::runtime::context::InternalActorRef;
 use crate::FailureInfo;
 use crate::MapSystemShared;
-use crate::{ActorRuntime, PriorityEnvelope};
+use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink};
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -11,7 +11,7 @@ use super::{CustomEscalationSink, ParentGuardianSink};
 pub(crate) struct CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   parent_guardian: Option<ParentGuardianSink<M, R>>,
@@ -22,7 +22,7 @@ where
 impl<M, R> CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -68,7 +68,7 @@ where
 impl<M, R> Default for CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -80,7 +80,7 @@ where
 impl<M, R> EscalationSink<M, R> for CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

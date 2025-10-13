@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use core::marker::PhantomData;
 
 use crate::FailureInfo;
-use crate::{ActorRuntime, PriorityEnvelope};
+use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 
 type FailureHandler<M> = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static;
@@ -13,7 +13,7 @@ use crate::EscalationSink;
 pub(crate) struct CustomEscalationSink<M, R>
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   handler: Box<FailureHandler<M>>,
@@ -23,7 +23,7 @@ where
 impl<M, R> CustomEscalationSink<M, R>
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -40,7 +40,7 @@ where
 impl<M, R> EscalationSink<M, R> for CustomEscalationSink<M, R>
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

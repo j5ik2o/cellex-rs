@@ -1,14 +1,14 @@
 use crate::runtime::context::{ActorContext, ActorHandlerFn};
 use crate::MapSystemShared;
 use crate::Supervisor;
-use crate::{ActorRuntime, MailboxOptions, PriorityEnvelope};
+use crate::{MailboxRuntime, MailboxOptions, PriorityEnvelope};
 use alloc::boxed::Box;
 use cellex_utils_core_rs::Element;
 
 pub(crate) struct InternalProps<M, R>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   pub options: MailboxOptions,
@@ -19,7 +19,7 @@ where
 impl<M, R> InternalProps<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

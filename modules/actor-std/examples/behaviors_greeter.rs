@@ -4,7 +4,7 @@
 //! `Behaviors::receive` でメッセージごとの遷移を定義しています。
 
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
-use cellex_actor_std_rs::TokioActorRuntime;
+use cellex_actor_std_rs::TokioMailboxRuntime;
 use cellex_utils_std_rs::Element;
 use tracing_subscriber::FmtSubscriber;
 
@@ -24,7 +24,7 @@ async fn main() {
     .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
   let _ = FmtSubscriber::builder().with_env_filter(env_filter).try_init();
 
-  let mut system: ActorSystem<Command, _> = ActorSystem::new(TokioActorRuntime);
+  let mut system: ActorSystem<Command, _> = ActorSystem::new(TokioMailboxRuntime);
   let mut root = system.root_context();
 
   let greeter_props = Props::with_behavior(MailboxOptions::default(), || {

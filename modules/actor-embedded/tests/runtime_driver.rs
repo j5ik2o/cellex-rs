@@ -9,15 +9,15 @@ use std::sync::Arc;
 
 use cellex_actor_core_rs::{ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata};
 use cellex_actor_core_rs::{ActorSystem, ActorSystemParts, FailureEventStream, MailboxOptions, Props};
-use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, ImmediateSpawner, ImmediateTimer, LocalActorRuntime};
+use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, ImmediateSpawner, ImmediateTimer, LocalMailboxRuntime};
 
 #[test]
 fn embedded_actor_runtime_dispatches_message() {
   let components = ActorSystemParts::new(
-    LocalActorRuntime::default(),
-    ImmediateSpawner,
-    ImmediateTimer,
-    EmbeddedFailureEventHub::new(),
+      LocalMailboxRuntime::default(),
+      ImmediateSpawner,
+      ImmediateTimer,
+      EmbeddedFailureEventHub::new(),
   );
   let (mut system, _) = ActorSystem::from_parts(components);
 

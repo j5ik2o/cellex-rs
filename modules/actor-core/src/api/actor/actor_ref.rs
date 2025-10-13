@@ -1,7 +1,7 @@
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::SystemMessage;
-use crate::{ActorRuntime, PriorityEnvelope, RuntimeBound};
+use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::future::Future;
 use core::marker::PhantomData;
@@ -20,7 +20,7 @@ use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, Messag
 pub struct ActorRef<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -31,7 +31,7 @@ where
 impl<U, R> ActorRef<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

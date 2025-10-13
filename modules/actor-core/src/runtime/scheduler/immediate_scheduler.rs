@@ -9,7 +9,7 @@ use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnC
 use crate::runtime::scheduler::priority_scheduler::PriorityScheduler;
 use crate::MapSystemShared;
 use crate::{
-  ActorRuntime, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MetricsSinkShared,
+  MailboxRuntime, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MetricsSinkShared,
   PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::{Element, QueueError};
@@ -20,7 +20,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub(crate) struct ImmediateScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   inner: PriorityScheduler<M, R, Strat>,
 }
@@ -28,7 +28,7 @@ where
 impl<M, R> ImmediateScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
 {
   pub fn new(runtime: R, extensions: Extensions) -> Self {
     Self {
@@ -40,7 +40,7 @@ where
 impl<M, R, Strat> ImmediateScheduler<M, R, Strat>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   pub fn with_strategy(runtime: R, strategy: Strat, extensions: Extensions) -> Self {
@@ -54,7 +54,7 @@ where
 impl<M, R, Strat> ActorScheduler<M, R> for ImmediateScheduler<M, R, Strat>
 where
   M: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,

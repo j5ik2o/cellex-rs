@@ -1,7 +1,7 @@
 use core::fmt;
 
 use crate::ActorId;
-use crate::ActorRuntime;
+use crate::MailboxRuntime;
 use crate::SupervisorDirective;
 use cellex_utils_core_rs::Element;
 
@@ -16,7 +16,7 @@ use cellex_utils_core_rs::Element;
 pub trait GuardianStrategy<M, R>: Send + 'static
 where
   M: Element,
-  R: ActorRuntime, {
+  R: MailboxRuntime, {
   /// Determines the handling policy when an actor fails.
   ///
   /// # Arguments
@@ -61,7 +61,7 @@ pub struct AlwaysRestart;
 impl<M, R> GuardianStrategy<M, R> for AlwaysRestart
 where
   M: Element,
-  R: ActorRuntime,
+  R: MailboxRuntime,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn fmt::Debug) -> SupervisorDirective {
     SupervisorDirective::Restart
