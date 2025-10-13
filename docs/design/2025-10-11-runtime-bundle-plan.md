@@ -7,8 +7,8 @@
 
 ## 未解決課題
 - [MUST] フェーズ 3（ReceiveTimeout / Event / Metrics の最終統合、RuntimeBundle Builder）の実装を完了し、API とテストを揃える。
-- [MUST] `RuntimeEnv::host()` / `::embedded()` / `::remote()` といったプリセットを提供し、各プロファイルでのクロスビルド（`thumbv6m-none-eabi`, `thumbv8m.main-none-eabi` 含む）を CI に追加する。
-- [MUST] `ActorSystemBuilder` を導入し、旧 `ActorSystem::new` からの移行レイヤーと Config/Metrics/Telemetry 等のチェーン API を提供する。
+- [SHOULD] `RuntimeEnv::host()` / `::embedded()` / `::remote()` といったプリセットを提供し、各プロファイルでのクロスビルド（`thumbv6m-none-eabi`, `thumbv8m.main-none-eabi` 含む）を CI に追加する。
+- [SHOULD] `ActorSystemBuilder` を導入し、 `ActorSystem::new` からの移行レイヤーと Config/Metrics/Telemetry 等のチェーン API を提供する。
 - [MUST] `PrometheusMetricsSink` / `DefmtMetricsSink` などプラットフォーム別メトリクス実装を整備し、RuntimeEnv へ組み込む。
 - [MUST] `EmbassyReceiveTimeoutDriver` を仕上げて Embedded プロファイルへ組み込み、割り込み駆動タイマのテストを追加する。
 - [MUST] EventListener / EscalationHandler の Embedded・Remote デフォルトと FailureHub 連携テストを整備する。
