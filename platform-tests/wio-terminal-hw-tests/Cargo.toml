@@ -33,7 +33,7 @@ wio_terminal = { version = "0.9", optional = true }
 embedded-hal = { version = "0.2", optional = true }
 
 [dev-dependencies]
-defmt-test = "0.3"
+defmt-test = "0.4"
 
 [[test]]
 name = "hardware"
