@@ -5,7 +5,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use super::root_context::RootContext;
 use super::{ActorSystemHandles, ActorSystemParts, Spawn, Timer};
 use crate::api::guardian::AlwaysRestart;
-use crate::runtime::mailbox::traits::MailboxPair;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxPair};
 use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
@@ -361,6 +361,116 @@ where
   where
     M: Element, {
     self.mailbox_runtime().build_mailbox(options)
+  }
+}
+
+impl<R> ActorRuntime for RuntimeEnv<R>
+where
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+{
+  type Base = R;
+
+  fn mailbox_runtime(&self) -> &Self::Base {
+    RuntimeEnv::mailbox_runtime(self)
+  }
+
+  fn into_mailbox_runtime(self) -> Self::Base {
+    RuntimeEnv::into_mailbox_runtime(self)
+  }
+
+  fn mailbox_runtime_shared(&self) -> ArcShared<Self::Base> {
+    RuntimeEnv::mailbox_runtime_shared(self)
+  }
+
+  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, Self>> {
+    RuntimeEnv::receive_timeout_factory(self)
+  }
+
+  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Base>> {
+    RuntimeEnv::receive_timeout_driver(self)
+  }
+
+  fn with_receive_timeout_factory(
+    self,
+    factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>,
+  ) -> Self {
+    RuntimeEnv::with_receive_timeout_factory(self, factory)
+  }
+
+  fn with_receive_timeout_factory_shared(
+    self,
+    factory: ReceiveTimeoutFactoryShared<DynMessage, Self>,
+  ) -> Self {
+    RuntimeEnv::with_receive_timeout_factory_shared(self, factory)
+  }
+
+  fn with_receive_timeout_driver(
+    self,
+    driver: Option<ReceiveTimeoutDriverShared<Self::Base>>,
+  ) -> Self {
+    RuntimeEnv::with_receive_timeout_driver(self, driver)
+  }
+
+  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) {
+    RuntimeEnv::set_receive_timeout_driver(self, driver);
+  }
+
+  fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, Self>> {
+    RuntimeEnv::receive_timeout_driver_factory(self)
+  }
+
+  fn root_event_listener(&self) -> Option<FailureEventListener> {
+    RuntimeEnv::root_event_listener(self)
+  }
+
+  fn with_root_event_listener(self, listener: Option<FailureEventListener>) -> Self {
+    RuntimeEnv::with_root_event_listener(self, listener)
+  }
+
+  fn root_escalation_handler(&self) -> Option<FailureEventHandler> {
+    RuntimeEnv::root_escalation_handler(self)
+  }
+
+  fn with_root_escalation_handler(self, handler: Option<FailureEventHandler>) -> Self {
+    RuntimeEnv::with_root_escalation_handler(self, handler)
+  }
+
+  fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+    RuntimeEnv::metrics_sink(self)
+  }
+
+  fn with_metrics_sink(self, sink: Option<MetricsSinkShared>) -> Self {
+    RuntimeEnv::with_metrics_sink(self, sink)
+  }
+
+  fn with_metrics_sink_shared(self, sink: MetricsSinkShared) -> Self {
+    RuntimeEnv::with_metrics_sink_shared(self, sink)
+  }
+
+  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self>
+  where
+    M: Element,
+    <Self::Base as crate::MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+    <Self::Base as crate::MailboxRuntime>::Signal: Clone,
+  {
+    RuntimeEnv::priority_mailbox_spawner(self)
+  }
+
+  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self>) -> Self {
+    RuntimeEnv::with_scheduler_builder(self, builder)
+  }
+
+  fn with_scheduler_builder_shared(
+    self,
+    builder: ArcShared<SchedulerBuilder<DynMessage, Self>>,
+  ) -> Self {
+    RuntimeEnv::with_scheduler_builder_shared(self, builder)
+  }
+
+  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self>> {
+    RuntimeEnv::scheduler_builder(self)
   }
 }
 
