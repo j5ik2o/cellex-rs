@@ -56,8 +56,8 @@ pub trait Extension: Any + SharedBound {
   /// 拡張固有の ID を返します。
   fn extension_id(&self) -> ExtensionId;
 
-   /// Returns a type-erased `Any` reference for downcasting.
-   fn as_any(&self) -> &dyn Any;
+  /// Returns a type-erased `Any` reference for downcasting.
+  fn as_any(&self) -> &dyn Any;
 }
 
 /// 登録済み Extension 群を管理するスロットコンテナ。
@@ -130,7 +130,9 @@ impl Extensions {
     F: FnOnce(&E) -> R, {
     let guard = self.slots.read();
     guard.get(id as usize).and_then(|slot| {
-      slot.as_ref().and_then(|handle| (*handle).as_any().downcast_ref::<E>().map(f))
+      slot
+        .as_ref()
+        .and_then(|handle| (*handle).as_any().downcast_ref::<E>().map(f))
     })
   }
 }

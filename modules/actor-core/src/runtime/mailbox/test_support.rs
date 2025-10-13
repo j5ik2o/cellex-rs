@@ -9,7 +9,7 @@ use core::task::{Context, Poll};
 use cellex_utils_core_rs::{Element, MpscBuffer, MpscHandle, MpscQueue, QueueSize, RingBufferBackend, Shared};
 
 use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
-use super::traits::{MailboxRuntime, MailboxPair, MailboxSignal, ThreadSafe};
+use super::traits::{MailboxPair, MailboxRuntime, MailboxSignal, ThreadSafe};
 
 #[derive(Clone, Debug, Default)]
 pub struct TestMailboxRuntime {

@@ -1,7 +1,7 @@
 use crate::runtime::context::{ActorContext, ActorHandlerFn};
 use crate::MapSystemShared;
 use crate::Supervisor;
-use crate::{MailboxRuntime, MailboxOptions, PriorityEnvelope};
+use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
 use alloc::boxed::Box;
 use cellex_utils_core_rs::Element;
 

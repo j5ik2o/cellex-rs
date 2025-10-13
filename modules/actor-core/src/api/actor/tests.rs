@@ -48,7 +48,7 @@ mod receive_timeout_injection {
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::{
-    ActorRuntimeBundle, ActorSystem, ActorSystemConfig, DynMessage, MailboxRuntime, MailboxOptions, MapSystemShared,
+    ActorRuntimeBundle, ActorSystem, ActorSystemConfig, DynMessage, MailboxOptions, MailboxRuntime, MapSystemShared,
     PriorityEnvelope, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
   };
   use alloc::boxed::Box;

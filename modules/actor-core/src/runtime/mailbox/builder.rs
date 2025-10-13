@@ -1,4 +1,4 @@
-use crate::runtime::mailbox::traits::{MailboxRuntime, MailboxHandle, MailboxPair, MailboxProducer, MailboxSignal};
+use crate::runtime::mailbox::traits::{MailboxHandle, MailboxPair, MailboxProducer, MailboxRuntime, MailboxSignal};
 use crate::runtime::mailbox::MailboxOptions;
 use crate::PriorityEnvelope;
 use cellex_utils_core_rs::Element;
