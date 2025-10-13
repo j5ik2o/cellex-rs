@@ -1,13 +1,13 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
-  use cellex_actor_core_rs::{ActorRuntimeBundle, ActorSystem, ActorSystemConfig, MailboxOptions, Props};
-  use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
+  use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, MailboxOptions, Props, RuntimeEnv};
+  use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalActorRuntime};
   use core::sync::atomic::{AtomicU32, Ordering};
   use embassy_executor::Executor;
   use static_cell::StaticCell;
 
   static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-  static SYSTEM: StaticCell<ActorSystem<u32, LocalMailboxRuntime>> = StaticCell::new();
+  static SYSTEM: StaticCell<ActorSystem<u32, LocalActorRuntime>> = StaticCell::new();
   pub static MESSAGE_SUM: AtomicU32 = AtomicU32::new(0);
 
   define_embassy_dispatcher!(
@@ -18,7 +18,7 @@ mod sample {
     let executor = EXECUTOR.init(Executor::new());
 
     executor.run(|spawner| {
-      let runtime = ActorRuntimeBundle::new(LocalMailboxRuntime::default()).with_embassy_scheduler(spawner);
+      let runtime = RuntimeEnv::new(LocalActorRuntime::default()).with_embassy_scheduler(spawner);
       let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, ActorSystemConfig::default()));
 
       {

@@ -69,7 +69,7 @@ mod spawn;
 mod timer;
 
 #[cfg(feature = "embedded_arc")]
-pub use arc_mailbox::{ArcMailbox, ArcMailboxRuntime, ArcMailboxSender};
+pub use arc_mailbox::{ArcActorRuntime, ArcMailbox, ArcMailboxSender};
 #[cfg(feature = "embedded_arc")]
 pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxRuntime, ArcPriorityMailboxSender};
 #[cfg(feature = "embedded_arc")]
@@ -78,7 +78,7 @@ pub use cellex_utils_embedded_rs::{ArcCsStateCell, ArcLocalStateCell, ArcShared,
 pub use cellex_utils_embedded_rs::{RcShared, RcStateCell};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
-pub use local_mailbox::{LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
+pub use local_mailbox::{LocalActorRuntime, LocalMailbox, LocalMailboxSender};
 #[cfg(feature = "embassy_executor")]
 pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 pub use runtime_driver::EmbeddedFailureEventHub;
@@ -93,10 +93,10 @@ pub mod prelude {
   pub use super::{ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
   #[cfg(feature = "embedded_arc")]
   pub use super::{
-    ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxRuntime, ArcMailboxSender, ArcPriorityMailbox,
+    ArcActorRuntime, ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxSender, ArcPriorityMailbox,
     ArcPriorityMailboxRuntime, ArcPriorityMailboxSender, ArcShared, ArcStateCell,
   };
-  pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
+  pub use super::{ImmediateSpawner, ImmediateTimer, LocalActorRuntime, LocalMailbox, LocalMailboxSender};
   #[cfg(feature = "embedded_rc")]
   pub use super::{RcShared, RcStateCell};
 }
@@ -105,7 +105,7 @@ pub mod prelude {
 mod tests {
   extern crate std;
 
-  use super::LocalMailboxRuntime;
+  use super::LocalActorRuntime;
   use alloc::rc::Rc;
   use alloc::vec::Vec;
   use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
@@ -154,7 +154,7 @@ mod tests {
 
   #[test]
   fn typed_actor_system_dispatch_next_processes_message() {
-    let factory = LocalMailboxRuntime::default();
+    let factory = LocalActorRuntime::default();
     let mut system: ActorSystem<u32, _> = ActorSystem::new(factory);
 
     let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));

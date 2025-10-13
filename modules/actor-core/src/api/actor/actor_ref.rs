@@ -1,15 +1,15 @@
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::SystemMessage;
-use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
+use crate::{ActorRuntime, PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::future::Future;
 use core::marker::PhantomData;
 
-use super::system::ActorRuntimeBundle;
+use super::system::RuntimeEnv;
 use super::{ask::create_ask_handles, ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 
-type RuntimeParam<R> = ActorRuntimeBundle<R>;
+type RuntimeParam<R> = RuntimeEnv<R>;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 
 /// Typed actor reference.
@@ -20,7 +20,7 @@ use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, Messag
 pub struct ActorRef<U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -31,7 +31,7 @@ where
 impl<U, R> ActorRef<U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

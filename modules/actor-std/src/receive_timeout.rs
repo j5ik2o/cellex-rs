@@ -6,18 +6,18 @@
 use core::time::Duration;
 
 use cellex_actor_core_rs::{
-  ActorRuntimeBundle, DynMessage, MailboxRuntime, MapSystemShared, PriorityEnvelope, ReceiveTimeoutDriver,
-  ReceiveTimeoutFactoryShared, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SystemMessage,
+  ActorRuntime, DynMessage, MapSystemShared, PriorityEnvelope, ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared,
+  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, RuntimeEnv, SystemMessage,
 };
 use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
 use futures::future::poll_fn;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
 
-use crate::TokioMailboxRuntime;
+use crate::TokioActorRuntime;
 
 /// Producer for sending `PriorityEnvelope<DynMessage>` to Tokio mailbox.
-type TokioSender = <TokioMailboxRuntime as MailboxRuntime>::Producer<PriorityEnvelope<DynMessage>>;
+type TokioSender = <TokioActorRuntime as ActorRuntime>::Producer<PriorityEnvelope<DynMessage>>;
 
 #[derive(Debug)]
 enum Command {
@@ -106,7 +106,7 @@ impl Default for TokioReceiveTimeoutSchedulerFactory {
   }
 }
 
-impl ReceiveTimeoutSchedulerFactory<DynMessage, TokioMailboxRuntime> for TokioReceiveTimeoutSchedulerFactory {
+impl ReceiveTimeoutSchedulerFactory<DynMessage, TokioActorRuntime> for TokioReceiveTimeoutSchedulerFactory {
   fn create(&self, sender: TokioSender, map_system: MapSystemShared<DynMessage>) -> Box<dyn ReceiveTimeoutScheduler> {
     let (tx, handle) = TokioReceiveTimeoutScheduler::spawn_task(sender, map_system);
     Box::new(TokioReceiveTimeoutScheduler { tx, handle })
@@ -125,8 +125,8 @@ impl TokioReceiveTimeoutDriver {
   }
 }
 
-impl ReceiveTimeoutDriver<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<TokioMailboxRuntime>> {
+impl ReceiveTimeoutDriver<TokioActorRuntime> for TokioReceiveTimeoutDriver {
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<TokioActorRuntime>> {
     ReceiveTimeoutFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new()).for_runtime_bundle()
   }
 }

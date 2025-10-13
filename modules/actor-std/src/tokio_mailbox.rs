@@ -3,7 +3,7 @@ use std::sync::Arc;
 use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  ActorRuntime, Mailbox, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 use cellex_utils_std_rs::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue};
@@ -33,8 +33,9 @@ where
 /// Factory that creates Tokio mailboxes
 ///
 /// Creates bounded and unbounded mailboxes.
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone, Debug, Default)]
-pub struct TokioMailboxRuntime;
+pub struct TokioActorRuntime;
 
 #[derive(Clone, Debug)]
 pub struct NotifySignal {
@@ -153,7 +154,7 @@ where
   }
 }
 
-impl TokioMailboxRuntime {
+impl TokioActorRuntime {
   /// Creates a mailbox with the specified options
   ///
   /// # Arguments
@@ -192,7 +193,7 @@ impl TokioMailboxRuntime {
   }
 }
 
-impl MailboxRuntime for TokioMailboxRuntime {
+impl ActorRuntime for TokioActorRuntime {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>
@@ -231,7 +232,7 @@ where
   /// # Returns
   /// A pair of mailbox and sender handle
   pub fn new(capacity: usize) -> (Self, TokioMailboxSender<M>) {
-    TokioMailboxRuntime.with_capacity(capacity)
+    TokioActorRuntime.with_capacity(capacity)
   }
 
   /// Creates an unbounded mailbox
@@ -239,7 +240,7 @@ where
   /// # Returns
   /// A pair of mailbox and sender handle
   pub fn unbounded() -> (Self, TokioMailboxSender<M>) {
-    TokioMailboxRuntime.unbounded()
+    TokioActorRuntime.unbounded()
   }
 
   /// Creates a new sender handle
@@ -357,7 +358,7 @@ mod tests {
   use cellex_utils_std_rs::QueueError;
 
   async fn run_runtime_with_capacity_enforces_bounds() {
-    let factory = TokioMailboxRuntime;
+    let factory = TokioActorRuntime;
     let (mailbox, sender) = factory.with_capacity::<u32>(2);
 
     sender.try_send(1).expect("first message accepted");
@@ -384,7 +385,7 @@ mod tests {
   }
 
   async fn run_runtime_unbounded_mailbox_accepts_multiple_messages() {
-    let factory = TokioMailboxRuntime;
+    let factory = TokioActorRuntime;
     let (mailbox, sender) = factory.unbounded::<u32>();
 
     for value in 0..32_u32 {

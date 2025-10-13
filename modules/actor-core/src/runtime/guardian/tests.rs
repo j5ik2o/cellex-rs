@@ -1,10 +1,10 @@
 use super::*;
 use crate::runtime::context::InternalActorRef;
-use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+use crate::runtime::mailbox::test_support::TestActorRuntime;
 use crate::runtime::mailbox::PriorityChannel;
 use crate::ActorId;
 use crate::ActorPath;
-use crate::MailboxRuntime;
+use crate::ActorRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
 use crate::{PriorityEnvelope, SystemMessage};
@@ -13,8 +13,8 @@ use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 
 #[test]
 fn guardian_sends_restart_message() {
-  let (mailbox, sender) = TestMailboxRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
-  let ref_control: InternalActorRef<SystemMessage, TestMailboxRuntime> = InternalActorRef::new(sender);
+  let (mailbox, sender) = TestActorRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
+  let ref_control: InternalActorRef<SystemMessage, TestActorRuntime> = InternalActorRef::new(sender);
 
   let mut guardian: Guardian<SystemMessage, _, AlwaysRestart> = Guardian::new(AlwaysRestart);
   let parent_id = ActorId(1);
@@ -46,15 +46,15 @@ fn guardian_sends_stop_message() {
   impl<M, R> GuardianStrategy<M, R> for AlwaysStop
   where
     M: Element,
-    R: MailboxRuntime,
+    R: ActorRuntime,
   {
     fn decide(&mut self, _actor: ActorId, _error: &dyn fmt::Debug) -> SupervisorDirective {
       SupervisorDirective::Stop
     }
   }
 
-  let (mailbox, sender) = TestMailboxRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
-  let ref_control: InternalActorRef<SystemMessage, TestMailboxRuntime> = InternalActorRef::new(sender);
+  let (mailbox, sender) = TestActorRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
+  let ref_control: InternalActorRef<SystemMessage, TestActorRuntime> = InternalActorRef::new(sender);
 
   let mut guardian: Guardian<SystemMessage, _, AlwaysStop> = Guardian::new(AlwaysStop);
   let parent_id = ActorId(7);
@@ -79,8 +79,8 @@ fn guardian_sends_stop_message() {
 
 #[test]
 fn guardian_emits_unwatch_on_remove() {
-  let (mailbox, sender) = TestMailboxRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
-  let ref_control: InternalActorRef<SystemMessage, TestMailboxRuntime> = InternalActorRef::new(sender);
+  let (mailbox, sender) = TestActorRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
+  let ref_control: InternalActorRef<SystemMessage, TestActorRuntime> = InternalActorRef::new(sender);
 
   let mut guardian: Guardian<SystemMessage, _, AlwaysRestart> = Guardian::new(AlwaysRestart);
   let parent_id = ActorId(3);

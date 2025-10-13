@@ -5,10 +5,10 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 use core::ops::Deref;
 
-use crate::api::actor::ActorRuntimeBundle;
+use crate::api::actor::RuntimeEnv;
 use crate::runtime::message::DynMessage;
 use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
-use crate::{FailureEvent, FailureInfo, MailboxRuntime, PriorityEnvelope, SystemMessage};
+use crate::{ActorRuntime, FailureEvent, FailureInfo, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Element;
 use cellex_utils_core_rs::Shared;
@@ -90,7 +90,7 @@ pub struct ReceiveTimeoutFactoryShared<M, R> {
 impl<M, R> ReceiveTimeoutFactoryShared<M, R>
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Producer<PriorityEnvelope<M>>: Clone,
 {
   /// Creates a new shared factory from a concrete factory value.
@@ -112,10 +112,10 @@ where
     self.inner
   }
 
-  /// Adapts the factory to operate with [`ActorRuntimeBundle`] as the runtime type.
-  pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, ActorRuntimeBundle<R>>
+  /// Adapts the factory to operate with [`RuntimeEnv`] as the runtime type.
+  pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, RuntimeEnv<R>>
   where
-    R: MailboxRuntime + Clone + 'static,
+    R: ActorRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
@@ -144,24 +144,24 @@ impl<M, R> Deref for ReceiveTimeoutFactoryShared<M, R> {
 struct ReceiveTimeoutFactoryAdapter<M, R>
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone, {
   inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>,
 }
 
-impl<M, R> ReceiveTimeoutSchedulerFactory<M, ActorRuntimeBundle<R>> for ReceiveTimeoutFactoryAdapter<M, R>
+impl<M, R> ReceiveTimeoutSchedulerFactory<M, RuntimeEnv<R>> for ReceiveTimeoutFactoryAdapter<M, R>
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
 {
   fn create(
     &self,
-    sender: <ActorRuntimeBundle<R> as MailboxRuntime>::Producer<PriorityEnvelope<M>>,
+    sender: <RuntimeEnv<R> as ActorRuntime>::Producer<PriorityEnvelope<M>>,
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler> {
     self.inner.create(sender, map_system)
@@ -171,12 +171,12 @@ where
 /// Trait representing a runtime-specific provider for receive-timeout scheduler factories.
 pub trait ReceiveTimeoutDriver<R>: Send + Sync
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone, {
-  /// Builds a shared factory bound to [`ActorRuntimeBundle`] for the given runtime.
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>;
+  /// Builds a shared factory bound to [`RuntimeEnv`] for the given runtime.
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>>;
 }
 
 /// Shared wrapper around a [`ReceiveTimeoutDriver`] implementation.
@@ -186,7 +186,7 @@ pub struct ReceiveTimeoutDriverShared<R> {
 
 impl<R> ReceiveTimeoutDriverShared<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,
@@ -211,7 +211,7 @@ where
   }
 
   /// Builds a factory by delegating to the underlying driver.
-  pub fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>> {
+  pub fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>> {
     self.inner.with_ref(|driver| driver.build_factory())
   }
 

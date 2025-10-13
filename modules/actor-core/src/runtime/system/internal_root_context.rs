@@ -5,7 +5,7 @@ use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::GuardianStrategy;
 use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::NoopSupervisor;
-use crate::{Extensions, MailboxRuntime, PriorityEnvelope, Supervisor};
+use crate::{ActorRuntime, Extensions, PriorityEnvelope, Supervisor};
 use cellex_utils_core_rs::sync::Shared;
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -14,7 +14,7 @@ use super::{InternalActorSystem, InternalProps};
 pub(crate) struct InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
@@ -24,7 +24,7 @@ where
 impl<'a, M, R, Strat> InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,

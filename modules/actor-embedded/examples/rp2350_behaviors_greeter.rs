@@ -31,7 +31,7 @@ use hal::entry;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use cellex_actor_embedded_rs::ArcMailboxRuntime;
+use cellex_actor_embedded_rs::ArcActorRuntime;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_utils_embedded_rs::{ArcCsStateCell, Element, StateCell};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
@@ -89,8 +89,8 @@ fn main() -> ! {
   );
   let system_clock_hz = clocks.system_clock.freq().to_Hz();
 
-  let mut system: ActorSystem<Command, ArcMailboxRuntime<CriticalSectionRawMutex>> =
-    ActorSystem::new(ArcMailboxRuntime::default());
+  let mut system: ActorSystem<Command, ArcActorRuntime<CriticalSectionRawMutex>> =
+    ActorSystem::new(ArcActorRuntime::default());
   let mut root = system.root_context();
 
   let behavior_led = led_pin.clone();

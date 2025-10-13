@@ -9,14 +9,15 @@ use core::task::{Context, Poll};
 use cellex_utils_core_rs::{Element, MpscBuffer, MpscHandle, MpscQueue, QueueSize, RingBufferBackend, Shared};
 
 use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
-use super::traits::{MailboxPair, MailboxRuntime, MailboxSignal, ThreadSafe};
+use super::traits::{ActorRuntime, MailboxPair, MailboxSignal, ThreadSafe};
 
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone, Debug, Default)]
-pub struct TestMailboxRuntime {
+pub struct TestActorRuntime {
   capacity: Option<usize>,
 }
 
-impl TestMailboxRuntime {
+impl TestActorRuntime {
   pub fn new(capacity: Option<usize>) -> Self {
     Self { capacity }
   }
@@ -132,7 +133,7 @@ impl<'a> Future for TestSignalWait<'a> {
   }
 }
 
-impl MailboxRuntime for TestMailboxRuntime {
+impl ActorRuntime for TestActorRuntime {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>
@@ -170,7 +171,7 @@ mod tests {
 
   #[test]
   fn test_mailbox_runtime_delivers_fifo() {
-    let factory = TestMailboxRuntime::with_capacity_per_queue(2);
+    let factory = TestActorRuntime::with_capacity_per_queue(2);
     let (mailbox, sender) = factory.build_default_mailbox::<u32>();
 
     sender.try_send(1).unwrap();

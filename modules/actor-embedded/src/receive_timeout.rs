@@ -11,8 +11,8 @@ use embassy_sync::signal::Signal;
 use embassy_time::{Duration as EmbassyDuration, Timer};
 
 use cellex_actor_core_rs::{
-  DynMessage, MailboxRuntime, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler,
-  ReceiveTimeoutSchedulerFactory, SystemMessage,
+  ActorRuntime, DynMessage, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
+  SystemMessage,
 };
 
 /// Internal shared state manipulated by both scheduler commands and the worker task.
@@ -89,14 +89,14 @@ impl ReceiveTimeoutScheduler for EmbassyReceiveTimeoutScheduler {
 /// Factory that spawns Embassy timer tasks per actor.
 pub struct EmbassyReceiveTimeoutSchedulerFactory<R>
 where
-  R: MailboxRuntime + Clone + 'static, {
+  R: ActorRuntime + Clone + 'static, {
   spawner: &'static Spawner,
   _marker: PhantomData<R>,
 }
 
 impl<R> EmbassyReceiveTimeoutSchedulerFactory<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
 {
   /// Creates a new factory backed by the provided Embassy spawner.
   pub fn new(spawner: &'static Spawner) -> Self {
@@ -109,7 +109,7 @@ where
 
 impl<R> Clone for EmbassyReceiveTimeoutSchedulerFactory<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
 {
   fn clone(&self) -> Self {
     Self {
@@ -121,7 +121,7 @@ where
 
 impl<R> ReceiveTimeoutSchedulerFactory<DynMessage, R> for EmbassyReceiveTimeoutSchedulerFactory<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,
@@ -165,7 +165,7 @@ async fn run_scheduler<R>(
   sender: R::Producer<PriorityEnvelope<DynMessage>>,
   map_system: MapSystemShared<DynMessage>,
 ) where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone, {

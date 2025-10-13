@@ -12,7 +12,7 @@ use cellex_actor_core_rs::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  ActorRuntime, Mailbox, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 #[cfg(not(feature = "embedded_rc"))]
@@ -140,11 +140,12 @@ where
   inner: QueueMailboxProducer<LocalQueue<M>, LocalSignal>,
 }
 
-/// Factory that creates local mailboxes.
+/// Factory that creates local actor runtime.
 ///
 /// Creates mailbox pairs for embedded or single-threaded environments.
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone, Debug, Default)]
-pub struct LocalMailboxRuntime {
+pub struct LocalActorRuntime {
   _marker: PhantomData<()>,
 }
 
@@ -197,7 +198,7 @@ impl Future for LocalSignalWait {
   }
 }
 
-impl LocalMailboxRuntime {
+impl LocalActorRuntime {
   /// Creates a new `LocalMailboxRuntime`.
   ///
   /// # Returns
@@ -235,7 +236,7 @@ impl LocalMailboxRuntime {
   }
 }
 
-impl MailboxRuntime for LocalMailboxRuntime {
+impl ActorRuntime for LocalActorRuntime {
   #[cfg(feature = "embedded_rc")]
   type Concurrency = SingleThread;
   #[cfg(not(feature = "embedded_rc"))]
@@ -276,7 +277,7 @@ where
   ///
   /// A tuple of (receiver mailbox, sender handle)
   pub fn new() -> (Self, LocalMailboxSender<M>) {
-    LocalMailboxRuntime::default().unbounded()
+    LocalActorRuntime::default().unbounded()
   }
 
   /// Creates a new sender handle.
@@ -513,8 +514,8 @@ mod tests {
 
   #[test]
   fn runtime_builder_produces_working_mailbox() {
-    let factory = LocalMailboxRuntime::new();
-    let (mailbox, sender) = factory.unbounded::<u16>();
+    let actor_runtime = LocalActorRuntime::new();
+    let (mailbox, sender) = actor_runtime.unbounded::<u16>();
 
     sender.try_send(11).unwrap();
     let future = mailbox.recv();

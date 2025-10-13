@@ -6,9 +6,9 @@ use crate::FailureEventStream;
 /// Dependency collection required for `ActorSystem` initialization.
 ///
 /// Holds all components necessary for constructing the actor system.
-pub struct ActorSystemParts<MF, S, T, E> {
-  /// Mailbox factory
-  pub mailbox_factory: MF,
+pub struct ActorSystemParts<R, S, T, E> {
+  /// actor runtime
+  pub actor_runtime: R,
   /// Task spawner
   pub spawner: S,
   /// Timer
@@ -26,9 +26,9 @@ impl<MF, S, T, E> ActorSystemParts<MF, S, T, E> {
   /// * `spawner` - Task spawner
   /// * `timer` - Timer
   /// * `event_stream` - Event stream
-  pub fn new(mailbox_factory: MF, spawner: S, timer: T, event_stream: E) -> Self {
+  pub fn new(actor_runtime: MF, spawner: S, timer: T, event_stream: E) -> Self {
     Self {
-      mailbox_factory,
+      actor_runtime: actor_runtime,
       spawner,
       timer,
       event_stream,
@@ -59,7 +59,7 @@ where
   /// Tuple of mailbox factory and `ActorSystemHandles`
   pub fn split(self) -> (MF, ActorSystemHandles<S, T, E>) {
     let Self {
-      mailbox_factory,
+      actor_runtime: mailbox_factory,
       spawner,
       timer,
       event_stream,

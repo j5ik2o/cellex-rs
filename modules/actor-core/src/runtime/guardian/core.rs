@@ -5,8 +5,8 @@ use crate::runtime::context::InternalActorRef;
 use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::ActorId;
 use crate::ActorPath;
+use crate::ActorRuntime;
 use crate::FailureInfo;
-use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
 use crate::{PriorityEnvelope, SystemMessage};
@@ -20,7 +20,7 @@ type ChildRoute<M, R> = (InternalActorRef<M, R>, MapSystemShared<M>);
 pub struct Guardian<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: ActorRuntime,
   Strat: GuardianStrategy<M, R>, {
   next_id: usize,
   pub(crate) children: BTreeMap<ActorId, ChildRecord<M, R>>,
@@ -32,7 +32,7 @@ where
 impl<M, R, Strat> Guardian<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: ActorRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,

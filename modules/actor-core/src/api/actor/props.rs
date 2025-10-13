@@ -9,18 +9,18 @@ use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalProps;
 use crate::Supervisor;
 use crate::SystemMessage;
-use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
+use crate::{ActorRuntime, MailboxOptions, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
 use super::behavior::SupervisorStrategyConfig;
-use super::system::ActorRuntimeBundle;
+use super::system::RuntimeEnv;
 use super::{ActorAdapter, Behavior, Context};
 use crate::api::MessageEnvelope;
 use core::cell::RefCell;
 use core::marker::PhantomData;
 
-type RuntimeParam<R> = ActorRuntimeBundle<R>;
+type RuntimeParam<R> = RuntimeEnv<R>;
 
 /// Properties that hold configuration for actor spawning.
 ///
@@ -29,7 +29,7 @@ type RuntimeParam<R> = ActorRuntimeBundle<R>;
 pub struct Props<U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -41,7 +41,7 @@ where
 impl<U, R> Props<U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

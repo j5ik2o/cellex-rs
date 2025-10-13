@@ -3,11 +3,11 @@ use core::time::Duration;
 
 use cellex_utils_core_rs::Element;
 
-use crate::api::actor::ActorRuntimeBundle;
+use crate::api::actor::RuntimeEnv;
 use crate::runtime::message::DynMessage;
 use crate::shared::{ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared};
 use crate::MapSystemShared;
-use crate::{MailboxRuntime, PriorityEnvelope};
+use crate::{ActorRuntime, PriorityEnvelope};
 
 /// Scheduler abstraction for managing actor `ReceiveTimeout`.
 ///
@@ -36,7 +36,7 @@ pub trait ReceiveTimeoutScheduler: Send {
 pub trait ReceiveTimeoutSchedulerFactory<M, R>: Send + Sync
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone, {
@@ -67,7 +67,7 @@ pub struct NoopReceiveTimeoutSchedulerFactory;
 impl<M, R> ReceiveTimeoutSchedulerFactory<M, R> for NoopReceiveTimeoutSchedulerFactory
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
@@ -87,12 +87,12 @@ pub struct NoopReceiveTimeoutDriver;
 
 impl<R> ReceiveTimeoutDriver<R> for NoopReceiveTimeoutDriver
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,
 {
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>> {
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>> {
     ReceiveTimeoutFactoryShared::new(NoopReceiveTimeoutSchedulerFactory::default()).for_runtime_bundle()
   }
 }

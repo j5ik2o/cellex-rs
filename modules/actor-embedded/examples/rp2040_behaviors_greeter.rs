@@ -11,7 +11,7 @@ use alloc_cortex_m::CortexMHeap;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
 #[cfg(all(target_arch = "arm", target_os = "none"))]
-use cellex_actor_embedded_rs::LocalMailboxRuntime;
+use cellex_actor_embedded_rs::LocalActorRuntime;
 use cellex_utils_embedded_rs::Element;
 use core::cell::RefCell;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
@@ -88,7 +88,7 @@ fn main() -> ! {
   ));
   let system_clock_hz = clocks.system_clock.freq().to_Hz();
 
-  let mut system: ActorSystem<Command, LocalMailboxRuntime> = ActorSystem::new(LocalMailboxRuntime::default());
+  let mut system: ActorSystem<Command, LocalActorRuntime> = ActorSystem::new(LocalActorRuntime::default());
   let mut root = system.root_context();
 
   let behavior_led = led_pin.clone();

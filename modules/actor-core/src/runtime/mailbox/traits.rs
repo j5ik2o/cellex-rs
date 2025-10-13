@@ -149,7 +149,8 @@ impl MailboxConcurrency for SingleThread {}
 ///
 /// Generates mailbox and queue implementations according to
 /// specific async runtimes (Tokio, Async-std, etc.).
-pub trait MailboxRuntime {
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
+pub trait ActorRuntime {
   /// Declares the concurrency mode for this factory.
   type Concurrency: MailboxConcurrency + MetadataStorageMode;
 

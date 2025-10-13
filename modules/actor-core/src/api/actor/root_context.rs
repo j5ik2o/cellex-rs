@@ -1,15 +1,15 @@
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalRootContext;
-use crate::{ActorRef, Extension, ExtensionId, Extensions, MailboxRuntime, PriorityEnvelope, Props};
+use crate::{ActorRef, ActorRuntime, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
 use alloc::boxed::Box;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
 use core::marker::PhantomData;
 
-use super::system::ActorRuntimeBundle;
+use super::system::RuntimeEnv;
 use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 
-type RuntimeParam<R> = ActorRuntimeBundle<R>;
+type RuntimeParam<R> = RuntimeEnv<R>;
 
 /// Context for operating root actors.
 ///
@@ -18,7 +18,7 @@ type RuntimeParam<R> = ActorRuntimeBundle<R>;
 pub struct RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
@@ -30,7 +30,7 @@ where
 impl<'a, U, R, Strat> RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone,
+  R: ActorRuntime + Clone,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

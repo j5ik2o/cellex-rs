@@ -13,7 +13,7 @@ use embassy_sync::signal::Signal;
 use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  ActorRuntime, Mailbox, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 use cellex_utils_embedded_rs::queue::mpsc::ArcMpscUnboundedQueue;
@@ -35,13 +35,14 @@ where
   inner: QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
 }
 
-pub struct ArcMailboxRuntime<RM = CriticalSectionRawMutex>
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
+pub struct ArcActorRuntime<RM = CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   _marker: PhantomData<RM>,
 }
 
-impl<RM> Clone for ArcMailboxRuntime<RM>
+impl<RM> Clone for ArcActorRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -50,7 +51,7 @@ where
   }
 }
 
-impl<RM> Default for ArcMailboxRuntime<RM>
+impl<RM> Default for ArcActorRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -136,7 +137,7 @@ where
   }
 }
 
-impl<RM> ArcMailboxRuntime<RM>
+impl<RM> ArcActorRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -158,7 +159,7 @@ where
   }
 }
 
-impl<RM> MailboxRuntime for ArcMailboxRuntime<RM>
+impl<RM> ActorRuntime for ArcActorRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -194,7 +195,7 @@ where
   RM: RawMutex,
 {
   pub fn new() -> (Self, ArcMailboxSender<M, RM>) {
-    ArcMailboxRuntime::<RM>::new().unbounded()
+    ArcActorRuntime::<RM>::new().unbounded()
   }
 
   pub fn inner(&self) -> &QueueMailbox<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
