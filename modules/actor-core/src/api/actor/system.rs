@@ -5,7 +5,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use super::root_context::RootContext;
 use super::{ActorSystemHandles, ActorSystemParts, Spawn, Timer};
 use crate::api::guardian::AlwaysRestart;
-use crate::runtime::mailbox::traits::MailboxPair;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxPair};
 use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
@@ -27,68 +27,65 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub struct ActorSystem<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>, {
-  inner: InternalActorSystem<DynMessage, ActorRuntimeBundle<R>, Strat>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
+  inner: InternalActorSystem<DynMessage, R, Strat>,
   shutdown: ShutdownToken,
   extensions: Extensions,
   _marker: PhantomData<U>,
 }
 
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone)]
-pub(crate) struct ActorRuntimeBundleCore<R>
+pub(crate) struct RuntimeEnvCore<R>
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
-  mailbox_factory: ArcShared<R>,
-  scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
+  mailbox_runtime: ArcShared<R>,
+  scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, RuntimeEnv<R>>>,
 }
 
-impl<R> ActorRuntimeBundleCore<R>
+impl<R> RuntimeEnvCore<R>
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
   #[must_use]
-  pub(crate) fn new(mailbox_factory: R) -> Self {
-    let shared_factory = ArcShared::new(mailbox_factory);
+  pub(crate) fn new(actor_runtime: R) -> Self {
     Self {
-      mailbox_factory: shared_factory,
-      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, ActorRuntimeBundle<R>>::priority()),
+      mailbox_runtime: ArcShared::new(actor_runtime),
+      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, RuntimeEnv<R>>::priority()),
     }
   }
 
   #[must_use]
-  pub(crate) fn mailbox_factory(&self) -> &R {
-    &self.mailbox_factory
+  pub(crate) fn mailbox_runtime(&self) -> &R {
+    &self.mailbox_runtime
   }
 
   #[must_use]
-  pub(crate) fn mailbox_factory_shared(&self) -> ArcShared<R> {
-    self.mailbox_factory.clone()
+  pub(crate) fn mailbox_runtime_shared(&self) -> ArcShared<R> {
+    self.mailbox_runtime.clone()
   }
 
   #[must_use]
-  pub(crate) fn into_mailbox_factory(self) -> R {
+  pub(crate) fn into_mailbox_runtime(self) -> R {
     self
-      .mailbox_factory
+      .mailbox_runtime
       .try_unwrap()
       .unwrap_or_else(|shared| (*shared).clone())
   }
 
   #[must_use]
-  pub(crate) fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>> {
+  pub(crate) fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, RuntimeEnv<R>>> {
     self.scheduler_builder.clone()
   }
 
-  pub(crate) fn set_scheduler_builder(
-    &mut self,
-    builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
-  ) {
+  pub(crate) fn set_scheduler_builder(&mut self, builder: ArcShared<SchedulerBuilder<DynMessage, RuntimeEnv<R>>>) {
     self.scheduler_builder = builder;
   }
 }
@@ -155,21 +152,23 @@ where
 /// This lightweight container currently stores only the mailbox factory, but it is
 /// designed to host scheduler builders, timeout drivers, and other platform-specific
 /// elements in future iterations.
+///
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone)]
-pub struct ActorRuntimeBundle<R>
+pub struct RuntimeEnv<R>
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
-  core: ActorRuntimeBundleCore<R>,
-  receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>>,
+  core: RuntimeEnvCore<R>,
+  receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>>>,
   receive_timeout_driver: Option<ReceiveTimeoutDriverShared<R>>,
   root_event_listener: Option<FailureEventListener>,
   root_escalation_handler: Option<FailureEventHandler>,
   metrics_sink: Option<MetricsSinkShared>,
 }
 
-impl<R> ActorRuntimeBundle<R>
+impl<R> RuntimeEnv<R>
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
@@ -177,9 +176,9 @@ where
 {
   /// Creates a new runtime bundle with the provided mailbox factory.
   #[must_use]
-  pub fn new(mailbox_factory: R) -> Self {
+  pub fn new(actor_runtime: R) -> Self {
     Self {
-      core: ActorRuntimeBundleCore::new(mailbox_factory),
+      core: RuntimeEnvCore::new(actor_runtime),
       receive_timeout_factory: None,
       receive_timeout_driver: Some(ReceiveTimeoutDriverShared::new(NoopReceiveTimeoutDriver::default())),
       root_event_listener: None,
@@ -190,26 +189,26 @@ where
 
   /// Returns a shared reference to the mailbox factory.
   #[must_use]
-  pub fn mailbox_factory(&self) -> &R {
-    self.core.mailbox_factory()
+  pub fn mailbox_runtime(&self) -> &R {
+    self.core.mailbox_runtime()
   }
 
   /// Consumes the bundle and returns the mailbox factory.
   #[must_use]
-  pub fn into_mailbox_factory(self) -> R {
+  pub fn into_mailbox_runtime(self) -> R {
     let Self { core, .. } = self;
-    core.into_mailbox_factory()
+    core.into_mailbox_runtime()
   }
 
   /// Returns the shared mailbox factory handle.
   #[must_use]
-  pub fn mailbox_factory_shared(&self) -> ArcShared<R> {
-    self.core.mailbox_factory_shared()
+  pub fn mailbox_runtime_shared(&self) -> ArcShared<R> {
+    self.core.mailbox_runtime_shared()
   }
 
   /// Returns the receive-timeout factory configured for this bundle.
   #[must_use]
-  pub fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>> {
+  pub fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>>> {
     self.receive_timeout_factory.clone()
   }
 
@@ -230,7 +229,7 @@ where
   #[must_use]
   pub fn with_receive_timeout_factory_shared(
     mut self,
-    factory: ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>,
+    factory: ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>>,
   ) -> Self {
     self.receive_timeout_factory = Some(factory);
     self
@@ -250,9 +249,7 @@ where
 
   /// Returns a factory built by the configured receive-timeout driver, if any.
   #[must_use]
-  pub fn receive_timeout_driver_factory(
-    &self,
-  ) -> Option<ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>> {
+  pub fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>>> {
     self
       .receive_timeout_driver
       .as_ref()
@@ -307,7 +304,7 @@ where
 
   /// Returns a handle that can spawn priority mailboxes without exposing the factory implementation.
   #[must_use]
-  pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, ActorRuntimeBundle<R>>
+  pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, RuntimeEnv<R>>
   where
     M: Element,
     R::Queue<PriorityEnvelope<M>>: Clone,
@@ -319,7 +316,7 @@ where
 
   /// Overrides the scheduler builder used when constructing the actor system.
   #[must_use]
-  pub fn with_scheduler_builder(mut self, builder: SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>) -> Self {
+  pub fn with_scheduler_builder(mut self, builder: SchedulerBuilder<DynMessage, RuntimeEnv<R>>) -> Self {
     self.core.set_scheduler_builder(ArcShared::new(builder));
     self
   }
@@ -328,7 +325,7 @@ where
   #[must_use]
   pub fn with_scheduler_builder_shared(
     mut self,
-    builder: ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>>,
+    builder: ArcShared<SchedulerBuilder<DynMessage, RuntimeEnv<R>>>,
   ) -> Self {
     self.core.set_scheduler_builder(builder);
     self
@@ -336,12 +333,12 @@ where
 
   /// Returns the scheduler builder configured for this runtime bundle.
   #[must_use]
-  pub fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, ActorRuntimeBundle<R>>> {
+  pub fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, RuntimeEnv<R>>> {
     self.core.scheduler_builder()
   }
 }
 
-impl<R> MailboxRuntime for ActorRuntimeBundle<R>
+impl<R> MailboxRuntime for RuntimeEnv<R>
 where
   R: MailboxRuntime + Clone + 'static,
 {
@@ -363,14 +360,111 @@ where
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    self.mailbox_factory().build_mailbox(options)
+    self.mailbox_runtime().build_mailbox(options)
+  }
+}
+
+impl<R> ActorRuntime for RuntimeEnv<R>
+where
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+{
+  type Base = R;
+
+  fn mailbox_runtime(&self) -> &Self::Base {
+    RuntimeEnv::mailbox_runtime(self)
+  }
+
+  fn into_mailbox_runtime(self) -> Self::Base {
+    RuntimeEnv::into_mailbox_runtime(self)
+  }
+
+  fn mailbox_runtime_shared(&self) -> ArcShared<Self::Base> {
+    RuntimeEnv::mailbox_runtime_shared(self)
+  }
+
+  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, Self>> {
+    RuntimeEnv::receive_timeout_factory(self)
+  }
+
+  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Base>> {
+    RuntimeEnv::receive_timeout_driver(self)
+  }
+
+  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>) -> Self {
+    RuntimeEnv::with_receive_timeout_factory(self, factory)
+  }
+
+  fn with_receive_timeout_factory_shared(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self>) -> Self {
+    RuntimeEnv::with_receive_timeout_factory_shared(self, factory)
+  }
+
+  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) -> Self {
+    RuntimeEnv::with_receive_timeout_driver(self, driver)
+  }
+
+  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) {
+    RuntimeEnv::set_receive_timeout_driver(self, driver);
+  }
+
+  fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, Self>> {
+    RuntimeEnv::receive_timeout_driver_factory(self)
+  }
+
+  fn root_event_listener(&self) -> Option<FailureEventListener> {
+    RuntimeEnv::root_event_listener(self)
+  }
+
+  fn with_root_event_listener(self, listener: Option<FailureEventListener>) -> Self {
+    RuntimeEnv::with_root_event_listener(self, listener)
+  }
+
+  fn root_escalation_handler(&self) -> Option<FailureEventHandler> {
+    RuntimeEnv::root_escalation_handler(self)
+  }
+
+  fn with_root_escalation_handler(self, handler: Option<FailureEventHandler>) -> Self {
+    RuntimeEnv::with_root_escalation_handler(self, handler)
+  }
+
+  fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+    RuntimeEnv::metrics_sink(self)
+  }
+
+  fn with_metrics_sink(self, sink: Option<MetricsSinkShared>) -> Self {
+    RuntimeEnv::with_metrics_sink(self, sink)
+  }
+
+  fn with_metrics_sink_shared(self, sink: MetricsSinkShared) -> Self {
+    RuntimeEnv::with_metrics_sink_shared(self, sink)
+  }
+
+  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self>
+  where
+    M: Element,
+    <Self::Base as crate::MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+    <Self::Base as crate::MailboxRuntime>::Signal: Clone, {
+    RuntimeEnv::priority_mailbox_spawner(self)
+  }
+
+  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self>) -> Self {
+    RuntimeEnv::with_scheduler_builder(self, builder)
+  }
+
+  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self>>) -> Self {
+    RuntimeEnv::with_scheduler_builder_shared(self, builder)
+  }
+
+  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self>> {
+    RuntimeEnv::scheduler_builder(self)
   }
 }
 
 /// Configuration options applied when constructing an [`ActorSystem`].
 pub struct ActorSystemConfig<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   /// Listener invoked when failures bubble up to the root guardian.
@@ -385,7 +479,7 @@ where
 
 impl<R> Default for ActorSystemConfig<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -401,7 +495,7 @@ where
 
 impl<R> ActorSystemConfig<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -508,10 +602,10 @@ where
 pub struct ActorSystemRunner<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>, {
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
   system: ActorSystem<U, R, Strat>,
   _marker: PhantomData<U>,
 }
@@ -519,49 +613,40 @@ where
 impl<U, R> ActorSystem<U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
-  /// Creates a new actor system with the specified mailbox factory.
-  ///
-  /// # Arguments
-  /// * `mailbox_factory` - Factory that generates mailboxes
-  pub fn new(mailbox_factory: R) -> Self {
-    Self::new_with_runtime(ActorRuntimeBundle::new(mailbox_factory), ActorSystemConfig::default())
-  }
+  /// Creates a new actor system with an explicit runtime and configuration.
+  pub fn new_with_runtime(runtime: R, config: ActorSystemConfig<R>) -> Self {
+    let receive_timeout_from_runtime = runtime.receive_timeout_factory();
+    let root_listener_from_runtime = runtime.root_event_listener();
+    let root_handler_from_runtime = runtime.root_escalation_handler();
+    let metrics_from_runtime = runtime.metrics_sink();
+    let scheduler_builder = runtime.scheduler_builder();
 
-  /// Creates a new actor system with an explicit configuration.
-  pub fn new_with_config(mailbox_factory: R, config: ActorSystemConfig<R>) -> Self {
-    Self::new_with_runtime(ActorRuntimeBundle::new(mailbox_factory), config)
-  }
-
-  /// Creates a new actor system with a runtime bundle and configuration.
-  pub fn new_with_runtime(runtime: ActorRuntimeBundle<R>, config: ActorSystemConfig<R>) -> Self {
-    let bundle_receive_timeout = runtime.receive_timeout_factory();
-    let bundle_root_listener = runtime.root_event_listener();
-    let bundle_root_handler = runtime.root_escalation_handler();
     let extensions_handle = config.extensions();
     if extensions_handle.get(serializer_extension_id()).is_none() {
       let extension = ArcShared::new(SerializerRegistryExtension::new());
       extensions_handle.register(extension);
     }
     let extensions = extensions_handle.clone();
+
     let receive_timeout_factory = config
       .receive_timeout_factory()
-      .map(|factory| factory.for_runtime_bundle())
-      .or(bundle_receive_timeout)
+      .or(receive_timeout_from_runtime)
       .or_else(|| runtime.receive_timeout_driver_factory());
-    let root_event_listener = config.failure_event_listener().or(bundle_root_listener);
-    let metrics_sink = config.metrics_sink().or_else(|| runtime.metrics_sink());
+    let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
+    let metrics_sink = config.metrics_sink().or(metrics_from_runtime);
+
     let settings = InternalActorSystemSettings {
       root_event_listener,
-      root_escalation_handler: bundle_root_handler,
+      root_escalation_handler: root_handler_from_runtime,
       receive_timeout_factory,
       metrics_sink,
       extensions: extensions.clone(),
     };
-    let scheduler_builder = runtime.scheduler_builder();
+
     Self {
       inner: InternalActorSystem::new_with_settings_and_builder(runtime, scheduler_builder, settings),
       shutdown: ShutdownToken::default(),
@@ -582,19 +667,37 @@ where
     S: Spawn,
     T: Timer,
     E: FailureEventStream, {
-    let (mailbox_factory, handles) = parts.split();
+    let (actor_runtime, handles) = parts.split();
     let config = ActorSystemConfig::default().with_failure_event_listener(Some(handles.event_stream.listener()));
-    (Self::new_with_config(mailbox_factory, config), handles)
+    (Self::new_with_runtime(actor_runtime, config), handles)
+  }
+}
+
+impl<U, B> ActorSystem<U, RuntimeEnv<B>>
+where
+  U: Element,
+  B: MailboxRuntime + Clone + 'static,
+  B::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  B::Signal: Clone,
+{
+  /// Creates a new actor system from a mailbox runtime by wrapping it in [`RuntimeEnv`].
+  pub fn new(mailbox_runtime: B) -> Self {
+    Self::new_with_runtime(RuntimeEnv::new(mailbox_runtime), ActorSystemConfig::default())
+  }
+
+  /// Creates a new actor system with explicit configuration from a mailbox runtime.
+  pub fn new_with_config(mailbox_runtime: B, config: ActorSystemConfig<RuntimeEnv<B>>) -> Self {
+    Self::new_with_runtime(RuntimeEnv::new(mailbox_runtime), config)
   }
 }
 
 impl<U, R, Strat> ActorSystem<U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
 {
   /// Gets the shutdown token.
   ///
@@ -736,10 +839,10 @@ where
 impl<U, R, Strat> ActorSystemRunner<U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, ActorRuntimeBundle<R>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
 {
   /// Gets the shutdown token.
   ///

@@ -5,7 +5,7 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 use core::ops::Deref;
 
-use crate::api::actor::ActorRuntimeBundle;
+use crate::api::actor::RuntimeEnv;
 use crate::runtime::message::DynMessage;
 use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
 use crate::{FailureEvent, FailureInfo, MailboxRuntime, PriorityEnvelope, SystemMessage};
@@ -112,8 +112,8 @@ where
     self.inner
   }
 
-  /// Adapts the factory to operate with [`ActorRuntimeBundle`] as the runtime type.
-  pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, ActorRuntimeBundle<R>>
+  /// Adapts the factory to operate with [`RuntimeEnv`] as the runtime type.
+  pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, RuntimeEnv<R>>
   where
     R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
@@ -151,7 +151,7 @@ where
   inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>,
 }
 
-impl<M, R> ReceiveTimeoutSchedulerFactory<M, ActorRuntimeBundle<R>> for ReceiveTimeoutFactoryAdapter<M, R>
+impl<M, R> ReceiveTimeoutSchedulerFactory<M, RuntimeEnv<R>> for ReceiveTimeoutFactoryAdapter<M, R>
 where
   M: Element + 'static,
   R: MailboxRuntime + Clone + 'static,
@@ -161,7 +161,7 @@ where
 {
   fn create(
     &self,
-    sender: <ActorRuntimeBundle<R> as MailboxRuntime>::Producer<PriorityEnvelope<M>>,
+    sender: <RuntimeEnv<R> as MailboxRuntime>::Producer<PriorityEnvelope<M>>,
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler> {
     self.inner.create(sender, map_system)
@@ -175,8 +175,8 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone, {
-  /// Builds a shared factory bound to [`ActorRuntimeBundle`] for the given runtime.
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>>;
+  /// Builds a shared factory bound to [`RuntimeEnv`] for the given runtime.
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>>;
 }
 
 /// Shared wrapper around a [`ReceiveTimeoutDriver`] implementation.
@@ -211,7 +211,7 @@ where
   }
 
   /// Builds a factory by delegating to the underlying driver.
-  pub fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>> {
+  pub fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>> {
     self.inner.with_ref(|driver| driver.build_factory())
   }
 

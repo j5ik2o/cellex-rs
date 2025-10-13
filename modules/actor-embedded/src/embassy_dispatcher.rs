@@ -5,7 +5,7 @@
 /// # 使い方
 /// ```
 /// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
-/// use cellex_actor_core_rs::{ActorRuntimeBundle, ActorSystem, ActorSystemConfig};
+/// use cellex_actor_core_rs::{RuntimeEnv, ActorSystem, ActorSystemConfig};
 /// use embassy_executor::Spawner;
 ///
 /// define_embassy_dispatcher!(

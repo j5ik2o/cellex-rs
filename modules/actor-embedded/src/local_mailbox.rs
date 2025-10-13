@@ -140,7 +140,7 @@ where
   inner: QueueMailboxProducer<LocalQueue<M>, LocalSignal>,
 }
 
-/// Factory that creates local mailboxes.
+/// Factory that creates local actor runtime.
 ///
 /// Creates mailbox pairs for embedded or single-threaded environments.
 #[derive(Clone, Debug, Default)]
@@ -513,8 +513,8 @@ mod tests {
 
   #[test]
   fn runtime_builder_produces_working_mailbox() {
-    let factory = LocalMailboxRuntime::new();
-    let (mailbox, sender) = factory.unbounded::<u16>();
+    let mailbox_runtime = LocalMailboxRuntime::new();
+    let (mailbox, sender) = mailbox_runtime.unbounded::<u16>();
 
     sender.try_send(11).unwrap();
     let future = mailbox.recv();

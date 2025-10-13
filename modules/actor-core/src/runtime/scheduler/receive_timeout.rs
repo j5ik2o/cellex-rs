@@ -3,7 +3,7 @@ use core::time::Duration;
 
 use cellex_utils_core_rs::Element;
 
-use crate::api::actor::ActorRuntimeBundle;
+use crate::api::actor::RuntimeEnv;
 use crate::runtime::message::DynMessage;
 use crate::shared::{ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared};
 use crate::MapSystemShared;
@@ -92,7 +92,7 @@ where
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,
 {
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>> {
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>> {
     ReceiveTimeoutFactoryShared::new(NoopReceiveTimeoutSchedulerFactory::default()).for_runtime_bundle()
   }
 }

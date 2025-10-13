@@ -88,7 +88,7 @@ fn main() -> ! {
   ));
   let system_clock_hz = clocks.system_clock.freq().to_Hz();
 
-  let mut system: ActorSystem<Command, LocalMailboxRuntime> = ActorSystem::new(LocalMailboxRuntime::default());
+  let mut system = ActorSystem::new(LocalMailboxRuntime::default());
   let mut root = system.root_context();
 
   let behavior_led = led_pin.clone();

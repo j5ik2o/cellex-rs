@@ -4,10 +4,9 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
-  ActorRuntimeBundle, ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener,
-  FailureInfo, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext,
-  Supervisor,
+  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, GuardianStrategy,
+  InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
+  ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_executor::Spawner;
@@ -22,8 +21,8 @@ pub struct EmbassyScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, ActorRuntimeBundle<R>>, {
-  inner: PriorityScheduler<M, ActorRuntimeBundle<R>, Strat>,
+  Strat: GuardianStrategy<M, RuntimeEnv<R>>, {
+  inner: PriorityScheduler<M, RuntimeEnv<R>, Strat>,
 }
 
 impl<M, R> EmbassyScheduler<M, R, AlwaysRestart>
@@ -32,7 +31,7 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
-  pub fn new(runtime: ActorRuntimeBundle<R>, extensions: Extensions) -> Self {
+  pub fn new(runtime: RuntimeEnv<R>, extensions: Extensions) -> Self {
     Self {
       inner: PriorityScheduler::new(runtime, extensions),
     }
@@ -43,10 +42,10 @@ impl<M, R, Strat> EmbassyScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, ActorRuntimeBundle<R>>,
+  Strat: GuardianStrategy<M, RuntimeEnv<R>>,
 {
   /// 任意の GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(runtime: ActorRuntimeBundle<R>, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(runtime: RuntimeEnv<R>, strategy: Strat, extensions: Extensions) -> Self {
     Self {
       inner: PriorityScheduler::with_strategy(runtime, strategy, extensions),
     }
@@ -54,23 +53,23 @@ where
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, ActorRuntimeBundle<R>> for EmbassyScheduler<M, R, Strat>
+impl<M, R, Strat> ActorScheduler<M, RuntimeEnv<R>> for EmbassyScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
-  Strat: GuardianStrategy<M, ActorRuntimeBundle<R>>,
+  Strat: GuardianStrategy<M, RuntimeEnv<R>>,
 {
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, ActorRuntimeBundle<R>>,
-  ) -> Result<InternalActorRef<M, ActorRuntimeBundle<R>>, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>> {
+    context: SchedulerSpawnContext<M, RuntimeEnv<R>>,
+  ) -> Result<InternalActorRef<M, RuntimeEnv<R>>, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, ActorRuntimeBundle<R>>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, RuntimeEnv<R>>>) {
     self.inner.set_receive_timeout_factory(factory);
   }
 
@@ -86,11 +85,7 @@ where
     PriorityScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(
-    &mut self,
-    control_ref: InternalActorRef<M, ActorRuntimeBundle<R>>,
-    map_system: MapSystemShared<M>,
-  ) {
+  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, RuntimeEnv<R>>, map_system: MapSystemShared<M>) {
     PriorityScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
@@ -123,7 +118,7 @@ where
 }
 
 /// Embassy 用スケジューラビルダーを生成するユーティリティ。
-pub fn embassy_scheduler_builder<M, R>() -> SchedulerBuilder<M, ActorRuntimeBundle<R>>
+pub fn embassy_scheduler_builder<M, R>() -> SchedulerBuilder<M, RuntimeEnv<R>>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
@@ -139,16 +134,16 @@ where
   R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
   R::Signal: Clone, {
   /// スケジューラを Embassy 実装へ差し替える。
-  fn with_embassy_scheduler(self, spawner: &'static Spawner) -> ActorRuntimeBundle<R>;
+  fn with_embassy_scheduler(self, spawner: &'static Spawner) -> RuntimeEnv<R>;
 }
 
-impl<R> ActorRuntimeBundleEmbassyExt<R> for ActorRuntimeBundle<R>
+impl<R> ActorRuntimeBundleEmbassyExt<R> for RuntimeEnv<R>
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
   R::Signal: Clone,
 {
-  fn with_embassy_scheduler(self, spawner: &'static Spawner) -> ActorRuntimeBundle<R> {
+  fn with_embassy_scheduler(self, spawner: &'static Spawner) -> RuntimeEnv<R> {
     let bundle = self.with_scheduler_builder(embassy_scheduler_builder());
     if bundle.receive_timeout_factory().is_some() {
       bundle

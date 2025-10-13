@@ -14,4 +14,5 @@ pub use messages::PriorityChannel;
 pub use messages::{PriorityEnvelope, SystemMessage};
 pub use queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv};
 pub use spawner::PriorityMailboxSpawnerHandle;
-pub use traits::{Mailbox, MailboxPair, MailboxRuntime, MailboxSignal};
+#[allow(unused_imports)]
+pub use traits::{ActorRuntime, Mailbox, MailboxPair, MailboxRuntime, MailboxSignal};

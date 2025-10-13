@@ -26,7 +26,7 @@ pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, Se
 pub use props::Props;
 pub use root_context::RootContext;
 pub use system::MailboxHandleFactoryStub;
-pub use system::{ActorRuntimeBundle, ActorSystem, ActorSystemConfig, ActorSystemRunner, ShutdownToken};
+pub use system::{ActorSystem, ActorSystemConfig, ActorSystemRunner, RuntimeEnv, ShutdownToken};
 pub use system_support::{ActorSystemHandles, ActorSystemParts, Spawn, Timer};
 
 #[doc(hidden)]

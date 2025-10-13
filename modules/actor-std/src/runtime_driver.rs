@@ -1,11 +1,10 @@
 use core::convert::Infallible;
 use core::marker::PhantomData;
 
-use cellex_actor_core_rs::{ActorSystemRunner, ShutdownToken};
+use cellex_actor_core_rs::{ActorRuntime, ActorSystemRunner, ShutdownToken};
 use tokio::signal;
 use tokio::task::JoinHandle;
 
-use crate::TokioMailboxRuntime;
 use cellex_actor_core_rs::{PriorityEnvelope, RuntimeMessage};
 use cellex_utils_std_rs::QueueError;
 
@@ -31,9 +30,10 @@ where
   ///
   /// # Returns
   /// A new `TokioSystemHandle` for managing the actor system
-  pub fn start_local(runner: ActorSystemRunner<U, TokioMailboxRuntime>) -> Self
+  pub fn start_local<R>(runner: ActorSystemRunner<U, R>) -> Self
   where
-    U: cellex_utils_std_rs::Element + 'static, {
+    U: cellex_utils_std_rs::Element + 'static,
+    R: ActorRuntime + Clone + 'static, {
     let shutdown = runner.shutdown_token();
     let join = tokio::task::spawn_local(async move { runner.run_forever().await });
     Self {

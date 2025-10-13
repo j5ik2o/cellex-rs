@@ -33,6 +33,7 @@ where
 /// Factory that creates Tokio mailboxes
 ///
 /// Creates bounded and unbounded mailboxes.
+/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone, Debug, Default)]
 pub struct TokioMailboxRuntime;
 
