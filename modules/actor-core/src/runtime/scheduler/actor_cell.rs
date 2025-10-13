@@ -33,8 +33,7 @@ pub(crate) struct ActorCell<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
-{
+  Strat: GuardianStrategy<M, R>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
   actor_id: ActorId,
   map_system: MapSystemShared<M>,
@@ -100,8 +99,7 @@ where
     R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
-    R::Producer<PriorityEnvelope<M>>: Clone,
-  {
+    R::Producer<PriorityEnvelope<M>>: Clone, {
     MailboxTrait::set_metrics_sink(&mut self.mailbox, sink.clone());
     MailboxProducerTrait::set_metrics_sink(&mut self.sender, sink.clone());
     self.mailbox_spawner.set_metrics_sink(sink);

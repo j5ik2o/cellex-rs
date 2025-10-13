@@ -45,8 +45,7 @@ where
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
-{
+  R::Concurrency: MetadataStorageMode, {
   inner: &'r mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>>,
   metadata: Option<MessageMetadata<R::Concurrency>>,
   extensions: Extensions,
@@ -99,47 +98,41 @@ impl ContextLogger {
   /// Outputs a trace level log.
   pub fn trace<F>(&self, message: F)
   where
-    F: FnOnce() -> String,
-  {
+    F: FnOnce() -> String, {
     self.emit(ContextLogLevel::Trace, message);
   }
 
   /// Outputs a debug level log.
   pub fn debug<F>(&self, message: F)
   where
-    F: FnOnce() -> String,
-  {
+    F: FnOnce() -> String, {
     self.emit(ContextLogLevel::Debug, message);
   }
 
   /// Outputs an info level log.
   pub fn info<F>(&self, message: F)
   where
-    F: FnOnce() -> String,
-  {
+    F: FnOnce() -> String, {
     self.emit(ContextLogLevel::Info, message);
   }
 
   /// Outputs a warn level log.
   pub fn warn<F>(&self, message: F)
   where
-    F: FnOnce() -> String,
-  {
+    F: FnOnce() -> String, {
     self.emit(ContextLogLevel::Warn, message);
   }
 
   /// Outputs an error level log.
   pub fn error<F>(&self, message: F)
   where
-    F: FnOnce() -> String,
-  {
+    F: FnOnce() -> String, {
     self.emit(ContextLogLevel::Error, message);
   }
 
   fn emit<F>(&self, level: ContextLogLevel, message: F)
   where
-    F: FnOnce() -> String,
-  {
+    F: FnOnce() -> String, {
     #[cfg(feature = "tracing")]
     {
       let text = message();
@@ -238,8 +231,7 @@ where
   pub fn extension<E, F, T>(&self, id: ExtensionId, f: F) -> Option<T>
   where
     E: Extension + 'static,
-    F: FnOnce(&E) -> T,
-  {
+    F: FnOnce(&E) -> T, {
     self.extensions.with::<E, _, _>(id, f)
   }
 
@@ -303,8 +295,7 @@ where
   /// Reports a failure to the guardian using the supervision channel.
   pub fn fail<E>(&self, error: E) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
-    E: fmt::Display + fmt::Debug + Send + 'static,
-  {
+    E: fmt::Display + fmt::Debug + Send + 'static, {
     let failure = ActorFailure::from_error(error);
     let info = FailureInfo::from_failure(self.actor_id(), self.actor_path().clone(), failure);
     self.send_system_to_self(SystemMessage::Escalate(info))
@@ -328,8 +319,7 @@ where
   pub fn message_adapter<Ext, F>(&self, f: F) -> MessageAdapterRef<Ext, U, R>
   where
     Ext: Element,
-    F: Fn(Ext) -> U + SharedBound + 'static,
-  {
+    F: Fn(Ext) -> U + SharedBound + 'static, {
     let adapter_impl: Arc<AdapterFn<Ext, U>> = Arc::new(f);
     MessageAdapterRef::new(self.self_ref(), ArcShared::from_arc(adapter_impl))
   }
@@ -388,8 +378,7 @@ where
   pub(crate) fn self_dispatcher(&self) -> MessageSender<U, R::Concurrency>
   where
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     self.self_ref().to_dispatcher()
   }
 
@@ -411,8 +400,7 @@ where
   where
     V: Element,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let metadata = MessageMetadata::<R::Concurrency>::new().with_sender(self.self_dispatcher());
     target.tell_with_metadata(message, metadata)
   }
@@ -436,8 +424,7 @@ where
     V: Element,
     S: Element,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let metadata = MessageMetadata::<R::Concurrency>::new().with_sender(sender.to_dispatcher());
     target.tell_with_metadata(message, metadata)
   }
@@ -458,8 +445,7 @@ where
     message: V,
   ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
-    V: Element,
-  {
+    V: Element, {
     let metadata = self.message_metadata().cloned().unwrap_or_default();
     target.tell_with_metadata(message, metadata)
   }
@@ -479,8 +465,7 @@ where
   where
     Resp: Element,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let metadata = self.message_metadata().cloned().ok_or(AskError::MissingResponder)?;
     metadata.respond_with(self, message)
   }
@@ -501,8 +486,7 @@ where
     Resp: Element,
     F: FnOnce(MessageSender<Resp, R::Concurrency>) -> V,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
@@ -534,8 +518,7 @@ where
     F: FnOnce(MessageSender<Resp, R::Concurrency>) -> V,
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let mut timeout = Some(timeout);
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let responder_for_message = MessageSender::new(responder.internal());
@@ -562,8 +545,7 @@ where
     V: Element,
     Resp: Element,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let metadata = MessageMetadata::<R::Concurrency>::new()
       .with_sender(self.self_dispatcher())
@@ -592,8 +574,7 @@ where
     Resp: Element,
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let mut timeout = Some(timeout);
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let metadata = MessageMetadata::<R::Concurrency>::new()
@@ -608,8 +589,7 @@ where
   /// Spawns a child actor and returns an `ActorRef`.
   pub fn spawn_child<V>(&mut self, props: Props<V, R>) -> ActorRef<V, R>
   where
-    V: Element,
-  {
+    V: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
     let actor_ref = self
       .inner
@@ -640,8 +620,7 @@ where
     U: Element,
     R: ActorRuntime<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static,
-  {
+    R::Signal: Clone + RuntimeBound + 'static, {
     let dispatcher = self.dispatcher_for::<Resp>().ok_or(AskError::MissingResponder)?;
     let dispatch_metadata = MessageMetadata::<C>::new().with_sender(ctx.self_dispatcher());
     let envelope = MessageEnvelope::user_with_metadata(message, dispatch_metadata);
@@ -659,8 +638,7 @@ where
   U: Element,
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   target: ActorRef<U, R>,
   adapter: ArcShared<AdapterFn<Ext, U>>,
 }

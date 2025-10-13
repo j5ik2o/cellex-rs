@@ -15,8 +15,7 @@ use cellex_utils_core_rs::Element;
 pub trait GuardianStrategy<M, R>: Send + 'static
 where
   M: Element,
-  R: MailboxRuntime,
-{
+  R: MailboxRuntime, {
   /// Determines the handling policy when an actor fails.
   ///
   /// # Arguments

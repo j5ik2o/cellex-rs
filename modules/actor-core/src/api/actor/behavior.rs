@@ -31,8 +31,7 @@ where
   U: Element,
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   Simple(Box<ReceiveFn<U, R>>),
   Try(Box<TryReceiveFn<U, R>>),
 }
@@ -64,8 +63,7 @@ impl SupervisorStrategyConfig {
 
   pub(crate) fn into_supervisor<M>(&self) -> DynSupervisor<M>
   where
-    M: Element,
-  {
+    M: Element, {
     let inner: Box<dyn Supervisor<M>> = match self {
       SupervisorStrategyConfig::Default => Box::new(NoopSupervisor),
       SupervisorStrategyConfig::Fixed(strategy) => Box::new(FixedDirectiveSupervisor::new(*strategy)),
@@ -121,8 +119,7 @@ impl<M> Supervisor<M> for FixedDirectiveSupervisor {
 /// Dynamic supervisor implementation (internal type).
 pub(crate) struct DynSupervisor<M>
 where
-  M: Element,
-{
+  M: Element, {
   inner: Box<dyn Supervisor<M>>,
 }
 
@@ -161,8 +158,7 @@ where
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
-{
+  R::Concurrency: MetadataStorageMode, {
   /// Maintain the same Behavior
   Same,
   /// Transition to a new Behavior
@@ -175,8 +171,7 @@ where
   U: Element,
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   handler: ReceiveHandler<U, R>,
   supervisor: SupervisorStrategyConfig,
   signal_handler: Option<ArcShared<SignalFn<U, R>>>,
@@ -231,8 +226,7 @@ where
   U: Element,
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   /// Message receiving state
   Receive(BehaviorState<U, R>),
   /// Execute setup processing to generate Behavior
@@ -262,8 +256,7 @@ where
   /// * `handler` - Processing when message is received
   pub fn receive<F>(handler: F) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> BehaviorDirective<U, R> + 'static,
-  {
+    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> BehaviorDirective<U, R> + 'static, {
     Self::Receive(BehaviorState::new_simple(
       Box::new(handler),
       SupervisorStrategyConfig::default(),
@@ -274,8 +267,7 @@ where
   pub fn try_receive<F, E>(mut handler: F) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static,
-  {
+    E: fmt::Display + fmt::Debug + Send + 'static, {
     Self::Receive(BehaviorState::new_try(
       Box::new(move |ctx, msg| handler(ctx, msg).map_err(ActorFailure::from_error)),
       SupervisorStrategyConfig::default(),
@@ -290,8 +282,7 @@ where
   /// * `handler` - Processing when message is received
   pub fn stateless<F>(mut handler: F) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) + 'static,
-  {
+    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) + 'static, {
     Self::Receive(BehaviorState::new_simple(
       Box::new(move |ctx, msg| {
         handler(ctx, msg);
@@ -307,8 +298,7 @@ where
   /// * `handler` - Processing when message is received
   pub fn receive_message<F>(mut handler: F) -> Self
   where
-    F: FnMut(U) -> BehaviorDirective<U, R> + 'static,
-  {
+    F: FnMut(U) -> BehaviorDirective<U, R> + 'static, {
     Self::receive(move |_, msg| handler(msg))
   }
 
@@ -316,8 +306,7 @@ where
   pub fn try_receive_message<F, E>(mut handler: F) -> Self
   where
     F: FnMut(U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static,
-  {
+    E: fmt::Display + fmt::Debug + Send + 'static, {
     Self::try_receive(move |_, msg| handler(msg))
   }
 
@@ -332,8 +321,7 @@ where
   /// * `init` - Initialization processing. Receives Context and returns Behavior
   pub fn setup<F>(init: F) -> Self
   where
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Behavior<U, R> + 'static,
-  {
+    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Behavior<U, R> + 'static, {
     let handler: Arc<SetupFn<U, R>> = Arc::new(init);
     Self::Setup {
       init: Some(ArcShared::from_arc(handler)),
@@ -346,8 +334,7 @@ where
   pub fn try_setup<F, E>(init: F) -> Self
   where
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static,
-  {
+    E: fmt::Display + fmt::Debug + Send + 'static, {
     let handler: Arc<TrySetupFn<U, R>> = Arc::new(move |ctx| init(ctx).map_err(ActorFailure::from_error));
     Self::Setup {
       init: None,
@@ -370,8 +357,7 @@ where
   /// * `handler` - Processing when signal is received
   pub fn receive_signal<F>(self, handler: F) -> Self
   where
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static,
-  {
+    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static, {
     let handler: Arc<SignalFn<U, R>> = Arc::new(handler);
     let handler = ArcShared::from_arc(handler);
     self.attach_signal_arc(Some(handler))
@@ -407,8 +393,7 @@ impl Behaviors {
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> BehaviorDirective<U, R> + 'static,
-  {
+    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> BehaviorDirective<U, R> + 'static, {
     Behavior::receive(handler)
   }
 
@@ -421,8 +406,7 @@ impl Behaviors {
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static,
-  {
+    E: fmt::Display + fmt::Debug + Send + 'static, {
     Behavior::try_receive(handler)
   }
 
@@ -432,8 +416,7 @@ impl Behaviors {
     U: Element,
     R: ActorRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-  {
+    R::Signal: Clone, {
     BehaviorDirective::Same
   }
 
@@ -445,8 +428,7 @@ impl Behaviors {
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
-    F: FnMut(U) -> BehaviorDirective<U, R> + 'static,
-  {
+    F: FnMut(U) -> BehaviorDirective<U, R> + 'static, {
     Behavior::receive_message(handler)
   }
 
@@ -459,8 +441,7 @@ impl Behaviors {
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
     F: FnMut(U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static,
-  {
+    E: fmt::Display + fmt::Debug + Send + 'static, {
     Behavior::try_receive_message(handler)
   }
 
@@ -470,8 +451,7 @@ impl Behaviors {
     U: Element,
     R: ActorRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-  {
+    R::Signal: Clone, {
     BehaviorDirective::Become(behavior)
   }
 
@@ -481,8 +461,7 @@ impl Behaviors {
     U: Element,
     R: ActorRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-  {
+    R::Signal: Clone, {
     BehaviorDirective::Become(Behavior::stopped())
   }
 
@@ -492,8 +471,7 @@ impl Behaviors {
     U: Element,
     R: ActorRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-  {
+    R::Signal: Clone, {
     SuperviseBuilder { behavior }
   }
 
@@ -505,8 +483,7 @@ impl Behaviors {
     R::Queue<PriorityEnvelope<DynMessage>>: Clone,
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Behavior<U, R> + 'static,
-  {
+    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Behavior<U, R> + 'static, {
     Behavior::setup(init)
   }
 
@@ -519,8 +496,7 @@ impl Behaviors {
     R::Signal: Clone,
     R::Concurrency: MetadataStorageMode,
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static,
-  {
+    E: fmt::Display + fmt::Debug + Send + 'static, {
     Behavior::try_setup(init)
   }
 }
@@ -531,8 +507,7 @@ where
   U: Element,
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   behavior: Behavior<U, R>,
 }
 
@@ -564,8 +539,7 @@ where
   U: Element,
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   behavior_factory: ArcShared<dyn Fn() -> Behavior<U, R> + 'static>,
   pub(super) behavior: Behavior<U, R>,
   pub(super) system_handler: Option<Box<SystemHandlerFn<U, R>>>,
@@ -586,8 +560,7 @@ where
   /// * `system_handler` - System message handler (optional)
   pub fn new<S>(behavior_factory: ArcShared<dyn Fn() -> Behavior<U, R> + 'static>, system_handler: Option<S>) -> Self
   where
-    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static,
-  {
+    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
     let behavior = behavior_factory();
     Self {
       behavior_factory,

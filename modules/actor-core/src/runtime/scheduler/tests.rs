@@ -37,8 +37,7 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
-  F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
-{
+  F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static, {
   Box::new(move |ctx, message| {
     f(ctx, message);
     Ok(())
@@ -103,8 +102,7 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-{
+  R::Signal: Clone, {
   let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
   let context = SchedulerSpawnContext {
     runtime,
