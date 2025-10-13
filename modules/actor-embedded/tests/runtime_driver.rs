@@ -7,7 +7,9 @@ use core::cell::RefCell;
 
 use std::sync::Arc;
 
-use cellex_actor_core_rs::{ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata};
+use cellex_actor_core_rs::{
+  ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
+};
 use cellex_actor_core_rs::{ActorSystem, ActorSystemParts, FailureEventStream, MailboxOptions, Props, RuntimeEnv};
 use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, ImmediateSpawner, ImmediateTimer, LocalMailboxRuntime};
 
@@ -49,7 +51,12 @@ fn embedded_failure_event_hub_broadcasts() {
   }));
 
   let listener = hub.listener();
-  let info = FailureInfo::new_with_metadata(ActorId(1), ActorPath::new(), "boom".into(), FailureMetadata::default());
+  let info = FailureInfo::new_with_metadata(
+    ActorId(1),
+    ActorPath::new(),
+    ActorFailure::from_message("boom"),
+    FailureMetadata::default(),
+  );
 
   listener(FailureEvent::RootEscalated(info.clone()));
 

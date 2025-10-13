@@ -24,7 +24,7 @@ pub use actor_ref::ActorRef;
 pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
 pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, SetupContext};
-pub use failure::ActorFailure;
+pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
 pub use props::Props;
 pub use root_context::RootContext;
 pub use system::MailboxHandleFactoryStub;

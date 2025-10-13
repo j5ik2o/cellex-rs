@@ -1,5 +1,7 @@
 use super::ClusterFailureBridge;
-use cellex_actor_core_rs::{ActorId, ActorPath, FailureEvent, FailureEventListener, FailureEventStream, FailureInfo};
+use cellex_actor_core_rs::{
+  ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureEventStream, FailureInfo,
+};
 use cellex_actor_std_rs::FailureEventHub;
 use cellex_remote_core_rs::RemoteFailureNotifier;
 use std::sync::{Arc, Mutex};
@@ -56,7 +58,7 @@ fn cluster_failure_bridge_fan_out_dispatches_root_escalation() {
 
   let bridge = ClusterFailureBridge::new(hub, remote_notifier);
 
-  let info = FailureInfo::new(ActorId(1), ActorPath::new(), "test error".to_string());
+  let info = FailureInfo::new(ActorId(1), ActorPath::new(), ActorFailure::from_message("test error"));
   let event = FailureEvent::RootEscalated(info);
 
   bridge.fan_out(event.clone());
@@ -70,7 +72,7 @@ fn cluster_failure_bridge_fan_out_dispatches_root_escalation() {
   let FailureEvent::RootEscalated(original_info) = &event;
 
   assert_eq!(received_info.actor, original_info.actor);
-  assert_eq!(received_info.reason, original_info.reason);
+  assert_eq!(received_info.description(), original_info.description());
 }
 
 #[test]
@@ -88,7 +90,11 @@ fn cluster_failure_bridge_fan_out_handles_hub_listener_call() {
 
   let bridge = ClusterFailureBridge::new(hub, remote_notifier);
 
-  let info = FailureInfo::new(ActorId(2), ActorPath::new(), "another error".to_string());
+  let info = FailureInfo::new(
+    ActorId(2),
+    ActorPath::new(),
+    ActorFailure::from_message("another error"),
+  );
   let event = FailureEvent::RootEscalated(info);
 
   bridge.fan_out(event.clone());

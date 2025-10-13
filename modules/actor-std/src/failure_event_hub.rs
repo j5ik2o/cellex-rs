@@ -90,7 +90,9 @@ impl Drop for FailureEventSubscription {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use cellex_actor_core_rs::{ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata};
+  use cellex_actor_core_rs::{
+    ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
+  };
   use std::sync::Arc as StdArc;
   use std::sync::Mutex as StdMutex;
 
@@ -108,7 +110,7 @@ mod tests {
     let event = FailureEvent::RootEscalated(FailureInfo::new_with_metadata(
       ActorId(1),
       ActorPath::new(),
-      "boom".into(),
+      ActorFailure::from_message("boom"),
       FailureMetadata::default(),
     ));
     listener(event.clone());
@@ -116,7 +118,7 @@ mod tests {
     let events = storage.lock().unwrap();
     assert_eq!(events.len(), 1);
     match &events[0] {
-      FailureEvent::RootEscalated(info) => assert_eq!(info.reason, "boom"),
+      FailureEvent::RootEscalated(info) => assert_eq!(info.description().as_ref(), "boom"),
     }
   }
 

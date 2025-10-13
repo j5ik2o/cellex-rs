@@ -254,7 +254,8 @@ type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEn
 
 fn noop_sender<M>() -> MessageSender<M, ThreadSafe>
 where
-  M: Element, {
+  M: Element,
+{
   let dispatch_impl: Arc<NoopDispatchFn> =
     Arc::new(|_message: DynMessage, _priority: i8| -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> { Ok(()) });
   let dispatch = ArcShared::from_arc(dispatch_impl);
@@ -284,7 +285,7 @@ fn test_supervise_stop_on_failure() {
   let failures_clone = StdArc::clone(&failures);
   let listener = FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
-    failures_clone.lock().unwrap().push(info.reason.clone());
+    failures_clone.lock().unwrap().push(info.description().into_owned());
   });
 
   let runtime = RuntimeEnv::new(TestMailboxRuntime::unbounded());
@@ -376,7 +377,8 @@ fn spawn_actor_with_counter_extension<R>(
 where
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
+  R::Signal: Clone,
+{
   let extension = CounterExtension::new();
   let extension_id = extension.extension_id();
   let extension_handle = ArcShared::new(extension);
@@ -911,7 +913,8 @@ fn noop_waker() -> Waker {
 
 fn resolve<F>(mut future: F) -> F::Output
 where
-  F: Future + Unpin, {
+  F: Future + Unpin,
+{
   let waker = noop_waker();
   let mut future = Pin::new(&mut future);
   let mut cx = TaskContext::from_waker(&waker);

@@ -1,5 +1,7 @@
 use super::{placeholder_metadata, RemoteFailureNotifier};
-use cellex_actor_core_rs::{ActorId, ActorPath, FailureEvent, FailureEventListener, FailureEventStream, FailureInfo};
+use cellex_actor_core_rs::{
+  ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureEventStream, FailureInfo,
+};
 use cellex_actor_std_rs::FailureEventHub;
 use std::sync::{Arc, Mutex};
 
@@ -55,7 +57,7 @@ fn remote_failure_notifier_dispatch_calls_handler() {
   });
   notifier.set_handler(handler);
 
-  let info = FailureInfo::new(ActorId(1), ActorPath::new(), "test error".to_string());
+  let info = FailureInfo::new(ActorId(1), ActorPath::new(), ActorFailure::from_message("test error"));
   notifier.dispatch(info);
 
   assert!(*called.lock().unwrap());
@@ -66,7 +68,7 @@ fn remote_failure_notifier_dispatch_without_handler_does_nothing() {
   let hub = FailureEventHub::new();
   let notifier = RemoteFailureNotifier::new(hub);
 
-  let info = FailureInfo::new(ActorId(1), ActorPath::new(), "test error".to_string());
+  let info = FailureInfo::new(ActorId(1), ActorPath::new(), ActorFailure::from_message("test error"));
   notifier.dispatch(info);
 }
 
@@ -92,7 +94,7 @@ fn remote_failure_notifier_emit_calls_hub_and_handler() {
   });
   notifier.set_handler(handler);
 
-  let info = FailureInfo::new(ActorId(1), ActorPath::new(), "test error".to_string());
+  let info = FailureInfo::new(ActorId(1), ActorPath::new(), ActorFailure::from_message("test error"));
   notifier.emit(info.clone());
 
   assert!(*handler_called.lock().unwrap());
@@ -102,7 +104,7 @@ fn remote_failure_notifier_emit_calls_hub_and_handler() {
 
   let FailureEvent::RootEscalated(received_info) = &events[0];
   assert_eq!(received_info.actor, info.actor);
-  assert_eq!(received_info.reason, info.reason);
+  assert_eq!(received_info.description(), info.description());
 }
 
 #[test]

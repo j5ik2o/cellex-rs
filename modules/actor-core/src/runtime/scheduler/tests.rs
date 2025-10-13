@@ -8,6 +8,7 @@ use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::ActorHandlerFn;
 use crate::ActorId;
+use crate::BehaviorFailure;
 use crate::Extensions;
 use crate::FailureInfo;
 use crate::NoopSupervisor;
@@ -36,7 +37,8 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
-  F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static, {
+  F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
+{
   Box::new(move |ctx, message| {
     f(ctx, message);
     Ok(())
@@ -53,7 +55,7 @@ where
   M: Element,
   R: MailboxRuntime,
 {
-  fn decide(&mut self, _actor: ActorId, _error: &dyn core::fmt::Debug) -> SupervisorDirective {
+  fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Escalate
   }
 }
@@ -101,7 +103,8 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  R::Signal: Clone,
+{
   let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
   let context = SchedulerSpawnContext {
     runtime,
@@ -612,7 +615,8 @@ fn scheduler_records_escalations() {
   let handler_data = sink.borrow();
   assert_eq!(handler_data.len(), 1);
   assert_eq!(handler_data[0].actor, ActorId(0));
-  assert!(handler_data[0].reason.starts_with("panic:"));
+  let description = handler_data[0].description();
+  assert!(description.starts_with("panic:"));
 
   // handler で除去済みのため take_escalations は空
   assert!(scheduler.take_escalations().is_empty());
@@ -661,7 +665,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
   match msg {
     Message::System(SystemMessage::Escalate(info)) => {
       assert_eq!(info.actor, ActorId(0));
-      assert!(info.reason.contains("panic"));
+      assert!(info.description().contains("panic"));
     }
     other => panic!("unexpected message: {:?}", other),
   }
@@ -774,7 +778,7 @@ fn scheduler_escalation_chain_reaches_root() {
 
   assert_eq!(root_failure.actor, parent_failure.actor);
   assert!(root_failure.path.is_empty());
-  assert_eq!(root_failure.reason, parent_failure.reason);
+  assert_eq!(root_failure.description(), parent_failure.description());
   assert!(
     root_stage.hops() >= parent_stage.hops(),
     "root escalation hop count must be monotonic"
@@ -826,7 +830,7 @@ fn scheduler_root_escalation_handler_invoked() {
 
   let events = events.lock().unwrap();
   assert_eq!(events.len(), 1);
-  assert!(!events[0].reason.is_empty());
+  assert!(!events[0].description().is_empty());
 }
 
 #[cfg(feature = "std")]
@@ -943,5 +947,5 @@ fn scheduler_root_event_listener_broadcasts() {
 
   let events = received.lock().unwrap();
   assert_eq!(events.len(), 1);
-  assert!(!events[0].reason.is_empty());
+  assert!(!events[0].description().is_empty());
 }

@@ -7,8 +7,8 @@ use crate::ActorPath;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
+use crate::{ActorFailure, BehaviorFailure};
 use crate::{PriorityEnvelope, SystemMessage};
-use ::core::fmt;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 
 #[test]
@@ -31,7 +31,10 @@ fn guardian_sends_restart_message() {
   let first_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(first_envelope.into_parts().0, SystemMessage::Watch(parent_id));
 
-  assert!(guardian.notify_failure(actor_id, &"panic").unwrap().is_none());
+  assert!(guardian
+    .notify_failure(actor_id, ActorFailure::from_message("panic"))
+    .unwrap()
+    .is_none());
 
   let envelope = mailbox.queue().poll().unwrap().unwrap();
   let (message, priority, channel) = envelope.into_parts_with_channel();
@@ -48,7 +51,7 @@ fn guardian_sends_stop_message() {
     M: Element,
     R: MailboxRuntime,
   {
-    fn decide(&mut self, _actor: ActorId, _error: &dyn fmt::Debug) -> SupervisorDirective {
+    fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
       SupervisorDirective::Stop
     }
   }
@@ -71,7 +74,10 @@ fn guardian_sends_stop_message() {
   let watch_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(watch_envelope.into_parts().0, SystemMessage::Watch(parent_id));
 
-  assert!(guardian.notify_failure(actor_id, &"panic").unwrap().is_none());
+  assert!(guardian
+    .notify_failure(actor_id, ActorFailure::from_message("panic"))
+    .unwrap()
+    .is_none());
 
   let envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(envelope.into_parts().0, SystemMessage::Stop);
