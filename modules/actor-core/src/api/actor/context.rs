@@ -1,8 +1,8 @@
 use crate::runtime::context::ActorContext;
+use crate::runtime::mailbox::traits::ActorRuntime;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::ActorId;
 use crate::ActorPath;
-use crate::MailboxRuntime;
 use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
@@ -27,7 +27,6 @@ type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
 type AdapterFn<Ext, U> = dyn Fn(Ext) -> U;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 
-use super::system::RuntimeEnv;
 use super::{
   ask::create_ask_handles, ask_with_timeout, ActorRef, AskError, AskFuture, AskResult, AskTimeoutFuture, Props,
 };
@@ -40,11 +39,11 @@ use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
 pub struct Context<'r, 'ctx, U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
-  inner: &'r mut ActorContext<'ctx, DynMessage, RuntimeEnv<R>, dyn Supervisor<DynMessage>>,
+  inner: &'r mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>>,
   metadata: Option<MessageMetadata<R::Concurrency>>,
   extensions: Extensions,
   _marker: PhantomData<U>,
@@ -184,12 +183,12 @@ impl ContextLogger {
 impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
 {
-  pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, RuntimeEnv<R>, dyn Supervisor<DynMessage>>) -> Self {
+  pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>>) -> Self {
     let extensions = inner.extensions();
     Self {
       inner,
@@ -208,7 +207,7 @@ where
   }
 
   pub(super) fn with_metadata(
-    inner: &'r mut ActorContext<'ctx, DynMessage, RuntimeEnv<R>, dyn Supervisor<DynMessage>>,
+    inner: &'r mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>>,
     metadata: MessageMetadata<R::Concurrency>,
   ) -> Self {
     let extensions = inner.extensions();
@@ -360,7 +359,7 @@ where
   ///
   /// # Returns
   /// Mutable reference to the internal `ActorContext`
-  pub fn inner(&mut self) -> &mut ActorContext<'ctx, DynMessage, RuntimeEnv<R>, dyn Supervisor<DynMessage>> {
+  pub fn inner(&mut self) -> &mut ActorContext<'ctx, DynMessage, R, dyn Supervisor<DynMessage>> {
     self.inner
   }
 
@@ -607,7 +606,7 @@ where
   where
     Resp: Element,
     U: Element,
-    R: MailboxRuntime<Concurrency = C> + Clone + 'static,
+    R: ActorRuntime<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let dispatcher = self.dispatcher_for::<Resp>().ok_or(AskError::MissingResponder)?;
@@ -625,7 +624,7 @@ pub struct MessageAdapterRef<Ext, U, R>
 where
   Ext: Element,
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   target: ActorRef<U, R>,
@@ -636,7 +635,7 @@ impl<Ext, U, R> MessageAdapterRef<Ext, U, R>
 where
   Ext: Element,
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {

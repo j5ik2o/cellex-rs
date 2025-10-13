@@ -1,10 +1,15 @@
 use std::sync::{Arc, Mutex};
 
-use cellex_actor_core_rs::{ActorSystem, ActorSystemParts, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, ActorSystemParts, MailboxOptions, Props, RuntimeEnv};
 use cellex_actor_std_rs::{FailureEventHub, TokioMailboxRuntime, TokioSpawner, TokioSystemHandle, TokioTimer};
 
 async fn run_tokio_actor_runtime_processes_messages() {
-  let components = ActorSystemParts::new(TokioMailboxRuntime, TokioSpawner, TokioTimer, FailureEventHub::new());
+  let components = ActorSystemParts::new(
+    RuntimeEnv::new(TokioMailboxRuntime),
+    TokioSpawner,
+    TokioTimer,
+    FailureEventHub::new(),
+  );
   let (mut system, _) = ActorSystem::from_parts(components);
 
   let state: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
@@ -36,7 +41,12 @@ async fn tokio_actor_runtime_processes_messages_multi_thread() {
 async fn run_tokio_system_handle_can_be_aborted() {
   tokio::task::LocalSet::new()
     .run_until(async move {
-      let components = ActorSystemParts::new(TokioMailboxRuntime, TokioSpawner, TokioTimer, FailureEventHub::new());
+      let components = ActorSystemParts::new(
+        RuntimeEnv::new(TokioMailboxRuntime),
+        TokioSpawner,
+        TokioTimer,
+        FailureEventHub::new(),
+      );
       let (system, _) = ActorSystem::from_parts(components);
       let handle: TokioSystemHandle<u32> = TokioSystemHandle::start_local(system.into_runner());
       let listener = handle.spawn_ctrl_c_listener();

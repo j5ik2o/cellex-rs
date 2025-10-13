@@ -1,12 +1,12 @@
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalRootContext;
-use crate::{ActorRef, MailboxRuntime, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
+use crate::runtime::mailbox::traits::ActorRuntime;
+use crate::{ActorRef, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
 use alloc::boxed::Box;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
 use core::marker::PhantomData;
 
-use super::system::RuntimeEnv;
 use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 
 /// Context for operating root actors.
@@ -16,23 +16,23 @@ use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 pub struct RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>, {
-  pub(crate) inner: InternalRootContext<'a, DynMessage, RuntimeEnv<R>, Strat>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
+  pub(crate) inner: InternalRootContext<'a, DynMessage, R, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
 
 impl<'a, U, R, Strat> RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone,
+  R: ActorRuntime + Clone,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
 {
   /// Spawns a new actor using the specified properties.
   ///

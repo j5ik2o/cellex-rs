@@ -27,11 +27,11 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub struct ActorSystem<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>, {
-  inner: InternalActorSystem<DynMessage, RuntimeEnv<R>, Strat>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
+  inner: InternalActorSystem<DynMessage, R, Strat>,
   shutdown: ShutdownToken,
   extensions: Extensions,
   _marker: PhantomData<U>,
@@ -477,7 +477,7 @@ where
 /// Configuration options applied when constructing an [`ActorSystem`].
 pub struct ActorSystemConfig<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   /// Listener invoked when failures bubble up to the root guardian.
@@ -492,7 +492,7 @@ where
 
 impl<R> Default for ActorSystemConfig<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -508,7 +508,7 @@ where
 
 impl<R> ActorSystemConfig<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -615,10 +615,10 @@ where
 pub struct ActorSystemRunner<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>, {
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
   system: ActorSystem<U, R, Strat>,
   _marker: PhantomData<U>,
 }
@@ -626,49 +626,40 @@ where
 impl<U, R> ActorSystem<U, R>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
-  /// Creates a new actor system with the specified mailbox factory.
-  ///
-  /// # Arguments
-  /// * `mailbox_factory` - Factory that generates mailboxes
-  pub fn new(mailbox_factory: R) -> Self {
-    Self::new_with_runtime(RuntimeEnv::new(mailbox_factory), ActorSystemConfig::default())
-  }
+  /// Creates a new actor system with an explicit runtime and configuration.
+  pub fn new_with_runtime(runtime: R, config: ActorSystemConfig<R>) -> Self {
+    let receive_timeout_from_runtime = runtime.receive_timeout_factory();
+    let root_listener_from_runtime = runtime.root_event_listener();
+    let root_handler_from_runtime = runtime.root_escalation_handler();
+    let metrics_from_runtime = runtime.metrics_sink();
+    let scheduler_builder = runtime.scheduler_builder();
 
-  /// Creates a new actor system with an explicit configuration.
-  pub fn new_with_config(mailbox_factory: R, config: ActorSystemConfig<R>) -> Self {
-    Self::new_with_runtime(RuntimeEnv::new(mailbox_factory), config)
-  }
-
-  /// Creates a new actor system with a runtime bundle and configuration.
-  pub fn new_with_runtime(runtime: RuntimeEnv<R>, config: ActorSystemConfig<R>) -> Self {
-    let bundle_receive_timeout = runtime.receive_timeout_factory();
-    let bundle_root_listener = runtime.root_event_listener();
-    let bundle_root_handler = runtime.root_escalation_handler();
     let extensions_handle = config.extensions();
     if extensions_handle.get(serializer_extension_id()).is_none() {
       let extension = ArcShared::new(SerializerRegistryExtension::new());
       extensions_handle.register(extension);
     }
     let extensions = extensions_handle.clone();
+
     let receive_timeout_factory = config
       .receive_timeout_factory()
-      .map(|factory| factory.for_runtime_bundle())
-      .or(bundle_receive_timeout)
+      .or(receive_timeout_from_runtime)
       .or_else(|| runtime.receive_timeout_driver_factory());
-    let root_event_listener = config.failure_event_listener().or(bundle_root_listener);
-    let metrics_sink = config.metrics_sink().or_else(|| runtime.metrics_sink());
+    let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
+    let metrics_sink = config.metrics_sink().or(metrics_from_runtime);
+
     let settings = InternalActorSystemSettings {
       root_event_listener,
-      root_escalation_handler: bundle_root_handler,
+      root_escalation_handler: root_handler_from_runtime,
       receive_timeout_factory,
       metrics_sink,
       extensions: extensions.clone(),
     };
-    let scheduler_builder = runtime.scheduler_builder();
+
     Self {
       inner: InternalActorSystem::new_with_settings_and_builder(runtime, scheduler_builder, settings),
       shutdown: ShutdownToken::default(),
@@ -689,19 +680,37 @@ where
     S: Spawn,
     T: Timer,
     E: FailureEventStream, {
-    let (mailbox_factory, handles) = parts.split();
+    let (actor_runtime, handles) = parts.split();
     let config = ActorSystemConfig::default().with_failure_event_listener(Some(handles.event_stream.listener()));
-    (Self::new_with_config(mailbox_factory, config), handles)
+    (Self::new_with_runtime(actor_runtime, config), handles)
+  }
+}
+
+impl<U, B> ActorSystem<U, RuntimeEnv<B>>
+where
+  U: Element,
+  B: MailboxRuntime + Clone + 'static,
+  B::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  B::Signal: Clone,
+{
+  /// Creates a new actor system from a mailbox runtime by wrapping it in [`RuntimeEnv`].
+  pub fn new(mailbox_runtime: B) -> Self {
+    Self::new_with_runtime(RuntimeEnv::new(mailbox_runtime), ActorSystemConfig::default())
+  }
+
+  /// Creates a new actor system with explicit configuration from a mailbox runtime.
+  pub fn new_with_config(mailbox_runtime: B, config: ActorSystemConfig<RuntimeEnv<B>>) -> Self {
+    Self::new_with_runtime(RuntimeEnv::new(mailbox_runtime), config)
   }
 }
 
 impl<U, R, Strat> ActorSystem<U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
 {
   /// Gets the shutdown token.
   ///
@@ -843,10 +852,10 @@ where
 impl<U, R, Strat> ActorSystemRunner<U, R, Strat>
 where
   U: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
 {
   /// Gets the shutdown token.
   ///

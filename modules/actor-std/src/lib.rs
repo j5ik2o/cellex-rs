@@ -164,23 +164,23 @@ mod tests {
 
   async fn run_receive_timeout_triggers() {
     let factory = TokioMailboxRuntime;
-    let mut config = ActorSystemConfig::default();
-    config.set_receive_timeout_factory(Some(ReceiveTimeoutFactoryShared::new(
-      TokioReceiveTimeoutSchedulerFactory::new(),
-    )));
+    let mut config: ActorSystemConfig<RuntimeEnv<TokioMailboxRuntime>> = ActorSystemConfig::default();
+    config.set_receive_timeout_factory(Some(
+      ReceiveTimeoutFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new()).for_runtime_bundle(),
+    ));
     let mut system: ActorSystem<u32, _> = ActorSystem::new_with_config(factory, config);
 
     let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
     let props = Props::with_system_handler(
       MailboxOptions::default(),
-      move |ctx: &mut Context<'_, '_, u32, TokioMailboxRuntime>, msg| {
+      move |ctx: &mut Context<'_, '_, u32, RuntimeEnv<TokioMailboxRuntime>>, msg| {
         if msg == 1 {
           ctx.set_receive_timeout(Duration::from_millis(10));
         }
       },
       Some({
         let timeout_clone = timeout_log.clone();
-        move |_: &mut Context<'_, '_, u32, TokioMailboxRuntime>, sys: SystemMessage| {
+        move |_: &mut Context<'_, '_, u32, RuntimeEnv<TokioMailboxRuntime>>, sys: SystemMessage| {
           if matches!(sys, SystemMessage::ReceiveTimeout) {
             timeout_clone.lock().unwrap().push(sys);
           }
