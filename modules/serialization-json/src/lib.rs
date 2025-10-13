@@ -4,6 +4,7 @@
 
 use cellex_serialization_core_rs::error::{DeserializationError, SerializationError};
 use cellex_serialization_core_rs::id::SerializerId;
+use cellex_serialization_core_rs::impl_type_key;
 use cellex_serialization_core_rs::message::SerializedMessage;
 use cellex_serialization_core_rs::serializer::Serializer;
 use cellex_utils_core_rs::sync::ArcShared;
@@ -78,3 +79,9 @@ impl Serializer for SerdeJsonSerializer {
 pub fn shared_json_serializer() -> ArcShared<SerdeJsonSerializer> {
   ArcShared::new(SerdeJsonSerializer::new())
 }
+
+/// Marker type representing JSON payloads within the serialization router.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct JsonTypeKey;
+
+impl_type_key!(JsonTypeKey, "cellex.serializer.json", SERDE_JSON_SERIALIZER_ID);
