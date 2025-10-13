@@ -13,6 +13,12 @@
 - 将来的な `TokioActorRuntime` / `EmbassyActorRuntime` などの facade 追加を容易にする。
 
 ## 方針
+0. **型アノテーションの事前整理**
+   - `type RuntimeParam<R> = RuntimeEnv<R>` など `RuntimeEnv` 固定の別名を廃止し、必要なら `R` そのものを使う。
+   - 実装／テストコードで `RuntimeEnv<...>` を明示しているローカル変数・関数戻り値は、型推論に任せられるところから削除。
+   - 明示が必要な箇所は最小限の境界（`impl MailboxRuntime` など）に寄せる。`ActorSystem` などのローカル変数注釈は `ActorSystem<_, _, _>` への部分推論、あるいは注釈ごと削除しておくとステップ4後のコンパイルエラーを防げる。
+   - 変更後は `cargo check -p cellex-actor-core-rs` を小刻みに回して検証。
+
 1. **トレイトのリネーム** (AIでやると遅いのでIDEでリファクタリング済み)
    - `modules/actor-core/src/runtime/mailbox/traits.rs` にある現行 `trait ActorRuntime` を `trait MailboxRuntime` にリネーム。
    - 依存ファイルの `use` とジェネリクス境界を総置換。

@@ -111,7 +111,7 @@ mod receive_timeout_injection {
     }
   }
 
-  fn spawn_test_actor(system: &mut ActorSystem<u32, TestMailboxRuntime, AlwaysRestart>) {
+  fn spawn_test_actor<R: MailboxRuntime + Clone>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
     let props = Props::new(MailboxOptions::default(), |_, _: u32| {});
     let mut root = system.root_context();
     let actor_ref = root.spawn(props).expect("spawn actor");
@@ -356,12 +356,16 @@ fn typed_actor_system_handles_user_messages() {
   assert_eq!(log.borrow().as_slice(), &[11]);
 }
 
-fn spawn_actor_with_counter_extension() -> (
-  ActorSystem<u32, TestMailboxRuntime, AlwaysRestart>,
+fn spawn_actor_with_counter_extension<R>(factory: R) -> (
+  ActorSystem<u32, R, AlwaysRestart>,
   ExtensionId,
   ArcShared<CounterExtension>,
-) {
-  let factory = TestMailboxRuntime::unbounded();
+)
+where
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+{
   let extension = CounterExtension::new();
   let extension_id = extension.extension_id();
   let extension_handle = ArcShared::new(extension);
@@ -374,7 +378,8 @@ fn spawn_actor_with_counter_extension() -> (
 
 #[test]
 fn actor_context_accesses_registered_extension() {
-  let (mut system, extension_id, extension_probe) = spawn_actor_with_counter_extension();
+  let factory = TestMailboxRuntime::unbounded();
+  let (mut system, extension_id, extension_probe) = spawn_actor_with_counter_extension(factory);
   let mut root = system.root_context();
   assert_eq!(
     root.extension::<CounterExtension, _, _>(extension_id, |ext| ext.value()),
@@ -406,7 +411,8 @@ fn actor_context_accesses_registered_extension() {
 
 #[test]
 fn serializer_extension_provides_json_roundtrip() {
-  let (system, _, _) = spawn_actor_with_counter_extension();
+  let factory = TestMailboxRuntime::unbounded();
+  let (system, _, _) = spawn_actor_with_counter_extension(factory);
 
   #[derive(Debug, Serialize, Deserialize, PartialEq)]
   struct JsonPayload {

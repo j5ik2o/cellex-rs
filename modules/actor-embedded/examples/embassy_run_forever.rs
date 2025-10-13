@@ -7,11 +7,11 @@ mod sample {
   use static_cell::StaticCell;
 
   static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-  static SYSTEM: StaticCell<ActorSystem<u32, LocalMailboxRuntime>> = StaticCell::new();
+  static SYSTEM: StaticCell<ActorSystem<u32, LocalMailboxRuntime, _>> = StaticCell::new();
   pub static MESSAGE_SUM: AtomicU32 = AtomicU32::new(0);
 
   define_embassy_dispatcher!(
-    pub fn dispatcher(system: ActorSystem<u32, LocalMailboxRuntime>)
+    pub fn dispatcher(system: ActorSystem<u32, LocalMailboxRuntime, _>)
   );
 
   pub fn run() {
