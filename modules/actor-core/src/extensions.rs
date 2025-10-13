@@ -2,6 +2,7 @@
 
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as SharedArc;
+use alloc::string::String;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc as SharedArc;
 use alloc::vec::Vec;
@@ -9,15 +10,16 @@ use core::any::Any;
 use core::fmt::{self, Debug, Formatter};
 use portable_atomic::{AtomicI32, Ordering};
 
+use cellex_serialization_core_rs::id::SerializerId;
 use cellex_serialization_core_rs::registry::InMemorySerializerRegistry;
 use cellex_serialization_core_rs::serializer::Serializer;
-use cellex_serialization_core_rs::RegistryError;
+use cellex_serialization_core_rs::{BindingError, RegistryError, SerializationRouter, TypeBindingRegistry, TypeKey};
 #[cfg(feature = "std")]
-use cellex_serialization_json_rs::{shared_json_serializer, SERDE_JSON_SERIALIZER_ID};
+use cellex_serialization_json_rs::{shared_json_serializer, JsonTypeKey, SERDE_JSON_SERIALIZER_ID};
 #[cfg(feature = "postcard")]
-use cellex_serialization_postcard_rs::{shared_postcard_serializer, POSTCARD_SERIALIZER_ID};
+use cellex_serialization_postcard_rs::{shared_postcard_serializer, PostcardTypeKey, POSTCARD_SERIALIZER_ID};
 #[cfg(feature = "std")]
-use cellex_serialization_prost_rs::{shared_prost_serializer, PROST_SERIALIZER_ID};
+use cellex_serialization_prost_rs::{shared_prost_serializer, ProstTypeKey, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use spin::RwLock;
 
@@ -162,17 +164,25 @@ impl Debug for Extensions {
 pub struct SerializerRegistryExtension {
   id: ExtensionId,
   registry: InMemorySerializerRegistry,
+  bindings: TypeBindingRegistry,
+  router: SerializationRouter,
 }
 
 impl SerializerRegistryExtension {
   /// Creates a new registry extension and installs built-in serializers.
   #[must_use]
   pub fn new() -> Self {
+    let registry = InMemorySerializerRegistry::new();
+    let bindings = TypeBindingRegistry::new();
+    let router = SerializationRouter::new(bindings.clone(), registry.clone());
     let extension = Self {
       id: serializer_extension_id(),
-      registry: InMemorySerializerRegistry::new(),
+      registry,
+      bindings,
+      router,
     };
     extension.install_builtin_serializers();
+    extension.install_default_bindings();
     extension
   }
 
@@ -197,10 +207,34 @@ impl SerializerRegistryExtension {
     }
   }
 
+  fn install_default_bindings(&self) {
+    #[cfg(feature = "std")]
+    {
+      let _ = self.bind_type::<JsonTypeKey>(SERDE_JSON_SERIALIZER_ID);
+      let _ = self.bind_type::<ProstTypeKey>(PROST_SERIALIZER_ID);
+    }
+    #[cfg(feature = "postcard")]
+    {
+      let _ = self.bind_type::<PostcardTypeKey>(POSTCARD_SERIALIZER_ID);
+    }
+  }
+
   /// Returns a reference to the underlying registry.
   #[must_use]
   pub fn registry(&self) -> &InMemorySerializerRegistry {
     &self.registry
+  }
+
+  /// Returns the binding registry used by the router.
+  #[must_use]
+  pub fn bindings(&self) -> &TypeBindingRegistry {
+    &self.bindings
+  }
+
+  /// Returns a serialization router instance backed by the shared registries.
+  #[must_use]
+  pub fn router(&self) -> SerializationRouter {
+    self.router.clone()
   }
 
   /// Registers a serializer implementation, returning an error when the ID clashes.
@@ -208,6 +242,31 @@ impl SerializerRegistryExtension {
   where
     S: Serializer + 'static, {
     self.registry.register(serializer)
+  }
+
+  /// Binds the provided key to the specified serializer identifier.
+  pub fn bind_key<K>(&self, key: K, serializer: SerializerId) -> Result<(), BindingError>
+  where
+    K: Into<String>, {
+    self.bindings.bind(key, serializer)
+  }
+
+  /// Binds the [`TypeKey::KEY`] of `T` to the specified serializer identifier.
+  pub fn bind_type<T>(&self, serializer: SerializerId) -> Result<(), BindingError>
+  where
+    T: TypeKey, {
+    self.bind_key(<T as TypeKey>::type_key(), serializer)
+  }
+
+  /// Binds `T` using its [`TypeKey::default_serializer`] when available.
+  pub fn bind_type_with_default<T>(&self) -> Result<(), BindingError>
+  where
+    T: TypeKey, {
+    if let Some(serializer) = T::default_serializer() {
+      self.bind_type::<T>(serializer)
+    } else {
+      Ok(())
+    }
   }
 }
 
@@ -227,6 +286,14 @@ mod tests {
 
   use super::SharedArc;
   use super::*;
+  #[cfg(feature = "std")]
+  use alloc::string::String;
+  #[cfg(feature = "std")]
+  use cellex_serialization_core_rs::{impl_type_key, TypeKey};
+  #[cfg(feature = "std")]
+  use serde::{Deserialize, Serialize};
+  #[cfg(feature = "std")]
+  use serde_json;
 
   #[derive(Debug)]
   struct DummyExtension {
@@ -267,5 +334,72 @@ mod tests {
       .with::<DummyExtension, _, _>(id, |ext| ext.value)
       .expect("typed borrow");
     assert_eq!(value, 42);
+  }
+
+  #[cfg(feature = "std")]
+  #[test]
+  fn serializer_extension_installs_default_bindings() {
+    let extension = SerializerRegistryExtension::new();
+    let router = extension.router();
+
+    let serializer = router
+      .resolve_serializer(<JsonTypeKey as TypeKey>::type_key())
+      .expect("json binding should exist");
+    assert_eq!(serializer.serializer_id(), SERDE_JSON_SERIALIZER_ID);
+
+    let serializer = router
+      .resolve_serializer(<ProstTypeKey as TypeKey>::type_key())
+      .expect("prost binding should exist");
+    assert_eq!(serializer.serializer_id(), PROST_SERIALIZER_ID);
+  }
+
+  #[cfg(all(feature = "std", feature = "postcard"))]
+  #[test]
+  fn serializer_extension_installs_postcard_binding() {
+    let extension = SerializerRegistryExtension::new();
+    let router = extension.router();
+
+    let serializer = router
+      .resolve_serializer(<PostcardTypeKey as TypeKey>::type_key())
+      .expect("postcard binding should exist");
+    assert_eq!(serializer.serializer_id(), POSTCARD_SERIALIZER_ID);
+  }
+
+  #[cfg(feature = "std")]
+  #[test]
+  fn router_round_trip_serializes_and_deserializes_payload() {
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+    struct JsonPayload {
+      message: String,
+      count: u32,
+    }
+
+    impl_type_key!(JsonPayload, "test.JsonPayload");
+
+    let extension = SerializerRegistryExtension::new();
+    extension
+      .bind_type::<JsonPayload>(SERDE_JSON_SERIALIZER_ID)
+      .expect("bind payload type");
+
+    let router = extension.router();
+    let serializer = router
+      .resolve_serializer(<JsonPayload as TypeKey>::type_key())
+      .expect("registered serializer");
+
+    let payload = JsonPayload {
+      message: "hello".to_owned(),
+      count: 7,
+    };
+    let encoded = serde_json::to_vec(&payload).expect("encode json");
+
+    let message = serializer
+      .serialize_with_type_name_opt(encoded.as_slice(), Some(<JsonPayload as TypeKey>::type_key()))
+      .expect("serialize");
+    assert_eq!(message.serializer_id, SERDE_JSON_SERIALIZER_ID);
+    assert_eq!(message.type_name.as_deref(), Some(<JsonPayload as TypeKey>::type_key()));
+
+    let decoded = serializer.deserialize(&message).expect("deserialize");
+    let recovered: JsonPayload = serde_json::from_slice(&decoded).expect("decode json");
+    assert_eq!(recovered, payload);
   }
 }

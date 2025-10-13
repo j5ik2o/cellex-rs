@@ -10,6 +10,7 @@ use alloc::vec::Vec;
 use alloc::string::ToString;
 use cellex_serialization_core_rs::error::{DeserializationError, SerializationError};
 use cellex_serialization_core_rs::id::SerializerId;
+use cellex_serialization_core_rs::impl_type_key;
 use cellex_serialization_core_rs::message::SerializedMessage;
 use cellex_serialization_core_rs::serializer::Serializer;
 use cellex_utils_core_rs::sync::ArcShared;
@@ -81,3 +82,9 @@ impl Serializer for PostcardSerializer {
 pub fn shared_postcard_serializer() -> ArcShared<PostcardSerializer> {
   ArcShared::new(PostcardSerializer::new())
 }
+
+/// Marker type representing postcard-encoded payload bindings.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct PostcardTypeKey;
+
+impl_type_key!(PostcardTypeKey, "cellex.serializer.postcard", POSTCARD_SERIALIZER_ID);

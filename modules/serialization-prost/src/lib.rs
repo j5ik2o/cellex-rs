@@ -4,6 +4,7 @@
 
 use cellex_serialization_core_rs::error::{DeserializationError, SerializationError};
 use cellex_serialization_core_rs::id::SerializerId;
+use cellex_serialization_core_rs::impl_type_key;
 use cellex_serialization_core_rs::message::SerializedMessage;
 use cellex_serialization_core_rs::serializer::Serializer;
 use cellex_utils_core_rs::sync::ArcShared;
@@ -78,3 +79,9 @@ impl Serializer for ProstSerializer {
 pub fn shared_prost_serializer() -> ArcShared<ProstSerializer> {
   ArcShared::new(ProstSerializer::new())
 }
+
+/// Marker type representing Prost-encoded payload bindings.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ProstTypeKey;
+
+impl_type_key!(ProstTypeKey, "cellex.serializer.prost", PROST_SERIALIZER_ID);
