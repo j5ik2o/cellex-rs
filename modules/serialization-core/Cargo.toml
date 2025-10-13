@@ -13,4 +13,4 @@ std = ["alloc"]
 
 [dependencies]
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
-spin = { version = "0.9", default-features = false, features = ["rwlock"] }
+spin = { version = "0.10", default-features = false, features = ["rwlock"] }
