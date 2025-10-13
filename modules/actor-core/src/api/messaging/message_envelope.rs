@@ -51,7 +51,7 @@ where
   ///
   /// # Arguments
   /// * `actor_ref` - Actor reference to send to
-  pub(crate) fn from_factory_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self
+  pub(crate) fn from_factory_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeEnv<R>>) -> Self
   where
     R: MailboxRuntime<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
@@ -129,7 +129,7 @@ where
 impl InternalMessageSender {
   /// Thread-safe helper retained for existing call sites.
   #[allow(dead_code)]
-  pub(crate) fn from_internal_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self
+  pub(crate) fn from_internal_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeEnv<R>>) -> Self
   where
     R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
@@ -535,4 +535,3 @@ where
 }
 
 impl<U> Element for MessageEnvelope<U> where U: Element {}
-type RuntimeParam<R> = RuntimeEnv<R>;

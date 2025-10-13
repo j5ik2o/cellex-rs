@@ -20,8 +20,6 @@ use crate::api::MessageEnvelope;
 use core::cell::RefCell;
 use core::marker::PhantomData;
 
-type RuntimeParam<R> = RuntimeEnv<R>;
-
 /// Properties that hold configuration for actor spawning.
 ///
 /// Includes actor behavior, mailbox settings, supervisor strategy, and more.
@@ -33,7 +31,7 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
-  inner: InternalProps<DynMessage, RuntimeParam<R>>,
+  inner: InternalProps<DynMessage, RuntimeEnv<R>>,
   _marker: PhantomData<U>,
   supervisor: SupervisorStrategyConfig,
 }
@@ -125,7 +123,7 @@ where
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();
 
-    let handler = move |ctx: &mut ActorContext<'_, DynMessage, RuntimeParam<R>, dyn Supervisor<DynMessage>>,
+    let handler = move |ctx: &mut ActorContext<'_, DynMessage, RuntimeEnv<R>, dyn Supervisor<DynMessage>>,
                         message: DynMessage| {
       let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
         panic!("unexpected message type delivered to typed handler");
@@ -158,7 +156,7 @@ where
   ///
   /// # Returns
   /// Tuple of `(InternalProps, SupervisorStrategyConfig)`
-  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, RuntimeParam<R>>, SupervisorStrategyConfig) {
+  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, RuntimeEnv<R>>, SupervisorStrategyConfig) {
     (self.inner, self.supervisor)
   }
 }

@@ -9,8 +9,6 @@ use core::marker::PhantomData;
 use super::system::RuntimeEnv;
 use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 
-type RuntimeParam<R> = RuntimeEnv<R>;
-
 /// Context for operating root actors.
 ///
 /// Performs actor spawning and message sending from the top level of the actor system.
@@ -22,8 +20,8 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeParam<R>>, {
-  pub(crate) inner: InternalRootContext<'a, DynMessage, RuntimeParam<R>, Strat>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>, {
+  pub(crate) inner: InternalRootContext<'a, DynMessage, RuntimeEnv<R>, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
 
@@ -34,7 +32,7 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeParam<R>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeEnv<R>>,
 {
   /// Spawns a new actor using the specified properties.
   ///

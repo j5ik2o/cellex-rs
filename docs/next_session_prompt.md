@@ -17,6 +17,9 @@
    - `type RuntimeParam<R> = RuntimeEnv<R>` など `RuntimeEnv` 固定の別名を廃止し、必要なら `R` そのものを使う。
    - 実装／テストコードで `RuntimeEnv<...>` を明示しているローカル変数・関数戻り値は、型推論に任せられるところから削除。
    - 明示が必要な箇所は最小限の境界（`impl MailboxRuntime` など）に寄せる。`ActorSystem` などのローカル変数注釈は `ActorSystem<_, _, _>` への部分推論、あるいは注釈ごと削除しておくとステップ4後のコンパイルエラーを防げる。
+   - `Context` / `ActorRef` / `Props` / `RootContext` / `MessageEnvelope` から `RuntimeParam` 別名を撤去し、必要箇所は `RuntimeEnv<R>` を直接参照する形に整理（2025-10-13 完了）。
+   - `spawn_actor_with_counter_extension` などテスト補助関数もジェネリック化して `TestMailboxRuntime` 固定を解消済み。
+   - 静的領域で具体型が必須なケース（例: `StaticCell<ActorSystem<u32, LocalMailboxRuntime, _>>`）は現状維持。今後の facade 導入時に個別対応すること。
    - 変更後は `cargo check -p cellex-actor-core-rs` を小刻みに回して検証。
 
 1. **トレイトのリネーム** (AIでやると遅いのでIDEでリファクタリング済み)
