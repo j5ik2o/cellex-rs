@@ -74,7 +74,7 @@ fn handle_request<U, R>(ctx: &mut Context<'_, '_, U, R>, reply: Response) -> Ask
 where
   U: Element,
   Response: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone + Send + Sync + 'static,
   R::Signal: Clone + Send + Sync + 'static,
 {

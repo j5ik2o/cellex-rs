@@ -1,32 +1,38 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
+  use cellex_actor_core_rs::{ActorRuntimeBundle, ActorSystem, ActorSystemConfig, MailboxOptions, Props};
+  use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
   use core::sync::atomic::{AtomicU32, Ordering};
   use embassy_executor::Executor;
-  use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
-  use cellex_actor_embedded_rs::{spawn_embassy_dispatcher, LocalMailboxFactory};
   use static_cell::StaticCell;
 
   static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-  static SYSTEM: StaticCell<ActorSystem<u32, LocalMailboxFactory>> = StaticCell::new();
+  static SYSTEM: StaticCell<ActorSystem<u32, LocalMailboxRuntime>> = StaticCell::new();
   pub static MESSAGE_SUM: AtomicU32 = AtomicU32::new(0);
+
+  define_embassy_dispatcher!(
+    pub fn dispatcher(system: ActorSystem<u32, LocalMailboxRuntime>)
+  );
 
   pub fn run() {
     let executor = EXECUTOR.init(Executor::new());
-    let system = SYSTEM.init_with(|| ActorSystem::new(LocalMailboxFactory::default()));
-
-    {
-      let mut root = system.root_context();
-      let actor_ref = root
-        .spawn(Props::new(MailboxOptions::default(), |_, msg: u32| {
-          MESSAGE_SUM.fetch_add(msg, Ordering::Relaxed);
-        }))
-        .expect("spawn actor");
-      actor_ref.tell(1).expect("tell");
-      actor_ref.tell(2).expect("tell");
-    }
 
     executor.run(|spawner| {
-      spawn_embassy_dispatcher(spawner, system).expect("spawn dispatcher");
+      let runtime = ActorRuntimeBundle::new(LocalMailboxRuntime::default()).with_embassy_scheduler(spawner);
+      let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, ActorSystemConfig::default()));
+
+      {
+        let mut root = system.root_context();
+        let actor_ref = root
+          .spawn(Props::new(MailboxOptions::default(), |_, msg: u32| {
+            MESSAGE_SUM.fetch_add(msg, Ordering::Relaxed);
+          }))
+          .expect("spawn actor");
+        actor_ref.tell(1).expect("tell");
+        actor_ref.tell(2).expect("tell");
+      }
+
+      spawner.spawn(dispatcher(system)).expect("spawn dispatcher");
     });
   }
 }

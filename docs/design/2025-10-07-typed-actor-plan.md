@@ -68,7 +68,7 @@ pub struct TypedActorRef<M> {
 ## 実装の分割
 1. `actor-core`
    - `Behavior<M>` 型（enum／builder）と `TypedContext` の抽象。
-   - typed → untyped 変換を担う `TypedMailboxFactory<M, R>`（`PriorityEnvelope::map` を活用）。
+   - typed → untyped 変換を担う `TypedMailboxRuntime<M, R>`（`PriorityEnvelope::map` を活用）。
 2. `actor-std` / `actor-embedded`
    - 実行環境ごとの typed API（`TypedProps`, `TypedActorSystem`）を提供。
    - `spawn_typed::<MyActor>()` など user-facing API を定義。
@@ -77,12 +77,6 @@ pub struct TypedActorRef<M> {
 - `TypedActor` trait のメソッドシグネチャ（start/stop/system メッセージ処理）。
 - `ask` / `tell` のシンプルな型付きラッパー。
 - `spawn_child` が返す `TypedActorRef` をプロミスベースで扱える仕組み。
-
-## TODO
-1. `Behavior<M>` と `TypedContext<M>` の最小実装を `actor-core` に追加。（2025-10-07 完了）
-2. typed → untyped アダプタ（`TypedActorAdapter`）を作成し、`map_system` クロージャを生成する API を定義。（2025-10-08 完了）
-3. `TypedProps` 初期化時に `map_system` を `ActorContext::spawn_child` へ渡す経路を実装。（2025-10-08 完了）
-4. サンプルアクター（stateless/stateful）で単体テストし、SystemMessage が typed 層に伝播する統合テストを整備。
 
 ## 実装知見 (2025-10-08)
 

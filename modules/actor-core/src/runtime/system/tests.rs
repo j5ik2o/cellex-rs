@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::runtime::guardian::AlwaysRestart;
-use crate::runtime::mailbox::test_support::TestMailboxFactory;
+use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::message::DynMessage;
 use crate::{MailboxOptions, SystemMessage};
 use alloc::rc::Rc;
@@ -10,9 +10,9 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 
 use crate::MapSystemShared;
+use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;
-use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 
 #[cfg(feature = "std")]
 #[derive(Debug, Clone)]
@@ -27,7 +27,7 @@ impl Element for Message {}
 #[cfg(feature = "std")]
 #[test]
 fn actor_system_spawns_and_processes_messages() {
-  let factory = TestMailboxFactory::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(factory);
 
   let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));

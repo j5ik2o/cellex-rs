@@ -1,75 +1,94 @@
+#![allow(missing_docs)]
+
 use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::Infallible;
+use core::marker::PhantomData;
 
-use crate::runtime::context::{ActorContext, ActorHandlerFn, InternalActorRef};
+use async_trait::async_trait;
+
+use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
+use crate::runtime::mailbox::traits::{Mailbox, MailboxProducer};
 use crate::runtime::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::EscalationSink;
 use crate::Extensions;
+use crate::FailureEventHandler;
+use crate::FailureEventListener;
 use crate::FailureInfo;
 use crate::Supervisor;
-use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope};
+use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
+use cellex_utils_core_rs::{Element, QueueError};
 use futures::future::select_all;
 use futures::FutureExt;
-use cellex_utils_core_rs::{Element, QueueError};
 
 use super::actor_cell::ActorCell;
-use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
+use super::actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
+use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub struct PriorityScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
-  runtime: R,
   pub(super) guardian: Guardian<M, R, Strat>,
   actors: Vec<ActorCell<M, R, Strat>>,
   escalations: Vec<FailureInfo>,
   escalation_sink: CompositeEscalationSink<M, R>,
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  metrics_sink: Option<MetricsSinkShared>,
   extensions: Extensions,
+  _strategy: PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
 impl<M, R> PriorityScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R: MailboxRuntime + Clone + 'static,
 {
   pub fn new(runtime: R, extensions: Extensions) -> Self {
-    Self {
-      runtime: runtime.clone(),
-      guardian: Guardian::new(AlwaysRestart),
-      actors: Vec::new(),
-      escalations: Vec::new(),
-      escalation_sink: CompositeEscalationSink::new(),
-      receive_timeout_factory: None,
-      extensions,
-    }
+    Self::with_strategy(runtime, AlwaysRestart, extensions)
   }
 
-  pub fn with_strategy<Strat>(runtime: R, strategy: Strat, extensions: Extensions) -> PriorityScheduler<M, R, Strat>
+  pub fn with_strategy<Strat>(_runtime: R, strategy: Strat, extensions: Extensions) -> PriorityScheduler<M, R, Strat>
   where
     Strat: GuardianStrategy<M, R>, {
     PriorityScheduler {
-      runtime,
       guardian: Guardian::new(strategy),
       actors: Vec::new(),
       escalations: Vec::new(),
-      escalation_sink: CompositeEscalationSink::new(),
+      escalation_sink: CompositeEscalationSink::default(),
       receive_timeout_factory: None,
+      metrics_sink: None,
       extensions,
+      _strategy: PhantomData,
     }
+  }
+}
+
+impl<M, R> SchedulerBuilder<M, R>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+{
+  pub fn priority() -> Self {
+    Self::new(|runtime, extensions| Box::new(PriorityScheduler::new(runtime, extensions)))
+  }
+
+  #[allow(dead_code)]
+  pub fn with_strategy<Strat>(self, strategy: Strat) -> Self
+  where
+    Strat: GuardianStrategy<M, R> + Clone + Send + Sync, {
+    let _ = self;
+    Self::new(move |runtime, extensions| {
+      Box::new(PriorityScheduler::with_strategy(runtime, strategy.clone(), extensions))
+    })
   }
 }
 
@@ -77,23 +96,28 @@ where
 impl<M, R, Strat> PriorityScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
-  pub fn spawn_actor<F>(
+  pub fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    options: MailboxOptions,
-    map_system: MapSystemShared<M>,
-    handler: F,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
-  where
-    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static, {
-    let (mailbox, sender) = self.runtime.build_mailbox::<PriorityEnvelope<M>>(options);
+    context: SchedulerSpawnContext<M, R>,
+  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+    let SchedulerSpawnContext {
+      runtime,
+      mailbox_factory,
+      map_system,
+      mailbox_options,
+      handler,
+    } = context;
+    let mailbox_factory = mailbox_factory.with_metrics_sink(self.metrics_sink.clone());
+    let mut mailbox_spawner = mailbox_factory.priority_spawner();
+    mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
+    let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
+    mailbox.set_metrics_sink(self.metrics_sink.clone());
+    sender.set_metrics_sink(self.metrics_sink.clone());
     let actor_sender = sender.clone();
-    let handler_box: Box<ActorHandlerFn<M, R>> = Box::new(handler);
     let control_ref = InternalActorRef::new(actor_sender.clone());
     let watchers = vec![ActorId::ROOT];
     let primary_watcher = watchers.first().copied();
@@ -102,20 +126,23 @@ where
       self
         .guardian
         .register_child(control_ref.clone(), map_system.clone(), primary_watcher, &parent_path)?;
-    let cell = ActorCell::new(
+    let mut cell = ActorCell::new(
       actor_id,
       map_system,
       watchers,
       actor_path,
-      self.runtime.clone(),
+      runtime,
+      mailbox_spawner,
       mailbox,
       sender,
       supervisor,
-      handler_box,
+      handler,
       self.receive_timeout_factory.clone(),
       self.extensions.clone(),
     );
+    cell.set_metrics_sink(self.metrics_sink.clone());
     self.actors.push(cell);
+    self.record_metric(MetricsEvent::ActorRegistered);
     Ok(control_ref)
   }
 
@@ -214,6 +241,13 @@ where
     }
   }
 
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink.clone();
+    for actor in &mut self.actors {
+      actor.set_metrics_sink(sink.clone());
+    }
+  }
+
   pub fn on_escalation<F>(&mut self, handler: F)
   where
     F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
@@ -278,7 +312,9 @@ where
     let mut processed_any = false;
     for idx in 0..len {
       let cell = &mut self.actors[idx];
-      if cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)? > 0 {
+      let processed = cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+      if processed > 0 {
+        self.record_messages_dequeued(processed);
         processed_any = true;
       }
     }
@@ -291,12 +327,14 @@ where
     }
 
     let mut new_children = Vec::new();
-    let processed = self.actors[index]
+    let processed_count = self.actors[index]
       .wait_and_process(&mut self.guardian, &mut new_children, &mut self.escalations)
-      .await?
-      > 0;
+      .await?;
+    if processed_count > 0 {
+      self.record_messages_dequeued(processed_count);
+    }
 
-    self.finish_cycle(new_children, processed)
+    self.finish_cycle(new_children, processed_count > 0)
   }
 
   fn finish_cycle(
@@ -305,7 +343,9 @@ where
     processed_any: bool,
   ) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
     if !new_children.is_empty() {
+      let added = new_children.len();
       self.actors.extend(new_children);
+      self.record_repeated(MetricsEvent::ActorRegistered, added);
     }
 
     let handled = self.handle_escalations()?;
@@ -334,6 +374,91 @@ where
   fn prune_stopped(&mut self) -> bool {
     let before = self.actors.len();
     self.actors.retain(|cell| !cell.is_stopped());
-    before != self.actors.len()
+    let removed = before.saturating_sub(self.actors.len());
+    if removed > 0 {
+      self.record_repeated(MetricsEvent::ActorDeregistered, removed);
+      return true;
+    }
+    false
+  }
+
+  fn record_metric(&self, event: MetricsEvent) {
+    self.record_repeated(event, 1);
+  }
+
+  fn record_messages_dequeued(&self, count: usize) {
+    self.record_repeated(MetricsEvent::MailboxDequeued, count);
+  }
+
+  fn record_repeated(&self, event: MetricsEvent, count: usize) {
+    if count == 0 {
+      return;
+    }
+    if let Some(sink) = &self.metrics_sink {
+      sink.with_ref(|sink| {
+        for _ in 0..count {
+          sink.record(event);
+        }
+      });
+    }
+  }
+}
+
+#[async_trait(?Send)]
+impl<M, R, Strat> ActorScheduler<M, R> for PriorityScheduler<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>,
+{
+  fn spawn_actor(
+    &mut self,
+    supervisor: Box<dyn Supervisor<M>>,
+    context: SchedulerSpawnContext<M, R>,
+  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+    PriorityScheduler::spawn_actor(self, supervisor, context)
+  }
+
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+    PriorityScheduler::set_receive_timeout_factory(self, factory);
+  }
+
+  fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
+    PriorityScheduler::set_root_event_listener(self, listener);
+  }
+
+  fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
+    PriorityScheduler::set_root_escalation_handler(self, handler);
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    PriorityScheduler::set_metrics_sink(self, sink);
+  }
+
+  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+    PriorityScheduler::set_parent_guardian(self, control_ref, map_system);
+  }
+
+  fn on_escalation(
+    &mut self,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+  ) {
+    PriorityScheduler::on_escalation(self, handler);
+  }
+
+  fn take_escalations(&mut self) -> Vec<FailureInfo> {
+    PriorityScheduler::take_escalations(self)
+  }
+
+  fn actor_count(&self) -> usize {
+    PriorityScheduler::actor_count(self)
+  }
+
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+    PriorityScheduler::drain_ready(self)
+  }
+
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+    PriorityScheduler::dispatch_next(self).await
   }
 }

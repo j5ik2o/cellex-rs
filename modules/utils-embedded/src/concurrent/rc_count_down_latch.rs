@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 
+use cellex_utils_core_rs::{async_trait, CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 use embassy_sync::signal::Signal;
-use cellex_utils_core_rs::{async_trait, CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
 
 /// Backend for `Rc`-based countdown latch implementation.
 ///

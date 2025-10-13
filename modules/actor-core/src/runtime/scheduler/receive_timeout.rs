@@ -3,8 +3,11 @@ use core::time::Duration;
 
 use cellex_utils_core_rs::Element;
 
+use crate::api::actor::ActorRuntimeBundle;
+use crate::runtime::message::DynMessage;
+use crate::shared::{ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared};
 use crate::MapSystemShared;
-use crate::{MailboxFactory, PriorityEnvelope, QueueMailboxProducer};
+use crate::{MailboxRuntime, PriorityEnvelope};
 
 /// Scheduler abstraction for managing actor `ReceiveTimeout`.
 ///
@@ -33,13 +36,63 @@ pub trait ReceiveTimeoutScheduler: Send {
 pub trait ReceiveTimeoutSchedulerFactory<M, R>: Send + Sync
 where
   M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone, {
   /// Creates an actor-specific scheduler by receiving a priority mailbox and SystemMessage conversion function.
   fn create(
     &self,
-    sender: QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+    sender: R::Producer<PriorityEnvelope<M>>,
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler>;
+}
+
+/// `ReceiveTimeoutScheduler` implementation that performs no scheduling.
+#[derive(Default)]
+pub struct NoopReceiveTimeoutScheduler;
+
+impl ReceiveTimeoutScheduler for NoopReceiveTimeoutScheduler {
+  fn set(&mut self, _duration: core::time::Duration) {}
+
+  fn cancel(&mut self) {}
+
+  fn notify_activity(&mut self) {}
+}
+
+/// Factory that returns [`NoopReceiveTimeoutScheduler`].
+#[derive(Debug, Default, Clone)]
+pub struct NoopReceiveTimeoutSchedulerFactory;
+
+impl<M, R> ReceiveTimeoutSchedulerFactory<M, R> for NoopReceiveTimeoutSchedulerFactory
+where
+  M: Element + 'static,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone,
+{
+  fn create(
+    &self,
+    _sender: R::Producer<PriorityEnvelope<M>>,
+    _map_system: MapSystemShared<M>,
+  ) -> Box<dyn ReceiveTimeoutScheduler> {
+    Box::new(NoopReceiveTimeoutScheduler::default())
+  }
+}
+
+/// Driver that always provides [`NoopReceiveTimeoutSchedulerFactory`].
+#[derive(Debug, Default, Clone)]
+pub struct NoopReceiveTimeoutDriver;
+
+impl<R> ReceiveTimeoutDriver<R> for NoopReceiveTimeoutDriver
+where
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<DynMessage>>: Clone,
+{
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, ActorRuntimeBundle<R>> {
+    ReceiveTimeoutFactoryShared::new(NoopReceiveTimeoutSchedulerFactory::default()).for_runtime_bundle()
+  }
 }

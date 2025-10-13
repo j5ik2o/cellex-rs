@@ -1,12 +1,15 @@
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::SystemMessage;
-use crate::{MailboxFactory, PriorityEnvelope, RuntimeBound};
+use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
+use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::future::Future;
 use core::marker::PhantomData;
-use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 
+use super::system::ActorRuntimeBundle;
 use super::{ask::create_ask_handles, ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
+
+type RuntimeParam<R> = ActorRuntimeBundle<R>;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 
 /// Typed actor reference.
@@ -17,18 +20,18 @@ use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, Messag
 pub struct ActorRef<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
-  inner: InternalActorRef<DynMessage, R>,
+  inner: InternalActorRef<DynMessage, RuntimeParam<R>>,
   _marker: PhantomData<U>,
 }
 
 impl<U, R> ActorRef<U, R>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
@@ -37,7 +40,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Internal actor reference
-  pub(crate) fn new(inner: InternalActorRef<DynMessage, R>) -> Self {
+  pub(crate) fn new(inner: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self {
     Self {
       inner,
       _marker: PhantomData,

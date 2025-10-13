@@ -1,31 +1,30 @@
-#![cfg(feature = "serde-json")]
+//! serde_json ベースのシリアライザ実装。
 
-//! Serializer implementation backed by `serde_json`.
+#![deny(missing_docs)]
 
-use crate::error::{DeserializationError, SerializationError};
-use crate::id::SerializerId;
-use crate::message::SerializedMessage;
-use crate::serializer::Serializer;
-use alloc::vec::Vec;
+use cellex_serialization_core_rs::error::{DeserializationError, SerializationError};
+use cellex_serialization_core_rs::id::SerializerId;
+use cellex_serialization_core_rs::message::SerializedMessage;
+use cellex_serialization_core_rs::serializer::Serializer;
 use cellex_utils_core_rs::sync::ArcShared;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-/// Serializer identifier reserved for serde_json.
+/// `serde_json` 用に予約されたシリアライザ ID。
 pub const SERDE_JSON_SERIALIZER_ID: SerializerId = SerializerId::new(1);
 
-/// Serializer implementation backed by `serde_json`.
+/// `serde_json` バックエンドのシリアライザ実装。
 #[derive(Debug, Clone, Default)]
 pub struct SerdeJsonSerializer;
 
 impl SerdeJsonSerializer {
-  /// Creates a new instance of the serde_json serializer.
+  /// 新しいインスタンスを生成します。
   #[must_use]
   pub const fn new() -> Self {
     Self
   }
 
-  /// Serializes the provided value and returns a [`SerializedMessage`].
+  /// 値をシリアライズし [`SerializedMessage`] を生成します。
   pub fn serialize_value<T>(
     &self,
     type_name: Option<&str>,
@@ -37,7 +36,7 @@ impl SerdeJsonSerializer {
     self.serialize_with_type_name_opt(payload.as_slice(), type_name)
   }
 
-  /// Deserializes the provided message into the requested type.
+  /// メッセージを指定した型にデシリアライズします。
   pub fn deserialize_value<T>(&self, message: &SerializedMessage) -> Result<T, DeserializationError>
   where
     T: DeserializeOwned, {
@@ -74,7 +73,7 @@ impl Serializer for SerdeJsonSerializer {
   }
 }
 
-/// Convenience wrapper that produces an `ArcShared` serializer instance.
+/// 共有シリアライザインスタンスを生成します。
 #[must_use]
 pub fn shared_json_serializer() -> ArcShared<SerdeJsonSerializer> {
   ArcShared::new(SerdeJsonSerializer::new())

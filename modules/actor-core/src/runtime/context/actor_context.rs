@@ -3,13 +3,15 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
+use crate::runtime::mailbox::traits::MailboxProducer;
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
 use crate::Supervisor;
-use crate::{MailboxFactory, MailboxOptions, PriorityEnvelope, QueueMailboxProducer};
+use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use crate::runtime::scheduler::ReceiveTimeoutScheduler;
@@ -20,15 +22,17 @@ use super::{ChildSpawnSpec, InternalActorRef};
 use crate::runtime::system::InternalProps;
 use crate::MapSystemShared;
 
+/// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
 pub type ActorHandlerFn<M, R> = dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static;
 /// Context for actors to operate on themselves and child actors.
 pub struct ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime + Clone,
   Sup: Supervisor<M> + ?Sized, {
   runtime: &'a R,
-  sender: &'a QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+  mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
+  sender: &'a R::Producer<PriorityEnvelope<M>>,
   supervisor: &'a mut Sup,
   #[allow(dead_code)]
   pending_spawns: &'a mut Vec<ChildSpawnSpec<M, R>>,
@@ -46,13 +50,14 @@ where
 impl<'a, M, R, Sup> ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime + Clone,
   Sup: Supervisor<M> + ?Sized,
 {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     runtime: &'a R,
-    sender: &'a QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+    mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
+    sender: &'a R::Producer<PriorityEnvelope<M>>,
     supervisor: &'a mut Sup,
     pending_spawns: &'a mut Vec<ChildSpawnSpec<M, R>>,
     map_system: MapSystemShared<M>,
@@ -64,6 +69,7 @@ where
   ) -> Self {
     Self {
       runtime,
+      mailbox_spawner,
       sender,
       supervisor,
       pending_spawns,
@@ -86,13 +92,17 @@ where
   /// Applies the provided closure to the extension identified by `id`.
   pub fn extension<E, F, T>(&self, id: ExtensionId, f: F) -> Option<T>
   where
-    E: Extension,
+    E: Extension + 'static,
     F: FnOnce(&E) -> T, {
     self.extensions.with::<E, _, _>(id, f)
   }
 
   pub fn runtime(&self) -> &R {
     self.runtime
+  }
+
+  pub fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<M, R> {
+    &self.mailbox_spawner
   }
 
   pub fn supervisor(&mut self) -> &mut Sup {
@@ -126,7 +136,8 @@ where
   pub(crate) fn self_ref(&self) -> InternalActorRef<M, R>
   where
     R::Queue<PriorityEnvelope<M>>: Clone,
-    R::Signal: Clone, {
+    R::Signal: Clone,
+    R::Producer<PriorityEnvelope<M>>: Clone, {
     InternalActorRef::new(self.sender.clone())
   }
 
@@ -138,7 +149,7 @@ where
     map_system: MapSystemShared<M>,
     handler: Box<ActorHandlerFn<M, R>>,
   ) -> InternalActorRef<M, R> {
-    let (mailbox, sender) = self.runtime.build_mailbox::<PriorityEnvelope<M>>(options);
+    let (mailbox, sender) = self.mailbox_spawner.spawn_mailbox(options);
     let actor_ref = InternalActorRef::new(sender.clone());
     let watchers = vec![self.actor_id];
     self.pending_spawns.push(ChildSpawnSpec {
@@ -146,6 +157,7 @@ where
       sender,
       supervisor,
       handler,
+      mailbox_spawner: self.mailbox_spawner.clone(),
       watchers,
       map_system,
       parent_path: self.actor_path.clone(),
@@ -177,7 +189,7 @@ where
     props: InternalProps<M, R>,
   ) -> InternalActorRef<M, R>
   where
-    R: MailboxFactory + Clone + 'static, {
+    R: MailboxRuntime + Clone + 'static, {
     let InternalProps {
       options,
       map_system,

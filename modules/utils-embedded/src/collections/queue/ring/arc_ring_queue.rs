@@ -1,8 +1,8 @@
-use embassy_sync::blocking_mutex::raw::{NoopRawMutex, RawMutex};
 use cellex_utils_core_rs::{
   QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, RingBuffer, RingQueue, RingStorageBackend,
   DEFAULT_CAPACITY,
 };
+use embassy_sync::blocking_mutex::raw::{NoopRawMutex, RawMutex};
 
 use crate::sync::{ArcShared, ArcStateCell};
 

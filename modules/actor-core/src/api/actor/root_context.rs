@@ -1,12 +1,15 @@
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalRootContext;
-use crate::{ActorRef, Extension, ExtensionId, Extensions, MailboxFactory, PriorityEnvelope, Props};
+use crate::{ActorRef, Extension, ExtensionId, Extensions, MailboxRuntime, PriorityEnvelope, Props};
 use alloc::boxed::Box;
+use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
 use core::marker::PhantomData;
-use cellex_utils_core_rs::{Element, QueueError};
 
+use super::system::ActorRuntimeBundle;
 use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
+
+type RuntimeParam<R> = ActorRuntimeBundle<R>;
 
 /// Context for operating root actors.
 ///
@@ -15,23 +18,23 @@ use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 pub struct RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
-  pub(crate) inner: InternalRootContext<'a, DynMessage, R, Strat>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeParam<R>>, {
+  pub(crate) inner: InternalRootContext<'a, DynMessage, RuntimeParam<R>, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
 
 impl<'a, U, R, Strat> RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, RuntimeParam<R>>,
 {
   /// Spawns a new actor using the specified properties.
   ///
@@ -124,7 +127,7 @@ where
   /// Applies the provided closure to the extension identified by `id`.
   pub fn extension<E, F, T>(&self, id: ExtensionId, f: F) -> Option<T>
   where
-    E: Extension,
+    E: Extension + 'static,
     F: FnOnce(&E) -> T, {
     self.extensions().with::<E, _, _>(id, f)
   }

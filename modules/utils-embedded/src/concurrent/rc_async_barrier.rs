@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 
+use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::signal::Signal;
-use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
 
 /// Backend for `Rc`-based asynchronous barrier implementation.
 ///

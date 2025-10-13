@@ -200,7 +200,7 @@ impl fmt::Debug for CoreActorContextSnapshot {
 }
 
 pub type CorePropsFactory = Box<dyn Fn() -> CoreProps + Send + Sync>;
-pub type CoreMailboxFactory =
+pub type CoreMailboxRuntime =
   Arc<dyn Fn() -> CoreMailboxFuture<'static, Arc<dyn CoreMailbox + Send + Sync>> + Send + Sync>;
 pub type CoreSupervisorStrategyHandle = Arc<dyn CoreSupervisorStrategy + Send + Sync>;
 
@@ -383,7 +383,7 @@ pub type CoreSpawnMiddlewareChainHandle = crate::context::middleware::CoreSpawnM
 #[derive(Clone)]
 pub struct CoreProps {
   pub actor_type: Option<alloc::sync::Arc<str>>,
-  pub mailbox_factory: Option<CoreMailboxFactory>,
+  pub mailbox_factory: Option<CoreMailboxRuntime>,
   pub supervisor_strategy: Option<CoreSupervisorStrategyHandle>,
   pub receiver_middleware_chain: Option<CoreReceiverMiddlewareChainHandle>,
   pub sender_middleware_chain: Option<CoreSenderMiddlewareChainHandle>,
@@ -419,7 +419,7 @@ impl CoreProps {
   }
 
   #[must_use]
-  pub fn with_mailbox_factory(mut self, factory: CoreMailboxFactory) -> Self {
+  pub fn with_mailbox_factory(mut self, factory: CoreMailboxRuntime) -> Self {
     self.mailbox_factory = Some(factory);
     self
   }
@@ -455,7 +455,7 @@ impl CoreProps {
   }
 
   #[must_use]
-  pub fn mailbox_factory(&self) -> Option<&CoreMailboxFactory> {
+  pub fn mailbox_factory(&self) -> Option<&CoreMailboxRuntime> {
     self.mailbox_factory.as_ref()
   }
 

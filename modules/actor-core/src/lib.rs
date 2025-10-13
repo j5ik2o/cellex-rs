@@ -76,8 +76,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use core::time::Duration;
 use cellex_utils_core_rs::QueueError;
+use core::time::Duration;
 
 mod api;
 #[cfg(feature = "alloc")]
@@ -90,13 +90,21 @@ pub use api::*;
 pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
+pub use runtime::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 pub use runtime::mailbox::traits::{SingleThread, ThreadSafe};
-pub use runtime::mailbox::{PriorityEnvelope, SystemMessage};
+pub use runtime::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};
 pub use runtime::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
 };
-pub use runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
-pub use shared::{FailureEventHandlerShared, FailureEventListenerShared, MapSystemShared, ReceiveTimeoutFactoryShared};
+pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
+pub use runtime::scheduler::{
+  ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory, PriorityScheduler,
+  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
+};
+pub use shared::{
+  FailureEventHandlerShared, FailureEventListenerShared, MapSystemShared, ReceiveTimeoutDriver,
+  ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
+};
 
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.
 #[cfg(target_has_atomic = "ptr")]
@@ -151,13 +159,13 @@ mod tests {
 
   use super::*;
   use alloc::rc::Rc;
+  use cellex_utils_core_rs::{MpscBuffer, MpscHandle, MpscQueue, QueueError, RingBufferBackend, Shared, StateCell};
   use core::cell::{Ref, RefCell, RefMut};
   use core::fmt;
   use core::future::Future;
   use core::pin::Pin;
   use core::ptr;
   use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-  use cellex_utils_core_rs::{MpscBuffer, MpscHandle, MpscQueue, QueueError, RingBufferBackend, Shared, StateCell};
 
   struct TestStateCell<T>(Rc<RefCell<T>>);
 

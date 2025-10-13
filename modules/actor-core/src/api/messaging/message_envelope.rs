@@ -3,15 +3,16 @@ use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 
+use crate::api::actor::ActorRuntimeBundle;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::mailbox::traits::{MailboxConcurrency, ThreadSafe};
 use crate::runtime::message::{discard_metadata, store_metadata, DynMessage, MetadataKey, MetadataStorageMode};
 use crate::SystemMessage;
-use crate::{MailboxFactory, PriorityEnvelope, RuntimeBound};
-use core::marker::PhantomData;
-use core::mem::{forget, ManuallyDrop};
+use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
+use core::marker::PhantomData;
+use core::mem::{forget, ManuallyDrop};
 
 #[cfg(target_has_atomic = "ptr")]
 type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
@@ -50,9 +51,9 @@ where
   ///
   /// # Arguments
   /// * `actor_ref` - Actor reference to send to
-  pub(crate) fn from_factory_ref<R>(actor_ref: InternalActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_factory_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self
   where
-    R: MailboxFactory<Concurrency = C> + Clone + 'static,
+    R: MailboxRuntime<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
@@ -128,9 +129,9 @@ where
 impl InternalMessageSender {
   /// Thread-safe helper retained for existing call sites.
   #[allow(dead_code)]
-  pub(crate) fn from_internal_ref<R>(actor_ref: InternalActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_internal_ref<R>(actor_ref: InternalActorRef<DynMessage, RuntimeParam<R>>) -> Self
   where
-    R: MailboxFactory + Clone + 'static,
+    R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
@@ -534,3 +535,4 @@ where
 }
 
 impl<U> Element for MessageEnvelope<U> where U: Element {}
+type RuntimeParam<R> = ActorRuntimeBundle<R>;

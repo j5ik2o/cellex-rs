@@ -10,9 +10,10 @@ use core::task::{Context, Poll};
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 use embassy_sync::signal::Signal;
 
+use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 use cellex_utils_embedded_rs::queue::mpsc::ArcMpscUnboundedQueue;
@@ -34,13 +35,13 @@ where
   inner: QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
 }
 
-pub struct ArcMailboxFactory<RM = CriticalSectionRawMutex>
+pub struct ArcMailboxRuntime<RM = CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   _marker: PhantomData<RM>,
 }
 
-impl<RM> Clone for ArcMailboxFactory<RM>
+impl<RM> Clone for ArcMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -49,7 +50,7 @@ where
   }
 }
 
-impl<RM> Default for ArcMailboxFactory<RM>
+impl<RM> Default for ArcMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -135,7 +136,7 @@ where
   }
 }
 
-impl<RM> ArcMailboxFactory<RM>
+impl<RM> ArcMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -157,18 +158,26 @@ where
   }
 }
 
-impl<RM> MailboxFactory for ArcMailboxFactory<RM>
+impl<RM> MailboxRuntime for ArcMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
   type Concurrency = ThreadSafe;
+  type Mailbox<M>
+    = QueueMailbox<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
+  type Producer<M>
+    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
   type Queue<M>
     = ArcMpscUnboundedQueue<M, RM>
   where
     M: Element;
   type Signal = ArcSignal<RM>;
 
-  fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     let queue = ArcMpscUnboundedQueue::new();
@@ -185,11 +194,15 @@ where
   RM: RawMutex,
 {
   pub fn new() -> (Self, ArcMailboxSender<M, RM>) {
-    ArcMailboxFactory::<RM>::new().unbounded()
+    ArcMailboxRuntime::<RM>::new().unbounded()
   }
 
   pub fn inner(&self) -> &QueueMailbox<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
+  }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -228,6 +241,10 @@ where
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
   }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 impl<M, RM> ArcMailboxSender<M, RM>
@@ -246,5 +263,9 @@ where
 
   pub fn inner(&self) -> &QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
+  }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }

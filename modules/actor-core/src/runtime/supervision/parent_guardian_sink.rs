@@ -1,7 +1,8 @@
 use crate::runtime::context::InternalActorRef;
+use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::EscalationSink;
 use crate::FailureInfo;
-use crate::MailboxFactory;
+use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::{PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::Element;
@@ -10,7 +11,7 @@ use cellex_utils_core_rs::Element;
 pub(crate) struct ParentGuardianSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   control_ref: InternalActorRef<M, R>,
@@ -20,7 +21,7 @@ where
 impl<M, R> ParentGuardianSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -35,7 +36,7 @@ where
 impl<M, R> EscalationSink<M, R> for ParentGuardianSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

@@ -49,45 +49,10 @@
   - `PriorityActorRef` は低レベル API として引き続き存在し、typed 層はその上に構築される。
 
 ## 非同期ディスパッチ API ステータス（2025-10-07 更新）
-- [x] `PriorityScheduler` に `dispatch_next` / `drain_ready_cycle` / `process_waiting_actor` を導入し、シグナル待機で次メッセージを `await` できるようにした。同期系 `dispatch_all` も内部で同じ処理経路を利用する。
-- [x] `RootContext` が `dispatch_next().await` を公開し、Tokio／embedded から非同期ディスパッチを直接呼び出せるようになった（typed 層でも同じ API を利用）。
-- [x] actor-std のユニットテストを `dispatch_next().await` ベースへ移行。Tokio MailboxFactory との整合性確認済み。
-- [x] actor-embedded テストで Condvar ベースの `block_on` を用意し、ローカルランタイムでもシグナル待機をスピン無しで駆動できるようにした。
-- [x] Scheduler 向けの `run_forever()` / `blocking_dispatch_loop()` など高水準ランナを追加し、アプリケーションが簡単に常駐タスクを起動できるようにする。`PriorityScheduler` に常駐向け API 群を実装し、`scheduler_blocking_dispatch_loop_stops_with_closure` などのテストで挙動を確認済み。（2025-10-07）
-- [x] actor-embedded については Embassy executor との統合ラッパ（例: `EmbassyActorSystem`）を整備し、`Spawner` から `dispatch_next` を起動するガイドを文書化する。`modules/actor-embedded/examples/embassy_run_forever.rs` と `docs/worknotes/2025-10-07-embassy-dispatcher.md` に手順をまとめた。（2025-10-07）
-- [x] `dispatch_all` の段階的非推奨戦略を整理し、`docs/design/2025-10-07-dispatch-transition.md` に移行手順をまとめた。
-## EscalationSink TODO リスト
-- [x] `actor-core`: `SchedulerEscalationSink` をパブリック API として再編し、
-      `trait EscalationSink`（handle 戻り値 `Result<(), FailureInfo>`）と具体実装
-      （親ガーディアン／カスタム／合成）を提供する。`modules/actor-core/src/escalation.rs` に
-      `ParentGuardianSink` / `CustomEscalationSink` / `CompositeEscalationSink` / `RootEscalationSink` を実装し、
-      `lib.rs` から公開済み。（2025-10-07）
-- [x] `PriorityScheduler`: Builder もしくは設定 API で EscalationSink を注入可能にし、
-      子スケジューラがルートに参加する際に同一ポリシーを共有できるようにする。
-      `PriorityScheduler::set_parent_guardian` / `on_escalation` / `set_root_escalation_handler` /
-      `set_root_event_listener` を導入し、テストで動作確認済み。（2025-10-07）
-- [x] `Guardian`: `escalate_failure` の戻り値を拡張し、
-      `SupervisorDirective::Stop`／`Restart` を返さなかったケースでも FailureInfo に
-      サブタイプ（例: `EscalationStage`）を付与できるよう検討する。
-      `FailureInfo` に `EscalationStage` を追加し、`escalate_to_parent()` が段数をインクリメントすることで
-      Guardian／Scheduler 経由の伝播段数を追跡可能にした。（2025-10-07）
-- [x] `Props` / `ActorSystem` / `RootContext` 高水準 API を actor-core に追加し、Scheduler への直接依存なしに
-      アクターを起動・メッセージ送信できるようにする。
-- [x] `ActorContext` / `ChildSpawnSpec`: `map_system` だけでなく EscalationSink のフックを
-      親から子へ伝搬させ、Typed DSL で `SystemMessage::Escalate` を型安全に変換できるようにする。
-      `ChildSpawnSpec` が親の `map_system` を保持し、`Guardian::child_route` + `forward_to_local_parent`
-      が `SystemMessage::Escalate` を親のユーザーメッセージ型へ写像することで typed DSL へ橋渡しできることを確認。（2025-10-07）
-- [ ] `TypedMailboxAdapter`（予定）: `SystemMessage::Failure` と `SystemMessage::Escalate` を
-      ユーザー定義イベントへマップする仕組みを提供し、テストで Escalate→typed DSL の通知経路を検証する。
-- [x] `actor-core` テスト: 現状の `scheduler_escalation_chain_reaches_root` に加えて、
-      カスタム EscalationSink が再試行を返した場合に scheduler が FailureInfo を再キューするケースを追加する。
-      `scheduler_requeues_failed_custom_escalation` で EscalationSink が `Err` を返した際の再試行パスを検証。（2025-10-07）
-- [x] `system_guardian` / `root_guardian`: ルート EscalationSink を定義し、最上位で FailureInfo を
-      ログ／メトリクス／イベントストリームへ流すフックを整備する。
-      `RootEscalationSink` が `tracing::error!`、`FailureEventHandler`、`FailureEventListener`
-      を経由してログ・イベント配信できるようになり、`scheduler_root_escalation_handler_invoked` /
-      `scheduler_root_event_listener_broadcasts` で検証。（2025-10-07）
-- [x] `FailureEventHub` を std 構成で実装し、`PriorityScheduler::set_root_event_listener` から複数購読者へ配信できるようにした。
+主要 API / テスト移行は 2025-10-07 時点で完了しているため、旧チェックリストは削除した。今後は追加要件が生まれた際に本章を再利用する。
+
+## EscalationSink の現状と課題
+EscalationSink 関連の初期タスクは完了済み。残課題として、Typed DSL へのエスカレーション経路を滑らかにするための `TypedMailboxAdapter` 拡張のみが残っている。
 
 ## Watch / Unwatch 親伝播設計草案
 
@@ -166,7 +131,7 @@ pub trait SupervisorStrategy<M>: Send + 'static {
 
 pub struct Guardian<R>
 where
-  R: MailboxFactory,
+  R: MailboxRuntime,
 {
   children: HashMap<ActorId, PriorityActorRef<SystemMessage, R>>,
   strategy: Box<dyn SupervisorStrategy<Message>>, // protoactor-go の OneForOne 相当
@@ -174,7 +139,7 @@ where
 
 impl<R> Guardian<R>
 where
-  R: MailboxFactory,
+  R: MailboxRuntime,
 {
   pub fn add_child(&mut self, id: ActorId, control_ref: PriorityActorRef<SystemMessage, R>) { ... }
   pub fn stop_child(&mut self, id: ActorId) { control_ref.try_send_system(SystemMessage::Stop); }

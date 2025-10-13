@@ -4,6 +4,7 @@ use core::marker::PhantomData;
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 
+use cellex_actor_core_rs::MetricsSinkShared;
 use cellex_actor_core_rs::{
   Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv,
 };
@@ -180,7 +181,7 @@ where
 }
 
 #[derive(Debug)]
-pub struct ArcPriorityMailboxFactory<RM = CriticalSectionRawMutex>
+pub struct ArcPriorityMailboxRuntime<RM = CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   control_capacity_per_level: usize,
@@ -189,7 +190,7 @@ where
   _marker: PhantomData<RM>,
 }
 
-impl<RM> Default for ArcPriorityMailboxFactory<RM>
+impl<RM> Default for ArcPriorityMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -203,7 +204,7 @@ where
   }
 }
 
-impl<RM> ArcPriorityMailboxFactory<RM>
+impl<RM> ArcPriorityMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -256,7 +257,7 @@ where
   }
 }
 
-impl<RM> Clone for ArcPriorityMailboxFactory<RM>
+impl<RM> Clone for ArcPriorityMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
@@ -276,11 +277,15 @@ where
   RM: RawMutex,
 {
   pub fn new(control_capacity_per_level: usize) -> (Self, ArcPriorityMailboxSender<M, RM>) {
-    ArcPriorityMailboxFactory::<RM>::new(control_capacity_per_level).mailbox(MailboxOptions::default())
+    ArcPriorityMailboxRuntime::<RM>::new(control_capacity_per_level).mailbox(MailboxOptions::default())
   }
 
   pub fn inner(&self) -> &QueueMailbox<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
     &self.inner
+  }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -317,6 +322,10 @@ where
 
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -360,14 +369,18 @@ where
   pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
+
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
   use core::sync::atomic::{AtomicBool, Ordering};
   use critical_section::{Impl, RawRestoreState};
-  use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
 
   fn prepare() {
     init_critical_section();
@@ -404,7 +417,7 @@ mod tests {
   #[test]
   fn priority_mailbox_orders_messages_by_priority() {
     prepare();
-    let factory = ArcPriorityMailboxFactory::<CriticalSectionRawMutex>::default();
+    let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
     let (mailbox, sender) = runtime.mailbox::<u8>(MailboxOptions::default());
 
     sender
@@ -429,7 +442,7 @@ mod tests {
   #[test]
   fn priority_mailbox_capacity_split() {
     prepare();
-    let factory = ArcPriorityMailboxFactory::<CriticalSectionRawMutex>::default();
+    let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
     let options = MailboxOptions::with_capacities(QueueSize::limited(2), QueueSize::limited(2));
     let (mailbox, sender) = runtime.mailbox::<u8>(options);
 
@@ -454,7 +467,7 @@ mod tests {
   #[test]
   fn control_queue_preempts_regular_messages() {
     prepare();
-    let factory = ArcPriorityMailboxFactory::<CriticalSectionRawMutex>::default();
+    let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
     let (mailbox, sender) = runtime.mailbox::<u32>(MailboxOptions::default());
 
     sender

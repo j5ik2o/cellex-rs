@@ -7,12 +7,12 @@ use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use cellex_actor_core_rs::{
   take_metadata, DynMessage, InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender,
   MetadataStorageMode, PriorityEnvelope, SingleThread, ThreadSafe,
 };
 use cellex_utils_core_rs::sync::ArcShared;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 #[cfg(target_has_atomic = "ptr")]
 type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;

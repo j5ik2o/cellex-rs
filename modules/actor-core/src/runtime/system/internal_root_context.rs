@@ -1,9 +1,12 @@
 use alloc::boxed::Box;
 
+use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::GuardianStrategy;
+use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::NoopSupervisor;
-use crate::{Extensions, MailboxFactory, PriorityEnvelope, Supervisor};
+use crate::{Extensions, MailboxRuntime, PriorityEnvelope, Supervisor};
+use cellex_utils_core_rs::sync::Shared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::{InternalActorSystem, InternalProps};
@@ -11,7 +14,7 @@ use super::{InternalActorSystem, InternalProps};
 pub(crate) struct InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
@@ -21,7 +24,7 @@ where
 impl<'a, M, R, Strat> InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
@@ -42,21 +45,27 @@ where
     let InternalProps {
       options,
       map_system,
-      mut handler,
+      handler,
     } = props;
 
-    self
-      .system
-      .scheduler
-      .spawn_actor(supervisor, options, map_system, move |ctx, msg| {
-        handler(ctx, msg);
-      })
+    let runtime = self.system.runtime.with_ref(|factory| factory.clone());
+    let mut mailbox_factory = MailboxHandleFactoryStub::new(self.system.runtime.clone());
+    mailbox_factory.set_metrics_sink(self.system.metrics_sink());
+    let context = SchedulerSpawnContext {
+      runtime,
+      mailbox_factory,
+      map_system,
+      mailbox_options: options,
+      handler,
+    };
+
+    self.system.scheduler.spawn_actor(supervisor, context)
   }
 
   #[deprecated(since = "3.1.0", note = "dispatch_next / run_until を使用してください")]
   pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    #[allow(deprecated)]
-    self.system.scheduler.dispatch_all()
+    while self.system.scheduler.drain_ready()? {}
+    Ok(())
   }
 
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {

@@ -6,6 +6,8 @@ use core::task::{Context, Poll};
 use cellex_utils_core_rs::Flag;
 use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 
+use crate::runtime::metrics::{MetricsEvent, MetricsSinkShared};
+
 use super::traits::{Mailbox, MailboxSignal};
 
 /// Runtime-agnostic construction options for [`QueueMailbox`].
@@ -83,6 +85,7 @@ pub struct QueueMailbox<Q, S> {
   queue: Q,
   signal: S,
   closed: Flag,
+  metrics_sink: Option<MetricsSinkShared>,
 }
 
 impl<Q, S> QueueMailbox<Q, S> {
@@ -96,6 +99,7 @@ impl<Q, S> QueueMailbox<Q, S> {
       queue,
       signal,
       closed: Flag::default(),
+      metrics_sink: None,
     }
   }
 
@@ -120,6 +124,18 @@ impl<Q, S> QueueMailbox<Q, S> {
       queue: self.queue.clone(),
       signal: self.signal.clone(),
       closed: self.closed.clone(),
+      metrics_sink: self.metrics_sink.clone(),
+    }
+  }
+
+  /// Configures a metrics sink used for enqueue instrumentation.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink;
+  }
+
+  fn record_enqueue(&self) {
+    if let Some(sink) = &self.metrics_sink {
+      sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
     }
   }
 }
@@ -134,6 +150,7 @@ where
       queue: self.queue.clone(),
       signal: self.signal.clone(),
       closed: self.closed.clone(),
+      metrics_sink: self.metrics_sink.clone(),
     }
   }
 }
@@ -151,6 +168,7 @@ pub struct QueueMailboxProducer<Q, S> {
   queue: Q,
   signal: S,
   closed: Flag,
+  metrics_sink: Option<MetricsSinkShared>,
 }
 
 unsafe impl<Q, S> Send for QueueMailboxProducer<Q, S>
@@ -193,6 +211,9 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     match self.queue.offer(message) {
       Ok(()) => {
         self.signal.notify();
+        if let Some(sink) = &self.metrics_sink {
+          sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
+        }
         Ok(())
       }
       Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
@@ -220,6 +241,11 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     M: Element, {
     self.try_send(message)
   }
+
+  /// Assigns a metrics sink for enqueue instrumentation.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink;
+  }
 }
 
 impl<M, Q, S> Mailbox<M> for QueueMailbox<Q, S>
@@ -238,6 +264,7 @@ where
     match self.queue.offer(message) {
       Ok(()) => {
         self.signal.notify();
+        self.record_enqueue();
         Ok(())
       }
       Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
@@ -272,6 +299,10 @@ where
 
   fn is_closed(&self) -> bool {
     self.closed.get()
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink = sink;
   }
 }
 

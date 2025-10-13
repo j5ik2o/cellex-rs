@@ -9,12 +9,16 @@ use core::any::Any;
 use core::fmt::{self, Debug, Formatter};
 use portable_atomic::{AtomicI32, Ordering};
 
-#[cfg(feature = "std")]
-use cellex_serialization_core_rs::json::{shared_json_serializer, SERDE_JSON_SERIALIZER_ID};
 use cellex_serialization_core_rs::registry::InMemorySerializerRegistry;
 use cellex_serialization_core_rs::serializer::Serializer;
 use cellex_serialization_core_rs::RegistryError;
-use cellex_utils_core_rs::sync::ArcShared;
+#[cfg(feature = "std")]
+use cellex_serialization_json_rs::{shared_json_serializer, SERDE_JSON_SERIALIZER_ID};
+#[cfg(feature = "postcard")]
+use cellex_serialization_postcard_rs::{shared_postcard_serializer, POSTCARD_SERIALIZER_ID};
+#[cfg(feature = "std")]
+use cellex_serialization_prost_rs::{shared_prost_serializer, PROST_SERIALIZER_ID};
+use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use spin::RwLock;
 
 /// 一意な Extension を識別するための ID 型。
@@ -48,9 +52,12 @@ pub fn serializer_extension_id() -> ExtensionId {
 }
 
 /// ActorSystem に組み込まれる拡張の共通インターフェース。
-pub trait Extension: Any + Send + Sync {
+pub trait Extension: Any + SharedBound {
   /// 拡張固有の ID を返します。
   fn extension_id(&self) -> ExtensionId;
+
+  /// Returns a type-erased `Any` reference for downcasting.
+  fn as_any(&self) -> &dyn Any;
 }
 
 /// 登録済み Extension 群を管理するスロットコンテナ。
@@ -76,7 +83,7 @@ impl Extensions {
   /// 型付き Extension を登録します。
   pub fn register<E>(&self, extension: ArcShared<E>)
   where
-    E: Extension, {
+    E: Extension + 'static, {
     let id = extension.extension_id();
     if id < 0 {
       return;
@@ -119,14 +126,13 @@ impl Extensions {
   /// 指定 ID の Extension に対してクロージャを適用します。
   pub fn with<E, F, R>(&self, id: ExtensionId, f: F) -> Option<R>
   where
-    E: Extension,
+    E: Extension + 'static,
     F: FnOnce(&E) -> R, {
     let guard = self.slots.read();
     guard.get(id as usize).and_then(|slot| {
-      slot.as_ref().and_then(|handle| {
-        let ext = &**handle as &dyn Any;
-        ext.downcast_ref::<E>().map(f)
-      })
+      slot
+        .as_ref()
+        .and_then(|handle| (*handle).as_any().downcast_ref::<E>().map(f))
     })
   }
 }
@@ -177,6 +183,17 @@ impl SerializerRegistryExtension {
         let serializer = shared_json_serializer();
         let _ = self.registry.register(serializer);
       }
+      if self.registry.get(PROST_SERIALIZER_ID).is_none() {
+        let serializer = shared_prost_serializer();
+        let _ = self.registry.register(serializer);
+      }
+    }
+    #[cfg(feature = "postcard")]
+    {
+      if self.registry.get(POSTCARD_SERIALIZER_ID).is_none() {
+        let serializer = shared_postcard_serializer();
+        let _ = self.registry.register(serializer);
+      }
     }
   }
 
@@ -197,6 +214,10 @@ impl SerializerRegistryExtension {
 impl Extension for SerializerRegistryExtension {
   fn extension_id(&self) -> ExtensionId {
     self.id
+  }
+
+  fn as_any(&self) -> &dyn Any {
+    self
   }
 }
 
@@ -225,6 +246,10 @@ mod tests {
   impl Extension for DummyExtension {
     fn extension_id(&self) -> ExtensionId {
       self.id
+    }
+
+    fn as_any(&self) -> &dyn Any {
+      self
     }
   }
 

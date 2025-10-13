@@ -12,17 +12,31 @@ repository = "https://github.com/j5ik2o/cellex-rs"
 [features]
 default = ["alloc"]
 alloc = []
-std = ["alloc", "tracing", "futures/std", "futures/executor", "cellex-serialization-core-rs/serde-json"]
+std = [
+  "alloc",
+  "tracing",
+  "futures/std",
+  "futures/executor",
+  "dep:cellex-serialization-json-rs",
+  "dep:cellex-serialization-prost-rs",
+  "dep:tokio",
+]
+postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
 
 [dependencies]
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
 cellex-serialization-core-rs = { path = "../serialization-core", default-features = false, features = ["alloc"] }
+cellex-serialization-json-rs = { path = "../serialization-json", optional = true }
+cellex-serialization-prost-rs = { path = "../serialization-prost", optional = true }
+cellex-serialization-postcard-rs = { path = "../serialization-postcard", optional = true }
 tracing = { version = "0.1", default-features = false, features = ["std"], optional = true }
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
 spin = { version = "0.9", default-features = false, features = ["mutex", "spin_mutex", "once", "portable_atomic", "rwlock"] }
 portable-atomic = { version = "1.11", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.2", default-features = false }
+async-trait = { workspace = true }
+tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
 criterion = "0.5"

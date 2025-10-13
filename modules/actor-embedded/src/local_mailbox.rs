@@ -6,12 +6,13 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
+use cellex_actor_core_rs::MetricsSinkShared;
 #[cfg(feature = "embedded_rc")]
 use cellex_actor_core_rs::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::ThreadSafe;
 use cellex_actor_core_rs::{
-  Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
   QueueMailboxRecv,
 };
 #[cfg(not(feature = "embedded_rc"))]
@@ -143,7 +144,7 @@ where
 ///
 /// Creates mailbox pairs for embedded or single-threaded environments.
 #[derive(Clone, Debug, Default)]
-pub struct LocalMailboxFactory {
+pub struct LocalMailboxRuntime {
   _marker: PhantomData<()>,
 }
 
@@ -196,8 +197,8 @@ impl Future for LocalSignalWait {
   }
 }
 
-impl LocalMailboxFactory {
-  /// Creates a new `LocalMailboxFactory`.
+impl LocalMailboxRuntime {
+  /// Creates a new `LocalMailboxRuntime`.
   ///
   /// # Returns
   ///
@@ -234,18 +235,26 @@ impl LocalMailboxFactory {
   }
 }
 
-impl MailboxFactory for LocalMailboxFactory {
+impl MailboxRuntime for LocalMailboxRuntime {
   #[cfg(feature = "embedded_rc")]
   type Concurrency = SingleThread;
   #[cfg(not(feature = "embedded_rc"))]
   type Concurrency = ThreadSafe;
+  type Mailbox<M>
+    = QueueMailbox<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
+  type Producer<M>
+    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
   type Queue<M>
     = LocalQueue<M>
   where
     M: Element;
   type Signal = LocalSignal;
 
-  fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     let queue = LocalQueue::new();
@@ -267,7 +276,7 @@ where
   ///
   /// A tuple of (receiver mailbox, sender handle)
   pub fn new() -> (Self, LocalMailboxSender<M>) {
-    LocalMailboxFactory::default().unbounded()
+    LocalMailboxRuntime::default().unbounded()
   }
 
   /// Creates a new sender handle.
@@ -290,6 +299,11 @@ where
   /// A reference to the `QueueMailbox`
   pub fn inner(&self) -> &QueueMailbox<LocalQueue<M>, LocalSignal> {
     &self.inner
+  }
+
+  /// Assigns a metrics sink to the underlying mailbox.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -326,6 +340,10 @@ where
 
   fn is_closed(&self) -> bool {
     self.inner.is_closed()
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -388,6 +406,11 @@ where
   /// A reference to the `QueueMailboxProducer`
   pub fn inner(&self) -> &QueueMailboxProducer<LocalQueue<M>, LocalSignal> {
     &self.inner
+  }
+
+  /// Assigns a metrics sink to the underlying producer.
+  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.set_metrics_sink(sink);
   }
 }
 
@@ -490,7 +513,7 @@ mod tests {
 
   #[test]
   fn runtime_builder_produces_working_mailbox() {
-    let factory = LocalMailboxFactory::new();
+    let factory = LocalMailboxRuntime::new();
     let (mailbox, sender) = factory.unbounded::<u16>();
 
     sender.try_send(11).unwrap();

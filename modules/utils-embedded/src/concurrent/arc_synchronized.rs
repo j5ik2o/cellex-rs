@@ -3,13 +3,13 @@
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
-use embassy_sync::mutex::{Mutex, MutexGuard};
-use embassy_sync::rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use cellex_utils_core_rs::{
   async_trait, Synchronized as CoreSynchronized, SynchronizedMutexBackend, SynchronizedRw as CoreSynchronizedRw,
   SynchronizedRwBackend,
 };
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
+use embassy_sync::mutex::{Mutex, MutexGuard};
+use embassy_sync::rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Backend implementation for mutex-based synchronization using `Arc`
 ///

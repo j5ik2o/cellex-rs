@@ -8,15 +8,15 @@ use core::task::{Context, Poll};
 
 use cellex_utils_core_rs::{Element, MpscBuffer, MpscHandle, MpscQueue, QueueSize, RingBufferBackend, Shared};
 
-use super::queue_mailbox::{MailboxOptions, QueueMailbox};
-use super::traits::{MailboxFactory, MailboxPair, MailboxSignal, ThreadSafe};
+use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
+use super::traits::{MailboxPair, MailboxRuntime, MailboxSignal, ThreadSafe};
 
 #[derive(Clone, Debug, Default)]
-pub struct TestMailboxFactory {
+pub struct TestMailboxRuntime {
   capacity: Option<usize>,
 }
 
-impl TestMailboxFactory {
+impl TestMailboxRuntime {
   pub fn new(capacity: Option<usize>) -> Self {
     Self { capacity }
   }
@@ -132,15 +132,23 @@ impl<'a> Future for TestSignalWait<'a> {
   }
 }
 
-impl MailboxFactory for TestMailboxFactory {
+impl MailboxRuntime for TestMailboxRuntime {
   type Concurrency = ThreadSafe;
+  type Mailbox<M>
+    = QueueMailbox<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
+  type Producer<M>
+    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+  where
+    M: Element;
   type Queue<M>
     = TestQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
 
-  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Queue<M>, Self::Signal>
+  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
@@ -162,7 +170,7 @@ mod tests {
 
   #[test]
   fn test_mailbox_runtime_delivers_fifo() {
-    let factory = TestMailboxFactory::with_capacity_per_queue(2);
+    let factory = TestMailboxRuntime::with_capacity_per_queue(2);
     let (mailbox, sender) = factory.build_default_mailbox::<u32>();
 
     sender.try_send(1).unwrap();

@@ -74,7 +74,7 @@
 ### 3. ランタイム実装例
 - **actor-std (Tokio)**
   - `TokioDeadlineTimer`（DelayQueue ラッパー）と非同期タスクで構成する。キー変換とメールボックスへの送信を scheduler 内に閉じ込める。
-  - `TokioMailboxFactory` 初期化時に Scheduler Factory を注入し、`ActorSystemParts` へ渡す。
+  - `TokioMailboxRuntime` 初期化時に Scheduler Factory を注入し、`ActorSystemParts` へ渡す。
 
 - **actor-embedded (仮実装)**
   - 初期段階では no-op / 簡易バージョンを用意し、ビルドを通す。

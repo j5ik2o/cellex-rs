@@ -1,12 +1,12 @@
 use alloc::sync::Arc;
 
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
-use embassy_sync::mutex::{Mutex, MutexGuard};
 use cellex_utils_core_rs::{
   MpscBackend, MpscBuffer, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingBuffer, RingBufferStorage,
   RingHandle, StackBackend, StackHandle,
 };
 use cellex_utils_core_rs::{Shared, StateCell};
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
+use embassy_sync::mutex::{Mutex, MutexGuard};
 
 /// `Arc`-based shared reference type for embedded environments.
 ///

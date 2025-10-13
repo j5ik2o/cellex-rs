@@ -8,6 +8,11 @@ extern crate alloc;
 use alloc::rc::Rc;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use alloc_cortex_m::CortexMHeap;
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+use cellex_actor_embedded_rs::LocalMailboxRuntime;
+use cellex_utils_embedded_rs::Element;
 use core::cell::RefCell;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cortex_m::{asm, interrupt};
@@ -15,11 +20,6 @@ use cortex_m::{asm, interrupt};
 use cortex_m_rt::entry;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use embedded_hal::digital::v2::OutputPin;
-#[cfg(all(target_arch = "arm", target_os = "none"))]
-use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
-#[cfg(all(target_arch = "arm", target_os = "none"))]
-use cellex_actor_embedded_rs::LocalMailboxFactory;
-use cellex_utils_embedded_rs::Element;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use panic_halt as _;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
@@ -88,7 +88,7 @@ fn main() -> ! {
   ));
   let system_clock_hz = clocks.system_clock.freq().to_Hz();
 
-  let mut system: ActorSystem<Command, LocalMailboxFactory> = ActorSystem::new(LocalMailboxFactory::default());
+  let mut system: ActorSystem<Command, LocalMailboxRuntime> = ActorSystem::new(LocalMailboxRuntime::default());
   let mut root = system.root_context();
 
   let behavior_led = led_pin.clone();

@@ -5,7 +5,7 @@ use cellex_actor_core_rs::{ActorSystemRunner, ShutdownToken};
 use tokio::signal;
 use tokio::task::JoinHandle;
 
-use crate::TokioMailboxFactory;
+use crate::TokioMailboxRuntime;
 use cellex_actor_core_rs::{PriorityEnvelope, RuntimeMessage};
 use cellex_utils_std_rs::QueueError;
 
@@ -31,7 +31,7 @@ where
   ///
   /// # Returns
   /// A new `TokioSystemHandle` for managing the actor system
-  pub fn start_local(runner: ActorSystemRunner<U, TokioMailboxFactory>) -> Self
+  pub fn start_local(runner: ActorSystemRunner<U, TokioMailboxRuntime>) -> Self
   where
     U: cellex_utils_std_rs::Element + 'static, {
     let shutdown = runner.shutdown_token();

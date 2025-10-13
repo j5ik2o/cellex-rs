@@ -4,7 +4,7 @@ use cellex_utils_core_rs::Element;
 
 use super::failure::FailureEvent;
 use crate::{FailureEventHandlerShared, FailureEventListenerShared};
-use crate::{FailureInfo, MailboxFactory, PriorityEnvelope};
+use crate::{FailureInfo, MailboxRuntime, PriorityEnvelope};
 
 /// Handler for notifying failure events externally.
 ///
@@ -22,7 +22,7 @@ pub type FailureEventListener = FailureEventListenerShared;
 pub trait EscalationSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Processes failure information.
@@ -45,7 +45,7 @@ where
 pub struct RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   event_handler: Option<FailureEventHandler>,
@@ -56,7 +56,7 @@ where
 impl<M, R> RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -93,7 +93,7 @@ where
 impl<M, R> Default for RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -105,7 +105,7 @@ where
 impl<M, R> EscalationSink<M, R> for RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

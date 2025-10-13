@@ -14,15 +14,20 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::runtime::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 use crate::runtime::guardian::{Guardian, GuardianStrategy};
+use crate::runtime::mailbox::traits::{
+  Mailbox as MailboxTrait, MailboxHandle, MailboxProducer as MailboxProducerTrait,
+};
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
+use crate::runtime::metrics::MetricsSinkShared;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extensions;
 use crate::FailureInfo;
 use crate::Supervisor;
-use crate::{Mailbox, SystemMessage};
-use crate::{MailboxFactory, PriorityEnvelope, QueueMailbox, QueueMailboxProducer};
-use cellex_utils_core_rs::{Element, QueueError, QueueRw};
+use crate::SystemMessage;
+use crate::{MailboxRuntime, PriorityEnvelope};
+use cellex_utils_core_rs::{Element, QueueError};
 
 use super::ReceiveTimeoutScheduler;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
@@ -30,9 +35,7 @@ use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 pub(crate) struct ActorCell<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
   actor_id: ActorId,
@@ -40,8 +43,9 @@ where
   watchers: Vec<ActorId>,
   actor_path: ActorPath,
   runtime: R,
-  mailbox: QueueMailbox<R::Queue<PriorityEnvelope<M>>, R::Signal>,
-  sender: QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+  mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
+  mailbox: R::Mailbox<PriorityEnvelope<M>>,
+  sender: R::Producer<PriorityEnvelope<M>>,
   supervisor: Box<dyn Supervisor<M>>,
   handler: Box<ActorHandlerFn<M, R>>,
   _strategy: PhantomData<Strat>,
@@ -54,9 +58,7 @@ where
 impl<M, R, Strat> ActorCell<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   #[allow(clippy::too_many_arguments)]
@@ -66,8 +68,9 @@ where
     watchers: Vec<ActorId>,
     actor_path: ActorPath,
     runtime: R,
-    mailbox: QueueMailbox<R::Queue<PriorityEnvelope<M>>, R::Signal>,
-    sender: QueueMailboxProducer<R::Queue<PriorityEnvelope<M>>, R::Signal>,
+    mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
+    mailbox: R::Mailbox<PriorityEnvelope<M>>,
+    sender: R::Producer<PriorityEnvelope<M>>,
     supervisor: Box<dyn Supervisor<M>>,
     handler: Box<ActorHandlerFn<M, R>>,
     receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
@@ -79,6 +82,7 @@ where
       watchers,
       actor_path,
       runtime,
+      mailbox_spawner,
       mailbox,
       sender,
       supervisor,
@@ -93,9 +97,20 @@ where
     cell
   }
 
+  pub(crate) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>)
+  where
+    R: MailboxRuntime + Clone + 'static,
+    R::Queue<PriorityEnvelope<M>>: Clone,
+    R::Signal: Clone,
+    R::Producer<PriorityEnvelope<M>>: Clone, {
+    MailboxTrait::set_metrics_sink(&mut self.mailbox, sink.clone());
+    MailboxProducerTrait::set_metrics_sink(&mut self.sender, sink.clone());
+    self.mailbox_spawner.set_metrics_sink(sink);
+  }
+
   fn collect_envelopes(&mut self) -> Result<Vec<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {
     let mut drained = Vec::new();
-    while let Some(envelope) = self.mailbox.queue().poll()? {
+    while let Some(envelope) = self.mailbox.try_dequeue()? {
       drained.push(envelope);
     }
     if drained.len() > 1 {
@@ -158,7 +173,7 @@ where
   }
 
   pub(crate) fn signal_clone(&self) -> R::Signal {
-    self.mailbox.signal().clone()
+    self.mailbox.signal()
   }
 
   fn dispatch_envelope(
@@ -190,6 +205,7 @@ where
       let receive_timeout = self.receive_timeout_scheduler.as_ref();
       let mut ctx = ActorContext::new(
         &self.runtime,
+        self.mailbox_spawner.clone(),
         &self.sender,
         self.supervisor.as_mut(),
         &mut pending_specs,
@@ -211,6 +227,7 @@ where
       let receive_timeout = self.receive_timeout_scheduler.as_ref();
       let mut ctx = ActorContext::new(
         &self.runtime,
+        self.mailbox_spawner.clone(),
         &self.sender,
         self.supervisor.as_mut(),
         &mut pending_specs,
@@ -307,6 +324,7 @@ where
       sender,
       supervisor,
       handler,
+      mailbox_spawner,
       watchers,
       map_system,
       parent_path,
@@ -317,12 +335,13 @@ where
     let primary_watcher = watchers.first().copied();
     let (actor_id, actor_path) =
       guardian.register_child(control_ref, map_system.clone(), primary_watcher, &parent_path)?;
-    let cell = ActorCell::new(
+    let mut cell = ActorCell::new(
       actor_id,
       map_system,
       watchers,
       actor_path,
       self.runtime.clone(),
+      mailbox_spawner,
       mailbox,
       sender,
       supervisor,
@@ -330,6 +349,8 @@ where
       self.receive_timeout_factory.clone(),
       extensions,
     );
+    let sink = self.mailbox_spawner.metrics_sink();
+    cell.set_metrics_sink(sink);
     new_children.push(cell);
     Ok(())
   }

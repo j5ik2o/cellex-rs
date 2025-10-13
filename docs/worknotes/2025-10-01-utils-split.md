@@ -44,12 +44,6 @@
 - **影響**: キュー操作ロジックは core に集約され、`nexus-utils-std-rs` は同期プリミティブ（`Mutex`/`Arc`）と Tokio 依存コードのみを保持。Mailbox 側は trait object 化された `CoreMailboxQueue` を経由し、メトリクス取得が統一化。
 - **残課題**: なし（2025-10-01 時点）。今後は MPSC 以外の同期プリミティブ微調整やキュー latency トラッキングの拡張が対象。
 
-## チェックリスト
-- [x] `nexus-utils-core-rs` が `#![no_std]` でコンパイルできる。
-- [x] `nexus-utils-std-rs` に std / tokio 依存コードが集約されている（`QueueError`/`QueueSize`/`PriorityMessage` は core へ移動済み）。
-- [x] 既存クレート（`actor`, `remote`, `cluster`）が新構成でテストをパス。
-- [x] CI に no_std チェックを追加し、bench / publish ワークフローへ追従変更が不要であることを確認（2025-10-01）。
-
 ## 参考ドキュメント
 - `docs/design/2025-09-30-migration-plan.md`
 - 現状の `modules/utils/Cargo.toml`

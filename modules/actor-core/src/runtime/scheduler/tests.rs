@@ -1,28 +1,32 @@
 #![allow(deprecated, unused_imports)]
+use super::priority_scheduler::PriorityScheduler;
 use super::*;
+use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::mailbox::test_support::TestMailboxFactory;
+use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+use crate::runtime::scheduler::SchedulerSpawnContext;
+use crate::ActorHandlerFn;
 use crate::ActorId;
 use crate::Extensions;
 use crate::FailureInfo;
 use crate::NoopSupervisor;
 #[cfg(feature = "std")]
 use crate::SupervisorDirective;
+use crate::{DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
 use crate::{FailureEventHandler, FailureEventListener, MapSystemShared};
-use crate::{MailboxFactory, PriorityEnvelope};
-use crate::{MailboxOptions, SystemMessage};
+use crate::{MailboxOptions, Supervisor, SystemMessage};
 use alloc::rc::Rc;
-#[cfg(feature = "std")]
-use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use core::cell::Cell;
 use core::cell::RefCell;
 #[cfg(feature = "std")]
 use futures::executor::block_on;
-use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
+#[cfg(feature = "std")]
+use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
@@ -32,7 +36,7 @@ struct AlwaysEscalate;
 impl<M, R> GuardianStrategy<M, R> for AlwaysEscalate
 where
   M: Element,
-  R: MailboxFactory,
+  R: MailboxRuntime,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn core::fmt::Debug) -> SupervisorDirective {
     SupervisorDirective::Escalate
@@ -50,24 +54,70 @@ enum Message {
 impl cellex_utils_core_rs::Element for Message {}
 
 #[cfg(feature = "std")]
+#[derive(Clone)]
+struct EventRecordingSink {
+  events: Arc<Mutex<Vec<MetricsEvent>>>,
+}
+
+#[cfg(feature = "std")]
+impl EventRecordingSink {
+  fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
+    Self { events }
+  }
+}
+
+#[cfg(feature = "std")]
+impl MetricsSink for EventRecordingSink {
+  fn record(&self, event: MetricsEvent) {
+    self.events.lock().unwrap().push(event);
+  }
+}
+
+#[cfg(feature = "std")]
+fn spawn_with_runtime<M, R>(
+  scheduler: &mut dyn ActorScheduler<M, R>,
+  runtime: R,
+  supervisor: Box<dyn Supervisor<M>>,
+  options: MailboxOptions,
+  map_system: MapSystemShared<M>,
+  handler: Box<ActorHandlerFn<M, R>>,
+) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone, {
+  let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+  let context = SchedulerSpawnContext {
+    runtime,
+    mailbox_factory,
+    map_system,
+    mailbox_options: options,
+    handler,
+  };
+  scheduler.spawn_actor(supervisor, context)
+}
+
+#[cfg(feature = "std")]
 #[test]
 fn scheduler_delivers_watch_before_user_messages() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let _actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| {
-        log_clone.borrow_mut().push(msg.clone());
-      },
-    )
-    .unwrap();
+  let _actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| {
+      log_clone.borrow_mut().push(msg.clone());
+    }),
+  )
+  .unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
 
@@ -79,28 +129,171 @@ fn scheduler_delivers_watch_before_user_messages() {
 
 #[cfg(feature = "std")]
 #[test]
+fn scheduler_handle_trait_object_dispatches() {
+  use futures::executor::block_on;
+
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler = super::SchedulerBuilder::priority().build(factory.clone(), Extensions::new());
+
+  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
+  spawn_with_runtime(
+    scheduler.as_mut(),
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| {
+      log_clone.borrow_mut().push(msg);
+    }),
+  )
+  .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  assert_eq!(
+    log.borrow().as_slice(),
+    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
+  );
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn immediate_scheduler_builder_dispatches() {
+  use futures::executor::block_on;
+
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler = super::SchedulerBuilder::immediate().build(factory.clone(), Extensions::new());
+
+  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
+  spawn_with_runtime(
+    scheduler.as_mut(),
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| {
+      log_clone.borrow_mut().push(msg);
+    }),
+  )
+  .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  assert_eq!(
+    log.borrow().as_slice(),
+    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
+  );
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn priority_scheduler_emits_actor_lifecycle_metrics() {
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
+  let events = Arc::new(Mutex::new(Vec::new()));
+  scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
+
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(|sys| DynMessage::new(sys)),
+    Box::new(|_, _msg: DynMessage| {}),
+  )
+  .unwrap();
+
+  {
+    let recorded = events.lock().unwrap();
+    let registered = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::ActorRegistered))
+      .count();
+    let deregistered = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::ActorDeregistered))
+      .count();
+    let enqueued = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::MailboxEnqueued))
+      .count();
+    let dequeued = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::MailboxDequeued))
+      .count();
+    assert_eq!(registered, 1);
+    assert_eq!(deregistered, 0);
+    assert!(
+      enqueued >= 1,
+      "expected at least one MailboxEnqueued event, got {recorded:?}"
+    );
+    assert_eq!(dequeued, 0);
+  }
+
+  actor_ref
+    .sender()
+    .try_send(PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| DynMessage::new(sys)))
+    .unwrap();
+  block_on(scheduler.dispatch_next()).unwrap();
+  scheduler.drain_ready().unwrap();
+
+  {
+    let recorded = events.lock().unwrap();
+    let registered = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::ActorRegistered))
+      .count();
+    let deregistered = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::ActorDeregistered))
+      .count();
+    let dequeued = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::MailboxDequeued))
+      .count();
+    let enqueued = recorded
+      .iter()
+      .filter(|event| matches!(event, MetricsEvent::MailboxEnqueued))
+      .count();
+    assert_eq!(registered, 1);
+    assert_eq!(deregistered, 1);
+    assert!(
+      dequeued >= 1,
+      "expected at least one MailboxDequeued event, got {recorded:?}"
+    );
+    assert!(enqueued >= dequeued);
+  }
+}
+
+#[cfg(feature = "std")]
+#[test]
 fn actor_context_exposes_parent_watcher() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let watchers_log: Rc<RefCell<Vec<Vec<ActorId>>>> = Rc::new(RefCell::new(Vec::new()));
   let watchers_clone = watchers_log.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |ctx, msg: Message| {
-        let current_watchers = ctx.watchers().to_vec();
-        watchers_clone.borrow_mut().push(current_watchers);
-        match msg {
-          Message::User(_) => {}
-          Message::System(_) => {}
-        }
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |ctx, msg: Message| {
+      let current_watchers = ctx.watchers().to_vec();
+      watchers_clone.borrow_mut().push(current_watchers);
+      match msg {
+        Message::User(_) => {}
+        Message::System(_) => {}
+      }
+    }),
+  )
+  .unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
   assert_eq!(watchers_log.borrow().as_slice(), &[vec![ActorId::ROOT]]);
@@ -119,40 +312,41 @@ fn actor_context_exposes_parent_watcher() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_dispatches_high_priority_first() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<(u32, i8)>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |ctx, msg: Message| match msg {
-        Message::User(value) => {
-          log_clone.borrow_mut().push((value, ctx.current_priority().unwrap()));
-          if value == 99 {
-            let child_log = log_clone.clone();
-            ctx
-              .spawn_child(
-                NoopSupervisor,
-                MailboxOptions::default(),
-                move |_, child_msg: Message| {
-                  if let Message::User(child_value) = child_msg {
-                    child_log.borrow_mut().push((child_value, 0));
-                  }
-                },
-              )
-              .try_send_with_priority(Message::User(7), 0)
-              .unwrap();
-          }
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |ctx, msg: Message| match msg {
+      Message::User(value) => {
+        log_clone.borrow_mut().push((value, ctx.current_priority().unwrap()));
+        if value == 99 {
+          let child_log = log_clone.clone();
+          ctx
+            .spawn_child(
+              NoopSupervisor,
+              MailboxOptions::default(),
+              move |_, child_msg: Message| {
+                if let Message::User(child_value) = child_msg {
+                  child_log.borrow_mut().push((child_value, 0));
+                }
+              },
+            )
+            .try_send_with_priority(Message::User(7), 0)
+            .unwrap();
         }
-        Message::System(_) => {}
-      },
-    )
-    .unwrap();
+      }
+      Message::System(_) => {}
+    }),
+  )
+  .unwrap();
 
   actor_ref.try_send_with_priority(Message::User(10), 1).unwrap();
   actor_ref.try_send_with_priority(Message::User(99), 7).unwrap();
@@ -169,22 +363,23 @@ fn scheduler_dispatches_high_priority_first() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_prioritizes_system_messages() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| {
-        log_clone.borrow_mut().push(msg.clone());
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| {
+      log_clone.borrow_mut().push(msg.clone());
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(42), DEFAULT_PRIORITY)
@@ -208,22 +403,23 @@ fn scheduler_prioritizes_system_messages() {
 #[cfg(feature = "std")]
 #[test]
 fn priority_actor_ref_sends_system_messages() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler: PriorityScheduler<SystemMessage, _> = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler: PriorityScheduler<SystemMessage, _> = PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<SystemMessage>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(|sys| sys),
-      move |_, msg: SystemMessage| {
-        log_clone.borrow_mut().push(msg.clone());
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(|sys| sys),
+    Box::new(move |_, msg: SystemMessage| {
+      log_clone.borrow_mut().push(msg.clone());
+    }),
+  )
+  .unwrap();
 
   actor_ref.try_send_system(SystemMessage::Restart).unwrap();
   block_on(scheduler.dispatch_next()).unwrap();
@@ -237,35 +433,37 @@ fn priority_actor_ref_sends_system_messages() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_notifies_guardian_and_restarts_on_panic() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
+    PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
   let should_panic = Rc::new(Cell::new(true));
   let panic_flag = should_panic.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| {
-        match msg {
-          Message::System(SystemMessage::Watch(_)) => {
-            // Watch メッセージは監視登録のみなのでログに残さない
-          }
-          Message::User(_) if panic_flag.get() => {
-            panic_flag.set(false);
-            panic!("boom");
-          }
-          _ => {
-            log_clone.borrow_mut().push(msg.clone());
-          }
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| {
+      match msg {
+        Message::System(SystemMessage::Watch(_)) => {
+          // Watch メッセージは監視登録のみなのでログに残さない
         }
-      },
-    )
-    .unwrap();
+        Message::User(_) if panic_flag.get() => {
+          panic_flag.set(false);
+          panic!("boom");
+        }
+        _ => {
+          log_clone.borrow_mut().push(msg.clone());
+        }
+      }
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
@@ -283,23 +481,25 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_run_until_processes_messages() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
+    PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
-        Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
-        Message::System(_) => {}
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| match msg {
+      Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
+      Message::System(_) => {}
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(11), DEFAULT_PRIORITY)
@@ -319,23 +519,25 @@ fn scheduler_run_until_processes_messages() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_blocking_dispatch_loop_stops_with_closure() {
-  let factory = TestMailboxFactory::unbounded();
-  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> = PriorityScheduler::new(factory, Extensions::new());
+  let factory = TestMailboxRuntime::unbounded();
+  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
+    PriorityScheduler::new(factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
-        Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
-        Message::System(_) => {}
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| match msg {
+      Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
+      Message::System(_) => {}
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(21), DEFAULT_PRIORITY)
@@ -356,9 +558,9 @@ fn scheduler_blocking_dispatch_loop_stops_with_closure() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_records_escalations() {
-  let factory = TestMailboxFactory::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
-    PriorityScheduler::with_strategy(factory, AlwaysEscalate, Extensions::new());
+    PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
   let sink: Rc<RefCell<Vec<FailureInfo>>> = Rc::new(RefCell::new(Vec::new()));
   let sink_clone = sink.clone();
@@ -370,21 +572,22 @@ fn scheduler_records_escalations() {
   let should_panic = Rc::new(Cell::new(true));
   let panic_flag = should_panic.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
-        Message::System(SystemMessage::Watch(_)) => {}
-        Message::User(_) if panic_flag.get() => {
-          panic_flag.set(false);
-          panic!("boom");
-        }
-        _ => {}
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| match msg {
+      Message::System(SystemMessage::Watch(_)) => {}
+      Message::User(_) if panic_flag.get() => {
+        panic_flag.set(false);
+        panic!("boom");
+      }
+      _ => {}
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
@@ -404,32 +607,33 @@ fn scheduler_records_escalations() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_escalation_handler_delivers_to_parent() {
-  let factory = TestMailboxFactory::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
     PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
   let (parent_mailbox, parent_sender) = factory.build_default_mailbox::<PriorityEnvelope<Message>>();
-  let parent_ref: InternalActorRef<Message, TestMailboxFactory> = InternalActorRef::new(parent_sender);
+  let parent_ref: InternalActorRef<Message, TestMailboxRuntime> = InternalActorRef::new(parent_sender);
   scheduler.set_parent_guardian(parent_ref, MapSystemShared::new(Message::System));
 
   let should_panic = Rc::new(Cell::new(true));
   let panic_flag = should_panic.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
-        Message::System(SystemMessage::Watch(_)) => {}
-        Message::User(_) if panic_flag.get() => {
-          panic_flag.set(false);
-          panic!("boom");
-        }
-        _ => {}
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| match msg {
+      Message::System(SystemMessage::Watch(_)) => {}
+      Message::User(_) if panic_flag.get() => {
+        panic_flag.set(false);
+        panic!("boom");
+      }
+      _ => {}
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
@@ -452,9 +656,9 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 #[cfg(feature = "std")]
 #[test]
 fn scheduler_escalation_chain_reaches_root() {
-  let factory = TestMailboxFactory::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
-    PriorityScheduler::with_strategy(factory, AlwaysEscalate, Extensions::new());
+    PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
   let collected: Rc<RefCell<Vec<FailureInfo>>> = Rc::new(RefCell::new(Vec::new()));
   let collected_clone = collected.clone();
@@ -468,36 +672,37 @@ fn scheduler_escalation_chain_reaches_root() {
   let child_panics = Rc::new(Cell::new(true));
   let child_flag = child_panics.clone();
 
-  let parent_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |ctx, msg: Message| match msg {
-        Message::System(_) => {}
-        Message::User(0) if !trigger_flag.get() => {
-          trigger_flag.set(true);
-          let panic_once = child_flag.clone();
-          ctx
-            .spawn_child(
-              NoopSupervisor,
-              MailboxOptions::default(),
-              move |_, child_msg: Message| match child_msg {
-                Message::System(_) => {}
-                Message::User(1) if panic_once.get() => {
-                  panic_once.set(false);
-                  panic!("child failure");
-                }
-                _ => {}
-              },
-            )
-            .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
-            .unwrap();
-        }
-        _ => {}
-      },
-    )
-    .unwrap();
+  let parent_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |ctx, msg: Message| match msg {
+      Message::System(_) => {}
+      Message::User(0) if !trigger_flag.get() => {
+        trigger_flag.set(true);
+        let panic_once = child_flag.clone();
+        ctx
+          .spawn_child(
+            NoopSupervisor,
+            MailboxOptions::default(),
+            move |_, child_msg: Message| match child_msg {
+              Message::System(_) => {}
+              Message::User(1) if panic_once.get() => {
+                panic_once.set(false);
+                panic!("child failure");
+              }
+              _ => {}
+            },
+          )
+          .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
+          .unwrap();
+      }
+      _ => {}
+    }),
+  )
+  .unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
 
@@ -567,9 +772,9 @@ fn scheduler_escalation_chain_reaches_root() {
 fn scheduler_root_escalation_handler_invoked() {
   use std::sync::{Arc as StdArc, Mutex};
 
-  let factory = TestMailboxFactory::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
-    PriorityScheduler::with_strategy(factory, AlwaysEscalate, Extensions::new());
+    PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
   let events: StdArc<Mutex<Vec<FailureInfo>>> = StdArc::new(Mutex::new(Vec::new()));
   let events_clone = events.clone();
@@ -581,21 +786,22 @@ fn scheduler_root_escalation_handler_invoked() {
   let should_panic = Rc::new(Cell::new(true));
   let panic_flag = should_panic.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
-        Message::System(SystemMessage::Watch(_)) => {}
-        Message::User(_) if panic_flag.get() => {
-          panic_flag.set(false);
-          panic!("root boom");
-        }
-        _ => {}
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| match msg {
+      Message::System(SystemMessage::Watch(_)) => {}
+      Message::User(_) if panic_flag.get() => {
+        panic_flag.set(false);
+        panic!("root boom");
+      }
+      _ => {}
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(42), DEFAULT_PRIORITY)
@@ -614,9 +820,9 @@ fn scheduler_root_escalation_handler_invoked() {
 fn scheduler_requeues_failed_custom_escalation() {
   use core::cell::Cell;
 
-  let factory = TestMailboxFactory::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
-    PriorityScheduler::with_strategy(factory, AlwaysEscalate, Extensions::new());
+    PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
   let attempts = Rc::new(Cell::new(0usize));
   let attempts_clone = attempts.clone();
@@ -637,21 +843,22 @@ fn scheduler_requeues_failed_custom_escalation() {
   let panic_flag = Rc::new(Cell::new(true));
   let panic_once = panic_flag.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
-        Message::System(_) => {}
-        Message::User(_) if panic_once.get() => {
-          panic_once.set(false);
-          panic!("custom escalation failure");
-        }
-        _ => {}
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| match msg {
+      Message::System(_) => {}
+      Message::User(_) if panic_once.get() => {
+        panic_once.set(false);
+        panic!("custom escalation failure");
+      }
+      _ => {}
+    }),
+  )
+  .unwrap();
 
   // consume initial watch message
   block_on(scheduler.dispatch_next()).unwrap();
@@ -677,9 +884,9 @@ fn scheduler_root_event_listener_broadcasts() {
   use crate::FailureEventStream;
   use std::sync::{Arc as StdArc, Mutex};
 
-  let factory = TestMailboxFactory::unbounded();
+  let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
-    PriorityScheduler::with_strategy(factory, AlwaysEscalate, Extensions::new());
+    PriorityScheduler::with_strategy(factory.clone(), AlwaysEscalate, Extensions::new());
 
   let hub = TestFailureEventStream::default();
   let received: StdArc<Mutex<Vec<FailureInfo>>> = StdArc::new(Mutex::new(Vec::new()));
@@ -696,21 +903,22 @@ fn scheduler_root_event_listener_broadcasts() {
   let should_panic = Rc::new(Cell::new(true));
   let panic_flag = should_panic.clone();
 
-  let actor_ref = scheduler
-    .spawn_actor(
-      Box::new(NoopSupervisor),
-      MailboxOptions::default(),
-      MapSystemShared::new(Message::System),
-      move |_, msg: Message| match msg {
-        Message::System(SystemMessage::Watch(_)) => {}
-        Message::User(_) if panic_flag.get() => {
-          panic_flag.set(false);
-          panic!("hub boom");
-        }
-        _ => {}
-      },
-    )
-    .unwrap();
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    factory.clone(),
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(Message::System),
+    Box::new(move |_, msg: Message| match msg {
+      Message::System(SystemMessage::Watch(_)) => {}
+      Message::User(_) if panic_flag.get() => {
+        panic_flag.set(false);
+        panic!("hub boom");
+      }
+      _ => {}
+    }),
+  )
+  .unwrap();
 
   actor_ref
     .try_send_with_priority(Message::User(7), DEFAULT_PRIORITY)

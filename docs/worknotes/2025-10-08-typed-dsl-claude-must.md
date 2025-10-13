@@ -34,10 +34,10 @@
    - `test_watch_unwatch_routed_via_map_system`: `SystemMessage::Watch`/`Unwatch` が型付きイベントへ変換され、`Context::register_watcher` の結果が検証できること。
    - `test_stateful_behavior_handles_failure`: Stateful Behavior が Failure/Escalate を processed event として受け取り、内部状態を更新すること。
 2. テストでは `PriorityActorRef::try_send_control_with_priority` と `MessageEnvelope::<U>` を用いて制御メッセージの優先度が保持されているか確認する。
-3. `TestMailboxFactory` を用いた end-to-end シナリオを追加し、Guardian 経由で Escalate が親に届くことを確認する。
+3. `TestMailboxRuntime` を用いた end-to-end シナリオを追加し、Guardian 経由で Escalate が親に届くことを確認する。
 
 ## 実装メモ
-- `ActorAdapter` が `ArcShared` を保持する際、`Send + Sync` 制約と `Clone` 実装（MailboxFactory 要件）を満たす必要がある。
+- `ActorAdapter` が `ArcShared` を保持する際、`Send + Sync` 制約と `Clone` 実装（MailboxRuntime 要件）を満たす必要がある。
 - `SystemMessage` の優先度は [`SystemMessage::priority`](modules/actor-core/src/runtime/mailbox/messages.rs:46) で決定済み。Typed 層で再定義しない。
 - `Context<'r, 'ctx, U, R>` のライフタイム制約を満たすため、クロージャ引数は `for<'r, 'ctx>` で定義すること。
 

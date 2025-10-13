@@ -1,10 +1,16 @@
 use core::convert::Infallible;
 
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::scheduler::PriorityScheduler;
+use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
-use crate::{Extensions, FailureEventListener, MailboxFactory, PriorityEnvelope};
+use crate::{
+  Extensions, FailureEventHandler, FailureEventListener, MailboxRuntime, MetricsSinkShared, PriorityEnvelope,
+};
+use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
+use core::marker::PhantomData;
+#[cfg(feature = "std")]
+use futures::executor::block_on;
 
 use super::InternalRootContext;
 
@@ -12,13 +18,17 @@ use super::InternalRootContext;
 pub struct InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
   pub(crate) root_event_listener: Option<FailureEventListener>,
+  /// Escalation handler invoked when failures bubble to the root guardian.
+  pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
   pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  /// Metrics sink shared across the actor runtime.
+  pub(crate) metrics_sink: Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
   pub(crate) extensions: Extensions,
 }
@@ -26,14 +36,16 @@ where
 impl<M, R> Default for InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
   fn default() -> Self {
     Self {
       root_event_listener: None,
+      root_escalation_handler: None,
       receive_timeout_factory: None,
+      metrics_sink: None,
       extensions: Extensions::new(),
     }
   }
@@ -42,19 +54,22 @@ where
 pub(crate) struct InternalActorSystem<M, R, Strat = AlwaysRestart>
 where
   M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
+  R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
-  pub(super) scheduler: PriorityScheduler<M, R, Strat>,
+  pub(super) scheduler: SchedulerHandle<M, R>,
+  pub(super) runtime: ArcShared<R>,
   extensions: Extensions,
+  metrics_sink: Option<MetricsSinkShared>,
+  _strategy: PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
 impl<M, R> InternalActorSystem<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -63,22 +78,44 @@ where
   }
 
   pub fn new_with_settings(mailbox_factory: R, settings: InternalActorSystemSettings<M, R>) -> Self {
+    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::priority());
+    Self::new_with_settings_and_builder(mailbox_factory, scheduler_builder, settings)
+  }
+
+  pub fn new_with_settings_and_builder(
+    mailbox_factory: R,
+    scheduler_builder: ArcShared<SchedulerBuilder<M, R>>,
+    settings: InternalActorSystemSettings<M, R>,
+  ) -> Self {
     let InternalActorSystemSettings {
       root_event_listener,
+      root_escalation_handler,
       receive_timeout_factory,
+      metrics_sink,
       extensions,
     } = settings;
-    let mut scheduler = PriorityScheduler::new(mailbox_factory, extensions.clone());
+    let factory_shared = ArcShared::new(mailbox_factory);
+    let runtime = factory_shared.clone();
+    let factory_for_scheduler = factory_shared.with_ref(|factory| factory.clone());
+    let mut scheduler = scheduler_builder.build(factory_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
-    scheduler.set_receive_timeout_factory(receive_timeout_factory);
-    Self { scheduler, extensions }
+    scheduler.set_root_escalation_handler(root_escalation_handler);
+    scheduler.set_receive_timeout_factory(receive_timeout_factory.clone());
+    scheduler.set_metrics_sink(metrics_sink.clone());
+    Self {
+      scheduler,
+      runtime,
+      extensions,
+      metrics_sink,
+      _strategy: PhantomData,
+    }
   }
 }
 
 impl<M, R, Strat> InternalActorSystem<M, R, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  R: MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
@@ -90,23 +127,27 @@ where
   pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
   where
     F: FnMut() -> bool, {
-    self.scheduler.run_until(should_continue).await
+    self.run_until_impl(should_continue).await
   }
 
   pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
-    self.scheduler.run_forever().await
+    loop {
+      self.scheduler.dispatch_next().await?;
+    }
   }
 
   #[cfg(feature = "std")]
   pub fn blocking_dispatch_loop<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
   where
     F: FnMut() -> bool, {
-    self.scheduler.blocking_dispatch_loop(should_continue)
+    self.blocking_dispatch_loop_impl(should_continue)
   }
 
   #[cfg(feature = "std")]
   pub fn blocking_dispatch_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
-    self.scheduler.blocking_dispatch_forever()
+    loop {
+      block_on(self.scheduler.dispatch_next())?;
+    }
   }
 
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
@@ -131,5 +172,28 @@ where
 
   pub fn extensions(&self) -> Extensions {
     self.extensions.clone()
+  }
+
+  pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+    self.metrics_sink.clone()
+  }
+
+  async fn run_until_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  where
+    F: FnMut() -> bool, {
+    while should_continue() {
+      self.scheduler.dispatch_next().await?;
+    }
+    Ok(())
+  }
+
+  #[cfg(feature = "std")]
+  fn blocking_dispatch_loop_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  where
+    F: FnMut() -> bool, {
+    while should_continue() {
+      block_on(self.scheduler.dispatch_next())?;
+    }
+    Ok(())
   }
 }
