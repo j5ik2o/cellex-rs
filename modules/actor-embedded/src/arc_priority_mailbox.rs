@@ -418,7 +418,7 @@ mod tests {
   fn priority_mailbox_orders_messages_by_priority() {
     prepare();
     let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
-    let (mailbox, sender) = runtime.mailbox::<u8>(MailboxOptions::default());
+    let (mailbox, sender) = factory.mailbox::<u8>(MailboxOptions::default());
 
     sender
       .try_send_with_priority(10, DEFAULT_PRIORITY)
@@ -444,7 +444,7 @@ mod tests {
     prepare();
     let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
     let options = MailboxOptions::with_capacities(QueueSize::limited(2), QueueSize::limited(2));
-    let (mailbox, sender) = runtime.mailbox::<u8>(options);
+    let (mailbox, sender) = factory.mailbox::<u8>(options);
 
     assert!(!mailbox.capacity().is_limitless());
 
@@ -468,7 +468,7 @@ mod tests {
   fn control_queue_preempts_regular_messages() {
     prepare();
     let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
-    let (mailbox, sender) = runtime.mailbox::<u32>(MailboxOptions::default());
+    let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
     sender
       .try_send_with_priority(1, DEFAULT_PRIORITY)
