@@ -159,8 +159,6 @@ mod tests {
   #[derive(Debug, Clone)]
   struct Msg(i32, i8);
 
-  impl cellex_utils_core_rs::Element for Msg {}
-
   impl PriorityMessage for Msg {
     fn get_priority(&self) -> Option<i8> {
       Some(self.1)
