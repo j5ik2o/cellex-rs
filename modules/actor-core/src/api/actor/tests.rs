@@ -19,6 +19,7 @@ use crate::SystemMessage;
 use crate::ThreadSafe;
 use crate::{serializer_extension_id, SerializerRegistryExtension};
 use crate::{Extension, ExtensionId};
+use crate::{FailureEvent, FailureEventListener};
 use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
@@ -35,6 +36,7 @@ use core::task::{Context as TaskContext, Poll, RawWaker, RawWakerVTable, Waker};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::{Arc as StdArc, Mutex};
 
 type TestRuntime = RuntimeEnv<TestMailboxRuntime>;
 
@@ -278,8 +280,16 @@ fn test_supervise_builder_sets_strategy() {
 #[test]
 #[ignore = "panic handling for supervised restarts/stops not yet fully wired"]
 fn test_supervise_stop_on_failure() {
-  let factory = TestMailboxRuntime::unbounded();
-  let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new(factory);
+  let failures: StdArc<Mutex<Vec<String>>> = StdArc::new(Mutex::new(Vec::new()));
+  let failures_clone = StdArc::clone(&failures);
+  let listener = FailureEventListener::new(move |event: FailureEvent| {
+    let FailureEvent::RootEscalated(info) = event;
+    failures_clone.lock().unwrap().push(info.description().into_owned());
+  });
+
+  let runtime = RuntimeEnv::new(TestMailboxRuntime::unbounded());
+  let config = ActorSystemConfig::default().with_failure_event_listener(Some(listener));
+  let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
 
   let props = Props::with_behavior(MailboxOptions::default(), || {
     Behaviors::supervise(Behaviors::receive(|_, _: u32| {
@@ -296,11 +306,7 @@ fn test_supervise_stop_on_failure() {
   }));
   assert!(panic_result.is_err(), "expected actor to panic under Stop strategy");
 
-  let result = actor_ref.tell(2);
-  assert!(matches!(
-    result,
-    Err(QueueError::Closed(_)) | Err(QueueError::Disconnected)
-  ));
+  assert!(failures.lock().unwrap().iter().any(|reason| reason.contains("boom")));
 }
 
 #[test]

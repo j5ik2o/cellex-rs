@@ -1,6 +1,3 @@
-use alloc::collections::BTreeMap;
-use core::fmt;
-
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::mailbox::traits::MailboxProducer;
 use crate::ActorId;
@@ -10,9 +7,11 @@ use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
 use crate::{PriorityEnvelope, SystemMessage};
+use alloc::collections::BTreeMap;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::{ChildRecord, FailureReasonDebug, GuardianStrategy};
+use super::{ChildRecord, GuardianStrategy};
+use crate::ActorFailure;
 
 type ChildRoute<M, R> = (InternalActorRef<M, R>, MapSystemShared<M>);
 
@@ -95,14 +94,14 @@ where
   pub fn notify_failure(
     &mut self,
     actor: ActorId,
-    error: &dyn fmt::Debug,
+    failure: ActorFailure,
   ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<M>>> {
     let path = match self.children.get(&actor) {
       Some(record) => record.path.clone(),
       None => ActorPath::new().push_child(actor),
     };
-    let failure = FailureInfo::from_error(actor, path, error);
-    let directive = self.strategy.decide(actor, error);
+    let directive = self.strategy.decide(actor, failure.behavior());
+    let failure = FailureInfo::from_failure(actor, path, failure);
     self.handle_directive(actor, failure, directive)
   }
 
@@ -120,7 +119,7 @@ where
     failure: FailureInfo,
   ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<M>>> {
     let actor = failure.actor;
-    let directive = self.strategy.decide(actor, &FailureReasonDebug(&failure.reason));
+    let directive = self.strategy.decide(actor, failure.behavior_failure());
     self.handle_directive(actor, failure, directive)
   }
 

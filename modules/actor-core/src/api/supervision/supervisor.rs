@@ -1,4 +1,4 @@
-use core::fmt;
+use crate::BehaviorFailure;
 
 /// Action returned by the supervisor.
 ///
@@ -38,7 +38,7 @@ pub trait Supervisor<M>: Send + 'static {
   /// # Returns
   ///
   /// `SupervisorDirective` to execute
-  fn decide(&mut self, _error: &dyn fmt::Debug) -> SupervisorDirective {
+  fn decide(&mut self, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Stop
   }
 }
@@ -51,7 +51,7 @@ pub struct NoopSupervisor;
 
 impl<M> Supervisor<M> for NoopSupervisor {
   /// Returns `Resume` for all failures.
-  fn decide(&mut self, _error: &dyn fmt::Debug) -> SupervisorDirective {
+  fn decide(&mut self, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Resume
   }
 }

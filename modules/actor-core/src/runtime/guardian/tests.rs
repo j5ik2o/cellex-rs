@@ -7,9 +7,10 @@ use crate::ActorPath;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
+use crate::{ActorFailure, BehaviorFailure};
 use crate::{PriorityEnvelope, SystemMessage};
-use ::core::fmt;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
+use std::sync::{Arc, Mutex};
 
 #[test]
 fn guardian_sends_restart_message() {
@@ -31,7 +32,10 @@ fn guardian_sends_restart_message() {
   let first_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(first_envelope.into_parts().0, SystemMessage::Watch(parent_id));
 
-  assert!(guardian.notify_failure(actor_id, &"panic").unwrap().is_none());
+  assert!(guardian
+    .notify_failure(actor_id, ActorFailure::from_message("panic"))
+    .unwrap()
+    .is_none());
 
   let envelope = mailbox.queue().poll().unwrap().unwrap();
   let (message, priority, channel) = envelope.into_parts_with_channel();
@@ -48,7 +52,7 @@ fn guardian_sends_stop_message() {
     M: Element,
     R: MailboxRuntime,
   {
-    fn decide(&mut self, _actor: ActorId, _error: &dyn fmt::Debug) -> SupervisorDirective {
+    fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
       SupervisorDirective::Stop
     }
   }
@@ -71,7 +75,10 @@ fn guardian_sends_stop_message() {
   let watch_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(watch_envelope.into_parts().0, SystemMessage::Watch(parent_id));
 
-  assert!(guardian.notify_failure(actor_id, &"panic").unwrap().is_none());
+  assert!(guardian
+    .notify_failure(actor_id, ActorFailure::from_message("panic"))
+    .unwrap()
+    .is_none());
 
   let envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(envelope.into_parts().0, SystemMessage::Stop);
@@ -101,4 +108,38 @@ fn guardian_emits_unwatch_on_remove() {
 
   let envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(envelope.into_parts().0, SystemMessage::Unwatch(parent_id));
+}
+
+#[test]
+fn guardian_strategy_receives_behavior_failure() {
+  struct CaptureStrategy(Arc<Mutex<Vec<String>>>);
+
+  impl<M, R> GuardianStrategy<M, R> for CaptureStrategy
+  where
+    M: Element,
+    R: MailboxRuntime,
+  {
+    fn decide(&mut self, _actor: ActorId, error: &dyn BehaviorFailure) -> SupervisorDirective {
+      self.0.lock().unwrap().push(error.description().into_owned());
+      SupervisorDirective::Resume
+    }
+  }
+
+  let (_, sender) = TestMailboxRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
+  let ref_control: InternalActorRef<SystemMessage, TestMailboxRuntime> = InternalActorRef::new(sender);
+
+  let captured = Arc::new(Mutex::new(Vec::new()));
+  let mut guardian: Guardian<SystemMessage, _, CaptureStrategy> = Guardian::new(CaptureStrategy(captured.clone()));
+  let parent_path = ActorPath::new();
+  let (actor_id, _) = guardian
+    .register_child(ref_control.clone(), MapSystemShared::new(|sys| sys), None, &parent_path)
+    .unwrap();
+
+  guardian
+    .notify_failure(actor_id, ActorFailure::from_message("child boom"))
+    .expect("notify succeeds");
+
+  let log = captured.lock().unwrap();
+  assert_eq!(log.len(), 1);
+  assert!(log[0].contains("child boom"));
 }

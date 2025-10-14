@@ -1,12 +1,8 @@
 use alloc::boxed::Box;
-#[cfg(feature = "std")]
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::any::TypeId;
 use core::cell::RefCell;
-#[cfg(feature = "std")]
-use core::fmt;
 use core::marker::PhantomData;
 
 #[cfg(feature = "std")]
@@ -20,6 +16,7 @@ use crate::runtime::mailbox::traits::{
 use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
+use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extensions;
@@ -217,9 +214,10 @@ where
         self.extensions.clone(),
       );
       ctx.enter_priority(priority);
-      (self.handler)(&mut ctx, message);
+      let handler_result = (self.handler)(&mut ctx, message);
       ctx.notify_receive_timeout_activity(influences_receive_timeout);
       ctx.exit_priority();
+      handler_result
     }));
 
     #[cfg(not(feature = "std"))]
@@ -239,15 +237,24 @@ where
         self.extensions.clone(),
       );
       ctx.enter_priority(priority);
-      (self.handler)(&mut ctx, message);
+      let handler_result = (self.handler)(&mut ctx, message);
       ctx.notify_receive_timeout_activity(influences_receive_timeout);
       ctx.exit_priority();
       self.supervisor.after_handle();
-      for spec in pending_specs.into_iter() {
-        self.register_child_from_spec(spec, guardian, new_children)?;
-      }
-      if should_stop {
-        self.mark_stopped(guardian);
+      match handler_result {
+        Ok(()) => {
+          for spec in pending_specs.into_iter() {
+            self.register_child_from_spec(spec, guardian, new_children)?;
+          }
+          if should_stop {
+            self.mark_stopped(guardian);
+          }
+        }
+        Err(err) => {
+          if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
+            escalations.push(info);
+          }
+        }
       }
       Ok(())
     }
@@ -257,18 +264,27 @@ where
       self.supervisor.after_handle();
 
       match result {
-        Ok(()) => {
-          for spec in pending_specs.into_iter() {
-            self.register_child_from_spec(spec, guardian, new_children)?;
-          }
-          if should_stop {
-            self.mark_stopped(guardian);
+        Ok(handler_result) => {
+          match handler_result {
+            Ok(()) => {
+              for spec in pending_specs.into_iter() {
+                self.register_child_from_spec(spec, guardian, new_children)?;
+              }
+              if should_stop {
+                self.mark_stopped(guardian);
+              }
+            }
+            Err(err) => {
+              if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
+                escalations.push(info);
+              }
+            }
           }
           Ok(())
         }
         Err(payload) => {
-          let panic_debug = PanicDebug::new(&payload);
-          if let Some(info) = guardian.notify_failure(self.actor_id, &panic_debug)? {
+          let failure = ActorFailure::from_panic_payload(payload.as_ref());
+          if let Some(info) = guardian.notify_failure(self.actor_id, failure)? {
             escalations.push(info);
           }
           Ok(())
@@ -353,30 +369,5 @@ where
     cell.set_metrics_sink(sink);
     new_children.push(cell);
     Ok(())
-  }
-}
-
-#[cfg(feature = "std")]
-struct PanicDebug<'a> {
-  payload: &'a (dyn core::any::Any + Send),
-}
-
-#[cfg(feature = "std")]
-impl<'a> PanicDebug<'a> {
-  fn new(payload: &'a (dyn core::any::Any + Send)) -> Self {
-    Self { payload }
-  }
-}
-
-#[cfg(feature = "std")]
-impl fmt::Debug for PanicDebug<'_> {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if let Some(s) = self.payload.downcast_ref::<&str>() {
-      write!(f, "panic: {s}")
-    } else if let Some(s) = self.payload.downcast_ref::<String>() {
-      write!(f, "panic: {s}")
-    } else {
-      write!(f, "panic: unknown payload")
-    }
   }
 }

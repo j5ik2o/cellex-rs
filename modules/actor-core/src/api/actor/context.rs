@@ -16,6 +16,7 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 use alloc::{boxed::Box, string::String};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
+use core::fmt;
 use core::future::Future;
 use core::marker::PhantomData;
 use core::time::Duration;
@@ -28,8 +29,10 @@ type AdapterFn<Ext, U> = dyn Fn(Ext) -> U;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 
 use super::{
-  ask::create_ask_handles, ask_with_timeout, ActorRef, AskError, AskFuture, AskResult, AskTimeoutFuture, Props,
+  ask::create_ask_handles, ask_with_timeout, ActorFailure, ActorRef, AskError, AskFuture, AskResult, AskTimeoutFuture,
+  Props,
 };
+use crate::api::supervision::FailureInfo;
 use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
 
 /// Typed actor execution context wrapper.
@@ -287,6 +290,15 @@ where
     let envelope =
       PriorityEnvelope::from_system(message.clone()).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
     self.inner.send_envelope_to_self(envelope)
+  }
+
+  /// Reports a failure to the guardian using the supervision channel.
+  pub fn fail<E>(&self, error: E) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  where
+    E: fmt::Display + fmt::Debug + Send + 'static, {
+    let failure = ActorFailure::from_error(error);
+    let info = FailureInfo::from_failure(self.actor_id(), self.actor_path().clone(), failure);
+    self.send_system_to_self(SystemMessage::Escalate(info))
   }
 
   /// Gets a reference to itself.

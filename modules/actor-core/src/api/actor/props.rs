@@ -15,7 +15,7 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
 use super::behavior::SupervisorStrategyConfig;
-use super::{ActorAdapter, Behavior, Context};
+use super::{ActorAdapter, ActorFailure, Behavior, Context};
 use crate::api::MessageEnvelope;
 use core::cell::RefCell;
 use core::marker::PhantomData;
@@ -123,7 +123,9 @@ where
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();
 
-    let handler = move |ctx: &mut ActorContext<'_, DynMessage, R, dyn Supervisor<DynMessage>>, message: DynMessage| {
+    let handler = move |ctx: &mut ActorContext<'_, DynMessage, R, dyn Supervisor<DynMessage>>,
+                        message: DynMessage|
+          -> Result<(), ActorFailure> {
       let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
         panic!("unexpected message type delivered to typed handler");
       };
@@ -134,11 +136,13 @@ where
             .and_then(take_metadata::<R::Concurrency>)
             .unwrap_or_default();
           let mut typed_ctx = Context::with_metadata(ctx, metadata);
-          adapter.handle_user(&mut typed_ctx, message);
+          adapter.handle_user(&mut typed_ctx, message)?;
+          Ok(())
         }
         MessageEnvelope::System(message) => {
           let mut typed_ctx = Context::new(ctx);
-          adapter.handle_system(&mut typed_ctx, message);
+          adapter.handle_system(&mut typed_ctx, message)?;
+          Ok(())
         }
       }
     };

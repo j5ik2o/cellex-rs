@@ -1,6 +1,5 @@
-use core::fmt;
-
 use crate::ActorId;
+use crate::BehaviorFailure;
 use crate::MailboxRuntime;
 use crate::SupervisorDirective;
 use cellex_utils_core_rs::Element;
@@ -25,7 +24,7 @@ where
   ///
   /// # Returns
   /// Supervisor directive (Restart, Stop, Resume, Escalate, etc.)
-  fn decide(&mut self, actor: ActorId, error: &dyn fmt::Debug) -> SupervisorDirective;
+  fn decide(&mut self, actor: ActorId, error: &dyn BehaviorFailure) -> SupervisorDirective;
 
   /// Hook called before actor startup.
   ///
@@ -63,7 +62,7 @@ where
   M: Element,
   R: MailboxRuntime,
 {
-  fn decide(&mut self, _actor: ActorId, _error: &dyn fmt::Debug) -> SupervisorDirective {
+  fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Restart
   }
 }

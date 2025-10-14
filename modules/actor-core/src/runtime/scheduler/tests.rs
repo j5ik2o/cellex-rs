@@ -2,12 +2,13 @@
 use super::priority_scheduler::PriorityScheduler;
 use super::*;
 use crate::api::actor::MailboxHandleFactoryStub;
-use crate::runtime::context::InternalActorRef;
+use crate::runtime::context::{ActorContext, InternalActorRef};
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::ActorHandlerFn;
 use crate::ActorId;
+use crate::BehaviorFailure;
 use crate::Extensions;
 use crate::FailureInfo;
 use crate::NoopSupervisor;
@@ -16,6 +17,7 @@ use crate::SupervisorDirective;
 use crate::{DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
 use crate::{FailureEventHandler, FailureEventListener, MapSystemShared};
 use crate::{MailboxOptions, Supervisor, SystemMessage};
+use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -29,6 +31,20 @@ use futures::executor::block_on;
 use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "std")]
+fn handler_from_fn<M, R, F>(mut f: F) -> Box<ActorHandlerFn<M, R>>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static, {
+  Box::new(move |ctx, message| {
+    f(ctx, message);
+    Ok(())
+  })
+}
+
+#[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
 struct AlwaysEscalate;
 
@@ -38,7 +54,7 @@ where
   M: Element,
   R: MailboxRuntime,
 {
-  fn decide(&mut self, _actor: ActorId, _error: &dyn core::fmt::Debug) -> SupervisorDirective {
+  fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Escalate
   }
 }
@@ -113,7 +129,7 @@ fn scheduler_delivers_watch_before_user_messages() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| {
+    handler_from_fn(move |_, msg: Message| {
       log_clone.borrow_mut().push(msg.clone());
     }),
   )
@@ -144,7 +160,7 @@ fn scheduler_handle_trait_object_dispatches() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| {
+    handler_from_fn(move |_, msg: Message| {
       log_clone.borrow_mut().push(msg);
     }),
   )
@@ -175,7 +191,7 @@ fn immediate_scheduler_builder_dispatches() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| {
+    handler_from_fn(move |_, msg: Message| {
       log_clone.borrow_mut().push(msg);
     }),
   )
@@ -203,7 +219,7 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(|sys| DynMessage::new(sys)),
-    Box::new(|_, _msg: DynMessage| {}),
+    handler_from_fn(|_, _msg: DynMessage| {}),
   )
   .unwrap();
 
@@ -284,12 +300,11 @@ fn actor_context_exposes_parent_watcher() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |ctx, msg: Message| {
+    handler_from_fn(move |ctx, msg: Message| {
       let current_watchers = ctx.watchers().to_vec();
       watchers_clone.borrow_mut().push(current_watchers);
       match msg {
-        Message::User(_) => {}
-        Message::System(_) => {}
+        Message::User(_) | Message::System(_) => {}
       }
     }),
   )
@@ -324,7 +339,7 @@ fn scheduler_dispatches_high_priority_first() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |ctx, msg: Message| match msg {
+    handler_from_fn(move |ctx, msg: Message| match msg {
       Message::User(value) => {
         log_clone.borrow_mut().push((value, ctx.current_priority().unwrap()));
         if value == 99 {
@@ -375,7 +390,7 @@ fn scheduler_prioritizes_system_messages() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| {
+    handler_from_fn(move |_, msg: Message| {
       log_clone.borrow_mut().push(msg.clone());
     }),
   )
@@ -415,7 +430,7 @@ fn priority_actor_ref_sends_system_messages() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(|sys| sys),
-    Box::new(move |_, msg: SystemMessage| {
+    handler_from_fn(move |_, msg: SystemMessage| {
       log_clone.borrow_mut().push(msg.clone());
     }),
   )
@@ -448,7 +463,7 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| {
+    handler_from_fn(move |_, msg: Message| {
       match msg {
         Message::System(SystemMessage::Watch(_)) => {
           // Watch メッセージは監視登録のみなのでログに残さない
@@ -494,7 +509,7 @@ fn scheduler_run_until_processes_messages() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| match msg {
+    handler_from_fn(move |_, msg: Message| match msg {
       Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
       Message::System(_) => {}
     }),
@@ -532,7 +547,7 @@ fn scheduler_blocking_dispatch_loop_stops_with_closure() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| match msg {
+    handler_from_fn(move |_, msg: Message| match msg {
       Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
       Message::System(_) => {}
     }),
@@ -578,7 +593,7 @@ fn scheduler_records_escalations() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| match msg {
+    handler_from_fn(move |_, msg: Message| match msg {
       Message::System(SystemMessage::Watch(_)) => {}
       Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
@@ -598,7 +613,8 @@ fn scheduler_records_escalations() {
   let handler_data = sink.borrow();
   assert_eq!(handler_data.len(), 1);
   assert_eq!(handler_data[0].actor, ActorId(0));
-  assert!(handler_data[0].reason.starts_with("panic:"));
+  let description = handler_data[0].description();
+  assert!(description.starts_with("panic:"));
 
   // handler で除去済みのため take_escalations は空
   assert!(scheduler.take_escalations().is_empty());
@@ -624,7 +640,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| match msg {
+    handler_from_fn(move |_, msg: Message| match msg {
       Message::System(SystemMessage::Watch(_)) => {}
       Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
@@ -647,7 +663,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
   match msg {
     Message::System(SystemMessage::Escalate(info)) => {
       assert_eq!(info.actor, ActorId(0));
-      assert!(info.reason.contains("panic"));
+      assert!(info.description().contains("panic"));
     }
     other => panic!("unexpected message: {:?}", other),
   }
@@ -678,7 +694,7 @@ fn scheduler_escalation_chain_reaches_root() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |ctx, msg: Message| match msg {
+    handler_from_fn(move |ctx, msg: Message| match msg {
       Message::System(_) => {}
       Message::User(0) if !trigger_flag.get() => {
         trigger_flag.set(true);
@@ -760,7 +776,7 @@ fn scheduler_escalation_chain_reaches_root() {
 
   assert_eq!(root_failure.actor, parent_failure.actor);
   assert!(root_failure.path.is_empty());
-  assert_eq!(root_failure.reason, parent_failure.reason);
+  assert_eq!(root_failure.description(), parent_failure.description());
   assert!(
     root_stage.hops() >= parent_stage.hops(),
     "root escalation hop count must be monotonic"
@@ -792,7 +808,7 @@ fn scheduler_root_escalation_handler_invoked() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| match msg {
+    handler_from_fn(move |_, msg: Message| match msg {
       Message::System(SystemMessage::Watch(_)) => {}
       Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
@@ -812,7 +828,7 @@ fn scheduler_root_escalation_handler_invoked() {
 
   let events = events.lock().unwrap();
   assert_eq!(events.len(), 1);
-  assert!(!events[0].reason.is_empty());
+  assert!(!events[0].description().is_empty());
 }
 
 #[cfg(feature = "std")]
@@ -849,7 +865,7 @@ fn scheduler_requeues_failed_custom_escalation() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| match msg {
+    handler_from_fn(move |_, msg: Message| match msg {
       Message::System(_) => {}
       Message::User(_) if panic_once.get() => {
         panic_once.set(false);
@@ -909,7 +925,7 @@ fn scheduler_root_event_listener_broadcasts() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
-    Box::new(move |_, msg: Message| match msg {
+    handler_from_fn(move |_, msg: Message| match msg {
       Message::System(SystemMessage::Watch(_)) => {}
       Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
@@ -929,5 +945,5 @@ fn scheduler_root_event_listener_broadcasts() {
 
   let events = received.lock().unwrap();
   assert_eq!(events.len(), 1);
-  assert!(!events[0].reason.is_empty());
+  assert!(!events[0].description().is_empty());
 }

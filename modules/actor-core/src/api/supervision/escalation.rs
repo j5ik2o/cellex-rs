@@ -127,7 +127,7 @@ where
       use tracing::error;
       error!(
         actor = ?info.actor,
-        reason = %info.reason,
+        reason = %info.description(),
         path = ?info.path.segments(),
         "actor escalation reached root guardian"
       );

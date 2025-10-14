@@ -49,6 +49,7 @@ fn actor_system_spawns_and_processes_messages() {
           Message::User(value) => log_clone.borrow_mut().push(value),
           Message::System => {}
         }
+        Ok(())
       },
     ))
     .expect("spawn actor");

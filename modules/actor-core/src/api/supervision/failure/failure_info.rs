@@ -1,17 +1,21 @@
+use alloc::borrow::Cow;
+
+use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
+use crate::BehaviorFailure;
 
 use super::{EscalationStage, FailureMetadata};
 
 /// Failure information. Holds a simplified form of protoactor-go's Failure message.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct FailureInfo {
   /// ID of the actor where the failure occurred
   pub actor: ActorId,
   /// Path of the actor where the failure occurred
   pub path: ActorPath,
-  /// String describing the reason for the failure
-  pub reason: alloc::string::String,
+  /// Detailed failure payload
+  pub failure: ActorFailure,
   /// Metadata associated with the failure
   pub metadata: FailureMetadata,
   /// Escalation stage
@@ -24,12 +28,12 @@ impl FailureInfo {
   /// # Arguments
   /// * `actor` - ID of the actor where the failure occurred
   /// * `path` - Path of the actor where the failure occurred
-  /// * `reason` - String describing the reason for the failure
+  /// * `failure` - Failure payload
   ///
   /// # Returns
   /// New `FailureInfo` instance
-  pub fn new(actor: ActorId, path: ActorPath, reason: alloc::string::String) -> Self {
-    Self::new_with_metadata(actor, path, reason, FailureMetadata::default())
+  pub fn new(actor: ActorId, path: ActorPath, failure: ActorFailure) -> Self {
+    Self::new_with_metadata(actor, path, failure, FailureMetadata::default())
   }
 
   /// Creates new failure information with specified metadata.
@@ -37,21 +41,16 @@ impl FailureInfo {
   /// # Arguments
   /// * `actor` - ID of the actor where the failure occurred
   /// * `path` - Path of the actor where the failure occurred
-  /// * `reason` - String describing the reason for the failure
+  /// * `failure` - Failure payload
   /// * `metadata` - Metadata associated with the failure
   ///
   /// # Returns
   /// New `FailureInfo` instance
-  pub fn new_with_metadata(
-    actor: ActorId,
-    path: ActorPath,
-    reason: alloc::string::String,
-    metadata: FailureMetadata,
-  ) -> Self {
+  pub fn new_with_metadata(actor: ActorId, path: ActorPath, failure: ActorFailure, metadata: FailureMetadata) -> Self {
     Self {
       actor,
       path,
-      reason,
+      failure,
       metadata,
       stage: EscalationStage::Initial,
     }
@@ -81,25 +80,25 @@ impl FailureInfo {
     self
   }
 
-  /// Creates failure information from an error with default metadata.
+  /// Creates failure information from an error with default metadata (helper for legacy call sites).
   ///
   /// # Arguments
   /// * `actor` - ID of the actor where the failure occurred
   /// * `path` - Path of the actor where the failure occurred
-  /// * `error` - Error object
+  /// * `failure` - Actor failure reference
   ///
   /// # Returns
   /// New `FailureInfo` instance
-  pub fn from_error(actor: ActorId, path: ActorPath, error: &dyn core::fmt::Debug) -> Self {
-    Self::from_error_with_metadata(actor, path, error, FailureMetadata::default())
+  pub fn from_error(actor: ActorId, path: ActorPath, failure: &ActorFailure) -> Self {
+    Self::from_error_with_metadata(actor, path, failure, FailureMetadata::default())
   }
 
-  /// Creates failure information from an error and metadata.
+  /// Creates failure information from an error and metadata (helper for legacy call sites).
   ///
   /// # Arguments
   /// * `actor` - ID of the actor where the failure occurred
   /// * `path` - Path of the actor where the failure occurred
-  /// * `error` - Error object
+  /// * `failure` - Actor failure reference
   /// * `metadata` - Metadata associated with the failure
   ///
   /// # Returns
@@ -107,16 +106,16 @@ impl FailureInfo {
   pub fn from_error_with_metadata(
     actor: ActorId,
     path: ActorPath,
-    error: &dyn core::fmt::Debug,
+    failure: &ActorFailure,
     metadata: FailureMetadata,
   ) -> Self {
-    Self {
-      actor,
-      path,
-      reason: alloc::format!("{:?}", error),
-      metadata,
-      stage: EscalationStage::Initial,
-    }
+    Self::new_with_metadata(actor, path, failure.clone(), metadata)
+  }
+
+  /// Creates failure information from an `ActorFailure`.
+  #[must_use]
+  pub fn from_failure(actor: ActorId, path: ActorPath, failure: ActorFailure) -> Self {
+    Self::new(actor, path, failure)
   }
 
   /// Creates new failure information escalated to parent actor.
@@ -130,9 +129,60 @@ impl FailureInfo {
     Some(Self {
       actor: parent_actor,
       path: parent_path,
-      reason: self.reason.clone(),
+      failure: self.failure.clone(),
       metadata: self.metadata.clone(),
       stage: self.stage.escalate(),
     })
   }
+
+  /// Provides a reference to the underlying `BehaviorFailure`.
+  #[must_use]
+  pub fn behavior_failure(&self) -> &dyn BehaviorFailure {
+    self.failure.behavior()
+  }
+
+  /// Provides a reference to the wrapped `ActorFailure`.
+  #[must_use]
+  pub fn actor_failure(&self) -> &ActorFailure {
+    &self.failure
+  }
+
+  /// Returns a textual description suitable for logging.
+  #[must_use]
+  pub fn description(&self) -> Cow<'_, str> {
+    self.failure.description()
+  }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::{ActorFailure, DefaultBehaviorFailure};
+
+  #[test]
+  fn failure_info_escalate_preserves_failure() {
+    let child = ActorId(2);
+    let path = ActorPath::new().push_child(ActorId(0)).push_child(child);
+    let original = ActorFailure::from_message("boom");
+    let info = FailureInfo::from_failure(child, path.clone(), original.clone());
+
+    assert!(info.description().contains("boom"));
+    assert!(info.behavior_failure().as_any().is::<DefaultBehaviorFailure>());
+
+    let parent = info.escalate_to_parent().expect("parent failure");
+    assert_eq!(parent.path.segments().last().copied(), path.parent().unwrap().last());
+    assert_eq!(parent.description(), original.description());
+  }
+}
+
+impl PartialEq for FailureInfo {
+  fn eq(&self, other: &Self) -> bool {
+    self.actor == other.actor
+      && self.path == other.path
+      && self.failure == other.failure
+      && self.metadata == other.metadata
+      && self.stage == other.stage
+  }
+}
+
+impl Eq for FailureInfo {}
