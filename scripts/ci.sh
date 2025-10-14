@@ -29,6 +29,14 @@ log_step() {
   printf '==> %s\n' "$1"
 }
 
+run_cargo() {
+  if [[ -n "${DEFAULT_TOOLCHAIN}" ]]; then
+    cargo "+${DEFAULT_TOOLCHAIN}" "$@"
+  else
+    cargo "$@"
+  fi
+}
+
 ensure_target_installed() {
   local target="$1"
 
@@ -37,7 +45,11 @@ ensure_target_installed() {
   fi
 
   if [[ -n "${CI:-}" ]]; then
-    echo "エラー: 必要なターゲット ${target} がインストールされていません。'rustup target add ${target}' を実行してください。" >&2
+    echo "info: installing target ${target} for toolchain ${DEFAULT_TOOLCHAIN}" >&2
+    if rustup target add --toolchain "${DEFAULT_TOOLCHAIN}" "${target}"; then
+      return 0
+    fi
+    echo "エラー: ターゲット ${target} のインストールに失敗しました。" >&2
     return 1
   fi
 
@@ -46,46 +58,46 @@ ensure_target_installed() {
 }
 
 run_lint() {
-  log_step "cargo +nightly fmt -- --check"
-  cargo +nightly fmt -- --check
+  log_step "cargo +${DEFAULT_TOOLCHAIN} fmt -- --check"
+  run_cargo fmt -- --check
 }
 
 run_clippy() {
-  log_step "cargo clippy --workspace --all-targets -- -D warnings"
-  cargo clippy --workspace --all-targets -- -D warnings
+  log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --all-targets -- -D warnings"
+  run_cargo clippy --workspace --all-targets -- -D warnings
 }
 
 run_no_std() {
-  log_step "cargo check -p cellex-utils-core-rs --no-default-features --features alloc"
-  cargo check -p cellex-utils-core-rs --no-default-features --features alloc
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-core-rs --no-default-features --features alloc"
+  run_cargo check -p cellex-utils-core-rs --no-default-features --features alloc
 
-  log_step "cargo check -p cellex-actor-core-rs --no-default-features --features alloc"
-  cargo check -p cellex-actor-core-rs --no-default-features --features alloc
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --no-default-features --features alloc"
+  run_cargo check -p cellex-actor-core-rs --no-default-features --features alloc
 }
 
 run_std() {
-  log_step "cargo test -p cellex-utils-core-rs --features std"
-  cargo test -p cellex-utils-core-rs --features std
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs --features std"
+  run_cargo test -p cellex-utils-core-rs --features std
 
-  log_step "cargo test -p cellex-actor-core-rs --no-default-features --features std"
-  cargo test -p cellex-actor-core-rs --no-default-features --features std
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features std"
+  run_cargo test -p cellex-actor-core-rs --no-default-features --features std
 
-  log_step "cargo test -p cellex-utils-std-rs"
-  cargo test -p cellex-utils-std-rs
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-std-rs"
+  run_cargo test -p cellex-utils-std-rs
 
-  log_step "cargo test -p cellex-actor-std-rs"
-  cargo test -p cellex-actor-std-rs
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-std-rs"
+  run_cargo test -p cellex-actor-std-rs
 }
 
 run_embedded() {
-  log_step "cargo test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run"
-  cargo test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run"
+  run_cargo test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run
 
-  log_step "cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc"
-  cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc"
+  run_cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc
 
-  log_step "cargo test -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc"
-  cargo test -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc"
+  run_cargo test -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc
 
   for target in "${THUMB_TARGETS[@]}"; do
     if ! ensure_target_installed "${target}"; then
@@ -96,17 +108,17 @@ run_embedded() {
       continue
     fi
 
-    log_step "cargo check -p cellex-actor-core-rs --target ${target} --no-default-features --features alloc"
-    cargo check -p cellex-actor-core-rs --target "${target}" --no-default-features --features alloc
+    log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --target ${target} --no-default-features --features alloc"
+    run_cargo check -p cellex-actor-core-rs --target "${target}" --no-default-features --features alloc
 
-    log_step "cargo check -p cellex-actor-embedded-rs --target ${target} --no-default-features --features alloc,embedded_rc"
-    cargo check -p cellex-actor-embedded-rs --target "${target}" --no-default-features --features alloc,embedded_rc
+    log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-embedded-rs --target ${target} --no-default-features --features alloc,embedded_rc"
+    run_cargo check -p cellex-actor-embedded-rs --target "${target}" --no-default-features --features alloc,embedded_rc
   done
 }
 
 run_tests() {
-  log_step "cargo test --workspace --verbose"
-  cargo test --workspace --verbose
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --verbose"
+  run_cargo test --workspace --verbose
 }
 
 run_all() {
