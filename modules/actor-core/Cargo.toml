@@ -32,7 +32,7 @@ cellex-serialization-postcard-rs = { path = "../serialization-postcard", optiona
 cellex-serialization-prost-rs = { path = "../serialization-prost", optional = true }
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
 critical-section = { workspace = true, default-features = false }
-futures = { workspace = true, features = ["alloc"] }
+futures = { workspace = true, default-features = false, features = ["alloc"] }
 portable-atomic = { workspace = true, default-features = false, features = ["critical-section"] }
 spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "once", "portable_atomic", "rwlock"] }
 tokio = { workspace = true, optional = true, default-features = false, features = ["macros", "rt", "rt-multi-thread", "sync", "time", "signal"] }
