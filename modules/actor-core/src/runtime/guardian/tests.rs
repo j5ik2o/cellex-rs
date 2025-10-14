@@ -9,8 +9,11 @@ use crate::MapSystemShared;
 use crate::SupervisorDirective;
 use crate::{ActorFailure, BehaviorFailure};
 use crate::{PriorityEnvelope, SystemMessage};
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
-use std::sync::{Arc, Mutex};
+use spin::Mutex;
 
 #[test]
 fn guardian_sends_restart_message() {
@@ -120,7 +123,7 @@ fn guardian_strategy_receives_behavior_failure() {
     R: MailboxRuntime,
   {
     fn decide(&mut self, _actor: ActorId, error: &dyn BehaviorFailure) -> SupervisorDirective {
-      self.0.lock().unwrap().push(error.description().into_owned());
+      self.0.lock().push(error.description().into_owned());
       SupervisorDirective::Resume
     }
   }
@@ -139,7 +142,7 @@ fn guardian_strategy_receives_behavior_failure() {
     .notify_failure(actor_id, ActorFailure::from_message("child boom"))
     .expect("notify succeeds");
 
-  let log = captured.lock().unwrap();
+  let log = captured.lock();
   assert_eq!(log.len(), 1);
   assert!(log[0].contains("child boom"));
 }
