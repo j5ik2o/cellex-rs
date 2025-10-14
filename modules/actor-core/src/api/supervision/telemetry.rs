@@ -27,6 +27,19 @@ pub fn null_failure_telemetry() -> ArcShared<dyn FailureTelemetry> {
   ArcShared::from_arc(Arc::new(NullFailureTelemetry))
 }
 
+/// Returns the default telemetry implementation for the current build configuration.
+pub fn default_failure_telemetry() -> ArcShared<dyn FailureTelemetry> {
+  #[cfg(all(feature = "std", feature = "unwind-supervision"))]
+  {
+    return tracing_failure_telemetry();
+  }
+
+  #[cfg(not(all(feature = "std", feature = "unwind-supervision")))]
+  {
+    return null_failure_telemetry();
+  }
+}
+
 #[cfg(feature = "std")]
 /// Telemetry implementation that emits tracing events.
 pub struct TracingFailureTelemetry;

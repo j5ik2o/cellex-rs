@@ -4,7 +4,7 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
 use super::failure::FailureEvent;
-use super::telemetry::{null_failure_telemetry, FailureTelemetry};
+use super::telemetry::{default_failure_telemetry, FailureTelemetry};
 use crate::{FailureEventHandlerShared, FailureEventListenerShared};
 use crate::{FailureInfo, MailboxRuntime, PriorityEnvelope};
 
@@ -70,7 +70,7 @@ where
     Self {
       event_handler: None,
       event_listener: None,
-      telemetry: null_failure_telemetry(),
+      telemetry: default_failure_telemetry(),
       _marker: PhantomData,
     }
   }

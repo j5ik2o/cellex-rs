@@ -14,7 +14,7 @@
 
 ## 現状 / アプローチ概要
 - `modules/actor-core/src/api/supervision/telemetry.rs` を新設し、`FailureTelemetry` トレイトおよび `NullFailureTelemetry` / `TracingFailureTelemetry` を定義。
-- `RootEscalationSink` は telemetry フィールドを保持し、デフォルトで `NullFailureTelemetry` を使用。`tracing::error!` の直書きは解消済み。
+- `RootEscalationSink` は telemetry フィールドを保持し、`default_failure_telemetry()` によりビルド構成に応じた実装（`std,unwind-supervision` なら tracing、それ以外は null）を利用する。`tracing::error!` の直書きは解消済み。
 - telemetry を外部から注入するための setter を公開済み。ただし `ActorSystem`/`PriorityScheduler` など高レベル API ではまだ利用手段を整備していない。
 - 今後は初期化時のデフォルト注入や、アプリケーション側で telemetry を差し替えるビルダー API の追加を検討する。
 
