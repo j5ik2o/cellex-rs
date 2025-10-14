@@ -1,6 +1,6 @@
 # RootEscalationSink テレメトリ抽象化計画
 
-最終更新: 2025-10-14（設計メモのみ。実装はこれから）
+最終更新: 2025-10-14（telemetry 基盤の最小実装を追加済み）
 
 ## 背景
 - `modules/actor-core/src/api/supervision/escalation.rs:124` で `tracing::error!` を直接呼び出しており、`#[cfg(feature = "std")]` に依存している。
@@ -13,7 +13,10 @@
 3. 既存の `event_handler` / `event_listener` の活用方針を明確化し、必要であれば API 調整を行う。
 
 ## 現状 / アプローチ概要
-- 2025-10-14 時点では `modules/actor-core/src/api/supervision/escalation.rs` に `#[cfg(feature = "std")] use tracing::error;` が残っており、`std` 依存のログが直書きされている。以下はその除去に向けた計画であり、まだ着手していない。
+- `modules/actor-core/src/api/supervision/telemetry.rs` を新設し、`FailureTelemetry` トレイトおよび `NullFailureTelemetry` / `TracingFailureTelemetry` を定義。
+- `RootEscalationSink` は telemetry フィールドを保持し、デフォルトで `NullFailureTelemetry` を使用。`tracing::error!` の直書きは解消済み。
+- telemetry を外部から注入するための setter を公開済み。ただし `ActorSystem`/`PriorityScheduler` など高レベル API ではまだ利用手段を整備していない。
+- 今後は初期化時のデフォルト注入や、アプリケーション側で telemetry を差し替えるビルダー API の追加を検討する。
 
 - `FailureTelemetry`（仮称）トレイトを導入し、`FailureInfo` を受け取って副作用を生じさせるインタフェースを定義する。
 - `RootEscalationSink` は `FailureTelemetry` を保持し、イベント通知後に呼び出すのみとする。
@@ -22,19 +25,17 @@
 - ランタイム初期化時に telemetry 実装を注入する API を追加し、既存の `event_handler` と共存させる設計を検討する。
 
 ## 実施フェーズ
-### フェーズ1: インタフェース整備（未着手）
-- `modules/actor-core/src/api/supervision/telemetry.rs`（新規）に `FailureTelemetry` トレイトと標準実装の枠組みを追加。
-- `RootEscalationSink` に telemetry フィールドを追加し、処理順序を整理。
-- 既存の `event_handler` / `event_listener` 呼び出し順を維持しつつ、`tracing` 直接呼び出しを削除。
+### フェーズ1: インタフェース整備（完了）
+- `FailureTelemetry` トレイトおよび `NullFailureTelemetry` / `TracingFailureTelemetry` を追加。
+- `RootEscalationSink` が telemetry を保持し、`tracing` 直接呼び出しを削除済み。
 
-### フェーズ2: `std` 向け実装と注入経路（未着手）
-- `cfg(feature = "std")` ではなく、クレートレベルの `pub fn set_default_failure_telemetry(...)` 等で実装を注入。
-- `std` 環境用に `TracingFailureTelemetry` を提供 (`modules/actor-core/src/api/supervision/telemetry/tracing.rs` 想定)。
-- 既存の `RootEscalationSink::new` がデフォルト telemetry を利用するよう調整。
+### フェーズ2: `std` 向け実装と注入経路（進行中）
+- `TracingFailureTelemetry` を提供済みだが、`ActorSystem` など上位 API で自動注入する仕組みは未整備。
+- 目標は `ActorSystemBuilder`（または相当する初期化 API）から telemetry を設定できるようにし、`std` 構成では tracing ベースの実装をデフォルトにすること。
 
 ### フェーズ3: `no_std` 運用確認（未着手）
-- `NullFailureTelemetry` を用いた `no_std` ビルド（thumb ターゲット）確認。
-- 追加で、`defmt` などのバックエンドを後から導入しやすい構造の検討メモを追記。
+- `NullFailureTelemetry` での運用確認は必要（`thumb` チェックは `./scripts/ci.sh all` に任せる）。
+- `defmt` 等への拡張案を別途検討する。
 
 ### フェーズ4: ドキュメントとテスト（未着手）
 - `docs/design` に最終設計メモを追記、本ファイルを更新。
