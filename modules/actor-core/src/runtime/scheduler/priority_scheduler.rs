@@ -14,12 +14,10 @@ use crate::runtime::mailbox::traits::{Mailbox, MailboxProducer};
 use crate::runtime::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
-use crate::EscalationSink;
-use crate::Extensions;
-use crate::FailureEventHandler;
-use crate::FailureEventListener;
-use crate::FailureInfo;
-use crate::Supervisor;
+use crate::{
+  EscalationSink, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared,
+  Supervisor, TelemetryObservationConfig,
+};
 use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
 use cellex_utils_core_rs::{Element, QueueError};
@@ -245,6 +243,14 @@ where
     self.escalation_sink.set_root_listener(listener);
   }
 
+  pub fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    self.escalation_sink.set_root_telemetry(telemetry);
+  }
+
+  pub fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    self.escalation_sink.set_root_observation_config(config);
+  }
+
   fn handle_escalations(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
     if self.escalations.is_empty() {
       return Ok(false);
@@ -416,6 +422,14 @@ where
 
   fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
     PriorityScheduler::set_parent_guardian(self, control_ref, map_system);
+  }
+
+  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    PriorityScheduler::set_root_failure_telemetry(self, telemetry);
+  }
+
+  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    PriorityScheduler::set_root_observation_config(self, config);
   }
 
   fn on_escalation(

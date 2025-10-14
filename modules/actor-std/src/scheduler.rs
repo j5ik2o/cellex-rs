@@ -2,10 +2,10 @@ use std::boxed::Box;
 use std::vec::Vec;
 
 use cellex_actor_core_rs::{
-  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, GuardianStrategy,
-  InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
-  ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder, SchedulerSpawnContext,
-  Supervisor,
+  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
+  FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
+  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv,
+  SchedulerBuilder, SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_std_rs::{Element, QueueError};
 use tokio::task::yield_now;
@@ -75,6 +75,14 @@ where
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
     PriorityScheduler::set_root_escalation_handler(&mut self.inner, handler);
+  }
+
+  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    PriorityScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
+  }
+
+  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    PriorityScheduler::set_root_observation_config(&mut self.inner, config);
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {

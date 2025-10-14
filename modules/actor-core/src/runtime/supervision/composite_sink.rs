@@ -2,6 +2,7 @@ use crate::runtime::context::InternalActorRef;
 use crate::FailureInfo;
 use crate::MapSystemShared;
 use crate::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink};
+use crate::{FailureTelemetryShared, TelemetryObservationConfig};
 use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -60,6 +61,26 @@ where
     } else if let Some(listener) = listener {
       let mut sink = RootEscalationSink::default();
       sink.set_event_listener(Some(listener));
+      self.root = Some(sink);
+    }
+  }
+
+  pub(crate) fn set_root_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    if let Some(root) = self.root.as_mut() {
+      root.set_telemetry(telemetry);
+    } else {
+      let mut sink = RootEscalationSink::default();
+      sink.set_telemetry(telemetry);
+      self.root = Some(sink);
+    }
+  }
+
+  pub(crate) fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    if let Some(root) = self.root.as_mut() {
+      root.set_observation_config(config);
+    } else {
+      let mut sink = RootEscalationSink::default();
+      sink.set_observation_config(config);
       self.root = Some(sink);
     }
   }

@@ -9,8 +9,8 @@ use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnC
 use crate::runtime::scheduler::priority_scheduler::PriorityScheduler;
 use crate::MapSystemShared;
 use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxRuntime, MetricsSinkShared,
-  PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
+  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime,
+  MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -77,6 +77,14 @@ where
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
     PriorityScheduler::set_root_escalation_handler(&mut self.inner, handler);
+  }
+
+  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    PriorityScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
+  }
+
+  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    PriorityScheduler::set_root_observation_config(&mut self.inner, config);
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {

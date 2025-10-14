@@ -7,8 +7,10 @@ use core::ops::Deref;
 
 use crate::api::actor::RuntimeEnv;
 use crate::runtime::message::DynMessage;
+use crate::runtime::metrics::MetricsSinkShared;
 use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
-use crate::{FailureEvent, FailureInfo, MailboxRuntime, PriorityEnvelope, SystemMessage};
+use crate::Extensions;
+use crate::{FailureEvent, FailureInfo, FailureTelemetry, MailboxRuntime, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Element;
 use cellex_utils_core_rs::Shared;
@@ -246,6 +248,142 @@ impl<R> Deref for ReceiveTimeoutDriverShared<R> {
 
   fn deref(&self) -> &Self::Target {
     &*self.inner
+  }
+}
+
+/// Shared wrapper around a [`FailureTelemetry`] implementation.
+pub struct FailureTelemetryShared {
+  inner: ArcShared<dyn FailureTelemetry>,
+}
+
+impl FailureTelemetryShared {
+  /// Creates a new shared telemetry handle from a concrete implementation.
+  #[must_use]
+  pub fn new<T>(telemetry: T) -> Self
+  where
+    T: FailureTelemetry + SharedBound + 'static, {
+    Self {
+      inner: ArcShared::from_arc(Arc::new(telemetry) as Arc<dyn FailureTelemetry>),
+    }
+  }
+
+  /// Wraps an existing shared telemetry handle.
+  #[must_use]
+  pub fn from_shared(inner: ArcShared<dyn FailureTelemetry>) -> Self {
+    Self { inner }
+  }
+
+  /// Consumes the wrapper and returns the underlying shared handle.
+  #[must_use]
+  pub fn into_shared(self) -> ArcShared<dyn FailureTelemetry> {
+    self.inner
+  }
+
+  /// Executes the provided closure with a shared reference to the telemetry implementation.
+  pub fn with_ref<R>(&self, f: impl FnOnce(&dyn FailureTelemetry) -> R) -> R {
+    self.inner.with_ref(|inner| f(inner))
+  }
+}
+
+impl Clone for FailureTelemetryShared {
+  fn clone(&self) -> Self {
+    Self {
+      inner: self.inner.clone(),
+    }
+  }
+}
+
+impl core::ops::Deref for FailureTelemetryShared {
+  type Target = dyn FailureTelemetry;
+
+  fn deref(&self) -> &Self::Target {
+    &*self.inner
+  }
+}
+
+/// Context provided to telemetry builders.
+pub struct TelemetryContext {
+  metrics: Option<MetricsSinkShared>,
+  extensions: Extensions,
+}
+
+impl TelemetryContext {
+  /// Creates a new telemetry context with optional metrics sink information.
+  #[must_use]
+  pub fn new(metrics: Option<MetricsSinkShared>, extensions: Extensions) -> Self {
+    Self { metrics, extensions }
+  }
+
+  /// Returns the metrics sink associated with the context, if any.
+  #[must_use]
+  pub fn metrics_sink(&self) -> Option<&MetricsSinkShared> {
+    self.metrics.as_ref()
+  }
+
+  /// Returns the extension registry reference.
+  #[must_use]
+  pub fn extensions(&self) -> &Extensions {
+    &self.extensions
+  }
+}
+
+trait TelemetryBuilderFn: SharedBound {
+  fn build(&self, ctx: &TelemetryContext) -> FailureTelemetryShared;
+}
+
+impl<F> TelemetryBuilderFn for F
+where
+  F: Fn(&TelemetryContext) -> FailureTelemetryShared + SharedBound,
+{
+  fn build(&self, ctx: &TelemetryContext) -> FailureTelemetryShared {
+    (self)(ctx)
+  }
+}
+
+/// Shared wrapper around a failure telemetry builder function.
+pub struct FailureTelemetryBuilderShared {
+  inner: ArcShared<dyn TelemetryBuilderFn>,
+}
+
+impl FailureTelemetryBuilderShared {
+  /// Creates a new shared telemetry builder from the provided closure.
+  #[must_use]
+  pub fn new<F>(builder: F) -> Self
+  where
+    F: Fn(&TelemetryContext) -> FailureTelemetryShared + SharedBound + 'static, {
+    Self {
+      inner: ArcShared::from_arc(Arc::new(builder)),
+    }
+  }
+
+  /// Executes the builder to obtain a telemetry implementation.
+  #[must_use]
+  pub fn build(&self, ctx: &TelemetryContext) -> FailureTelemetryShared {
+    self.inner.with_ref(|builder| builder.build(ctx))
+  }
+}
+
+impl Clone for FailureTelemetryBuilderShared {
+  fn clone(&self) -> Self {
+    Self {
+      inner: self.inner.clone(),
+    }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::NoopFailureTelemetry;
+
+  #[test]
+  fn telemetry_builder_shared_invokes_closure() {
+    let extensions = Extensions::new();
+    let builder = FailureTelemetryBuilderShared::new(|_ctx| FailureTelemetryShared::new(NoopFailureTelemetry));
+    let ctx = TelemetryContext::new(None, extensions.clone());
+
+    let telemetry = builder.build(&ctx);
+    telemetry.with_ref(|_impl| {});
   }
 }
 

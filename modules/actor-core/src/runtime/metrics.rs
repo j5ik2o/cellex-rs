@@ -19,6 +19,10 @@ pub enum MetricsEvent {
   MailboxEnqueued,
   /// メールボックスからメッセージがデキューされた。
   MailboxDequeued,
+  /// テレメトリ呼び出しが実行された。
+  TelemetryInvoked,
+  /// テレメトリ呼び出しに要した時間（ナノ秒）。
+  TelemetryLatencyNanos(u64),
 }
 
 /// ランタイムがメトリクスを発行するための抽象シンク。
