@@ -29,7 +29,7 @@
 
 | feature | シンボル | 実配置 | 備考 |
 | --- | --- | --- | --- |
-| `std` | `ActorSystem::blocking_dispatch_*` | `modules/actor-core/src/runtime/system/internal_actor_system.rs` | std ランタイム限定 API。イベントストリーム実装は外部クレートに移設 |
+| `std` | JSON/Prost serializer 登録, ルートエスカレーション時の tracing ログ | `modules/actor-core/src/extensions.rs`, `modules/actor-core/src/api/supervision/escalation.rs` | 標準ライブラリ前提のシリアライザ・ログ機能を追加提供 |
 | `alloc` | なし（共通化済み） | - | 現時点では共通コードで提供 |
 
 ## 公開可否ポリシー指針

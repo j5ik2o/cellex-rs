@@ -56,6 +56,7 @@ async fn run_typed_actor_system_handles_user_messages() {
 
   let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
     log_clone.lock().unwrap().push(msg);
+    Ok(())
   });
 
   let mut root = system.root_context();
@@ -82,6 +83,7 @@ async fn run_receive_timeout_triggers() {
       if msg == 1 {
         ctx.set_receive_timeout(Duration::from_millis(10));
       }
+      Ok(())
     },
     Some({
       let timeout_clone = timeout_log.clone();

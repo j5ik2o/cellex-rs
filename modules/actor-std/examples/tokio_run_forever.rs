@@ -15,6 +15,7 @@ async fn main() {
 
   let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
     log_clone.lock().unwrap().push(msg);
+    Ok(())
   });
 
   let actor_ref = root.spawn(props).expect("spawn actor");

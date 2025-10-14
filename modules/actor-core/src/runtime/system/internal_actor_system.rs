@@ -8,8 +8,6 @@ use crate::{Extensions, FailureEventHandler, FailureEventListener, MetricsSinkSh
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
-#[cfg(feature = "std")]
-use futures::executor::block_on;
 
 use super::InternalRootContext;
 
@@ -135,20 +133,6 @@ where
     }
   }
 
-  #[cfg(feature = "std")]
-  pub fn blocking_dispatch_loop<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
-  where
-    F: FnMut() -> bool, {
-    self.blocking_dispatch_loop_impl(should_continue)
-  }
-
-  #[cfg(feature = "std")]
-  pub fn blocking_dispatch_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
-    loop {
-      block_on(self.scheduler.dispatch_next())?;
-    }
-  }
-
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.scheduler.dispatch_next().await
   }
@@ -182,16 +166,6 @@ where
     F: FnMut() -> bool, {
     while should_continue() {
       self.scheduler.dispatch_next().await?;
-    }
-    Ok(())
-  }
-
-  #[cfg(feature = "std")]
-  fn blocking_dispatch_loop_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
-  where
-    F: FnMut() -> bool, {
-    while should_continue() {
-      block_on(self.scheduler.dispatch_next())?;
     }
     Ok(())
   }

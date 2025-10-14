@@ -51,15 +51,13 @@ where
   /// * `handler` - Handler function to process user messages
   pub fn new<F>(options: MailboxOptions, handler: F) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) + 'static, {
+    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static, {
     let handler_cell = Rc::new(RefCell::new(handler));
     Self::with_behavior(options, {
       let handler_cell = handler_cell.clone();
       move || {
         let handler_cell = handler_cell.clone();
-        Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| {
-          (handler_cell.borrow_mut())(ctx, msg);
-        })
+        Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| (handler_cell.borrow_mut())(ctx, msg))
       }
     })
   }
@@ -83,7 +81,7 @@ where
   /// * `system_handler` - Handler function to process system messages (optional)
   pub fn with_system_handler<F, G>(options: MailboxOptions, user_handler: F, system_handler: Option<G>) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) + 'static,
+    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static,
     G: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
     let handler_cell = Rc::new(RefCell::new(user_handler));
     Self::with_behavior_and_system(
@@ -92,9 +90,7 @@ where
         let handler_cell = handler_cell.clone();
         move || {
           let handler_cell = handler_cell.clone();
-          Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| {
-            (handler_cell.borrow_mut())(ctx, msg);
-          })
+          Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| (handler_cell.borrow_mut())(ctx, msg))
         }
       },
       system_handler,

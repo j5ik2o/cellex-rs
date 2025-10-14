@@ -5,7 +5,7 @@ use core::any::TypeId;
 use core::cell::RefCell;
 use core::marker::PhantomData;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "unwind-supervision")]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::runtime::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
@@ -197,91 +197,21 @@ where
     let (message, priority) = envelope.into_parts();
     self.supervisor.before_handle();
     let mut pending_specs = Vec::new();
-    #[cfg(feature = "std")]
-    let result = catch_unwind(AssertUnwindSafe(|| {
-      let receive_timeout = self.receive_timeout_scheduler.as_ref();
-      let mut ctx = ActorContext::new(
-        &self.runtime,
-        self.mailbox_spawner.clone(),
-        &self.sender,
-        self.supervisor.as_mut(),
-        &mut pending_specs,
-        self.map_system.clone(),
-        self.actor_path.clone(),
-        self.actor_id,
-        &mut self.watchers,
-        receive_timeout,
-        self.extensions.clone(),
-      );
-      ctx.enter_priority(priority);
-      let handler_result = (self.handler)(&mut ctx, message);
-      ctx.notify_receive_timeout_activity(influences_receive_timeout);
-      ctx.exit_priority();
-      handler_result
-    }));
-
-    #[cfg(not(feature = "std"))]
+    #[cfg(feature = "unwind-supervision")]
     {
-      let receive_timeout = self.receive_timeout_scheduler.as_ref();
-      let mut ctx = ActorContext::new(
-        &self.runtime,
-        self.mailbox_spawner.clone(),
-        &self.sender,
-        self.supervisor.as_mut(),
-        &mut pending_specs,
-        self.map_system.clone(),
-        self.actor_path.clone(),
-        self.actor_id,
-        &mut self.watchers,
-        receive_timeout,
-        self.extensions.clone(),
-      );
-      ctx.enter_priority(priority);
-      let handler_result = (self.handler)(&mut ctx, message);
-      ctx.notify_receive_timeout_activity(influences_receive_timeout);
-      ctx.exit_priority();
-      self.supervisor.after_handle();
-      match handler_result {
-        Ok(()) => {
-          for spec in pending_specs.into_iter() {
-            self.register_child_from_spec(spec, guardian, new_children)?;
-          }
-          if should_stop {
-            self.mark_stopped(guardian);
-          }
-        }
-        Err(err) => {
-          if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
-            escalations.push(info);
-          }
-        }
-      }
-      Ok(())
-    }
+      let result = catch_unwind(AssertUnwindSafe(|| {
+        self.invoke_handler(message, priority, influences_receive_timeout, &mut pending_specs)
+      }));
 
-    #[cfg(feature = "std")]
-    {
-      self.supervisor.after_handle();
-
-      match result {
-        Ok(handler_result) => {
-          match handler_result {
-            Ok(()) => {
-              for spec in pending_specs.into_iter() {
-                self.register_child_from_spec(spec, guardian, new_children)?;
-              }
-              if should_stop {
-                self.mark_stopped(guardian);
-              }
-            }
-            Err(err) => {
-              if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
-                escalations.push(info);
-              }
-            }
-          }
-          Ok(())
-        }
+      return match result {
+        Ok(handler_result) => self.apply_handler_result(
+          handler_result,
+          pending_specs,
+          should_stop,
+          guardian,
+          new_children,
+          escalations,
+        ),
         Err(payload) => {
           let failure = ActorFailure::from_panic_payload(payload.as_ref());
           if let Some(info) = guardian.notify_failure(self.actor_id, failure)? {
@@ -289,7 +219,21 @@ where
           }
           Ok(())
         }
-      }
+      };
+    }
+
+    #[cfg(not(feature = "unwind-supervision"))]
+    {
+      let handler_result = self.invoke_handler(message, priority, influences_receive_timeout, &mut pending_specs);
+
+      return self.apply_handler_result(
+        handler_result,
+        pending_specs,
+        should_stop,
+        guardian,
+        new_children,
+        escalations,
+      );
     }
   }
 
@@ -369,5 +313,63 @@ where
     cell.set_metrics_sink(sink);
     new_children.push(cell);
     Ok(())
+  }
+
+  fn invoke_handler(
+    &mut self,
+    message: M,
+    priority: i8,
+    influences_receive_timeout: bool,
+    pending_specs: &mut Vec<ChildSpawnSpec<M, R>>,
+  ) -> Result<(), ActorFailure> {
+    let receive_timeout = self.receive_timeout_scheduler.as_ref();
+    let mut ctx = ActorContext::new(
+      &self.runtime,
+      self.mailbox_spawner.clone(),
+      &self.sender,
+      self.supervisor.as_mut(),
+      pending_specs,
+      self.map_system.clone(),
+      self.actor_path.clone(),
+      self.actor_id,
+      &mut self.watchers,
+      receive_timeout,
+      self.extensions.clone(),
+    );
+    ctx.enter_priority(priority);
+    let handler_result = (self.handler)(&mut ctx, message);
+    ctx.notify_receive_timeout_activity(influences_receive_timeout);
+    ctx.exit_priority();
+    self.supervisor.after_handle();
+    handler_result
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  fn apply_handler_result(
+    &mut self,
+    handler_result: Result<(), ActorFailure>,
+    pending_specs: Vec<ChildSpawnSpec<M, R>>,
+    should_stop: bool,
+    guardian: &mut Guardian<M, R, Strat>,
+    new_children: &mut Vec<ActorCell<M, R, Strat>>,
+    escalations: &mut Vec<FailureInfo>,
+  ) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+    match handler_result {
+      Ok(()) => {
+        for spec in pending_specs.into_iter() {
+          self.register_child_from_spec(spec, guardian, new_children)?;
+        }
+        if should_stop {
+          self.mark_stopped(guardian);
+        }
+        Ok(())
+      }
+      Err(err) => {
+        if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
+          escalations.push(info);
+        }
+        Ok(())
+      }
+    }
   }
 }

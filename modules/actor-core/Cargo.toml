@@ -21,6 +21,7 @@ std = [
   "dep:cellex-serialization-prost-rs",
   "dep:tokio",
 ]
+unwind-supervision = ["std"]
 postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
 

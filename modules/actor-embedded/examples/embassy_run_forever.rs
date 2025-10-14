@@ -26,6 +26,7 @@ mod sample {
         let actor_ref = root
           .spawn(Props::new(MailboxOptions::default(), |_, msg: u32| {
             MESSAGE_SUM.fetch_add(msg, Ordering::Relaxed);
+            Ok(())
           }))
           .expect("spawn actor");
         actor_ref.tell(1).expect("tell");

@@ -17,6 +17,7 @@ async fn run_tokio_actor_runtime_processes_messages() {
 
   let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
     state_clone.lock().unwrap().push(msg);
+    Ok(())
   });
 
   let mut root = system.root_context();

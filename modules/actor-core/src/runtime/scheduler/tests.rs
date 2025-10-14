@@ -442,7 +442,7 @@ fn priority_actor_ref_sends_system_messages() {
   );
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_notifies_guardian_and_restarts_on_panic() {
   let factory = TestMailboxRuntime::unbounded();
@@ -528,46 +528,7 @@ fn scheduler_run_until_processes_messages() {
   assert_eq!(log.borrow().as_slice(), &[Message::User(11)]);
 }
 
-#[cfg(feature = "std")]
-#[test]
-fn scheduler_blocking_dispatch_loop_stops_with_closure() {
-  let factory = TestMailboxRuntime::unbounded();
-  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
-    PriorityScheduler::new(factory.clone(), Extensions::new());
-
-  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
-  let log_clone = log.clone();
-
-  let actor_ref = spawn_with_runtime(
-    &mut scheduler,
-    factory.clone(),
-    Box::new(NoopSupervisor),
-    MailboxOptions::default(),
-    MapSystemShared::new(Message::System),
-    handler_from_fn(move |_, msg: Message| match msg {
-      Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
-      Message::System(_) => {}
-    }),
-  )
-  .unwrap();
-
-  actor_ref
-    .try_send_with_priority(Message::User(21), DEFAULT_PRIORITY)
-    .unwrap();
-
-  let mut loops = 0;
-  scheduler
-    .blocking_dispatch_loop(|| {
-      let continue_loop = loops == 0;
-      loops += 1;
-      continue_loop
-    })
-    .unwrap();
-
-  assert_eq!(log.borrow().as_slice(), &[Message::User(21)]);
-}
-
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_records_escalations() {
   let factory = TestMailboxRuntime::unbounded();
@@ -617,7 +578,7 @@ fn scheduler_records_escalations() {
   assert!(scheduler.take_escalations().is_empty());
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_escalation_handler_delivers_to_parent() {
   let factory = TestMailboxRuntime::unbounded();
@@ -666,7 +627,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
   }
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_escalation_chain_reaches_root() {
   let factory = TestMailboxRuntime::unbounded();
@@ -780,7 +741,7 @@ fn scheduler_escalation_chain_reaches_root() {
   );
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_root_escalation_handler_invoked() {
   use std::sync::{Arc as StdArc, Mutex};
@@ -828,7 +789,7 @@ fn scheduler_root_escalation_handler_invoked() {
   assert!(!events[0].description().is_empty());
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_requeues_failed_custom_escalation() {
   use core::cell::Cell;
@@ -890,7 +851,7 @@ fn scheduler_requeues_failed_custom_escalation() {
   assert!(scheduler.take_escalations().is_empty());
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_root_event_listener_broadcasts() {
   use crate::api::tests::TestFailureEventStream;

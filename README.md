@@ -63,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
   let props = Props::with_behavior(MailboxOptions::default(), || {
     Behaviors::receive(|_ctx, value: u32| {
       println!("received: {value}");
-      Behaviors::same()
+      Ok(Behaviors::same())
     })
   });
 

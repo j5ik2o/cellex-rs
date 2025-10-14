@@ -118,7 +118,7 @@ mod receive_timeout_injection {
   }
 
   fn spawn_test_actor<R: ActorRuntime + Clone>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
-    let props = Props::new(MailboxOptions::default(), |_, _: u32| {});
+    let props = Props::new(MailboxOptions::default(), |_, _: u32| Ok(()));
     let mut root = system.root_context();
     let actor_ref = root.spawn(props).expect("spawn actor");
     actor_ref.tell(0).expect("tell");
@@ -264,7 +264,7 @@ where
 fn test_supervise_builder_sets_strategy() {
   let props = Props::with_behavior(MailboxOptions::default(), || {
     Behaviors::supervise(Behavior::stateless(
-      |_: &mut Context<'_, '_, u32, RuntimeEnv<TestMailboxRuntime>>, _: u32| {},
+      |_: &mut Context<'_, '_, u32, RuntimeEnv<TestMailboxRuntime>>, _: u32| Ok(()),
     ))
     .with_strategy(SupervisorStrategy::Restart)
   });
@@ -290,10 +290,7 @@ fn test_supervise_stop_on_failure() {
   let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
 
   let props = Props::with_behavior(MailboxOptions::default(), || {
-    Behaviors::supervise(Behaviors::receive(|_, _: u32| {
-      panic!("boom");
-    }))
-    .with_strategy(SupervisorStrategy::Stop)
+    Behaviors::supervise(Behaviors::receive(|_, _: u32| panic!("boom"))).with_strategy(SupervisorStrategy::Stop)
   });
   let mut root = system.root_context();
   let actor_ref = root.spawn(props).expect("spawn actor");
@@ -324,7 +321,7 @@ fn test_supervise_resume_on_failure() {
           panic!("fail once");
         }
         log_clone.borrow_mut().push(msg);
-        Behaviors::same()
+        Ok(Behaviors::same())
       }))
       .with_strategy(SupervisorStrategy::Resume)
     }
@@ -354,6 +351,7 @@ fn typed_actor_system_handles_user_messages() {
 
   let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
     log_clone.borrow_mut().push(msg);
+    Ok(())
   });
 
   let mut root = system.root_context();
@@ -405,7 +403,7 @@ fn actor_context_accesses_registered_extension() {
             ext.increment();
           })
           .expect("extension registered");
-        Behaviors::same()
+        Ok(Behaviors::same())
       },
     )
   });
@@ -466,7 +464,11 @@ fn test_typed_actor_handles_system_stop() {
     }
   };
 
-  let props = Props::with_system_handler(MailboxOptions::default(), move |_, _msg: u32| {}, Some(system_handler));
+  let props = Props::with_system_handler(
+    MailboxOptions::default(),
+    move |_, _msg: u32| Ok(()),
+    Some(system_handler),
+  );
 
   let mut root = system.root_context();
   let actor_ref = root.spawn(props).expect("spawn typed actor");
@@ -531,6 +533,7 @@ fn test_typed_actor_handles_watch_unwatch() {
         let watchers_clone = watchers_factory.clone();
         Behavior::stateless(move |ctx: &mut Context<'_, '_, u32, _>, _msg: u32| {
           *watchers_clone.borrow_mut() = ctx.watchers().len();
+          Ok(())
         })
       }
     },
@@ -601,6 +604,7 @@ fn test_typed_actor_stateful_behavior_with_system_message() {
         let count_clone = count_factory.clone();
         Behavior::stateless(move |_ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
           *count_clone.borrow_mut() += msg;
+          Ok(())
         })
       }
     },
@@ -642,7 +646,7 @@ fn test_behaviors_receive_self_loop() {
         if msg < 2 {
           ctx.self_ref().tell(msg + 1).expect("self tell");
         }
-        Behaviors::same()
+        Ok(Behaviors::same())
       })
     }
   });
@@ -671,7 +675,7 @@ fn test_behaviors_receive_message_without_context() {
       let log_inner = log_clone.clone();
       Behaviors::receive_message(move |msg: u32| {
         log_inner.borrow_mut().push(msg);
-        Behaviors::same()
+        Ok(Behaviors::same())
       })
     }
   });
@@ -709,7 +713,7 @@ fn test_parent_spawns_child_with_distinct_message_type() {
             Behaviors::receive(
               move |_child_ctx: &mut Context<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
                 child_log_for_child.borrow_mut().push(child_msg.text.clone());
-                Behaviors::same()
+                Ok(Behaviors::same())
               },
             )
           }
@@ -720,7 +724,7 @@ fn test_parent_spawns_child_with_distinct_message_type() {
             text: format!("hello {name}"),
           })
           .expect("tell child");
-        Behaviors::same()
+        Ok(Behaviors::same())
       })
     }
   });
@@ -756,7 +760,7 @@ fn test_message_adapter_converts_external_message() {
           let adapter = ctx.message_adapter(|text: String| text.len() as u32);
           adapter_slot_clone.borrow_mut().replace(adapter);
         }
-        Behaviors::same()
+        Ok(Behaviors::same())
       })
     }
   });
@@ -794,6 +798,7 @@ fn test_parent_actor_spawns_child() {
           let child_log_for_child = child_log_parent.clone();
           let child_props = Props::new(MailboxOptions::default(), move |_, child_msg: u32| {
             child_log_for_child.borrow_mut().push(child_msg);
+            Ok(())
           });
           let child_ref = ctx.spawn_child(child_props);
           child_ref_holder_local.borrow_mut().replace(child_ref);
@@ -802,6 +807,7 @@ fn test_parent_actor_spawns_child() {
         if let Some(child_ref) = child_ref_holder_local.borrow().clone() {
           child_ref.tell(msg * 2).expect("tell child");
         }
+        Ok(())
       })
     }
   });
@@ -834,14 +840,15 @@ fn test_behaviors_setup_spawns_named_child() {
             let log_ref = child_log_clone.clone();
             Behavior::stateless(move |_, msg: String| {
               log_ref.borrow_mut().push(msg);
+              Ok(())
             })
           }
         });
         let greeter = ctx.spawn_child(child_props);
-        Behaviors::receive(move |_, msg: String| {
+        Ok(Behaviors::receive(move |_, msg: String| {
           greeter.tell(format!("hello {msg}")).expect("forward to child");
-          Behaviors::same()
-        })
+          Ok(Behaviors::same())
+        }))
       })
     }
   });
@@ -868,9 +875,9 @@ fn test_receive_signal_post_stop() {
     let signals_cell = signals_clone.clone();
     Behaviors::receive(|_, msg: u32| {
       if msg == 0 {
-        Behaviors::stopped()
+        Ok(Behaviors::stopped())
       } else {
-        Behaviors::same()
+        Ok(Behaviors::same())
       }
     })
     .receive_signal(move |_, signal| {
