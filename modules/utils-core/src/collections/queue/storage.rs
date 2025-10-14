@@ -92,12 +92,12 @@ mod queue_std_impls {
 
   impl<E> QueueStorage<E> for Mutex<RingBuffer<E>> {
     fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
-      let guard = self.lock().expect("mutex poisoned");
+      let guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
       f(&guard)
     }
 
     fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
-      let mut guard = self.lock().expect("mutex poisoned");
+      let mut guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
       f(&mut guard)
     }
   }
@@ -130,12 +130,12 @@ mod mpsc_std_impls {
 
   impl<T> RingBufferStorage<T> for Mutex<MpscBuffer<T>> {
     fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
-      let guard = self.lock().expect("mutex poisoned");
+      let guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
       f(&guard)
     }
 
     fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
-      let mut guard = self.lock().expect("mutex poisoned");
+      let mut guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
       f(&mut guard)
     }
   }

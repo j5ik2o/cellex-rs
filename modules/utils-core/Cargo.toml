@@ -15,5 +15,5 @@ alloc = []
 std = ["alloc"]
 
 [dependencies]
-async-trait = { version = "0.1.82", default-features = false }
-critical-section = { version = "1", optional = false }
+async-trait = { workspace = true }
+critical-section = { workspace = true, optional = false }

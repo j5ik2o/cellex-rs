@@ -10,14 +10,9 @@ readme = "../../README.md"
 repository = "https://github.com/j5ik2o/cellex-rs"
 
 [dependencies]
-futures = { workspace = true }
 async-trait = { workspace = true }
-dashmap = { workspace = true }
-thiserror = { workspace = true }
-tokio = { workspace = true }
-tokio-util = { workspace = true }
-tokio-condvar = "0.3.0"
-tracing = { workspace = true }
+cellex-utils-core-rs = { path = "../utils-core", features = ["std"] }
+futures = { workspace = true }
 parking_lot = { workspace = true }
-cellex-utils-core-rs = { version = "0.0.1", path = "../utils-core", features = ["std"] }
-cellex-actor-core-rs = { version = "0.0.1", path = "../actor-core", default-features = false, features = ["alloc"] }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "sync", "time", "signal"] }
+tokio-util = { workspace = true, features = ["time"] }

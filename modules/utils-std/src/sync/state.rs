@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use cellex_utils_core_rs::StateCell;
@@ -76,23 +79,5 @@ impl<T> StateCell<T> for ArcStateCell<T> {
 
   fn borrow_mut(&self) -> Self::RefMut<'_> {
     self.0.lock().expect("mutex poisoned")
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn arc_state_cell_updates() {
-    let cell = ArcStateCell::new(0_u32);
-    let cloned = cell.clone();
-
-    {
-      let mut value = cloned.borrow_mut();
-      *value = 5;
-    }
-
-    assert_eq!(*cell.borrow(), 5);
   }
 }

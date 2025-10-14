@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -61,22 +64,3 @@ impl CountDownLatchBackend for TokioCountDownLatchBackend {
 /// A synchronization primitive that causes tasks to wait until the specified number of countdowns complete.
 /// When `count_down()` is called as many times as the initial count, all tasks waiting on `wait()` are released.
 pub type CountDownLatch = CoreCountDownLatch<TokioCountDownLatchBackend>;
-
-#[cfg(test)]
-mod tests {
-  use super::CountDownLatch;
-  use tokio::join;
-
-  #[tokio::test]
-  async fn latch_reaches_zero() {
-    let latch = CountDownLatch::new(2);
-    let latch_clone = latch.clone();
-    let wait_fut = latch.wait();
-    let worker = async move {
-      latch_clone.count_down().await;
-      latch_clone.count_down().await;
-    };
-
-    join!(worker, wait_fut);
-  }
-}

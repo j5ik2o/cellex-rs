@@ -74,3 +74,25 @@ impl Debug for DynMessage {
     write!(f, "DynMessage<{}>", core::any::type_name::<Self>())
   }
 }
+
+#[cfg(target_has_atomic = "ptr")]
+unsafe impl Send for DynMessage {}
+
+#[cfg(target_has_atomic = "ptr")]
+unsafe impl Sync for DynMessage {}
+
+#[cfg(target_has_atomic = "ptr")]
+const fn assert_send_dyn<T: Send>() {}
+
+#[cfg(target_has_atomic = "ptr")]
+const fn assert_sync_dyn<T: Sync>() {}
+
+#[cfg(target_has_atomic = "ptr")]
+const _: () = {
+  assert_send_dyn::<DynMessage>();
+  assert_sync_dyn::<DynMessage>();
+  assert_static_dyn::<DynMessage>();
+};
+
+#[cfg(target_has_atomic = "ptr")]
+const fn assert_static_dyn<T: 'static>() {}

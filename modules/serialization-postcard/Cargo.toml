@@ -14,5 +14,5 @@ alloc = []
 [dependencies]
 cellex-serialization-core-rs = { path = "../serialization-core", default-features = false, features = ["alloc"] }
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
-postcard = { version = "1", default-features = false, features = ["alloc"] }
+postcard = { workspace = true, default-features = false, features = ["alloc"] }
 serde = { workspace = true }

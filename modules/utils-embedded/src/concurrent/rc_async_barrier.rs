@@ -90,21 +90,4 @@ impl AsyncBarrierBackend for RcAsyncBarrierBackend {
 pub type AsyncBarrier = CoreAsyncBarrier<RcAsyncBarrierBackend>;
 
 #[cfg(test)]
-mod tests {
-  use super::AsyncBarrier;
-  use futures::executor::block_on;
-  use futures::join;
-
-  #[test]
-  fn barrier_releases_all() {
-    block_on(async {
-      let barrier = AsyncBarrier::new(2);
-      let other = barrier.clone();
-
-      let first = barrier.wait();
-      let second = other.wait();
-
-      join!(first, second);
-    });
-  }
-}
+mod tests;

@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::format;
@@ -47,8 +50,8 @@ impl DefaultBehaviorFailure {
   where
     E: fmt::Display + fmt::Debug, {
     Self {
-      message: Cow::Owned(alloc::format!("{error}")),
-      debug: Some(alloc::format!("{error:?}")),
+      message: Cow::Owned(format!("{error}")),
+      debug: Some(format!("{error:?}")),
     }
   }
 
@@ -57,7 +60,7 @@ impl DefaultBehaviorFailure {
   pub fn from_unknown_panic(payload: &(dyn Any + Send)) -> Self {
     Self {
       message: Cow::Owned(String::from("panic: unknown payload")),
-      debug: Some(alloc::format!("panic payload type_id: {:?}", payload.type_id())),
+      debug: Some(format!("panic payload type_id: {:?}", payload.type_id())),
     }
   }
 
@@ -133,11 +136,11 @@ impl ActorFailure {
     }
 
     if let Some(message) = payload.downcast_ref::<&str>() {
-      return Self::from_message(alloc::format!("panic: {message}"));
+      return Self::from_message(format!("panic: {message}"));
     }
 
     if let Some(message) = payload.downcast_ref::<String>() {
-      return Self::from_message(alloc::format!("panic: {message}"));
+      return Self::from_message(format!("panic: {message}"));
     }
 
     Self::new(DefaultBehaviorFailure::from_unknown_panic(payload))
@@ -175,54 +178,6 @@ where
 {
   fn from(value: T) -> Self {
     Self::new(value)
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[derive(Debug)]
-  struct SampleError;
-
-  impl fmt::Display for SampleError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-      f.write_str("sample error")
-    }
-  }
-
-  #[test]
-  fn actor_failure_from_error_exposes_behavior_failure() {
-    let failure = ActorFailure::from_error(SampleError);
-
-    let description = failure.description();
-    assert!(description.contains("sample error"));
-
-    let inner = failure
-      .behavior()
-      .as_any()
-      .downcast_ref::<DefaultBehaviorFailure>()
-      .expect("default failure");
-    assert_eq!(inner.description(), description);
-    assert!(inner.debug_details().unwrap().contains("SampleError"));
-  }
-
-  #[test]
-  fn actor_failure_from_panic_payload_formats_message() {
-    let payload = Box::new("boom");
-    let failure = ActorFailure::from_panic_payload(payload.as_ref());
-    assert!(failure.description().contains("panic: boom"));
-
-    let string_payload = Box::new(String::from("kapow"));
-    let failure = ActorFailure::from_panic_payload(string_payload.as_ref());
-    assert!(failure.description().contains("panic: kapow"));
-  }
-
-  #[test]
-  fn actor_failure_unknown_panic_uses_fallback() {
-    let payload = Box::new(42_u32);
-    let failure = ActorFailure::from_panic_payload(payload.as_ref());
-    assert!(failure.description().contains("panic: unknown payload"));
   }
 }
 
