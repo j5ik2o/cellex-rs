@@ -4,16 +4,35 @@ use core::fmt::{self, Debug};
 
 use cellex_utils_core_rs::Element;
 
+#[cfg(target_has_atomic = "ptr")]
+type DynMessageInner = dyn Any + Send + Sync;
+
+#[cfg(not(target_has_atomic = "ptr"))]
+type DynMessageInner = dyn Any;
+
+/// Type bound required for values stored inside [`DynMessage`].
+#[cfg(target_has_atomic = "ptr")]
+pub trait DynMessageValue: Any + Send + Sync {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+pub trait DynMessageValue: Any {}
+
+#[cfg(target_has_atomic = "ptr")]
+impl<T> DynMessageValue for T where T: Any + Send + Sync {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+impl<T> DynMessageValue for T where T: Any {}
+
 /// Type-erased message used internally by the runtime.
 pub struct DynMessage {
-  inner: Box<dyn Any + Send + Sync>,
+  inner: Box<DynMessageInner>,
 }
 
 impl DynMessage {
   /// Creates a `DynMessage` wrapping an arbitrary value.
   pub fn new<T>(value: T) -> Self
   where
-    T: Any + Send + Sync, {
+    T: DynMessageValue + 'static, {
     Self { inner: Box::new(value) }
   }
 
@@ -25,7 +44,7 @@ impl DynMessage {
   /// Attempts to downcast to type T by moving ownership.
   pub fn downcast<T>(self) -> Result<T, Self>
   where
-    T: Any + Send + Sync, {
+    T: DynMessageValue + 'static, {
     match self.inner.downcast::<T>() {
       Ok(boxed) => Ok(*boxed),
       Err(inner) => Err(Self { inner }),
@@ -35,19 +54,19 @@ impl DynMessage {
   /// Attempts to downcast to type T through a reference.
   pub fn downcast_ref<T>(&self) -> Option<&T>
   where
-    T: Any + Send + Sync, {
+    T: DynMessageValue + 'static, {
     self.inner.downcast_ref::<T>()
   }
 
   /// Attempts to downcast to type T through a mutable reference.
   pub fn downcast_mut<T>(&mut self) -> Option<&mut T>
   where
-    T: Any + Send + Sync, {
+    T: DynMessageValue + 'static, {
     self.inner.downcast_mut::<T>()
   }
 
   /// Extracts the internal type-erased value.
-  pub fn into_any(self) -> Box<dyn Any + Send + Sync> {
+  pub fn into_any(self) -> Box<DynMessageInner> {
     self.inner
   }
 }
