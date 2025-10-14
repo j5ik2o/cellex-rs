@@ -64,7 +64,3 @@ impl CountDownLatchBackend for TokioCountDownLatchBackend {
 /// A synchronization primitive that causes tasks to wait until the specified number of countdowns complete.
 /// When `count_down()` is called as many times as the initial count, all tasks waiting on `wait()` are released.
 pub type CountDownLatch = CoreCountDownLatch<TokioCountDownLatchBackend>;
-
-
-
-

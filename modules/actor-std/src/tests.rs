@@ -28,7 +28,7 @@ async fn run_test_actor_loop_updates_state() {
       let mut guard = actor_state.borrow_mut();
       *guard += msg;
     })
-      .await;
+    .await;
   });
 
   sender.send(4_u32).await.expect("send message");

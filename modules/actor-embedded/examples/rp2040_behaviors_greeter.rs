@@ -12,7 +12,6 @@ use alloc_cortex_m::CortexMHeap;
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cellex_actor_embedded_rs::LocalMailboxRuntime;
-use core::cell::RefCell;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cortex_m::{asm, interrupt};
 #[cfg(all(target_arch = "arm", target_os = "none"))]

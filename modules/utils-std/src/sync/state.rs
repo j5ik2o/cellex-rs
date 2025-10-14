@@ -81,5 +81,3 @@ impl<T> StateCell<T> for ArcStateCell<T> {
     self.0.lock().expect("mutex poisoned")
   }
 }
-
-

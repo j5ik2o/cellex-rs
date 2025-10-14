@@ -437,5 +437,3 @@ where
     f.debug_struct("LocalMailboxSender").finish()
   }
 }
-
-

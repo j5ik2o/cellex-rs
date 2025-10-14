@@ -282,6 +282,3 @@ impl Extension for SerializerRegistryExtension {
     self
   }
 }
-
-
-

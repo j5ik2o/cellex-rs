@@ -108,5 +108,3 @@ impl<Item> DeadlineTimer for TokioDeadlineTimer<Item> {
     }
   }
 }
-
-

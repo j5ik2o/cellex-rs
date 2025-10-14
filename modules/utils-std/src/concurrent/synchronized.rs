@@ -115,5 +115,3 @@ pub type Synchronized<T> = CoreSynchronized<TokioMutexBackend<T>, T>;
 ///
 /// Provides read/write access via `RwLock`, allowing multiple reads or a single write.
 pub type SynchronizedRw<T> = CoreSynchronizedRw<TokioRwLockBackend<T>, T>;
-
-

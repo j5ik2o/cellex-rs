@@ -224,16 +224,10 @@ where
 }
 
 #[cfg(target_has_atomic = "ptr")]
-unsafe impl<M> Send for PriorityEnvelope<M>
-where
-  M: Send,
-{}
+unsafe impl<M> Send for PriorityEnvelope<M> where M: Send {}
 
 #[cfg(target_has_atomic = "ptr")]
-unsafe impl<M> Sync for PriorityEnvelope<M>
-where
-  M: Sync,
-{}
+unsafe impl<M> Sync for PriorityEnvelope<M> where M: Sync {}
 
 #[cfg(target_has_atomic = "ptr")]
 const fn assert_send_sys<T: Send>() {}

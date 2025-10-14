@@ -62,6 +62,3 @@ impl WaitGroupBackend for TokioWaitGroupBackend {
 ///
 /// A synchronization primitive for waiting until multiple async tasks complete.
 pub type WaitGroup = CoreWaitGroup<TokioWaitGroupBackend>;
-
-
-

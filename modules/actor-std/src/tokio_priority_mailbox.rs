@@ -537,6 +537,3 @@ where
     self.inner.set_metrics_sink(sink);
   }
 }
-
-
-

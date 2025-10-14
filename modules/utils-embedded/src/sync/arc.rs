@@ -332,5 +332,3 @@ where
     f(&mut guard)
   }
 }
-
-

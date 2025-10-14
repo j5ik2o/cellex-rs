@@ -17,5 +17,3 @@ pub trait FailureEventStream: Clone + Send + Sync + 'static {
   /// Registers a new subscriber and returns a subscription handle.
   fn subscribe(&self, listener: FailureEventListener) -> Self::Subscription;
 }
-
-

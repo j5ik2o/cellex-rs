@@ -13,5 +13,3 @@ pub struct ImmediateSpawner;
 impl Spawn for ImmediateSpawner {
   fn spawn(&self, _fut: impl Future<Output = ()> + 'static) {}
 }
-
-
