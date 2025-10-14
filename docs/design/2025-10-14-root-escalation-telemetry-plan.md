@@ -50,4 +50,4 @@
 ## 次アクション
 1. Telemetry 抽象の API 骨子案を小さな RFC としてまとめ、レビューを募る。
 2. フェーズ1と2を同ブランチで実装してレビューに出す（段階的にビルドが壊れないように注意）。
-3. `thumbv6m-none-eabi` / `thumbv8m.main-none-eabi` ターゲットでの `cargo check` を追加の確認項目として設定。
+3. `./scripts/ci.sh all` での一括確認（thumb ターゲット含む）を必須とする。
