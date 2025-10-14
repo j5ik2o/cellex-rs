@@ -5,7 +5,7 @@ use core::any::TypeId;
 use core::cell::RefCell;
 use core::marker::PhantomData;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "unwind-supervision")]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::runtime::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
@@ -17,6 +17,7 @@ use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
 #[cfg(feature = "std")]
+#[cfg(feature = "unwind-supervision")]
 use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
@@ -198,30 +199,62 @@ where
     let (message, priority) = envelope.into_parts();
     self.supervisor.before_handle();
     let mut pending_specs = Vec::new();
-    #[cfg(feature = "std")]
-    let result = catch_unwind(AssertUnwindSafe(|| {
-      let receive_timeout = self.receive_timeout_scheduler.as_ref();
-      let mut ctx = ActorContext::new(
-        &self.runtime,
-        self.mailbox_spawner.clone(),
-        &self.sender,
-        self.supervisor.as_mut(),
-        &mut pending_specs,
-        self.map_system.clone(),
-        self.actor_path.clone(),
-        self.actor_id,
-        &mut self.watchers,
-        receive_timeout,
-        self.extensions.clone(),
-      );
-      ctx.enter_priority(priority);
-      let handler_result = (self.handler)(&mut ctx, message);
-      ctx.notify_receive_timeout_activity(influences_receive_timeout);
-      ctx.exit_priority();
-      handler_result
-    }));
+    #[cfg(feature = "unwind-supervision")]
+    {
+      let result = catch_unwind(AssertUnwindSafe(|| {
+        let receive_timeout = self.receive_timeout_scheduler.as_ref();
+        let mut ctx = ActorContext::new(
+          &self.runtime,
+          self.mailbox_spawner.clone(),
+          &self.sender,
+          self.supervisor.as_mut(),
+          &mut pending_specs,
+          self.map_system.clone(),
+          self.actor_path.clone(),
+          self.actor_id,
+          &mut self.watchers,
+          receive_timeout,
+          self.extensions.clone(),
+        );
+        ctx.enter_priority(priority);
+        let handler_result = (self.handler)(&mut ctx, message);
+        ctx.notify_receive_timeout_activity(influences_receive_timeout);
+        ctx.exit_priority();
+        handler_result
+      }));
 
-    #[cfg(not(feature = "std"))]
+      self.supervisor.after_handle();
+
+      match result {
+        Ok(handler_result) => {
+          match handler_result {
+            Ok(()) => {
+              for spec in pending_specs.into_iter() {
+                self.register_child_from_spec(spec, guardian, new_children)?;
+              }
+              if should_stop {
+                self.mark_stopped(guardian);
+              }
+            }
+            Err(err) => {
+              if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
+                escalations.push(info);
+              }
+            }
+          }
+          Ok(())
+        }
+        Err(payload) => {
+          let failure = ActorFailure::from_panic_payload(payload.as_ref());
+          if let Some(info) = guardian.notify_failure(self.actor_id, failure)? {
+            escalations.push(info);
+          }
+          Ok(())
+        }
+      }
+    }
+
+    #[cfg(not(feature = "unwind-supervision"))]
     {
       let receive_timeout = self.receive_timeout_scheduler.as_ref();
       let mut ctx = ActorContext::new(
@@ -258,39 +291,6 @@ where
         }
       }
       Ok(())
-    }
-
-    #[cfg(feature = "std")]
-    {
-      self.supervisor.after_handle();
-
-      match result {
-        Ok(handler_result) => {
-          match handler_result {
-            Ok(()) => {
-              for spec in pending_specs.into_iter() {
-                self.register_child_from_spec(spec, guardian, new_children)?;
-              }
-              if should_stop {
-                self.mark_stopped(guardian);
-              }
-            }
-            Err(err) => {
-              if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
-                escalations.push(info);
-              }
-            }
-          }
-          Ok(())
-        }
-        Err(payload) => {
-          let failure = ActorFailure::from_panic_payload(payload.as_ref());
-          if let Some(info) = guardian.notify_failure(self.actor_id, failure)? {
-            escalations.push(info);
-          }
-          Ok(())
-        }
-      }
     }
   }
 

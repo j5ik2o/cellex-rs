@@ -13,9 +13,9 @@
    - 上位スーパーバイザは `Err(FailureInfo)` を受け取ってアクター差し替えを行う。パニックは即 abort するが、`panic_handler` で最小限のログや LED 表示を行う余地は残す。
 
 2. **オプション構成（空間に余裕がある場合）**
-   - Cargo feature 例: `unwind-supervision` を opt-in すると、`panic = "unwind"` と `std` 依存を有効化。
-   - `std::panic::catch_unwind` を使用してパニックを捕捉し、`FailureInfo` に変換してガーディアンへ通知。アクター単位での再起動が可能になる。
-   - 対象ターゲットやバイナリサイズ増加をドキュメント化し、CI でもこの構成を検証する。
+   - `panic = "unwind"` を許容できるターゲット向けに、`catch_unwind` ベースの経路を選択制にする（Cargo feature: `unwind-supervision`）。
+   - 2025-10-14 時点で `unwind-supervision` を導入済み。デフォルトでは `catch_unwind` はビルドされず、`--features std,unwind-supervision` を指定した場合にのみ有効化される。
+   - 対象ターゲットやバイナリサイズ増加をドキュメント化し、CI で `unwind-supervision` 有効時のチェックを追加する予定。
 
 3. **panic handler の役割**
    - `panic_handler` ではランタイム制御には戻らず、ログ出力や永続化（例: NVRAM、ウォッチドッグとの連携）等に限定する。
@@ -23,9 +23,9 @@
 
 ## 今後の改善案
 
-- **現状の実装ギャップ**
-  - 2025-10-14 時点の `modules/actor-core/src/runtime/scheduler/actor_cell.rs` では、`std` フィーチャ有効時に `std::panic::catch_unwind` でアクターハンドラを包み、パニックを `FailureInfo` としてガーディアンに通知している。
-  - 設計方針で示した「`panic = "abort"` を基本とし、パニックは監督対象外とする」挙動と食い違っているため、該当ブロックの削除（もしくは `unwind-supervision` フィーチャ導入後に限定化）を行う。
+- **実装状況**
+  - `modules/actor-core/src/runtime/scheduler/actor_cell.rs` において、`catch_unwind` ブロックを `#[cfg(feature = "unwind-supervision")]` でガードし、デフォルト（`alloc` のみ／`std` のみ）では panic を捕捉しない挙動になった。
+  - `unwind-supervision` を有効にしたときのみ `ActorFailure::from_panic_payload` を使ったスーパービジョンが機能する。互換性のため、従来 `std` のみで catch を期待していたユーザーには feature 切り替えを通知する必要がある。
 - **Behaviors API の整理**
   - `Behavior::receive` / `Behaviors::receive` は Result を返す実装へ統一済み。panic 依存を避けるため、すべてのハンドラは `Result<BehaviorDirective, ActorFailure>` を返す。
   - 旧 `try_*` 系 API (`try_receive` / `try_receive_message` / `try_setup`) は完全に削除した。既存コードは Result 返却の `receive` / `setup` を利用する。

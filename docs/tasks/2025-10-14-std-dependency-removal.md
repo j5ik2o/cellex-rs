@@ -6,7 +6,7 @@
 
 | ファイル | 対象行 | 役割 | 対応方針 |
 | --- | --- | --- | --- |
-| `modules/actor-core/src/runtime/scheduler/actor_cell.rs:8-9,205-244` | `catch_unwind` でハンドラを保護 | `std::panic::{catch_unwind, AssertUnwindSafe}` を使用 | - `cfg(feature = "std")` 下では現行実装を維持<br>- `no_std` では既に別ブロックがあるが、要件に応じて `core::panic::PanicInfo` を利用したフォールバックを検討する。 |
+| `modules/actor-core/src/runtime/scheduler/actor_cell.rs:8-9,205-244` | `catch_unwind` でハンドラを保護 | `std::panic::{catch_unwind, AssertUnwindSafe}` を使用 | - 2025-10-14 `unwind-supervision` feature を導入し、opt-in 時のみ `catch_unwind` を有効化。<br>- デフォルトでは `panic = "abort"` 前提の `Result` パスを使用。 |
 | `modules/actor-core/src/runtime/system/internal_actor_system.rs` | 旧ブロッキングディスパッチ API | `futures::executor::block_on` 依存（削除済み） | 2025-10-14 に `blocking_dispatch_*` を削除し、async API のみ提供。追加対応不要。 |
 | `modules/actor-core/src/api/actor/system.rs` | 旧 `ActorSystem::blocking_dispatch_*` | 内部ブロッキング API のラッパ（削除済み） | 2025-10-14 に削除済み。ドキュメント更新のみ追随。 |
 | `modules/actor-core/src/runtime/scheduler/priority_scheduler.rs` | 旧ブロッキングディスパッチ実装 | `futures::executor::block_on` / `tracing::warn!` 依存（削除済み） | 2025-10-14 に削除済み。非同期経路のみ維持。 |
