@@ -19,22 +19,35 @@ members = [
 ]
 
 [workspace.dependencies]
+alloc-cortex-m = "0.4"
 async-trait = { version = "0.1.89", default-features = false }
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+criterion = "0.7"
+critical-section = { version = "1.2", default-features = false }
 dashmap = "7.0.0-rc2"
+embassy-executor = { version = "0.9", default-features = false }
+embassy-futures = { version = "0.1", default-features = false }
+embassy-sync = { version = "0.7", default-features = false }
+embassy-time = { version = "0.5", default-features = false }
+embedded-hal = "0.2"
 futures = "0.3.31"
-num_enum = "0.7.4"
-once_cell = "1.21.3"
+panic-halt = "0.2"
 parking_lot = "0.12.5"
+portable-atomic = { version = "1.11", default-features = false }
 postcard = { version = "1.1.3", default-features = false, features = ["alloc"] }
 prost = "0.14.1"
-prost-types = "0.14.1"
-regex = "1.12.2"
+rp2040-boot2 = "0.3"
+rp2040-hal = { version = "0.11", default-features = false }
+rp235x-hal = { version = "0.3", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
+spin = { version = "0.10", default-features = false }
 static_assertions = "1.1.0"
+static_cell = "2"
 thiserror = "2.0.17"
 tokio = { version = "1.47.1", default-features = false }
-tokio-util = { version = "0.7.16" }
-tonic = "0.14.2"
-tonic-types = "0.14.2"
+tokio-condvar = "0.3.0"
+tokio-util = "0.7.16"
 tracing = "0.1.41"
+tracing-subscriber = { version = "0.3", default-features = false }

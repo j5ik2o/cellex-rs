@@ -16,4 +16,4 @@ std = ["alloc"]
 
 [dependencies]
 async-trait = { workspace = true }
-critical-section = { version = "1", optional = false }
+critical-section = { workspace = true, optional = false }

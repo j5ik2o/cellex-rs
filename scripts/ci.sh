@@ -8,7 +8,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
 THUMB_TARGETS=("thumbv6m-none-eabi" "thumbv8m.main-none-eabi")
-DEFAULT_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-nightly}"
+DEFAULT_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
+FMT_TOOLCHAIN="${FMT_TOOLCHAIN:-nightly}"
 
 usage() {
   cat <<'EOF'
@@ -58,8 +59,8 @@ ensure_target_installed() {
 }
 
 run_lint() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} fmt -- --check"
-  run_cargo fmt -- --check
+  log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check"
+  cargo "+${FMT_TOOLCHAIN}" fmt -- --check
 }
 
 run_clippy() {

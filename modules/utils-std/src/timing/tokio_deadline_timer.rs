@@ -111,15 +111,16 @@ mod tests {
   use super::*;
   use futures::task::noop_waker_ref;
   use std::{task::Context, time::Duration};
+  use tokio::time::sleep;
 
-  #[tokio::test(start_paused = true)]
+  #[tokio::test(flavor = "current_thread")]
   async fn tokio_deadline_timer_expires_after_duration() {
     let mut queue = TokioDeadlineTimer::new();
     let key = queue
       .insert("hello", TimerDeadline::from(Duration::from_millis(10)))
       .unwrap();
 
-    tokio::time::advance(Duration::from_millis(10)).await;
+    sleep(Duration::from_millis(20)).await;
 
     let expired = futures::future::poll_fn(|cx| queue.poll_expired(cx))
       .await
@@ -128,7 +129,7 @@ mod tests {
     assert_eq!(expired.key, key);
   }
 
-  #[tokio::test(start_paused = true)]
+  #[tokio::test(flavor = "current_thread")]
   async fn tokio_deadline_timer_reset_extends_deadline() {
     let mut queue = TokioDeadlineTimer::new();
     let key = queue
@@ -136,13 +137,13 @@ mod tests {
       .unwrap();
     queue.reset(key, TimerDeadline::from(Duration::from_secs(2))).unwrap();
 
-    tokio::time::advance(Duration::from_secs(1)).await;
+    sleep(Duration::from_millis(1100)).await;
 
     let waker = noop_waker_ref();
     let mut cx = Context::from_waker(waker);
     assert!(matches!(queue.poll_expired(&mut cx), Poll::Pending));
 
-    tokio::time::advance(Duration::from_secs(1)).await;
+    sleep(Duration::from_millis(1100)).await;
 
     let expired = futures::future::poll_fn(|cx| queue.poll_expired(cx))
       .await
