@@ -14,8 +14,8 @@ futures = { workspace = true }
 async-trait = { workspace = true }
 dashmap = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true }
-tokio-util = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "sync", "time", "signal"] }
+tokio-util = { workspace = true, features = ["time"] }
 tokio-condvar = "0.3.0"
 tracing = { workspace = true }
 parking_lot = { workspace = true }
