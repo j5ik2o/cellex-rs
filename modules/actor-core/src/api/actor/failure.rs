@@ -1,6 +1,5 @@
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
-use alloc::format;
 use alloc::string::String;
 use core::any::Any;
 use core::fmt;
@@ -47,8 +46,8 @@ impl DefaultBehaviorFailure {
   where
     E: fmt::Display + fmt::Debug, {
     Self {
-      message: Cow::Owned(alloc::format!("{error}")),
-      debug: Some(alloc::format!("{error:?}")),
+      message: Cow::Owned(format!("{error}")),
+      debug: Some(format!("{error:?}")),
     }
   }
 
@@ -57,7 +56,7 @@ impl DefaultBehaviorFailure {
   pub fn from_unknown_panic(payload: &(dyn Any + Send)) -> Self {
     Self {
       message: Cow::Owned(String::from("panic: unknown payload")),
-      debug: Some(alloc::format!("panic payload type_id: {:?}", payload.type_id())),
+      debug: Some(format!("panic payload type_id: {:?}", payload.type_id())),
     }
   }
 
@@ -133,11 +132,11 @@ impl ActorFailure {
     }
 
     if let Some(message) = payload.downcast_ref::<&str>() {
-      return Self::from_message(alloc::format!("panic: {message}"));
+      return Self::from_message(format!("panic: {message}"));
     }
 
     if let Some(message) = payload.downcast_ref::<String>() {
-      return Self::from_message(alloc::format!("panic: {message}"));
+      return Self::from_message(format!("panic: {message}"));
     }
 
     Self::new(DefaultBehaviorFailure::from_unknown_panic(payload))
