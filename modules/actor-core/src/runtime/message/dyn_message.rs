@@ -2,8 +2,6 @@ use alloc::boxed::Box;
 use core::any::{Any, TypeId};
 use core::fmt::{self, Debug};
 
-use cellex_utils_core_rs::Element;
-
 #[cfg(target_has_atomic = "ptr")]
 type DynMessageInner = dyn Any + Send + Sync;
 
@@ -76,5 +74,3 @@ impl Debug for DynMessage {
     write!(f, "DynMessage<{}>", core::any::type_name::<Self>())
   }
 }
-
-impl Element for DynMessage {}

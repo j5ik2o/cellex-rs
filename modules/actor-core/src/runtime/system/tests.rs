@@ -23,9 +23,6 @@ enum Message {
 }
 
 #[cfg(feature = "std")]
-impl Element for Message {}
-
-#[cfg(feature = "std")]
 #[test]
 fn actor_system_spawns_and_processes_messages() {
   let factory = TestMailboxRuntime::unbounded();

@@ -5,7 +5,6 @@
 
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
 use cellex_actor_std_rs::TokioMailboxRuntime;
-use cellex_utils_std_rs::Element;
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Clone, Debug)]
@@ -14,8 +13,6 @@ enum Command {
   Report,
   Stop,
 }
-
-impl Element for Command {}
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {

@@ -200,8 +200,6 @@ mod receive_timeout_injection {
     assert_eq!(driver_factory_calls.load(Ordering::SeqCst), 0);
   }
 }
-impl Element for ParentMessage {}
-impl Element for ChildMessage {}
 
 use cellex_utils_core_rs::sync::ArcShared;
 use core::any::Any;

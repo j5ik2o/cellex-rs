@@ -33,7 +33,7 @@ use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_embedded_rs::ArcMailboxRuntime;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use cellex_utils_embedded_rs::{ArcCsStateCell, Element, StateCell};
+use cellex_utils_embedded_rs::{ArcCsStateCell, StateCell};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 
@@ -43,8 +43,6 @@ enum Command {
   Report,
   Stop,
 }
-
-impl Element for Command {}
 
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 const HEAP_SIZE: usize = 32 * 1024;
