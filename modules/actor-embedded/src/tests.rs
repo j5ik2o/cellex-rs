@@ -57,6 +57,7 @@ fn typed_actor_system_dispatch_next_processes_message() {
 
   let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
     log_clone.borrow_mut().push(msg);
+    Ok(())
   });
 
   let mut root = system.root_context();

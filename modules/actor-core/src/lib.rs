@@ -18,7 +18,7 @@
 //!
 //! let behavior = Behaviors::receive(|ctx, msg: String| {
 //!     println!("Received: {}", msg);
-//!     Behaviors::same()
+//!     Ok(Behaviors::same())
 //! });
 //! ```
 

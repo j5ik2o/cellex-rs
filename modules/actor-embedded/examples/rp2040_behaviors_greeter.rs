@@ -99,7 +99,7 @@ fn main() -> ! {
 
       let message_led = setup_led.clone();
       let mut greeted = 0usize;
-      Behaviors::receive_message(move |msg: Command| match msg {
+      Ok(Behaviors::receive_message(move |msg: Command| match msg {
         Command::Greet(name) => {
           blink_message(&message_led, &BlinkPattern::short_pulse(), clock_hz);
           greeted = greeted.wrapping_add(1);
@@ -108,18 +108,18 @@ fn main() -> ! {
           if name_len > 0 {
             blink_repeated(&message_led, name_len as usize, 80, 80, clock_hz);
           }
-          Behaviors::same()
+          Ok(Behaviors::same())
         }
         Command::Report => {
           let flashes = core::cmp::max(greeted, 1);
           blink_repeated(&message_led, flashes, 200, 120, clock_hz);
-          Behaviors::same()
+          Ok(Behaviors::same())
         }
         Command::Stop => {
           blink_message(&message_led, &BlinkPattern::shutdown(), clock_hz);
-          Behaviors::stopped()
+          Ok(Behaviors::stopped())
         }
-      })
+      }))
     })
   });
 

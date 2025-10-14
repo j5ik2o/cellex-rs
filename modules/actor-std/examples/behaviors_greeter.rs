@@ -30,21 +30,21 @@ async fn main() {
       let logger = ctx.log();
       let actor_id = ctx.actor_id();
 
-      Behaviors::receive_message(move |msg: Command| match msg {
+      Ok(Behaviors::receive_message(move |msg: Command| match msg {
         Command::Greet(name) => {
           greeted += 1;
           logger.info(|| format!("actor {:?} says: Hello, {}!", actor_id, name));
-          Behaviors::same()
+          Ok(Behaviors::same())
         }
         Command::Report => {
           logger.info(|| format!("actor {:?} greeted {} people", actor_id, greeted));
-          Behaviors::same()
+          Ok(Behaviors::same())
         }
         Command::Stop => {
           logger.warn(|| format!("actor {:?} is stopping after {} greetings", actor_id, greeted));
-          Behaviors::stopped()
+          Ok(Behaviors::stopped())
         }
-      })
+      }))
     })
   });
 
