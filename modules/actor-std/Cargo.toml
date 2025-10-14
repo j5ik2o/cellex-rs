@@ -15,10 +15,10 @@ rt-multi-thread = ["tokio/rt-multi-thread"]
 rt-current-thread = ["tokio/rt"]
 
 [dependencies]
+async-trait = { workspace = true }
 cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc", "std"] }
 cellex-utils-std-rs = { path = "../utils-std" }
 futures = { workspace = true }
-async-trait = { workspace = true }
 tokio = { workspace = true, default-features = false, features = ["macros", "sync", "time", "signal"] }
 
 [dev-dependencies]
