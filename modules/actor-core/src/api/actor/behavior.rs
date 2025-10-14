@@ -13,7 +13,6 @@ use crate::PriorityEnvelope;
 use crate::SystemMessage;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
-use core::fmt;
 
 use super::{ActorFailure, BehaviorFailure, Context};
 
@@ -238,16 +237,6 @@ where
     ))
   }
 
-  /// Deprecated helper that delegates to [`Behavior::receive`].
-  #[deprecated(note = "Use `Behavior::receive` which returns `Result<BehaviorDirective<U, R>, ActorFailure>`.")]
-  #[allow(clippy::needless_pass_by_value)]
-  pub fn try_receive<F, E>(mut handler: F) -> Self
-  where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static, {
-    Self::receive(move |ctx, msg| handler(ctx, msg).map_err(ActorFailure::from_error))
-  }
-
   /// Constructs Behavior with a simple stateless handler.
   ///
   /// Handler always returns `BehaviorDirective::Same` on success.
@@ -267,16 +256,6 @@ where
     Self::receive(move |_, msg| handler(msg))
   }
 
-  /// Deprecated helper that delegates to [`Behavior::receive_message`].
-  #[deprecated(note = "Use `Behavior::receive_message` which returns `Result<BehaviorDirective<U, R>, ActorFailure>`.")]
-  #[allow(clippy::needless_pass_by_value)]
-  pub fn try_receive_message<F, E>(mut handler: F) -> Self
-  where
-    F: FnMut(U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static, {
-    Self::receive(move |_, msg| handler(msg).map_err(ActorFailure::from_error))
-  }
-
   /// Creates a Behavior in stopped state.
   pub fn stopped() -> Self {
     Self::Stopped
@@ -294,16 +273,6 @@ where
       init: Some(ArcShared::from_arc(handler)),
       signal: None,
     }
-  }
-
-  /// Deprecated helper that delegates to [`Behavior::setup`].
-  #[deprecated(note = "Use `Behavior::setup` which returns `Result<Behavior<U, R>, ActorFailure>`.")]
-  #[allow(clippy::needless_pass_by_value)]
-  pub fn try_setup<F, E>(init: F) -> Self
-  where
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static, {
-    Self::setup(move |ctx| init(ctx).map_err(ActorFailure::from_error))
   }
 
   /// Gets supervisor configuration (internal API).
@@ -361,23 +330,6 @@ impl Behaviors {
     Behavior::receive(handler)
   }
 
-  /// Deprecated helper that delegates to [`Behaviors::receive`].
-  #[deprecated(note = "Use `Behaviors::receive` which returns `Result<BehaviorDirective<U, R>, ActorFailure>`.")]
-  pub fn try_receive<U, R, F, E>(handler: F) -> Behavior<U, R>
-  where
-    U: Element,
-    R: ActorRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-    R::Concurrency: MetadataStorageMode,
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static, {
-    #[allow(deprecated)]
-    {
-      Behavior::try_receive(handler)
-    }
-  }
-
   /// Returns a directive to maintain current Behavior.
   pub fn same<U, R>() -> BehaviorDirective<U, R>
   where
@@ -398,25 +350,6 @@ impl Behaviors {
     R::Concurrency: MetadataStorageMode,
     F: FnMut(U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static, {
     Behavior::receive_message(handler)
-  }
-
-  /// Deprecated helper that delegates to [`Behaviors::receive_message`].
-  #[deprecated(
-    note = "Use `Behaviors::receive_message` which returns `Result<BehaviorDirective<U, R>, ActorFailure>`."
-  )]
-  pub fn try_receive_message<U, R, F, E>(handler: F) -> Behavior<U, R>
-  where
-    U: Element,
-    R: ActorRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-    R::Concurrency: MetadataStorageMode,
-    F: FnMut(U) -> Result<BehaviorDirective<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static, {
-    #[allow(deprecated)]
-    {
-      Behavior::try_receive_message(handler)
-    }
   }
 
   /// Returns a directive to transition to a new Behavior.
@@ -459,23 +392,6 @@ impl Behaviors {
     R::Concurrency: MetadataStorageMode,
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static, {
     Behavior::setup(init)
-  }
-
-  /// Deprecated helper that delegates to [`Behaviors::setup`].
-  #[deprecated(note = "Use `Behaviors::setup` which returns `Result<Behavior<U, R>, ActorFailure>`.")]
-  pub fn try_setup<U, R, F, E>(init: F) -> Behavior<U, R>
-  where
-    U: Element,
-    R: ActorRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-    R::Concurrency: MetadataStorageMode,
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, E> + 'static,
-    E: fmt::Display + fmt::Debug + Send + 'static, {
-    #[allow(deprecated)]
-    {
-      Behavior::try_setup(init)
-    }
   }
 }
 

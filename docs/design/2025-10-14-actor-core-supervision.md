@@ -27,8 +27,8 @@
   - 2025-10-14 時点の `modules/actor-core/src/runtime/scheduler/actor_cell.rs` では、`std` フィーチャ有効時に `std::panic::catch_unwind` でアクターハンドラを包み、パニックを `FailureInfo` としてガーディアンに通知している。
   - 設計方針で示した「`panic = "abort"` を基本とし、パニックは監督対象外とする」挙動と食い違っているため、該当ブロックの削除（もしくは `unwind-supervision` フィーチャ導入後に限定化）を行う。
 - **Behaviors API の整理**
-  - `Behavior::receive` / `Behaviors::receive` など “try なし” 系メソッドは `BehaviorDirective` のみを返し、失敗時は panic に依存している。`panic = "abort"` 方針と矛盾するため、まずは非推奨マークを付ける。
-  - 既存の `try_receive` / `try_setup` 系を標準 API（`receive` / `setup`）へリネームし、すべて `Result<BehaviorDirective, ActorFailure>` 経路に収束させる。
+  - `Behavior::receive` / `Behaviors::receive` は Result を返す実装へ統一済み。panic 依存を避けるため、すべてのハンドラは `Result<BehaviorDirective, ActorFailure>` を返す。
+  - 旧 `try_*` 系 API (`try_receive` / `try_receive_message` / `try_setup`) は完全に削除した。既存コードは Result 返却の `receive` / `setup` を利用する。
   - `stateless` / `receive_message` など簡易ヘルパーは内部で `Ok(...)` を返すラッパに置き換え、panic 以外の失敗経路を確保する。
 - `Result` ベースで失敗を伝播させる API をガイドラインとして整備し、末端アクターは “let it crash” を panic ではなく `Err` で表現できるようにする。
 - `unwind-supervision` 有効時のコードサイズやターゲット制約を調査し、利用可能な MCUs を明示する。

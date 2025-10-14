@@ -8,8 +8,8 @@
 
 ## 提案概要
 - `Behavior` に Result を返すハンドラインターフェースを追加し、Opt-in で利用できるようにする。
-  - 例: `Behavior::try_receive(|ctx, msg| -> Result<BehaviorDirective, ActorFailure> {...})`
-  - 例: `Behavior::try_setup(|ctx| -> Result<Behavior<U, R>, ActorFailure>)`
+  - 例: `Behavior::receive(|ctx, msg| -> Result<BehaviorDirective, ActorFailure> {...})`
+  - 例: `Behavior::setup(|ctx| -> Result<Behavior<U, R>, ActorFailure>)`
 - `ActorCell` の dispatch 処理で Result を判定し、`Err` 時には `FailureInfo` を構築して guardian 経由で
   スーパービジョンを起動する。
 - 既存の `Behavior::receive` 等は内部的に `Ok(…)` を返すラッパーとして実装し、既存コードへの破壊的変更を避ける。
@@ -70,7 +70,7 @@ impl ActorFailure {
 
 ## 詳細タスク
 1. `Behavior` API 拡張
-   - `Behavior::try_receive`, `Behavior::try_setup`, `Behavior::try_signal` を追加。
+   - `Behavior::receive`, `Behavior::setup`, `Behavior::receive_message` を Result 返却に刷新。
    - 既存の `Behavior` コンストラクタは `Ok` ラップで呼び出すように内部実装を調整。
 2. `BehaviorFailure` インターフェース整備
    - `BehaviorFailure` トレイトを定義し、`fn as_any(&self) -> &dyn Any` を必須とする。
