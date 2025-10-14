@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -60,23 +63,5 @@ impl WaitGroupBackend for TokioWaitGroupBackend {
 /// A synchronization primitive for waiting until multiple async tasks complete.
 pub type WaitGroup = CoreWaitGroup<TokioWaitGroupBackend>;
 
-#[cfg(test)]
-mod tests {
-  use super::WaitGroup;
-  use tokio::join;
 
-  #[tokio::test]
-  async fn wait_group_completes() {
-    let wg = WaitGroup::new();
-    wg.add(2);
-    let worker_wg = wg.clone();
 
-    let wait_fut = wg.wait();
-    let worker = async move {
-      worker_wg.done();
-      worker_wg.done();
-    };
-
-    join!(worker, wait_fut);
-  }
-}
