@@ -67,9 +67,6 @@ enum Message {
 }
 
 #[cfg(feature = "std")]
-impl cellex_utils_core_rs::Element for Message {}
-
-#[cfg(feature = "std")]
 #[derive(Clone)]
 struct EventRecordingSink {
   events: Arc<Mutex<Vec<MetricsEvent>>>,
