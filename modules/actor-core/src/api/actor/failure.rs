@@ -1,4 +1,6 @@
 use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::format;
 use alloc::string::String;
 use core::any::Any;
 use core::fmt;
@@ -54,7 +56,7 @@ impl DefaultBehaviorFailure {
   #[must_use]
   pub fn from_unknown_panic(payload: &(dyn Any + Send)) -> Self {
     Self {
-      message: Cow::Owned("panic: unknown payload".to_string()),
+      message: Cow::Owned(String::from("panic: unknown payload")),
       debug: Some(alloc::format!("panic payload type_id: {:?}", payload.type_id())),
     }
   }

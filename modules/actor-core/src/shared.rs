@@ -31,6 +31,18 @@ type FailureEventListenerFn = dyn Fn(FailureEvent) + Send + Sync;
 #[cfg(not(target_has_atomic = "ptr"))]
 type FailureEventListenerFn = dyn Fn(FailureEvent);
 
+#[cfg(target_has_atomic = "ptr")]
+pub trait ReceiveTimeoutDriverBound: Send + Sync {}
+
+#[cfg(target_has_atomic = "ptr")]
+impl<T: Send + Sync> ReceiveTimeoutDriverBound for T {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+pub trait ReceiveTimeoutDriverBound {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+impl<T> ReceiveTimeoutDriverBound for T {}
+
 /// Shared handle to a system message mapper function.
 ///
 /// Internally stores the mapper inside a `Shared` abstraction so that
@@ -169,7 +181,7 @@ where
 }
 
 /// Trait representing a runtime-specific provider for receive-timeout scheduler factories.
-pub trait ReceiveTimeoutDriver<R>: Send + Sync
+pub trait ReceiveTimeoutDriver<R>: ReceiveTimeoutDriverBound
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,

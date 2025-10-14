@@ -70,8 +70,6 @@ impl SystemMessage {
   }
 }
 
-impl Element for SystemMessage {}
-
 /// Envelope type: Stores priority messages and implements `PriorityMessage`.
 ///
 /// Wraps messages with priority and channel information.
@@ -190,10 +188,7 @@ impl<M> PriorityEnvelope<M> {
 }
 
 #[allow(dead_code)]
-impl<M> PriorityEnvelope<M>
-where
-  M: Element,
-{
+impl<M> PriorityEnvelope<M> {
   /// Creates a regular channel envelope with default priority.
   ///
   /// # Arguments
@@ -227,5 +222,3 @@ where
     Some(self.priority)
   }
 }
-
-impl<M> Element for PriorityEnvelope<M> where M: Element {}

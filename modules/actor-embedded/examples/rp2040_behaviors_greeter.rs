@@ -12,7 +12,6 @@ use alloc_cortex_m::CortexMHeap;
 use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cellex_actor_embedded_rs::LocalMailboxRuntime;
-use cellex_utils_embedded_rs::Element;
 use core::cell::RefCell;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cortex_m::{asm, interrupt};
@@ -54,8 +53,6 @@ enum Command {
   Report,
   Stop,
 }
-
-impl Element for Command {}
 
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 #[entry]

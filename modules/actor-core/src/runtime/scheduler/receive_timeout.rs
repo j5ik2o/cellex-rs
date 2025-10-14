@@ -9,13 +9,37 @@ use crate::shared::{ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared};
 use crate::MapSystemShared;
 use crate::{MailboxRuntime, PriorityEnvelope};
 
+#[cfg(target_has_atomic = "ptr")]
+pub trait SchedulerBound: Send {}
+
+#[cfg(target_has_atomic = "ptr")]
+impl<T: Send> SchedulerBound for T {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+pub trait SchedulerBound {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+impl<T> SchedulerBound for T {}
+
+#[cfg(target_has_atomic = "ptr")]
+pub trait SchedulerFactoryBound: Send + Sync {}
+
+#[cfg(target_has_atomic = "ptr")]
+impl<T: Send + Sync> SchedulerFactoryBound for T {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+pub trait SchedulerFactoryBound {}
+
+#[cfg(not(target_has_atomic = "ptr"))]
+impl<T> SchedulerFactoryBound for T {}
+
 /// Scheduler abstraction for managing actor `ReceiveTimeout`.
 ///
 /// Provides a unified interface for setting/resetting/stopping timeouts,
 /// so that `actor-core` doesn't need to directly handle runtime-dependent timers.
 /// By calling `notify_activity` after user message processing,
 /// the runtime side can re-arm with any implementation (tokio / embedded software timer, etc.).
-pub trait ReceiveTimeoutScheduler: Send {
+pub trait ReceiveTimeoutScheduler: SchedulerBound {
   /// Sets/re-arms the timer with the specified duration.
   fn set(&mut self, duration: Duration);
 
@@ -33,7 +57,7 @@ pub trait ReceiveTimeoutScheduler: Send {
 /// By configuring the system through `ActorSystemConfig::with_receive_timeout_factory` or
 /// `ActorSystemConfig::set_receive_timeout_factory` before constructing it,
 /// all actors can handle timeouts with the same policy.
-pub trait ReceiveTimeoutSchedulerFactory<M, R>: Send + Sync
+pub trait ReceiveTimeoutSchedulerFactory<M, R>: SchedulerFactoryBound
 where
   M: Element + 'static,
   R: MailboxRuntime + Clone + 'static,

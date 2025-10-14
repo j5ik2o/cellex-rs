@@ -96,7 +96,6 @@ mod tests {
     actor_loop, ActorId, ActorSystem, Context, Extensions, MailboxHandleFactoryStub, MapSystemShared, NoopSupervisor,
     Props, RuntimeEnv, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
   };
-  use cellex_utils_std_rs::Element;
   use core::time::Duration;
   use std::sync::{Arc, Mutex};
 
@@ -104,8 +103,6 @@ mod tests {
   enum Message {
     System(SystemMessage),
   }
-
-  impl Element for Message {}
 
   async fn run_test_actor_loop_updates_state() {
     let (mailbox, sender) = TokioMailbox::new(8);

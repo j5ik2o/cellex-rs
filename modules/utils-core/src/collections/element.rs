@@ -1,33 +1,20 @@
 use core::fmt::Debug;
 
-#[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
-use alloc::sync::Arc;
-#[cfg(feature = "alloc")]
-use alloc::{boxed::Box, string::String};
-
+/// Fundamental constraints for elementsがkeep. need Japanese? comment instructions: other comments in Japanese unless rustdoc? This comment is rustdoc. Rustdoc must be in English. Already english.
 /// Fundamental constraints for elements that can be stored in collections such as queues and stacks.
 ///
-/// By requiring `Debug`, `Send`, `Sync`, and `'static`, this trait ensures element types
-/// that can be safely handled in multithreaded environments.
+/// On targets that provide atomic pointer support we demand `Send + Sync` so that elements can be
+/// safely shared across threads. On single-threaded targets (e.g. RP2040) we only require `Debug`
+/// and `'static`, allowing `Rc`-based implementations to operate without unnecessary bounds.
+#[cfg(target_has_atomic = "ptr")]
 pub trait Element: Debug + Send + Sync + 'static {}
 
-macro_rules! impl_element_for_primitives {
-  ($($ty:ty),* $(,)?) => {
-    $(impl Element for $ty {})*
-  };
-}
+#[cfg(target_has_atomic = "ptr")]
+impl<T> Element for T where T: Debug + Send + Sync + 'static {}
 
-impl_element_for_primitives!(i8, i16, i32, i64, isize);
-impl_element_for_primitives!(u8, u16, u32, u64, usize);
-impl_element_for_primitives!(f32, f64, bool, char);
+/// Fundamental constraints for `no_std` single-threaded targets where atomic pointers are unavailable.
+#[cfg(not(target_has_atomic = "ptr"))]
+pub trait Element: Debug + 'static {}
 
-#[cfg(feature = "alloc")]
-impl Element for String {}
-
-#[cfg(feature = "alloc")]
-impl<T> Element for Box<T> where T: Debug + Send + Sync + 'static {}
-
-#[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
-impl<T> Element for Arc<T> where T: Debug + Send + Sync + 'static {}
-
-impl<T> Element for Option<T> where T: Debug + Send + Sync + 'static {}
+#[cfg(not(target_has_atomic = "ptr"))]
+impl<T> Element for T where T: Debug + 'static {}

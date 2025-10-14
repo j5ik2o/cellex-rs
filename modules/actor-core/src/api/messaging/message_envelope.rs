@@ -532,5 +532,3 @@ where
     MessageEnvelope::User(UserMessage::with_metadata(message, metadata))
   }
 }
-
-impl<U> Element for MessageEnvelope<U> where U: Element {}
