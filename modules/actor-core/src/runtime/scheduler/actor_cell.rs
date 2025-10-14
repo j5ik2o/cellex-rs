@@ -16,6 +16,7 @@ use crate::runtime::mailbox::traits::{
 use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
+#[cfg(feature = "std")]
 use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;

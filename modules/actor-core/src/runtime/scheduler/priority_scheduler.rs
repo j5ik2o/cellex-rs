@@ -184,27 +184,6 @@ where
     }
   }
 
-  /// For `std` environments. Blocks on `dispatch_next` in a loop and can stop
-  /// based on application-specified conditions.
-  #[cfg(feature = "std")]
-  pub fn blocking_dispatch_loop<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
-  where
-    F: FnMut() -> bool, {
-    while should_continue() {
-      futures::executor::block_on(self.dispatch_next())?;
-    }
-    Ok(())
-  }
-
-  /// Executes `dispatch_next` in an infinite blocking loop. For simple resident use
-  /// cases that don't require explicit stop conditions.
-  #[cfg(feature = "std")]
-  pub fn blocking_dispatch_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
-    loop {
-      futures::executor::block_on(self.dispatch_next())?;
-    }
-  }
-
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     loop {
       if self.drain_ready_cycle()? {

@@ -788,36 +788,6 @@ where
     self.inner.run_forever().await
   }
 
-  /// Executes message dispatching in blocking mode until the specified condition is met.
-  ///
-  /// This function is only available when the standard library is enabled.
-  ///
-  /// # Arguments
-  /// * `should_continue` - Closure that determines continuation condition. Continues execution while it returns `true`
-  ///
-  /// # Returns
-  /// `Ok(())` on normal completion, `Err` on queue error
-  #[cfg(feature = "std")]
-  pub fn blocking_dispatch_loop<F>(
-    &mut self,
-    should_continue: F,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
-  where
-    F: FnMut() -> bool, {
-    self.inner.blocking_dispatch_loop(should_continue)
-  }
-
-  /// Executes message dispatching permanently in blocking mode.
-  ///
-  /// This function is only available when the standard library is enabled. Does not terminate normally.
-  ///
-  /// # Returns
-  /// `Infallible` (does not terminate normally) or queue error
-  #[cfg(feature = "std")]
-  pub fn blocking_dispatch_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
-    self.inner.blocking_dispatch_forever()
-  }
-
   /// Dispatches one next message.
   ///
   /// Waits until a new message arrives if the queue is empty.

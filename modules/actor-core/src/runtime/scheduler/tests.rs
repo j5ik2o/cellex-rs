@@ -530,45 +530,6 @@ fn scheduler_run_until_processes_messages() {
 
 #[cfg(feature = "std")]
 #[test]
-fn scheduler_blocking_dispatch_loop_stops_with_closure() {
-  let factory = TestMailboxRuntime::unbounded();
-  let mut scheduler: PriorityScheduler<Message, _, AlwaysRestart> =
-    PriorityScheduler::new(factory.clone(), Extensions::new());
-
-  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
-  let log_clone = log.clone();
-
-  let actor_ref = spawn_with_runtime(
-    &mut scheduler,
-    factory.clone(),
-    Box::new(NoopSupervisor),
-    MailboxOptions::default(),
-    MapSystemShared::new(Message::System),
-    handler_from_fn(move |_, msg: Message| match msg {
-      Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
-      Message::System(_) => {}
-    }),
-  )
-  .unwrap();
-
-  actor_ref
-    .try_send_with_priority(Message::User(21), DEFAULT_PRIORITY)
-    .unwrap();
-
-  let mut loops = 0;
-  scheduler
-    .blocking_dispatch_loop(|| {
-      let continue_loop = loops == 0;
-      loops += 1;
-      continue_loop
-    })
-    .unwrap();
-
-  assert_eq!(log.borrow().as_slice(), &[Message::User(21)]);
-}
-
-#[cfg(feature = "std")]
-#[test]
 fn scheduler_records_escalations() {
   let factory = TestMailboxRuntime::unbounded();
   let mut scheduler: PriorityScheduler<Message, _, AlwaysEscalate> =
