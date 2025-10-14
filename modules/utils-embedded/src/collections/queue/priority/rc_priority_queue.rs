@@ -42,7 +42,6 @@ use crate::RcRingQueue;
 ///     priority: i8,
 /// }
 ///
-/// impl cellex_utils_core_rs::Element for Task {}
 ///
 /// impl PriorityMessage for Task {
 ///     fn get_priority(&self) -> Option<i8> {
