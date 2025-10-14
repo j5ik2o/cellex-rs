@@ -12,9 +12,10 @@ use async_trait::async_trait;
 use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
 use crate::MailboxOptions;
+use crate::TelemetryObservationConfig;
 use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, MailboxRuntime, MapSystemShared,
-  MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
+  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime,
+  MapSystemShared, MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use cellex_utils_core_rs::{Element, QueueError};
@@ -60,6 +61,10 @@ where
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>);
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>);
+
+  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared);
+
+  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig);
 
   fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>);
 

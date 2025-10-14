@@ -4,6 +4,7 @@ use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::mailbox::traits::ActorRuntime;
 use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
+use crate::{default_failure_telemetry, FailureTelemetryShared, TelemetryObservationConfig};
 use crate::{Extensions, FailureEventHandler, FailureEventListener, MetricsSinkShared, PriorityEnvelope};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
@@ -28,6 +29,10 @@ where
   pub(crate) metrics_sink: Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
   pub(crate) extensions: Extensions,
+  /// Telemetry invoked when failures reach the root guardian。
+  pub(crate) root_failure_telemetry: FailureTelemetryShared,
+  /// Observation config applied to telemetry calls.
+  pub(crate) root_observation_config: TelemetryObservationConfig,
 }
 
 impl<M, R> Default for InternalActorSystemSettings<M, R>
@@ -44,6 +49,8 @@ where
       receive_timeout_factory: None,
       metrics_sink: None,
       extensions: Extensions::new(),
+      root_failure_telemetry: default_failure_telemetry(),
+      root_observation_config: TelemetryObservationConfig::new(),
     }
   }
 }
@@ -89,6 +96,8 @@ where
       root_escalation_handler,
       receive_timeout_factory,
       metrics_sink,
+      root_failure_telemetry,
+      root_observation_config,
       extensions,
     } = settings;
     let factory_shared = ArcShared::new(mailbox_factory);
@@ -97,6 +106,8 @@ where
     let mut scheduler = scheduler_builder.build(factory_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
+    scheduler.set_root_failure_telemetry(root_failure_telemetry.clone());
+    scheduler.set_root_observation_config(root_observation_config.clone());
     scheduler.set_receive_timeout_factory(receive_timeout_factory.clone());
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self {

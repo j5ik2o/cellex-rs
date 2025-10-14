@@ -14,8 +14,9 @@ use crate::runtime::scheduler::SchedulerBuilder;
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
 use crate::{
-  Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener, FailureEventStream, MailboxRuntime,
-  PriorityEnvelope, SerializerRegistryExtension,
+  default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener,
+  FailureEventStream, FailureTelemetryBuilderShared, FailureTelemetryShared, MailboxRuntime, PriorityEnvelope,
+  SerializerRegistryExtension, TelemetryContext, TelemetryObservationConfig,
 };
 use crate::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
@@ -473,6 +474,12 @@ where
   receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, R>>,
   /// Metrics sink shared across the actor runtime.
   metrics_sink: Option<MetricsSinkShared>,
+  /// Telemetry invoked when failures reach the root guardian.
+  failure_telemetry: Option<FailureTelemetryShared>,
+  /// Builder used to create telemetry implementations。
+  failure_telemetry_builder: Option<FailureTelemetryBuilderShared>,
+  /// Observation configuration applied to telemetry calls。
+  failure_observation_config: Option<TelemetryObservationConfig>,
   /// Extension registry configured for the actor system.
   extensions: Extensions,
 }
@@ -488,6 +495,9 @@ where
       failure_event_listener: None,
       receive_timeout_factory: None,
       metrics_sink: None,
+      failure_telemetry: None,
+      failure_telemetry_builder: None,
+      failure_observation_config: None,
       extensions: Extensions::new(),
     }
   }
@@ -517,6 +527,24 @@ where
     self
   }
 
+  /// Sets the failure telemetry implementation.
+  pub fn with_failure_telemetry(mut self, telemetry: Option<FailureTelemetryShared>) -> Self {
+    self.failure_telemetry = telemetry;
+    self
+  }
+
+  /// Sets the failure telemetry builder implementation.
+  pub fn with_failure_telemetry_builder(mut self, builder: Option<FailureTelemetryBuilderShared>) -> Self {
+    self.failure_telemetry_builder = builder;
+    self
+  }
+
+  /// Sets telemetry observation configuration.
+  pub fn with_failure_observation_config(mut self, config: Option<TelemetryObservationConfig>) -> Self {
+    self.failure_observation_config = config;
+    self
+  }
+
   /// Sets the metrics sink using a concrete shared handle.
   #[must_use]
   pub fn with_metrics_sink_shared(mut self, sink: MetricsSinkShared) -> Self {
@@ -539,6 +567,21 @@ where
     self.metrics_sink = sink;
   }
 
+  /// Mutable setter for the failure telemetry implementation.
+  pub fn set_failure_telemetry(&mut self, telemetry: Option<FailureTelemetryShared>) {
+    self.failure_telemetry = telemetry;
+  }
+
+  /// Mutable setter for the failure telemetry builder.
+  pub fn set_failure_telemetry_builder(&mut self, builder: Option<FailureTelemetryBuilderShared>) {
+    self.failure_telemetry_builder = builder;
+  }
+
+  /// Mutable setter for telemetry observation config.
+  pub fn set_failure_observation_config(&mut self, config: Option<TelemetryObservationConfig>) {
+    self.failure_observation_config = config;
+  }
+
   pub(crate) fn failure_event_listener(&self) -> Option<FailureEventListener> {
     self.failure_event_listener.clone()
   }
@@ -549,6 +592,18 @@ where
 
   pub(crate) fn metrics_sink(&self) -> Option<MetricsSinkShared> {
     self.metrics_sink.clone()
+  }
+
+  pub(crate) fn failure_telemetry(&self) -> Option<FailureTelemetryShared> {
+    self.failure_telemetry.clone()
+  }
+
+  pub(crate) fn failure_telemetry_builder(&self) -> Option<FailureTelemetryBuilderShared> {
+    self.failure_telemetry_builder.clone()
+  }
+
+  pub(crate) fn failure_observation_config(&self) -> Option<TelemetryObservationConfig> {
+    self.failure_observation_config.clone()
   }
 
   /// Replaces the extension registry in the configuration.
@@ -638,12 +693,36 @@ where
       .or_else(|| runtime.receive_timeout_driver_factory());
     let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
     let metrics_sink = config.metrics_sink().or(metrics_from_runtime);
+    let telemetry_builder = config.failure_telemetry_builder();
+    let root_failure_telemetry = if let Some(builder) = telemetry_builder.clone() {
+      let ctx = TelemetryContext::new(metrics_sink.clone(), extensions.clone());
+      builder.build(&ctx)
+    } else {
+      config.failure_telemetry().unwrap_or_else(default_failure_telemetry)
+    };
+
+    let mut observation_config = config
+      .failure_observation_config()
+      .unwrap_or_else(TelemetryObservationConfig::new);
+    if let Some(sink) = metrics_sink.clone() {
+      if observation_config.metrics_sink().is_none() {
+        observation_config.set_metrics_sink(Some(sink));
+      }
+      #[cfg(feature = "std")]
+      {
+        if !observation_config.should_record_timing() {
+          observation_config.set_record_timing(true);
+        }
+      }
+    }
 
     let settings = InternalActorSystemSettings {
       root_event_listener,
       root_escalation_handler: root_handler_from_runtime,
       receive_timeout_factory,
       metrics_sink,
+      root_failure_telemetry,
+      root_observation_config: observation_config,
       extensions: extensions.clone(),
     };
 

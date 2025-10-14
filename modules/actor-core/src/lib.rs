@@ -102,8 +102,8 @@ pub use runtime::scheduler::{
   ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
 };
 pub use shared::{
-  FailureEventHandlerShared, FailureEventListenerShared, MapSystemShared, ReceiveTimeoutDriver,
-  ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
+  FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,
+  MapSystemShared, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, TelemetryContext,
 };
 
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.

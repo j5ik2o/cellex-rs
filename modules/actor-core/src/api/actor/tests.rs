@@ -971,8 +971,8 @@ mod metrics_injection {
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::{
-    ActorSystem, ActorSystemConfig, DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared,
-    RuntimeEnv, Supervisor,
+    ActorSystem, ActorSystemConfig, DynMessage, FailureTelemetryShared, MailboxRuntime, MetricsEvent, MetricsSink,
+    MetricsSinkShared, RuntimeEnv, Supervisor, TelemetryObservationConfig,
   };
   use alloc::boxed::Box;
   use core::marker::PhantomData;
@@ -1034,6 +1034,10 @@ mod metrics_injection {
     fn set_root_event_listener(&mut self, _listener: Option<crate::FailureEventListener>) {}
 
     fn set_root_escalation_handler(&mut self, _handler: Option<crate::FailureEventHandler>) {}
+
+    fn set_root_failure_telemetry(&mut self, _telemetry: FailureTelemetryShared) {}
+
+    fn set_root_observation_config(&mut self, _config: TelemetryObservationConfig) {}
 
     fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
       let mut slot = self.metrics.lock().unwrap();

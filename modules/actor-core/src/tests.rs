@@ -1,4 +1,5 @@
 use super::*;
+use alloc::format;
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 
 /// PriorityEnvelope の制御チャネル設定を確認するユニットテスト。
