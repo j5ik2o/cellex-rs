@@ -442,7 +442,7 @@ fn priority_actor_ref_sends_system_messages() {
   );
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_notifies_guardian_and_restarts_on_panic() {
   let factory = TestMailboxRuntime::unbounded();
@@ -528,7 +528,7 @@ fn scheduler_run_until_processes_messages() {
   assert_eq!(log.borrow().as_slice(), &[Message::User(11)]);
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_records_escalations() {
   let factory = TestMailboxRuntime::unbounded();
@@ -578,7 +578,7 @@ fn scheduler_records_escalations() {
   assert!(scheduler.take_escalations().is_empty());
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_escalation_handler_delivers_to_parent() {
   let factory = TestMailboxRuntime::unbounded();
@@ -627,7 +627,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
   }
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_escalation_chain_reaches_root() {
   let factory = TestMailboxRuntime::unbounded();
@@ -741,7 +741,7 @@ fn scheduler_escalation_chain_reaches_root() {
   );
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_root_escalation_handler_invoked() {
   use std::sync::{Arc as StdArc, Mutex};
@@ -789,7 +789,7 @@ fn scheduler_root_escalation_handler_invoked() {
   assert!(!events[0].description().is_empty());
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_requeues_failed_custom_escalation() {
   use core::cell::Cell;
@@ -851,7 +851,7 @@ fn scheduler_requeues_failed_custom_escalation() {
   assert!(scheduler.take_escalations().is_empty());
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_root_event_listener_broadcasts() {
   use crate::api::tests::TestFailureEventStream;

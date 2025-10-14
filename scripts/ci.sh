@@ -80,8 +80,8 @@ run_std() {
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs --features std"
   run_cargo test -p cellex-utils-core-rs --features std
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features std"
-  run_cargo test -p cellex-actor-core-rs --no-default-features --features std
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features std,unwind-supervision"
+  run_cargo test -p cellex-actor-core-rs --no-default-features --features std,unwind-supervision
 
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-std-rs"
   run_cargo test -p cellex-utils-std-rs
