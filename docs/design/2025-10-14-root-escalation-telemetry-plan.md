@@ -39,7 +39,7 @@
 ### フェーズ4: ドキュメントとテスト（未着手）
 - `docs/design` に最終設計メモを追記、本ファイルを更新。
 - ユニットテスト／統合テストで `FailureTelemetry` の呼び出し順・副作用を検証。
-- `cargo fmt`, `cargo clippy --workspace --all-targets`, `cargo test --workspace` を実行し、CI チェックに備える。
+- `./scripts/ci.sh all` を実行し、CI チェックに備える。
 
 ## オープン課題
 - Telemetry の注入ポイントをどこに置くか（`ActorSystemBuilder` 相当の API があるか要確認）。
