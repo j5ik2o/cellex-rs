@@ -77,17 +77,17 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
-  pub fn new(mailbox_factory: R) -> Self {
-    Self::new_with_settings(mailbox_factory, InternalActorSystemSettings::default())
+  pub fn new(actor_runtime: R) -> Self {
+    Self::new_with_settings(actor_runtime, InternalActorSystemSettings::default())
   }
 
-  pub fn new_with_settings(mailbox_factory: R, settings: InternalActorSystemSettings<M, R>) -> Self {
+  pub fn new_with_settings(actor_runtime: R, settings: InternalActorSystemSettings<M, R>) -> Self {
     let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::priority());
-    Self::new_with_settings_and_builder(mailbox_factory, &scheduler_builder, settings)
+    Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings)
   }
 
   pub fn new_with_settings_and_builder(
-    mailbox_factory: R,
+    actor_runtime: R,
     scheduler_builder: &ArcShared<SchedulerBuilder<M, R>>,
     settings: InternalActorSystemSettings<M, R>,
   ) -> Self {
@@ -100,10 +100,10 @@ where
       root_observation_config,
       extensions,
     } = settings;
-    let factory_shared = ArcShared::new(mailbox_factory);
-    let runtime = factory_shared.clone();
-    let factory_for_scheduler = factory_shared.with_ref(|factory| factory.clone());
-    let mut scheduler = scheduler_builder.build(factory_for_scheduler, extensions.clone());
+    let actor_runtime_shared = ArcShared::new(actor_runtime);
+    let actor_runtime_shared_cloned = actor_runtime_shared.clone();
+    let actor_runtime_cloned = actor_runtime_shared.with_ref(|r| r.clone());
+    let mut scheduler = scheduler_builder.build(actor_runtime_cloned, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_root_failure_telemetry(root_failure_telemetry);
@@ -112,7 +112,7 @@ where
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self {
       scheduler,
-      runtime,
+      runtime: actor_runtime_shared_cloned,
       extensions,
       metrics_sink,
       _strategy: PhantomData,

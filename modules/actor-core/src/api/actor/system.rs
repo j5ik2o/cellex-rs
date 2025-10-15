@@ -736,8 +736,7 @@ where
   /// Creates an actor system using the provided runtime and failure event stream.
   pub fn new_with_runtime_and_event_stream<E>(runtime: R, event_stream: &E) -> Self
   where
-    E: FailureEventStream,
-  {
+    E: FailureEventStream, {
     let config = ActorSystemConfig::default().with_failure_event_listener(Some(event_stream.listener()));
     Self::new_with_runtime(runtime, config)
   }
