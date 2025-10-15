@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, deprecated)]
 
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;

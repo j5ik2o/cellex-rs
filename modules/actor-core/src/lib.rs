@@ -98,9 +98,11 @@ pub use runtime::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
 };
 pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
+#[allow(deprecated)]
+pub use runtime::scheduler::PriorityScheduler;
 pub use runtime::scheduler::{
   drive_ready_queue_worker, ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
-  PriorityScheduler, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
+  ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
   SchedulerBuilder, SchedulerSpawnContext,
 };
 pub use shared::{
