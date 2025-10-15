@@ -14,7 +14,7 @@ use crate::SupervisorDirective;
 use crate::{ActorFailure, BehaviorFailure};
 use crate::{ChildNaming, SpawnError};
 use crate::{PriorityEnvelope, SystemMessage};
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};

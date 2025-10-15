@@ -3,6 +3,7 @@ use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::scheduler::{ChildNaming, SpawnError};
 use crate::runtime::system::InternalRootContext;
 use crate::{ActorRef, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
+use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;

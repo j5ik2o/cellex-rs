@@ -28,7 +28,9 @@ pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
 pub use props::Props;
 pub use root_context::RootContext;
 pub use system::MailboxHandleFactoryStub;
-pub use system::{ActorSystem, ActorSystemConfig, ActorSystemRunner, RuntimeEnv, ShutdownToken};
+pub use system::{
+  GenericActorRuntime, ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, ShutdownToken,
+};
 pub use system_support::{Spawn, Timer};
 
 #[doc(hidden)]

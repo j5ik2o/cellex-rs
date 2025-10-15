@@ -2,7 +2,7 @@ use super::*;
 use cellex_actor_core_rs::MailboxOptions;
 use cellex_actor_core_rs::{
   actor_loop, ActorId, ActorSystem, ChildNaming, Context, Extensions, MailboxHandleFactoryStub, MapSystemShared,
-  NoopSupervisor, Props, RuntimeEnv, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
+  NoopSupervisor, Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
 };
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
@@ -70,7 +70,7 @@ async fn run_typed_actor_system_handles_user_messages() {
 
 async fn run_receive_timeout_triggers() {
   let factory = TokioMailboxRuntime;
-  let mut config: ActorSystemConfig<RuntimeEnv<TokioMailboxRuntime>> = ActorSystemConfig::default();
+  let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
   config.set_receive_timeout_factory(Some(
     ReceiveTimeoutFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new()).for_runtime_bundle(),
   ));
@@ -78,7 +78,7 @@ async fn run_receive_timeout_triggers() {
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(
-    move |ctx: &mut Context<'_, '_, u32, RuntimeEnv<TokioMailboxRuntime>>, msg| {
+    move |ctx: &mut Context<'_, '_, u32, TokioActorRuntime>, msg| {
       if msg == 1 {
         ctx.set_receive_timeout(Duration::from_millis(10));
       }
@@ -86,7 +86,7 @@ async fn run_receive_timeout_triggers() {
     },
     Some({
       let timeout_clone = timeout_log.clone();
-      move |_: &mut Context<'_, '_, u32, RuntimeEnv<TokioMailboxRuntime>>, sys: SystemMessage| {
+      move |_: &mut Context<'_, '_, u32, TokioActorRuntime>, sys: SystemMessage| {
         if matches!(sys, SystemMessage::ReceiveTimeout) {
           timeout_clone.lock().unwrap().push(sys);
         }
@@ -123,7 +123,7 @@ async fn typed_actor_system_handles_user_messages_multi_thread() {
 
 #[tokio::test]
 async fn tokio_scheduler_builder_dispatches() {
-  let runtime = RuntimeEnv::new(TokioMailboxRuntime);
+  let runtime: TokioActorRuntime = tokio_actor_runtime();
   let mut scheduler = tokio_scheduler_builder().build(runtime.clone(), Extensions::new());
 
   let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
@@ -154,7 +154,7 @@ async fn tokio_scheduler_builder_dispatches() {
 
 #[test]
 fn tokio_bundle_sets_default_receive_timeout_factory() {
-  let bundle = RuntimeEnv::new(TokioMailboxRuntime).with_tokio_scheduler();
+  let bundle: TokioActorRuntime = tokio_actor_runtime();
   let factory_from_bundle = bundle.receive_timeout_factory();
   let factory_from_driver = bundle.receive_timeout_driver_factory();
   assert!(

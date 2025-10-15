@@ -10,14 +10,14 @@ use std::sync::Arc;
 use cellex_actor_core_rs::{
   ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
 };
-use cellex_actor_core_rs::{ActorSystem, FailureEventStream, Props, RuntimeEnv};
+use cellex_actor_core_rs::{ActorSystem, FailureEventStream, Props, GenericActorRuntime};
 use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, LocalMailboxRuntime};
 
 #[test]
 fn embedded_actor_runtime_dispatches_message() {
   let hub = EmbeddedFailureEventHub::new();
   let mut system: ActorSystem<u32, _> =
-    ActorSystem::new_with_runtime_and_event_stream(RuntimeEnv::new(LocalMailboxRuntime::default()), &hub);
+    ActorSystem::new_with_runtime_and_event_stream(GenericActorRuntime::new(LocalMailboxRuntime::default()), &hub);
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();

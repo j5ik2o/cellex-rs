@@ -1,12 +1,12 @@
 use std::sync::{Arc, Mutex};
 
-use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, FailureEventStream, Props, RuntimeEnv};
-use cellex_actor_std_rs::{FailureEventHub, TokioMailboxRuntime, TokioSystemHandle};
+use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, FailureEventStream, Props};
+use cellex_actor_std_rs::{tokio_actor_runtime, FailureEventHub, TokioActorRuntime, TokioSystemHandle};
 use core::num::NonZeroUsize;
 
 async fn run_tokio_actor_runtime_processes_messages(worker_count: NonZeroUsize) {
   let failure_hub = FailureEventHub::new();
-  let runtime = RuntimeEnv::new(TokioMailboxRuntime);
+  let runtime: TokioActorRuntime = tokio_actor_runtime();
   let config = ActorSystemConfig::default()
     .with_failure_event_listener(Some(failure_hub.listener()))
     .with_ready_queue_worker_count(Some(worker_count));
@@ -48,7 +48,7 @@ async fn run_tokio_system_handle_can_be_aborted(worker_count: NonZeroUsize) {
   tokio::task::LocalSet::new()
     .run_until(async move {
       let failure_hub = FailureEventHub::new();
-      let runtime = RuntimeEnv::new(TokioMailboxRuntime);
+      let runtime: TokioActorRuntime = tokio_actor_runtime();
       let config = ActorSystemConfig::default()
         .with_failure_event_listener(Some(failure_hub.listener()))
         .with_ready_queue_worker_count(Some(worker_count));

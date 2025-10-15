@@ -84,14 +84,14 @@ pub use local_mailbox::{LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
 pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 pub use runtime_driver::EmbeddedFailureEventHub;
 #[cfg(feature = "embassy_executor")]
-pub use scheduler::{embassy_scheduler_builder, ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
+pub use scheduler::{embassy_scheduler_builder, EmbassyActorRuntimeExt, EmbassyScheduler};
 pub use spawn::ImmediateSpawner;
 pub use timer::ImmediateTimer;
 
 /// Prelude that re-exports commonly used types in embedded environments.
 pub mod prelude {
   #[cfg(feature = "embassy_executor")]
-  pub use super::{ActorRuntimeBundleEmbassyExt, EmbassyScheduler};
+  pub use super::{EmbassyActorRuntimeExt, EmbassyScheduler};
   #[cfg(feature = "embedded_arc")]
   pub use super::{
     ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxRuntime, ArcMailboxSender, ArcPriorityMailbox,
@@ -104,3 +104,16 @@ pub mod prelude {
 
 #[cfg(test)]
 mod tests;
+
+/// Default actor runtime preset for Embassy-based environments.
+#[cfg(feature = "embassy_executor")]
+pub type EmbassyActorRuntime = cellex_actor_core_rs::GenericActorRuntime<LocalMailboxRuntime>;
+
+/// Builds the default Embassy-oriented actor runtime preset using the provided spawner.
+#[cfg(feature = "embassy_executor")]
+#[must_use]
+pub fn embassy_actor_runtime(spawner: &'static embassy_executor::Spawner) -> EmbassyActorRuntime {
+  use scheduler::EmbassyActorRuntimeExt;
+
+  cellex_actor_core_rs::GenericActorRuntime::new(LocalMailboxRuntime::default()).with_embassy_scheduler(spawner)
+}

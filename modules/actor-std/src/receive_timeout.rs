@@ -7,7 +7,7 @@ use core::time::Duration;
 
 use cellex_actor_core_rs::{
   DynMessage, MailboxRuntime, MapSystemShared, PriorityEnvelope, ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared,
-  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, RuntimeEnv, SystemMessage,
+  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, GenericActorRuntime, SystemMessage,
 };
 use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
 use futures::future::poll_fn;
@@ -126,7 +126,7 @@ impl TokioReceiveTimeoutDriver {
 }
 
 impl ReceiveTimeoutDriver<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<TokioMailboxRuntime>> {
+  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, GenericActorRuntime<TokioMailboxRuntime>> {
     ReceiveTimeoutFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new()).for_runtime_bundle()
   }
 }
