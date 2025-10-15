@@ -232,8 +232,23 @@ where
     self.core.process_actor_pending(index)
   }
 
-  fn wait_for_any_signal(&self) -> Option<LocalBoxFuture<'static, usize>> {
+  fn wait_for_any_signal_future(&self) -> Option<LocalBoxFuture<'static, usize>> {
     self.core.wait_for_any_signal_future()
+  }
+
+  fn process_ready_once(&mut self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>> {
+    if let Some(index) = self.dequeue_ready() {
+      let processed = self.core.process_actor_pending(index)?;
+      let has_pending = self.actor_has_pending(index);
+      self.mark_idle(index, has_pending);
+      return Ok(Some(processed));
+    }
+
+    if self.core.drain_ready()? {
+      return Ok(Some(true));
+    }
+
+    Ok(None)
   }
 
   fn on_escalation<F>(&mut self, handler: F)
