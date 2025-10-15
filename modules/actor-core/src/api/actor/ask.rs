@@ -311,26 +311,27 @@ where
   let dispatch_state = shared.clone();
   let drop_state = shared.clone();
 
-  let dispatch = ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message: DynMessage, _priority: i8| {
-    let envelope = message
-      .downcast::<MessageEnvelope<Resp>>()
-      .unwrap_or_else(|_| panic!("ask responder received mismatched message type"));
-    match envelope {
-      MessageEnvelope::User(user) => {
-        let (value, metadata_key) = user.into_parts();
-        if let Some(key) = metadata_key {
-          discard_metadata(key);
+  let dispatch =
+    ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message: DynMessage, _priority: i8| {
+      let envelope = message
+        .downcast::<MessageEnvelope<Resp>>()
+        .unwrap_or_else(|_| panic!("ask responder received mismatched message type"));
+      match envelope {
+        MessageEnvelope::User(user) => {
+          let (value, metadata_key) = user.into_parts();
+          if let Some(key) = metadata_key {
+            discard_metadata(key);
+          }
+          if !dispatch_state.complete(value) {
+            // Discard value if response destination was already cancelled
+          }
         }
-        if !dispatch_state.complete(value) {
-          // Discard value if response destination was already cancelled
+        MessageEnvelope::System(_) => {
+          panic!("ask responder received system message");
         }
       }
-      MessageEnvelope::System(_) => {
-        panic!("ask responder received system message");
-      }
-    }
-    Ok(())
-  }) as Arc<DispatchFn>);
+      Ok(())
+    }) as Arc<DispatchFn>);
 
   let drop_hook = ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move || {
     drop_state.responder_dropped();

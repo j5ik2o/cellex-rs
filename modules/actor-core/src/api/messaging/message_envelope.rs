@@ -56,9 +56,9 @@ where
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
-    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message, priority| {
-      sender.try_send_with_priority(message, priority)
-    })))
+    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(
+      move |message, priority| sender.try_send_with_priority(message, priority),
+    )))
   }
 
   /// Creates a new `InternalMessageSender` with the specified send function.
@@ -134,9 +134,9 @@ impl InternalMessageSender {
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
-    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message, priority| {
-      sender.try_send_with_priority(message, priority)
-    })))
+    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(
+      move |message, priority| sender.try_send_with_priority(message, priority),
+    )))
   }
 }
 

@@ -38,7 +38,6 @@ use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
 /// Typed actor execution context wrapper.
 /// 'r: lifetime of the mutable reference to ActorContext
 /// 'ctx: lifetime parameter of ActorContext itself
-
 pub struct Context<'r, 'ctx, U, R>
 where
   U: Element,

@@ -1,8 +1,4 @@
 use alloc::boxed::Box;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use core::ops::Deref;
 
 use crate::api::actor::RuntimeEnv;
@@ -59,8 +55,9 @@ impl<M> MapSystemShared<M> {
   pub fn new<F>(f: F) -> Self
   where
     F: Fn(SystemMessage) -> M + SharedBound + 'static, {
+    let shared = ArcShared::new(f);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(f)),
+      inner: shared.into_dyn(|func| func as &MapSystemFn<M>),
     }
   }
 
@@ -69,9 +66,9 @@ impl<M> MapSystemShared<M> {
     Self { inner }
   }
 
-  /// Consumes the wrapper and returns the underlying `Arc`.
-  pub fn into_arc(self) -> Arc<MapSystemFn<M>> {
-    self.inner.into_arc_for_testing_dont_use_production()
+  /// Consumes the wrapper and returns the underlying shared handle.
+  pub fn into_shared(self) -> ArcShared<MapSystemFn<M>> {
+    self.inner
   }
 
   /// Returns the inner shared handle.
@@ -111,8 +108,9 @@ where
   pub fn new<F>(factory: F) -> Self
   where
     F: ReceiveTimeoutSchedulerFactory<M, R> + 'static, {
+    let shared = ArcShared::new(factory);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(factory)),
+      inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactory<M, R>),
     }
   }
 
@@ -133,9 +131,13 @@ where
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
-    ReceiveTimeoutFactoryShared::from_shared(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(ReceiveTimeoutFactoryAdapter {
+    let adapter = ReceiveTimeoutFactoryAdapter {
       inner: self.inner.clone(),
-    })))
+    };
+    let shared = ArcShared::new(adapter);
+    ReceiveTimeoutFactoryShared::from_shared(
+      shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactory<M, RuntimeEnv<R>>),
+    )
   }
 }
 
@@ -209,8 +211,9 @@ where
   pub fn new<D>(driver: D) -> Self
   where
     D: ReceiveTimeoutDriver<R> + 'static, {
+    let shared = ArcShared::new(driver);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(driver)),
+      inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutDriver<R>),
     }
   }
 
@@ -262,8 +265,9 @@ impl FailureTelemetryShared {
   pub fn new<T>(telemetry: T) -> Self
   where
     T: FailureTelemetry + SharedBound + 'static, {
+    let shared = ArcShared::new(telemetry);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(telemetry) as Arc<dyn FailureTelemetry>),
+      inner: shared.into_dyn(|inner| inner as &dyn FailureTelemetry),
     }
   }
 
@@ -351,8 +355,9 @@ impl FailureTelemetryBuilderShared {
   pub fn new<F>(builder: F) -> Self
   where
     F: Fn(&TelemetryContext) -> FailureTelemetryShared + SharedBound + 'static, {
+    let shared = ArcShared::new(builder);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(builder)),
+      inner: shared.into_dyn(|inner| inner as &dyn TelemetryBuilderFn),
     }
   }
 
@@ -380,7 +385,7 @@ mod tests {
   fn telemetry_builder_shared_invokes_closure() {
     let extensions = Extensions::new();
     let builder = FailureTelemetryBuilderShared::new(|_ctx| FailureTelemetryShared::new(NoopFailureTelemetry));
-    let ctx = TelemetryContext::new(None, extensions.clone());
+    let ctx = TelemetryContext::new(None, extensions);
 
     let telemetry = builder.build(&ctx);
     telemetry.with_ref(|_impl| {});
@@ -397,8 +402,9 @@ impl FailureEventHandlerShared {
   pub fn new<F>(handler: F) -> Self
   where
     F: Fn(&FailureInfo) + SharedBound + 'static, {
+    let shared = ArcShared::new(handler);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(handler)),
+      inner: shared.into_dyn(|inner| inner as &FailureEventHandlerFn),
     }
   }
 
@@ -439,8 +445,9 @@ impl FailureEventListenerShared {
   pub fn new<F>(listener: F) -> Self
   where
     F: Fn(FailureEvent) + SharedBound + 'static, {
+    let shared = ArcShared::new(listener);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(listener)),
+      inner: shared.into_dyn(|inner| inner as &FailureEventListenerFn),
     }
   }
 

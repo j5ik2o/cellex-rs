@@ -23,7 +23,6 @@ use core::marker::PhantomData;
 /// Properties that hold configuration for actor spawning.
 ///
 /// Includes actor behavior, mailbox settings, supervisor strategy, and more.
-
 pub struct Props<U, R>
 where
   U: Element,
@@ -113,7 +112,9 @@ where
   where
     F: Fn() -> Behavior<U, R> + 'static,
     S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
-    let behavior_factory = ArcShared::from_arc_for_testing_dont_use_production(Arc::new(behavior_factory) as Arc<dyn Fn() -> Behavior<U, R> + 'static>);
+    let behavior_factory = ArcShared::from_arc_for_testing_dont_use_production(
+      Arc::new(behavior_factory) as Arc<dyn Fn() -> Behavior<U, R> + 'static>
+    );
     let mut adapter = ActorAdapter::new(behavior_factory.clone(), system_handler);
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();

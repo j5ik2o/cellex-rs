@@ -28,7 +28,7 @@ impl<MF, S, T, E> ActorSystemParts<MF, S, T, E> {
   /// * `event_stream` - Event stream
   pub fn new(actor_runtime: MF, spawner: S, timer: T, event_stream: E) -> Self {
     Self {
-      actor_runtime: actor_runtime,
+      actor_runtime,
       spawner,
       timer,
       event_stream,

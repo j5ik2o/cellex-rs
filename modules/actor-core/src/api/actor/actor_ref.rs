@@ -38,7 +38,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Internal actor reference
-  pub(crate) fn new(inner: InternalActorRef<DynMessage, R>) -> Self {
+  pub(crate) const fn new(inner: InternalActorRef<DynMessage, R>) -> Self {
     Self {
       inner,
       _marker: PhantomData,
@@ -96,6 +96,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` if the underlying mailbox is unable to accept the message.
   pub fn tell(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     self
       .inner
@@ -110,6 +113,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` if the underlying mailbox is unable to accept the message.
   pub fn tell_with_priority(&self, message: U, priority: i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     self.inner.try_send_with_priority(Self::wrap_user(message), priority)
   }
@@ -121,9 +127,11 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` if the underlying mailbox is unable to accept the system message.
   pub fn send_system(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    let envelope =
-      PriorityEnvelope::from_system(message.clone()).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
+    let envelope = PriorityEnvelope::from_system(message).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
     self.inner.try_send_envelope(envelope)
   }
 
