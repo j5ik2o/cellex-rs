@@ -101,6 +101,7 @@ where
 {
   #[cfg(any(test, feature = "test-support"))]
   #[allow(dead_code)]
+  #[must_use]
   pub fn immediate() -> Self {
     use super::immediate_scheduler::ImmediateScheduler;
 

@@ -376,22 +376,6 @@ impl Clone for FailureTelemetryBuilderShared {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::NoopFailureTelemetry;
-
-  #[test]
-  fn telemetry_builder_shared_invokes_closure() {
-    let extensions = Extensions::new();
-    let builder = FailureTelemetryBuilderShared::new(|_ctx| FailureTelemetryShared::new(NoopFailureTelemetry));
-    let ctx = TelemetryContext::new(None, extensions);
-
-    let telemetry = builder.build(&ctx);
-    telemetry.with_ref(|_impl| {});
-  }
-}
-
 /// Shared wrapper for failure event handlers.
 pub struct FailureEventHandlerShared {
   inner: ArcShared<FailureEventHandlerFn>,
@@ -475,5 +459,21 @@ impl Deref for FailureEventListenerShared {
 
   fn deref(&self) -> &Self::Target {
     &*self.inner
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::NoopFailureTelemetry;
+
+  #[test]
+  fn telemetry_builder_shared_invokes_closure() {
+    let extensions = Extensions::new();
+    let builder = FailureTelemetryBuilderShared::new(|_ctx| FailureTelemetryShared::new(NoopFailureTelemetry));
+    let ctx = TelemetryContext::new(None, extensions);
+
+    let telemetry = builder.build(&ctx);
+    telemetry.with_ref(|_impl| {});
   }
 }

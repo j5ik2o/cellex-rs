@@ -251,11 +251,11 @@ where
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let metadata = MessageMetadata::<R::Concurrency>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }
@@ -301,13 +301,13 @@ where
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let metadata = MessageMetadata::<R::Concurrency>::new()
       .with_sender(sender)
       .with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }
@@ -321,6 +321,9 @@ where
   ///
   /// # Returns
   /// `AskFuture` awaiting response
+  ///
+  /// # Errors
+  /// Returns `Err` if sending the message to the underlying mailbox fails.
   pub fn ask_with<Resp, F>(&self, factory: F) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element,
@@ -341,18 +344,21 @@ where
   ///
   /// # Returns
   /// `AskTimeoutFuture` with timeout control
+  ///
+  /// # Errors
+  /// Returns `Err` if sending the message to the underlying mailbox fails.
   pub fn ask_with_timeout<Resp, F, TFut>(&self, factory: F, timeout: TFut) -> AskResult<AskTimeoutFuture<Resp, TFut>>
   where
     Resp: Element,
     F: FnOnce(MessageSender<Resp, R::Concurrency>) -> U,
     TFut: Future<Output = ()> + Unpin, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
     let metadata = MessageMetadata::<R::Concurrency>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }
