@@ -25,7 +25,7 @@ use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
-use futures::future::select_all;
+use futures::future::{select_all, LocalBoxFuture};
 use futures::FutureExt;
 
 use super::actor_cell::ActorCell;
@@ -33,6 +33,14 @@ use super::actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnCon
 use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
 /// Hook invoked by mailboxes when new messages arrive.
+#[cfg(target_has_atomic = "ptr")]
+pub trait ReadyEventHook: Send + Sync {
+  /// Notifies the scheduler that the associated actor has become ready.
+  fn notify_ready(&self);
+}
+
+/// Hook invoked by mailboxes when new messages arrive (no atomic pointer targets).
+#[cfg(not(target_has_atomic = "ptr"))]
 pub trait ReadyEventHook {
   /// Notifies the scheduler that the associated actor has become ready.
   fn notify_ready(&self);
@@ -42,7 +50,7 @@ pub trait ReadyEventHook {
 #[cfg(target_has_atomic = "ptr")]
 pub type ReadyQueueHandle = ArcShared<dyn ReadyEventHook + Send + Sync>;
 
-/// Shared handle to a [`ReadyEventHook`].
+/// Shared handle to a [`ReadyEventHook`] (no atomic pointer targets).
 #[cfg(not(target_has_atomic = "ptr"))]
 pub type ReadyQueueHandle = ArcShared<dyn ReadyEventHook>;
 
@@ -106,6 +114,15 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
+  context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>,
+  state: ArcShared<Mutex<ReadyQueueState>>,
+}
+
+struct ReadyQueueContext<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>, {
   core: PrioritySchedulerCore<M, R, Strat>,
   state: ArcShared<Mutex<ReadyQueueState>>,
 }
@@ -161,6 +178,104 @@ impl ReadyQueueState {
   }
 }
 
+impl<M, R, Strat> ReadyQueueContext<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>,
+{
+  fn actor_count(&self) -> usize {
+    self.core.actor_count()
+  }
+
+  fn actor_mut(&mut self, index: usize) -> Option<&mut ActorCell<M, R, Strat>> {
+    self.core.actor_mut(index)
+  }
+
+  fn actor_has_pending(&self, index: usize) -> bool {
+    self.core.actor_has_pending(index)
+  }
+
+  fn spawn_actor(
+    &mut self,
+    supervisor: Box<dyn Supervisor<M>>,
+    context: SchedulerSpawnContext<M, R>,
+  ) -> Result<(InternalActorRef<M, R>, usize), QueueError<PriorityEnvelope<M>>> {
+    let actor_ref = self.core.spawn_actor(supervisor, context)?;
+    let index = self.core.actor_count().saturating_sub(1);
+    Ok((actor_ref, index))
+  }
+
+  fn enqueue_ready(&self, index: usize) {
+    let mut state = self.state.lock();
+    let _ = state.enqueue_if_idle(index);
+  }
+
+  fn dequeue_ready(&self) -> Option<usize> {
+    let mut state = self.state.lock();
+    let index = state.queue.pop_front()?;
+    state.queued[index] = false;
+    state.mark_running(index);
+    Some(index)
+  }
+
+  fn mark_idle(&self, index: usize, has_pending: bool) {
+    let mut state = self.state.lock();
+    state.mark_idle(index, has_pending);
+  }
+
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+    self.core.drain_ready()
+  }
+
+  fn process_actor_pending(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+    self.core.process_actor_pending(index)
+  }
+
+  fn wait_for_any_signal(&self) -> Option<LocalBoxFuture<'static, usize>> {
+    self.core.wait_for_any_signal_future()
+  }
+
+  fn on_escalation<F>(&mut self, handler: F)
+  where
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static,
+  {
+    self.core.on_escalation(handler)
+  }
+
+  fn take_escalations(&mut self) -> Vec<FailureInfo> {
+    self.core.take_escalations()
+  }
+
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+    self.core.set_receive_timeout_factory(factory)
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.core.set_metrics_sink(sink)
+  }
+
+  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+    self.core.set_parent_guardian(control_ref, map_system)
+  }
+
+  fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
+    self.core.set_root_event_listener(listener)
+  }
+
+  fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
+    self.core.set_root_escalation_handler(handler)
+  }
+
+  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    self.core.set_root_failure_telemetry(telemetry)
+  }
+
+  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    self.core.set_root_observation_config(config)
+  }
+}
+
 #[allow(dead_code)]
 impl<M, R> PriorityScheduler<M, R, AlwaysRestart>
 where
@@ -193,9 +308,14 @@ where
   pub fn with_strategy<Strat>(runtime: R, strategy: Strat, extensions: Extensions) -> ReadyQueueScheduler<M, R, Strat>
   where
     Strat: GuardianStrategy<M, R>, {
-    ReadyQueueScheduler {
+    let state = ArcShared::new(Mutex::new(ReadyQueueState::new()));
+    let context = ReadyQueueContext {
       core: PrioritySchedulerCore::with_strategy(runtime, strategy, extensions),
-      state: ArcShared::new(Mutex::new(ReadyQueueState::new())),
+      state: state.clone(),
+    };
+    ReadyQueueScheduler {
+      context: ArcShared::new(Mutex::new(context)),
+      state,
     }
   }
 }
@@ -340,9 +460,10 @@ where
         return Ok(());
       }
 
-      let Some(index) = self.wait_for_any_signal().await else {
+      let Some(wait_future) = self.wait_for_any_signal_future() else {
         return Ok(());
       };
+      let index = wait_future.await;
 
       if self.process_waiting_actor(index).await? {
         return Ok(());
@@ -434,7 +555,7 @@ where
     Ok(handled)
   }
 
-  async fn wait_for_any_signal(&self) -> Option<usize> {
+  fn wait_for_any_signal_future(&self) -> Option<LocalBoxFuture<'static, usize>> {
     if self.actors.is_empty() {
       return None;
     }
@@ -451,8 +572,10 @@ where
       );
     }
 
-    let (idx, _, _) = select_all(waiters).await;
-    Some(idx)
+    Some(Box::pin(async move {
+      let (idx, _, _) = select_all(waiters).await;
+      idx
+    }))
   }
 
   fn drain_ready_cycle(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
@@ -661,40 +784,9 @@ where
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
-  fn core(&self) -> &PrioritySchedulerCore<M, R, Strat> {
-    &self.core
-  }
-
-  fn core_mut(&mut self) -> &mut PrioritySchedulerCore<M, R, Strat> {
-    &mut self.core
-  }
-
-  fn sync_queue_state(&self) {
-    let target_len = self.core.actor_count();
-    let mut state = self.state.lock();
-    state.ensure_capacity(target_len);
-  }
-
-  fn enqueue_ready(&self, index: usize) {
-    let mut state = self.state.lock();
-    state.enqueue_if_idle(index);
-  }
-
-  fn dequeue_ready(&self) -> Option<usize> {
-    let mut state = self.state.lock();
-    let index = state.queue.pop_front()?;
-    state.queued[index] = false;
-    state.mark_running(index);
-    Some(index)
-  }
-
-  fn mark_idle(&self, index: usize, has_pending: bool) {
-    let mut state = self.state.lock();
-    state.mark_idle(index, has_pending);
-  }
-
   fn make_ready_handle(&self, index: usize) -> ReadyQueueHandle {
-    let notifier = ArcShared::new(ReadyNotifier::new(self.state.clone(), index));
+    let state = self.state.clone();
+    let notifier = ArcShared::new(ReadyNotifier::new(state, index));
     #[cfg(target_has_atomic = "ptr")]
     {
       notifier.into_dyn(|inner| inner as &(dyn ReadyEventHook + Send + Sync))
@@ -710,88 +802,112 @@ where
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-    let result = self.core_mut().spawn_actor(supervisor, context);
-    if result.is_ok() {
-      self.sync_queue_state();
-      let index = self.core.actor_count().saturating_sub(1);
-      let hook = self.make_ready_handle(index);
-      if let Some(cell) = self.core_mut().actor_mut(index) {
+    let (actor_ref, index) = {
+      let mut ctx = self.context.lock();
+      ctx.spawn_actor(supervisor, context)?
+    };
+
+    let hook = self.make_ready_handle(index);
+    {
+      let mut ctx = self.context.lock();
+      if let Some(cell) = ctx.actor_mut(index) {
         cell.set_scheduler_hook(Some(hook));
       }
-      self.enqueue_ready(index);
+      ctx.enqueue_ready(index);
     }
-    result
+
+    Ok(actor_ref)
   }
 
   pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
-    self.core_mut().set_receive_timeout_factory(factory)
+    let mut ctx = self.context.lock();
+    ctx.set_receive_timeout_factory(factory);
   }
 
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.core_mut().set_metrics_sink(sink)
+    let mut ctx = self.context.lock();
+    ctx.set_metrics_sink(sink);
   }
 
   pub fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    self.core_mut().set_root_event_listener(listener)
+    let mut ctx = self.context.lock();
+    ctx.set_root_event_listener(listener);
   }
 
   pub fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
-    self.core_mut().set_root_escalation_handler(handler)
+    let mut ctx = self.context.lock();
+    ctx.set_root_escalation_handler(handler);
   }
 
   pub fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
-    self.core_mut().set_parent_guardian(control_ref, map_system)
+    let mut ctx = self.context.lock();
+    ctx.set_parent_guardian(control_ref, map_system);
   }
 
   pub fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
-    self.core_mut().set_root_failure_telemetry(telemetry)
+    let mut ctx = self.context.lock();
+    ctx.set_root_failure_telemetry(telemetry);
   }
 
   pub fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
-    self.core_mut().set_root_observation_config(config)
+    let mut ctx = self.context.lock();
+    ctx.set_root_observation_config(config);
   }
 
   pub fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
-    self.core_mut().on_escalation(handler)
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static,
+  {
+    let mut ctx = self.context.lock();
+    ctx.on_escalation(handler);
   }
 
   pub fn take_escalations(&mut self) -> Vec<FailureInfo> {
-    self.core_mut().take_escalations()
+    let mut ctx = self.context.lock();
+    ctx.take_escalations()
   }
 
   pub fn actor_count(&self) -> usize {
-    self.core().actor_count()
+    let ctx = self.context.lock();
+    ctx.actor_count()
   }
 
   pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
-    self.core_mut().drain_ready()
+    let mut ctx = self.context.lock();
+    ctx.drain_ready()
   }
 
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     loop {
-      self.sync_queue_state();
+      {
+        let mut ctx = self.context.lock();
+        if let Some(index) = ctx.dequeue_ready() {
+          let processed = ctx.process_actor_pending(index)?;
+          let has_pending = ctx.actor_has_pending(index);
+          ctx.mark_idle(index, has_pending);
+          if processed {
+            return Ok(());
+          }
+          continue;
+        }
 
-      if let Some(index) = self.dequeue_ready() {
-        let processed = self.core_mut().process_actor_pending(index)?;
-        let has_pending = self.core().actor_has_pending(index);
-        self.mark_idle(index, has_pending);
-        if processed {
+        if ctx.drain_ready()? {
           return Ok(());
         }
-        // If nothing was processed, continue to next iteration.
-        continue;
       }
 
-      if self.core_mut().drain_ready()? {
-        return Ok(());
-      }
+      let wait_future_opt = {
+        let ctx = self.context.lock();
+        ctx.wait_for_any_signal()
+      };
 
-      let Some(index) = self.core().wait_for_any_signal().await else {
+      let Some(wait_future) = wait_future_opt else {
         return Ok(());
       };
-      self.enqueue_ready(index);
+      let index = wait_future.await;
+
+      let ctx = self.context.lock();
+      ctx.enqueue_ready(index);
     }
   }
 }
