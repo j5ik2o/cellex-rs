@@ -1,7 +1,5 @@
 //! Type binding registry and routing utilities.
 
-#![cfg(feature = "alloc")]
-
 use alloc::collections::btree_map::{BTreeMap, Entry};
 use alloc::string::String;
 

@@ -46,9 +46,8 @@ impl InMemorySerializerRegistry {
     if guard.contains_key(&serializer_id) {
       return Err(RegistryError::DuplicateEntry(serializer_id));
     }
-    let typed_arc: SharedArc<S> = serializer.into_arc();
-    let trait_arc: SharedArc<dyn Serializer> = typed_arc;
-    guard.insert(serializer_id, ArcShared::from_arc(trait_arc));
+    let trait_obj = serializer.map_arc(|arc| arc as SharedArc<dyn Serializer>);
+    guard.insert(serializer_id, trait_obj);
     Ok(())
   }
 

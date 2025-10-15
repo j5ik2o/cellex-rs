@@ -1,5 +1,3 @@
-#![cfg(feature = "alloc")]
-
 #[cfg(test)]
 mod tests;
 
@@ -94,9 +92,7 @@ impl Extensions {
       return;
     }
     let idx = id as usize;
-    let arc: SharedArc<E> = extension.into_arc();
-    let trait_arc: SharedArc<dyn Extension> = arc;
-    let handle = ArcShared::from_arc(trait_arc);
+    let handle = extension.map_arc(|arc| arc as SharedArc<dyn Extension>);
     let mut guard = self.slots.write();
     if guard.len() <= idx {
       guard.resize_with(idx + 1, || None);

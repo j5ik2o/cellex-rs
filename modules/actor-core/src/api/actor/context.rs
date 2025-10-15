@@ -320,8 +320,7 @@ where
   where
     Ext: Element,
     F: Fn(Ext) -> U + SharedBound + 'static, {
-    let adapter_impl: Arc<AdapterFn<Ext, U>> = Arc::new(f);
-    MessageAdapterRef::new(self.self_ref(), ArcShared::from_arc(adapter_impl))
+    MessageAdapterRef::new(self.self_ref(), ArcShared::from_arc(Arc::new(f) as Arc<AdapterFn<Ext, U>>))
   }
 
   /// Registers a watcher.

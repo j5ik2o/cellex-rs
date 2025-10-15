@@ -1,6 +1,6 @@
-#disallowed-types = [
-#  "alloc::sync::Arc",
-#  "std::sync::Arc",
-#  "alloc::rc::Rc",
-#  "std::rc::Rc",
-#]
+disallowed-types = [
+  "alloc::sync::Arc",
+  "std::sync::Arc",
+  "alloc::rc::Rc",
+  "std::rc::Rc",
+]

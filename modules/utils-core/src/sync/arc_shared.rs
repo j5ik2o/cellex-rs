@@ -32,6 +32,22 @@ impl<T: ?Sized> ArcShared<T> {
   pub fn into_arc(self) -> Arc<T> {
     self.0
   }
+
+  /// Maps the inner Arc through a function, allowing type conversions.
+  ///
+  /// This is useful for converting concrete types to trait objects without
+  /// exposing the internal Arc implementation.
+  ///
+  /// # Example
+  /// ```ignore
+  /// let concrete = ArcShared::new(MyStruct);
+  /// let trait_obj = concrete.map_arc(|arc| arc as Arc<dyn MyTrait>);
+  /// ```
+  pub fn map_arc<U: ?Sized, F>(self, f: F) -> ArcShared<U>
+  where
+    F: FnOnce(Arc<T>) -> Arc<U>, {
+    ArcShared::from_arc(f(self.0))
+  }
 }
 
 impl<T: ?Sized> core::ops::Deref for ArcShared<T> {
