@@ -1,5 +1,8 @@
 use super::traits::{MpscBackend, MpscHandle};
 use crate::collections::{QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter};
+#[cfg(test)]
+#[allow(clippy::disallowed_types)]
+mod tests;
 
 /// Queue facade that operates on an [`MpscBackend`]
 ///
@@ -26,7 +29,7 @@ where
   /// # Returns
   ///
   /// A new [`MpscQueue`] instance
-  pub fn new(storage: S) -> Self {
+  pub const fn new(storage: S) -> Self {
     Self {
       storage,
       _marker: core::marker::PhantomData,
@@ -38,7 +41,7 @@ where
   /// # Returns
   ///
   /// An immutable reference to the storage
-  pub fn storage(&self) -> &S {
+  pub const fn storage(&self) -> &S {
     &self.storage
   }
 
@@ -68,8 +71,6 @@ where
 
   /// Adds an element to the queue.
   ///
-  /// Returns an error if the queue is full or closed.
-  ///
   /// # Arguments
   ///
   /// * `element` - The element to add to the queue
@@ -77,21 +78,25 @@ where
   /// # Returns
   ///
   /// * `Ok(())` - Element was successfully added
-  /// * `Err(QueueError::Full(element))` - Queue is full
-  /// * `Err(QueueError::Closed(element))` - Queue is closed
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError::Full(element)` - Queue is full
+  /// * `QueueError::Closed(element)` - Queue is closed
   pub fn offer(&self, element: T) -> Result<(), QueueError<T>> {
     self.storage.backend().try_send(element)
   }
 
   /// Retrieves an element from the queue.
   ///
-  /// Returns `None` if the queue is empty. Returns an error if the queue is closed.
-  ///
   /// # Returns
   ///
   /// * `Ok(Some(element))` - Element was successfully retrieved
   /// * `Ok(None)` - Queue is empty
-  /// * `Err(QueueError::Disconnected)` - Queue is closed
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError::Disconnected` - Queue is closed
   pub fn poll(&self) -> Result<Option<T>, QueueError<T>> {
     self.storage.backend().try_recv()
   }
@@ -266,5 +271,4 @@ where
   }
 }
 
-#[cfg(test)]
-mod tests;
+

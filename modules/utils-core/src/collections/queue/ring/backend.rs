@@ -22,6 +22,10 @@ pub trait RingBackend<E> {
   ///
   /// * `Ok(())` - If element was successfully added
   /// * `Err(QueueError<E>)` - If queue is full or other errors occurred
+  ///
+  /// # Errors
+  ///
+  /// Returns `QueueError::Full` if the queue is full and dynamic mode is disabled.
   fn offer(&self, element: E) -> Result<(), QueueError<E>>;
 
   /// Removes an element from the queue.
@@ -31,6 +35,10 @@ pub trait RingBackend<E> {
   /// * `Ok(Some(E))` - If element was successfully removed
   /// * `Ok(None)` - If queue is empty
   /// * `Err(QueueError<E>)` - If an error occurred
+  ///
+  /// # Errors
+  ///
+  /// This method currently does not return any errors, but the signature allows for future error handling.
   fn poll(&self) -> Result<Option<E>, QueueError<E>>;
 
   /// Cleans up the queue's internal state.
@@ -66,6 +74,7 @@ pub trait RingBackend<E> {
   ///
   /// * `true` - If queue is empty
   /// * `false` - If queue has one or more elements
+  #[must_use]
   fn is_empty(&self) -> bool {
     self.len() == QueueSize::Limited(0)
   }
@@ -118,6 +127,7 @@ impl<S> RingStorageBackend<S> {
   /// # Returns
   ///
   /// New `RingStorageBackend` instance
+  #[must_use]
   pub const fn new(storage: S) -> Self {
     Self { storage }
   }
@@ -127,7 +137,7 @@ impl<S> RingStorageBackend<S> {
   /// # Returns
   ///
   /// Immutable reference to the storage handle
-  pub fn storage(&self) -> &S {
+  pub const fn storage(&self) -> &S {
     &self.storage
   }
 

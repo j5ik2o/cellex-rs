@@ -24,11 +24,13 @@ impl<T> RcShared<T> {
 #[cfg(feature = "alloc")]
 impl<T: ?Sized> RcShared<T> {
   /// Wraps an existing `Rc` in the shared wrapper.
-  pub fn from_rc(inner: Rc<T>) -> Self {
+  #[must_use]
+  pub const fn from_rc(inner: Rc<T>) -> Self {
     Self(inner)
   }
 
   /// Consumes the wrapper and returns the inner `Rc`.
+  #[must_use]
   pub fn into_rc(self) -> Rc<T> {
     self.0
   }

@@ -47,6 +47,10 @@ pub trait StackBackend<T> {
   ///
   /// * `Ok(())` - On success
   /// * `Err(StackError<T>)` - If capacity limit is reached
+  ///
+  /// # Errors
+  ///
+  /// * `StackError::Full(value)` - Stack is full; error contains the original value
   fn push(&self, value: T) -> Result<(), StackError<T>>;
 
   /// Pops a value from the stack.
@@ -87,6 +91,7 @@ pub trait StackBackend<T> {
   ///
   /// * `true` - If stack is empty
   /// * `false` - If stack contains elements
+  #[must_use]
   fn is_empty(&self) -> bool {
     self.len() == QueueSize::Limited(0)
   }
@@ -97,6 +102,7 @@ pub trait StackBackend<T> {
   ///
   /// * `Some(T)` - Clone of the top value if stack is not empty
   /// * `None` - If stack is empty
+  #[must_use]
   fn peek(&self) -> Option<T>
   where
     T: Clone;
@@ -132,6 +138,7 @@ impl<S> StackStorageBackend<S> {
   /// # Arguments
   ///
   /// * `storage` - Storage implementation to use
+  #[must_use]
   pub const fn new(storage: S) -> Self {
     Self { storage }
   }
@@ -141,7 +148,7 @@ impl<S> StackStorageBackend<S> {
   /// # Returns
   ///
   /// Reference to the internal storage
-  pub fn storage(&self) -> &S {
+  pub const fn storage(&self) -> &S {
     &self.storage
   }
 
@@ -214,6 +221,7 @@ pub trait StackBase<T> {
   ///
   /// * `true` - If stack is empty
   /// * `false` - If stack contains elements
+  #[must_use]
   fn is_empty(&self) -> bool {
     self.len().to_usize() == 0
   }
@@ -233,6 +241,10 @@ pub trait StackMut<T>: StackBase<T> {
   ///
   /// * `Ok(())` - On success
   /// * `Err(StackError<T>)` - If capacity limit is reached
+  ///
+  /// # Errors
+  ///
+  /// * `StackError::Full(value)` - Stack is full; error contains the original value
   fn push(&mut self, value: T) -> Result<(), StackError<T>>;
 
   /// Pops a value from the stack.
@@ -252,6 +264,7 @@ pub trait StackMut<T>: StackBase<T> {
   ///
   /// * `Some(T)` - Clone of the top value if stack is not empty
   /// * `None` - If stack is empty
+  #[must_use]
   fn peek(&self) -> Option<T>
   where
     T: Clone;

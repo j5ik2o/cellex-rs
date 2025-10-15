@@ -92,6 +92,7 @@ where
   /// # Returns
   ///
   /// A new WaitGroup instance
+  #[must_use]
   pub fn new() -> Self {
     Self { backend: B::new() }
   }
@@ -105,6 +106,7 @@ where
   /// # Returns
   ///
   /// A WaitGroup instance initialized with the specified count
+  #[must_use]
   pub fn with_count(count: usize) -> Self {
     Self {
       backend: B::with_count(count),
@@ -143,7 +145,7 @@ where
   /// # Returns
   ///
   /// An immutable reference to the backend instance
-  pub fn backend(&self) -> &B {
+  pub const fn backend(&self) -> &B {
     &self.backend
   }
 }

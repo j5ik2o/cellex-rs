@@ -65,7 +65,8 @@ impl<T> StackBuffer<T> {
   /// let stack: StackBuffer<i32> = StackBuffer::new();
   /// assert!(stack.is_empty());
   /// ```
-  pub fn new() -> Self {
+  #[must_use]
+  pub const fn new() -> Self {
     Self {
       items: Vec::new(),
       capacity: None,
@@ -94,6 +95,7 @@ impl<T> StackBuffer<T> {
   /// // Next push returns error because capacity limit is reached
   /// assert!(stack.push(4).is_err());
   /// ```
+  #[must_use]
   pub fn with_capacity(capacity: usize) -> Self {
     Self {
       items: Vec::with_capacity(capacity),
@@ -116,7 +118,8 @@ impl<T> StackBuffer<T> {
   /// let stack = StackBuffer::<i32>::with_capacity(10);
   /// assert_eq!(stack.capacity().to_usize(), 10);
   /// ```
-  pub fn capacity(&self) -> QueueSize {
+  #[must_use]
+  pub const fn capacity(&self) -> QueueSize {
     match self.capacity {
       Some(limit) => QueueSize::limited(limit),
       None => QueueSize::limitless(),
@@ -170,7 +173,8 @@ impl<T> StackBuffer<T> {
   /// stack.push(2).unwrap();
   /// assert_eq!(stack.len().to_usize(), 2);
   /// ```
-  pub fn len(&self) -> QueueSize {
+  #[must_use]
+  pub const fn len(&self) -> QueueSize {
     QueueSize::limited(self.items.len())
   }
 
@@ -191,7 +195,8 @@ impl<T> StackBuffer<T> {
   /// stack.push(1).unwrap();
   /// assert!(!stack.is_empty());
   /// ```
-  pub fn is_empty(&self) -> bool {
+  #[must_use]
+  pub const fn is_empty(&self) -> bool {
     self.items.is_empty()
   }
 
@@ -207,6 +212,10 @@ impl<T> StackBuffer<T> {
   ///
   /// * `Ok(())` on success.
   /// * `Err(StackError::Full(value))` if stack is full.
+  ///
+  /// # Errors
+  ///
+  /// * `StackError::Full(value)` - Stack is full; error contains the original value
   ///
   /// # Examples
   ///
@@ -269,6 +278,7 @@ impl<T> StackBuffer<T> {
   /// assert_eq!(stack.peek(), Some(&2));
   /// assert_eq!(stack.len().to_usize(), 2); // Element not removed
   /// ```
+  #[must_use]
   pub fn peek(&self) -> Option<&T> {
     self.items.last()
   }

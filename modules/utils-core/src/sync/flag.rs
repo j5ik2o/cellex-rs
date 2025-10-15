@@ -57,6 +57,7 @@ impl Flag {
   /// let flag = Flag::new(true);
   /// assert!(flag.get());
   /// ```
+  #[must_use]
   pub fn new(value: bool) -> Self {
     #[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
     {
@@ -126,6 +127,7 @@ impl Flag {
   /// let flag = Flag::new(true);
   /// assert!(flag.get());
   /// ```
+  #[must_use]
   pub fn get(&self) -> bool {
     #[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
     {

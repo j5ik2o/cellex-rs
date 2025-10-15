@@ -56,7 +56,10 @@ pub trait QueueWriter<E>: QueueBase<E> {
   /// # Returns
   ///
   /// * `Ok(())` - If element was successfully added
-  /// * `Err(QueueError)` - If addition failed (full, closed, etc.)
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError` - If addition failed (full, closed, etc.)
   fn offer_mut(&mut self, element: E) -> Result<(), QueueError<E>>;
 }
 
@@ -77,7 +80,10 @@ pub trait QueueReader<E>: QueueBase<E> {
   ///
   /// * `Ok(Some(element))` - If element was successfully removed
   /// * `Ok(None)` - If queue is empty
-  /// * `Err(QueueError)` - If read failed
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError` - If read failed
   fn poll_mut(&mut self) -> Result<Option<E>, QueueError<E>>;
 
   /// Performs queue cleanup processing (mutable reference version).
@@ -108,7 +114,10 @@ pub trait QueueRw<E>: QueueBase<E> {
   /// # Returns
   ///
   /// * `Ok(())` - If element was successfully added
-  /// * `Err(QueueError)` - If addition failed (full, closed, etc.)
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError` - If addition failed (full, closed, etc.)
   fn offer(&self, element: E) -> Result<(), QueueError<E>>;
 
   /// Removes an element from the queue (shared reference version).
@@ -120,7 +129,10 @@ pub trait QueueRw<E>: QueueBase<E> {
   ///
   /// * `Ok(Some(element))` - If element was successfully removed
   /// * `Ok(None)` - If queue is empty
-  /// * `Err(QueueError)` - If read failed
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError` - If read failed
   fn poll(&self) -> Result<Option<E>, QueueError<E>>;
 
   /// Performs queue cleanup processing (shared reference version).

@@ -1,9 +1,11 @@
 extern crate alloc;
 
 use super::*;
+#[allow(clippy::disallowed_types)]
 use alloc::rc::Rc;
 use core::cell::RefCell;
 
+#[allow(clippy::disallowed_types)]
 #[derive(Clone, Debug)]
 struct RcSharedCell(Rc<RefCell<u32>>);
 

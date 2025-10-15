@@ -155,6 +155,7 @@ where
   /// # Panics
   ///
   /// If `count` is 0, some backend implementations may panic.
+  #[must_use]
   pub fn new(count: usize) -> Self {
     Self { backend: B::new(count) }
   }
@@ -209,7 +210,7 @@ where
   /// let backend = barrier.backend();
   /// // Execute backend-specific operations...
   /// ```
-  pub fn backend(&self) -> &B {
+  pub const fn backend(&self) -> &B {
     &self.backend
   }
 }

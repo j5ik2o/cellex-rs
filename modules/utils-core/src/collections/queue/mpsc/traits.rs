@@ -16,7 +16,10 @@ pub trait MpscBackend<T> {
   /// # Returns
   ///
   /// * `Ok(())` - Element was successfully added
-  /// * `Err(QueueError)` - Queue is full, closed, or another error occurred
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError` - Queue is full, closed, or another error occurred
   fn try_send(&self, element: T) -> Result<(), QueueError<T>>;
 
   /// Attempts to receive an element from the queue (non-blocking).
@@ -25,7 +28,10 @@ pub trait MpscBackend<T> {
   ///
   /// * `Ok(Some(element))` - Element was successfully received
   /// * `Ok(None)` - Queue is empty
-  /// * `Err(QueueError)` - An error occurred
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError` - An error occurred
   fn try_recv(&self) -> Result<Option<T>, QueueError<T>>;
 
   /// Closes the queue.

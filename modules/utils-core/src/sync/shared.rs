@@ -4,6 +4,10 @@ use core::ops::Deref;
 pub trait Shared<T: ?Sized>: Clone + Deref<Target = T> {
   /// Attempt to unwrap the shared value. Implementations may override this to
   /// provide specialised behaviour (e.g. `Arc::try_unwrap`).
+  ///
+  /// # Errors
+  ///
+  /// Returns `Err(self)` if there are multiple owners of the value
   fn try_unwrap(self) -> Result<T, Self>
   where
     T: Sized, {
@@ -36,4 +40,5 @@ pub trait SharedBound {}
 impl<T> SharedBound for T {}
 
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
 mod tests;

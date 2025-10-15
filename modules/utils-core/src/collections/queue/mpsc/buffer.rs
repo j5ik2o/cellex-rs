@@ -51,6 +51,8 @@ impl<T> MpscBuffer<T> {
   /// // Unbounded buffer
   /// let unbounded = MpscBuffer::<i32>::new(None);
   /// ```
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn new(capacity: Option<usize>) -> Self {
     Self {
       buffer: VecDeque::new(),
@@ -75,6 +77,7 @@ impl<T> MpscBuffer<T> {
   /// buffer.offer(2).unwrap();
   /// assert_eq!(buffer.len().to_usize(), 2);
   /// ```
+  #[must_use]
   pub fn len(&self) -> QueueSize {
     QueueSize::limited(self.buffer.len())
   }
@@ -96,7 +99,8 @@ impl<T> MpscBuffer<T> {
   /// let unbounded = MpscBuffer::<i32>::new(None);
   /// assert!(unbounded.capacity().is_limitless());
   /// ```
-  pub fn capacity(&self) -> QueueSize {
+  #[must_use]
+  pub const fn capacity(&self) -> QueueSize {
     match self.capacity {
       Some(limit) => QueueSize::limited(limit),
       None => QueueSize::limitless(),
@@ -148,6 +152,11 @@ impl<T> MpscBuffer<T> {
   /// * `Err(QueueError::Closed(element))` - Buffer is closed.
   /// * `Err(QueueError::Full(element))` - Buffer is at capacity.
   ///
+  /// # Errors
+  ///
+  /// * `QueueError::Closed(element)` - Buffer is closed.
+  /// * `QueueError::Full(element)` - Buffer is at capacity.
+  ///
   /// # Examples
   ///
   /// ```
@@ -180,6 +189,10 @@ impl<T> MpscBuffer<T> {
   /// * `Ok(Some(element))` - Element was successfully retrieved.
   /// * `Ok(None)` - Buffer is empty (not yet closed).
   /// * `Err(QueueError::Disconnected)` - Buffer is empty and closed.
+  ///
+  /// # Errors
+  ///
+  /// * `QueueError::Disconnected` - Buffer is empty and closed.
   ///
   /// # Examples
   ///
@@ -245,7 +258,8 @@ impl<T> MpscBuffer<T> {
   /// buffer.mark_closed();
   /// assert!(buffer.is_closed());
   /// ```
-  pub fn is_closed(&self) -> bool {
+  #[must_use]
+  pub const fn is_closed(&self) -> bool {
     self.closed
   }
 
@@ -270,7 +284,7 @@ impl<T> MpscBuffer<T> {
   /// // But can still retrieve existing elements
   /// assert_eq!(buffer.poll().unwrap(), Some(1));
   /// ```
-  pub fn mark_closed(&mut self) {
+  pub const fn mark_closed(&mut self) {
     self.closed = true;
   }
 }

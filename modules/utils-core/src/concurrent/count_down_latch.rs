@@ -104,6 +104,7 @@ where
   /// ```ignore
   /// let latch = CountDownLatch::<SomeBackend>::new(5);
   /// ```
+  #[must_use]
   pub fn new(count: usize) -> Self {
     Self { backend: B::new(count) }
   }
@@ -142,7 +143,7 @@ where
   /// # Returns
   ///
   /// Immutable reference to the backend implementation
-  pub fn backend(&self) -> &B {
+  pub const fn backend(&self) -> &B {
     &self.backend
   }
 }
