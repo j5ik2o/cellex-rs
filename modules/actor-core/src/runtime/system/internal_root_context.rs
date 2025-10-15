@@ -37,6 +37,7 @@ where
     self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto)
   }
 
+  /// Spawns a child actor with an explicit supervisor and naming strategy.
   pub fn spawn_with_supervisor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,

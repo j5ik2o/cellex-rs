@@ -83,6 +83,7 @@ where
   pub map_system: MapSystemShared<M>,
   pub mailbox_options: MailboxOptions,
   pub handler: Box<ActorHandlerFn<M, R>>,
+  /// Naming strategy to apply when registering the child actor.
   pub child_naming: ChildNaming,
 }
 

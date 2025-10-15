@@ -43,7 +43,11 @@ where
   ///
   /// # Returns
   ///
-  /// Reference to the spawned actor, or a mailbox error
+  /// Reference to the spawned actor, or a [`SpawnError`] if the scheduler rejects the spawn.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`SpawnError::Queue`] when the underlying scheduler encounters a queue failure.
   pub fn spawn(&mut self, props: Props<U, R>) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
@@ -58,7 +62,12 @@ where
 
   /// Spawns a new actor with a unique name generated from the provided prefix.
   ///
-  /// The actual name will be `{prefix}-{n}` where `n` is a monotonically increasing counter.
+  /// The actual name will be `{prefix}-{n}` where `n` is a monotonically increasing counter that
+  /// is guaranteed to be unique within the parent.
+  ///
+  /// # Errors
+  ///
+  /// Propagates queue failures from the scheduler.
   pub fn spawn_prefix(&mut self, props: Props<U, R>, prefix: &str) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
@@ -72,6 +81,11 @@ where
   }
 
   /// Spawns a new actor using the specified name. Fails if the name already exists.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`SpawnError::NameExists`] if an actor with the same name already exists, or
+  /// [`SpawnError::Queue`] if the scheduler reports a queue failure.
   pub fn spawn_named(&mut self, props: Props<U, R>, name: &str) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
