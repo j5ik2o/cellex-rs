@@ -5,9 +5,9 @@ use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
   ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
-  FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutFactoryShared, GenericActorRuntime, SchedulerBuilder,
-  SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
+  FailureTelemetryShared, GenericActorRuntime, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared,
+  MetricsSinkShared, PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutFactoryShared,
+  SchedulerBuilder, SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_executor::Spawner;
@@ -66,7 +66,8 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, GenericActorRuntime<R>>,
-  ) -> Result<InternalActorRef<M, GenericActorRuntime<R>>, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<InternalActorRef<M, GenericActorRuntime<R>>, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>>
+  {
     self.inner.spawn_actor(supervisor, context)
   }
 
@@ -94,7 +95,11 @@ where
     ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, GenericActorRuntime<R>>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(
+    &mut self,
+    control_ref: InternalActorRef<M, GenericActorRuntime<R>>,
+    map_system: MapSystemShared<M>,
+  ) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 

@@ -3,8 +3,8 @@ use std::vec::Vec;
 
 use cellex_actor_core_rs::{
   ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
-  FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, ReadyQueueScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, GenericActorRuntime,
+  FailureTelemetryShared, GenericActorRuntime, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared,
+  MetricsSinkShared, PriorityEnvelope, ReadyQueueScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
   SchedulerBuilder, SchedulerSpawnContext, SpawnError, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_std_rs::{Element, QueueError};
@@ -89,7 +89,11 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, GenericActorRuntime<R>>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(
+    &mut self,
+    control_ref: InternalActorRef<M, GenericActorRuntime<R>>,
+    map_system: MapSystemShared<M>,
+  ) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 

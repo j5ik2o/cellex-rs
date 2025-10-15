@@ -90,13 +90,13 @@ pub use timer::ImmediateTimer;
 
 /// Prelude that re-exports commonly used types in embedded environments.
 pub mod prelude {
-  #[cfg(feature = "embassy_executor")]
-  pub use super::{EmbassyActorRuntimeExt, EmbassyScheduler};
   #[cfg(feature = "embedded_arc")]
   pub use super::{
     ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxRuntime, ArcMailboxSender, ArcPriorityMailbox,
     ArcPriorityMailboxRuntime, ArcPriorityMailboxSender, ArcShared, ArcStateCell,
   };
+  #[cfg(feature = "embassy_executor")]
+  pub use super::{EmbassyActorRuntimeExt, EmbassyScheduler};
   pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
   #[cfg(feature = "embedded_rc")]
   pub use super::{RcShared, RcStateCell};

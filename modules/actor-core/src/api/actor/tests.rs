@@ -149,8 +149,8 @@ mod receive_timeout_injection {
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::{
-    ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, MapSystemShared, PriorityEnvelope, ReceiveTimeoutDriver,
-    ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, GenericActorRuntime,
+    ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, GenericActorRuntime, MapSystemShared, PriorityEnvelope,
+    ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
   };
   use alloc::boxed::Box;
   use core::time::Duration;
@@ -1060,8 +1060,8 @@ mod metrics_injection {
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::{
-    ActorSystem, ActorSystemConfig, DynMessage, FailureTelemetryShared, MailboxRuntime, MetricsEvent, MetricsSink,
-    MetricsSinkShared, GenericActorRuntime, Supervisor, TelemetryObservationConfig,
+    ActorSystem, ActorSystemConfig, DynMessage, FailureTelemetryShared, GenericActorRuntime, MailboxRuntime,
+    MetricsEvent, MetricsSink, MetricsSinkShared, Supervisor, TelemetryObservationConfig,
   };
   use alloc::boxed::Box;
   use core::marker::PhantomData;
@@ -1096,9 +1096,7 @@ mod metrics_injection {
     metrics: Arc<Mutex<Option<usize>>>,
   ) -> SchedulerBuilder<DynMessage, GenericActorRuntime<TestMailboxRuntime>> {
     SchedulerBuilder::new(move |_runtime, _extensions| {
-      Box::new(RecordingScheduler::<DynMessage, GenericActorRuntime<TestMailboxRuntime>>::new(
-        metrics.clone(),
-      ))
+      Box::new(RecordingScheduler::<DynMessage, GenericActorRuntime<TestMailboxRuntime>>::new(metrics.clone()))
     })
   }
 

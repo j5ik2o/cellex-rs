@@ -10,7 +10,7 @@ use std::sync::Arc;
 use cellex_actor_core_rs::{
   ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
 };
-use cellex_actor_core_rs::{ActorSystem, FailureEventStream, Props, GenericActorRuntime};
+use cellex_actor_core_rs::{ActorSystem, FailureEventStream, GenericActorRuntime, Props};
 use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, LocalMailboxRuntime};
 
 #[test]

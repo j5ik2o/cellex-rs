@@ -160,7 +160,10 @@ where
     self.scheduler_builder.clone()
   }
 
-  pub(crate) fn set_scheduler_builder(&mut self, builder: ArcShared<SchedulerBuilder<DynMessage, GenericActorRuntime<R>>>) {
+  pub(crate) fn set_scheduler_builder(
+    &mut self,
+    builder: ArcShared<SchedulerBuilder<DynMessage, GenericActorRuntime<R>>>,
+  ) {
     self.scheduler_builder = builder;
   }
 }
@@ -322,7 +325,9 @@ where
 
   /// Returns a factory built by the configured receive-timeout driver, if any.
   #[must_use]
-  pub fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, GenericActorRuntime<R>>> {
+  pub fn receive_timeout_driver_factory(
+    &self,
+  ) -> Option<ReceiveTimeoutFactoryShared<DynMessage, GenericActorRuntime<R>>> {
     self
       .receive_timeout_driver
       .as_ref()
