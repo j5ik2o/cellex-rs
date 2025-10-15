@@ -9,7 +9,7 @@
 - `Behavior<U, R>` / `ActorAdapter<U, R>` / `Props<U, R>` は `modules/actor-core/src/api/actor/behavior.rs` と `props.rs` に実装済み。
 - `ActorAdapter::create_map_system()` は `MessageEnvelope::<U>::System(sys)` を返す固定クロージャのままで、ユーザーが独自 enum を用意する余地がない。
 - Guardian / Scheduler は `map_system` を以下の経路で利用:
-  - [`PriorityScheduler::spawn_actor`](modules/actor-core/src/runtime/scheduler/priority_scheduler.rs:85)
+  - [`ReadyQueueSchedulerCore::spawn_actor`](modules/actor-core/src/runtime/scheduler/ready_queue_scheduler.rs:85)
   - [`ActorCell::register_child_from_spec`](modules/actor-core/src/runtime/scheduler/actor_cell.rs:299)
   - [`Guardian::register_child`](modules/actor-core/src/runtime/guardian/core.rs:41)
   - [`CompositeEscalationSink`](modules/actor-core/src/runtime/supervision/composite_sink.rs) を通じて親 Guardian へ連鎖させるハンドリング

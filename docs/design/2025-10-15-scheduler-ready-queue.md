@@ -1,13 +1,13 @@
 # ReadyQueue ベースのマルチワーカースケジューラ案 (2025-10-15)
 
 ## 背景
-- 現在の `PriorityScheduler` は単一の `run_forever` ループを Tokio タスク化する構成で、実質的にシングルスレッド実行となっている。
+- 旧 `PriorityScheduler`（現在は `ReadyQueueScheduler` に統合済み）は単一の `run_forever` ループを Tokio タスク化する構成で、実質的にシングルスレッド実行となっていた。
 - `tell` はメールボックスに enqueue した後、その場で `tokio::spawn` を行わずスケジューラに任せたい。protoactor-go / Akka でも同様にメッセージ到着と実行を分離している。
 - スループットを確保するためには、スケジューラを Tokio のスレッドプール上で複数ワーカーとして動かす必要がある。
 
 ## 現状整理と変更点
-- `PrioritySchedulerCore` を分離し、`ReadyQueueScheduler` が `ArcShared<spin::Mutex<ReadyQueueState>>` を共有してアクターの ready 状態を管理する。
-- `SchedulerBuilder::priority()` は `ReadyQueueScheduler` を返すように更新済み。Tokio / Embassy のラッパーも同スケジューラを内包する。
+- `ReadyQueueSchedulerCore` を分離し、`ReadyQueueScheduler` が `ArcShared<spin::Mutex<ReadyQueueState>>` を共有してアクターの ready 状態を管理する。
+- `SchedulerBuilder::ready_queue()` は `ReadyQueueScheduler` を返すように更新済み。Tokio / Embassy のラッパーも同スケジューラを内包する。
 - ReadyQueue は signal 通知時にスケジューラ側でキューを更新し、`process_actor_pending` との組み合わせで処理済みアクターの再スケジューリングを制御する。
 
 ## 目標（継続）
@@ -45,7 +45,7 @@ tell → Mailbox.enqueue → (Idle → Running 遷移に成功) → ReadyQueue.p
 - `Spawn` ミドルウェアはアクター登録とメールボックス初期化に集中させる。実際のワーカータスク起動は Driver が一括管理。
 
 ## 変更インパクト
-- `PriorityScheduler` の内部構造を「単一ループ」から「ReadyQueue + ワーカー群」へ再設計する必要がある。
+- ReadyQueue スケジューラの内部構造を「単一ループ」から「ReadyQueue + ワーカー群」へ再設計する必要がある。
 - メールボックスには `scheduler_status` と ReadyQueue への通知処理を追加する。
 - `ActorSystemRunner::run_forever` は ReadyQueue ワーカー起動のラッパへ置き換える。
 - テストではワーカー数 1 を指定すれば従来挙動と同等になり、Embedded 向けの動作も維持可能。
@@ -57,7 +57,7 @@ tell → Mailbox.enqueue → (Idle → Running 遷移に成功) → ReadyQueue.p
 - 監視・メトリクス：ワーカー数や ReadyQueue の長さをどう観測するか。
 
 ## 次アクション
-1. Prototype: ReadyQueue + ワーカーマルチ化した `PriorityScheduler` の PoC を作成。
+1. Prototype: ReadyQueue + ワーカーマルチ化した `ReadyQueueScheduler` の PoC を作成。
 2. Mailbox 側に `scheduler_status` を導入し、Idle/Running ガードを実装。
 3. Driver 側（TokioSystemHandle 等）をワーカー数設定に対応させる。
 4. Spawn ミドルウェアの再導入（protoactor-go の `defaultSpawner` 相当）を検討。

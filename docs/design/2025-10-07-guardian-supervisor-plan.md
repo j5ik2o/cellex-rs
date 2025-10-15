@@ -1,7 +1,7 @@
 # Guardian / Supervisor 設計メモ
 
 ## 現状サマリ (2025-10-13)
-- `Guardian` と `PriorityScheduler` の統合が完了し、panic 検出や `SystemMessage::Restart/Stop/Escalate` の伝搬経路はコアで動作している。
+- `Guardian` と `ReadyQueueScheduler` の統合が完了し、panic 検出や `SystemMessage::Restart/Stop/Escalate` の伝搬経路はコアで動作している。
 - `CompositeEscalationSink` により親ガーディアン／カスタムハンドラ／Root イベントリスナーへのルーティングが可能になった。
 - `ActorContext` は監視者一覧を保持し、子生成時に親を自動で Watch 登録する挙動がテストで確認済み。
 

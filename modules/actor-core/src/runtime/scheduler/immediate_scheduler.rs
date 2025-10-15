@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnContext};
-use crate::runtime::scheduler::priority_scheduler::ReadyQueueScheduler;
+use crate::runtime::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
 use crate::MapSystemShared;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime,
@@ -14,9 +14,9 @@ use crate::{
 };
 use cellex_utils_core_rs::{Element, QueueError};
 
-/// Scheduler wrapper that executes actors immediately using the existing priority scheduler logic.
+/// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.
 ///
-/// This scheduler simply delegates to [`PriorityScheduler`] but exposes a distinct builder entry point.
+/// This scheduler simply delegates to [`ReadyQueueScheduler`] but exposes a distinct builder entry point.
 pub(crate) struct ImmediateScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,

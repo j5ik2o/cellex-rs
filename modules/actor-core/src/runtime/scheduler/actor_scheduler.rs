@@ -16,7 +16,7 @@ use crate::{
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::priority_scheduler::ReadyQueueWorker;
+use super::ready_queue_scheduler::ReadyQueueWorker;
 
 pub(crate) type SchedulerHandle<M, R> = Box<dyn ActorScheduler<M, R>>;
 #[cfg(target_has_atomic = "ptr")]

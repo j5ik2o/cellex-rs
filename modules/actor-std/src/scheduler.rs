@@ -26,7 +26,7 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
-  /// `PriorityScheduler` を用いた既定構成を作成する。
+  /// ReadyQueue スケジューラを用いた既定構成を作成する。
   pub fn new(runtime: RuntimeEnv<R>, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::new(runtime, extensions),

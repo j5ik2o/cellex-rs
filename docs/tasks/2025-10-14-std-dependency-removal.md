@@ -9,7 +9,7 @@
 | `modules/actor-core/src/runtime/scheduler/actor_cell.rs:8-9,205-244` | `catch_unwind` でハンドラを保護 | `std::panic::{catch_unwind, AssertUnwindSafe}` を使用 | - 2025-10-14 `unwind-supervision` feature を導入し、opt-in 時のみ `catch_unwind` を有効化。<br>- デフォルトでは `panic = "abort"` 前提の `Result` パスを使用。 |
 | `modules/actor-core/src/runtime/system/internal_actor_system.rs` | 旧ブロッキングディスパッチ API | `futures::executor::block_on` 依存（削除済み） | 2025-10-14 に `blocking_dispatch_*` を削除し、async API のみ提供。追加対応不要。 |
 | `modules/actor-core/src/api/actor/system.rs` | 旧 `ActorSystem::blocking_dispatch_*` | 内部ブロッキング API のラッパ（削除済み） | 2025-10-14 に削除済み。ドキュメント更新のみ追随。 |
-| `modules/actor-core/src/runtime/scheduler/priority_scheduler.rs` | 旧ブロッキングディスパッチ実装 | `futures::executor::block_on` / `tracing::warn!` 依存（削除済み） | 2025-10-14 に削除済み。非同期経路のみ維持。 |
+| `modules/actor-core/src/runtime/scheduler/ready_queue_scheduler.rs` | 旧ブロッキングディスパッチ実装 | `futures::executor::block_on` / `tracing::warn!` 依存（削除済み） | 2025-10-14 に削除済み。非同期経路のみ維持。 |
 | `modules/actor-core/src/api/supervision/escalation.rs:124-133` | エスカレーション時のログ出力 | `tracing::error!` を `std` 条件付きで使用 | - `tracing` に `std` が必要なため、`cfg(feature = "std")` ブロックを維持。<br>- `no_std` ではハンドラー / リスナー通知のみ行い、ログは省略。 |
 | `modules/actor-core/src/extensions.rs:20-25,193-218` | Serializer 拡張 | JSON / Prost serializer の登録 | - これらクレートが `std` 前提のため、`std` 機能時のみ登録。<br>- `no_std` 用に Postcard (`cfg(feature = "postcard")`) を整備済み。 |
 

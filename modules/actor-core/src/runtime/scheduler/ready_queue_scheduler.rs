@@ -1,4 +1,4 @@
-#![allow(missing_docs, deprecated)]
+#![allow(missing_docs)]
 
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
@@ -55,7 +55,7 @@ pub type ReadyQueueHandle = ArcShared<dyn ReadyEventHook + Send + Sync>;
 pub type ReadyQueueHandle = ArcShared<dyn ReadyEventHook>;
 
 /// Simple scheduler implementation assuming priority mailboxes.
-pub struct PrioritySchedulerCore<M, R, Strat = AlwaysRestart>
+pub struct ReadyQueueSchedulerCore<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
@@ -71,7 +71,7 @@ where
 }
 
 #[allow(dead_code)]
-impl<M, R> PrioritySchedulerCore<M, R, AlwaysRestart>
+impl<M, R> ReadyQueueSchedulerCore<M, R, AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
@@ -84,10 +84,10 @@ where
     _runtime: R,
     strategy: Strat,
     extensions: Extensions,
-  ) -> PrioritySchedulerCore<M, R, Strat>
+  ) -> ReadyQueueSchedulerCore<M, R, Strat>
   where
     Strat: GuardianStrategy<M, R>, {
-    PrioritySchedulerCore {
+    ReadyQueueSchedulerCore {
       guardian: Guardian::new(strategy),
       actors: Vec::new(),
       escalations: Vec::new(),
@@ -100,18 +100,6 @@ where
   }
 }
 
-#[deprecated(
-  note = "Use ReadyQueueScheduler instead; PriorityScheduler remains only for legacy scenarios and will be removed in a future release."
-)]
-pub struct PriorityScheduler<M, R, Strat = AlwaysRestart>
-where
-  M: Element,
-  R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  core: PrioritySchedulerCore<M, R, Strat>,
-}
-
-#[allow(dead_code)]
 pub struct ReadyQueueScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
@@ -126,7 +114,7 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
-  core: PrioritySchedulerCore<M, R, Strat>,
+  core: ReadyQueueSchedulerCore<M, R, Strat>,
   state: ArcShared<Mutex<ReadyQueueState>>,
 }
 
@@ -294,25 +282,6 @@ where
 }
 
 #[allow(dead_code)]
-impl<M, R> PriorityScheduler<M, R, AlwaysRestart>
-where
-  M: Element,
-  R: MailboxRuntime + Clone + 'static,
-{
-  pub fn new(runtime: R, extensions: Extensions) -> Self {
-    Self::with_strategy(runtime, AlwaysRestart, extensions)
-  }
-
-  pub fn with_strategy<Strat>(runtime: R, strategy: Strat, extensions: Extensions) -> PriorityScheduler<M, R, Strat>
-  where
-    Strat: GuardianStrategy<M, R>, {
-    PriorityScheduler {
-      core: PrioritySchedulerCore::with_strategy(runtime, strategy, extensions),
-    }
-  }
-}
-
-#[allow(dead_code)]
 impl<M, R> ReadyQueueScheduler<M, R, AlwaysRestart>
 where
   M: Element,
@@ -327,7 +296,7 @@ where
     Strat: GuardianStrategy<M, R>, {
     let state = ArcShared::new(Mutex::new(ReadyQueueState::new()));
     let context = ReadyQueueContext {
-      core: PrioritySchedulerCore::with_strategy(runtime, strategy, extensions),
+      core: ReadyQueueSchedulerCore::with_strategy(runtime, strategy, extensions),
       state: state.clone(),
     };
     ReadyQueueScheduler {
@@ -360,7 +329,7 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
-  pub fn priority() -> Self {
+  pub fn ready_queue() -> Self {
     Self::new(|runtime, extensions| Box::new(ReadyQueueScheduler::new(runtime, extensions)))
   }
 
@@ -380,7 +349,7 @@ where
 }
 
 #[allow(dead_code)]
-impl<M, R, Strat> PrioritySchedulerCore<M, R, Strat>
+impl<M, R, Strat> ReadyQueueSchedulerCore<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
@@ -443,7 +412,7 @@ where
       static WARNED: AtomicBool = AtomicBool::new(false);
       if !WARNED.swap(true, Ordering::Relaxed) {
         tracing::warn!(
-          "PriorityScheduler::dispatch_all is deprecated. Consider using dispatch_next / run_until instead."
+          "ReadyQueueScheduler::dispatch_all is deprecated. Consider using dispatch_next / run_until instead."
         );
       }
     }
@@ -708,93 +677,6 @@ where
   }
 }
 
-impl<M, R, Strat> PriorityScheduler<M, R, Strat>
-where
-  M: Element,
-  R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
-{
-  fn core(&self) -> &PrioritySchedulerCore<M, R, Strat> {
-    &self.core
-  }
-
-  fn core_mut(&mut self) -> &mut PrioritySchedulerCore<M, R, Strat> {
-    &mut self.core
-  }
-
-  pub fn spawn_actor(
-    &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-    self.core_mut().spawn_actor(supervisor, context)
-  }
-
-  pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
-  where
-    F: FnMut() -> bool, {
-    self.core_mut().run_until(should_continue).await
-  }
-
-  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
-    self.core_mut().run_forever().await
-  }
-
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    self.core_mut().dispatch_next().await
-  }
-
-  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
-    self.core_mut().drain_ready()
-  }
-
-  pub fn process_actor_pending(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
-    self.core_mut().process_actor_pending(index)
-  }
-
-  pub fn actor_count(&self) -> usize {
-    self.core().actor_count()
-  }
-
-  pub fn take_escalations(&mut self) -> Vec<FailureInfo> {
-    self.core_mut().take_escalations()
-  }
-
-  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
-    self.core_mut().set_receive_timeout_factory(factory)
-  }
-
-  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.core_mut().set_metrics_sink(sink)
-  }
-
-  pub fn on_escalation<F>(&mut self, handler: F)
-  where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
-    self.core_mut().on_escalation(handler)
-  }
-
-  pub fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
-    self.core_mut().set_parent_guardian(control_ref, map_system)
-  }
-
-  pub fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
-    self.core_mut().set_root_escalation_handler(handler)
-  }
-
-  pub fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    self.core_mut().set_root_event_listener(listener)
-  }
-
-  pub fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
-    self.core_mut().set_root_failure_telemetry(telemetry)
-  }
-
-  pub fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
-    self.core_mut().set_root_observation_config(config)
-  }
-}
-
 /// Worker interface exposing ReadyQueue operations for driver-level scheduling.
 pub trait ReadyQueueWorker<M, R>
 where
@@ -993,6 +875,21 @@ where
     ctx.drain_ready()
   }
 
+  pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  where
+    F: FnMut() -> bool, {
+    while should_continue() {
+      self.dispatch_next().await?;
+    }
+    Ok(())
+  }
+
+  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
+    loop {
+      self.dispatch_next().await?;
+    }
+  }
+
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     loop {
       {
@@ -1027,73 +924,6 @@ where
     }
   }
 }
-#[async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, R> for PriorityScheduler<M, R, Strat>
-where
-  M: Element,
-  R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
-{
-  fn spawn_actor(
-    &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-    PriorityScheduler::spawn_actor(self, supervisor, context)
-  }
-
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
-    PriorityScheduler::set_receive_timeout_factory(self, factory);
-  }
-
-  fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    PriorityScheduler::set_root_event_listener(self, listener);
-  }
-
-  fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
-    PriorityScheduler::set_root_escalation_handler(self, handler);
-  }
-
-  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    PriorityScheduler::set_metrics_sink(self, sink);
-  }
-
-  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
-    PriorityScheduler::set_parent_guardian(self, control_ref, map_system);
-  }
-
-  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
-    PriorityScheduler::set_root_failure_telemetry(self, telemetry);
-  }
-
-  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
-    PriorityScheduler::set_root_observation_config(self, config);
-  }
-
-  fn on_escalation(
-    &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
-  ) {
-    PriorityScheduler::on_escalation(self, handler);
-  }
-
-  fn take_escalations(&mut self) -> Vec<FailureInfo> {
-    PriorityScheduler::take_escalations(self)
-  }
-
-  fn actor_count(&self) -> usize {
-    PriorityScheduler::actor_count(self)
-  }
-
-  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
-    PriorityScheduler::drain_ready(self)
-  }
-
-  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    PriorityScheduler::dispatch_next(self).await
-  }
-}
-
 #[async_trait(?Send)]
 impl<M, R, Strat> ActorScheduler<M, R> for ReadyQueueScheduler<M, R, Strat>
 where

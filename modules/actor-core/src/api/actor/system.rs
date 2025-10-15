@@ -60,7 +60,7 @@ where
   pub(crate) fn new(actor_runtime: R) -> Self {
     Self {
       mailbox_runtime: ArcShared::new(actor_runtime),
-      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, RuntimeEnv<R>>::priority()),
+      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, RuntimeEnv<R>>::ready_queue()),
     }
   }
 

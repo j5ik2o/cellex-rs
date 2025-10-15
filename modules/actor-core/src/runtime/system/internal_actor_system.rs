@@ -82,7 +82,7 @@ where
   }
 
   pub fn new_with_settings(actor_runtime: R, settings: InternalActorSystemSettings<M, R>) -> Self {
-    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::priority());
+    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::ready_queue());
     Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings)
   }
 
