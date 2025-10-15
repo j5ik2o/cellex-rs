@@ -33,7 +33,7 @@ async fn run_runtime_unbounded_mailbox_accepts_multiple_messages() {
   let (mailbox, sender) = factory.unbounded::<u32>();
 
   for value in 0..32_u32 {
-    sender.send(value).await.expect("send succeeds");
+    sender.send(value).expect("send succeeds");
   }
 
   assert!(mailbox.capacity().is_limitless());

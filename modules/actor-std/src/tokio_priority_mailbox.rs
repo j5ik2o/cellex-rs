@@ -428,9 +428,7 @@ where
     self.inner.try_send(message).map_err(Box::new)
   }
 
-  /// Sends a message asynchronously
-  ///
-  /// Waits until space becomes available in the queue.
+  /// Sends a message to the priority mailbox.
   ///
   /// # Arguments
   ///
@@ -443,8 +441,8 @@ where
   /// # Errors
   ///
   /// Returns an error if sending fails
-  pub async fn send(&self, message: PriorityEnvelope<M>) -> Result<(), PriorityQueueError<M>> {
-    self.inner.send(message).await.map_err(Box::new)
+  pub fn send(&self, message: PriorityEnvelope<M>) -> Result<(), PriorityQueueError<M>> {
+    self.inner.send(message).map_err(Box::new)
   }
 
   /// Sends a message with specified priority in a non-blocking manner
@@ -479,8 +477,8 @@ where
   /// # Errors
   ///
   /// Returns an error if sending fails
-  pub async fn send_with_priority(&self, message: M, priority: i8) -> Result<(), PriorityQueueError<M>> {
-    self.send(PriorityEnvelope::new(message, priority)).await
+  pub fn send_with_priority(&self, message: M, priority: i8) -> Result<(), PriorityQueueError<M>> {
+    self.send(PriorityEnvelope::new(message, priority))
   }
 
   /// Sends a control message with priority in a non-blocking manner
@@ -503,7 +501,7 @@ where
     self.try_send(PriorityEnvelope::control(message, priority))
   }
 
-  /// Sends a control message with priority asynchronously
+  /// Sends a control message with priority.
   ///
   /// Control messages are processed with higher priority than regular messages.
   ///
@@ -519,8 +517,8 @@ where
   /// # Errors
   ///
   /// Returns an error if sending fails
-  pub async fn send_control_with_priority(&self, message: M, priority: i8) -> Result<(), PriorityQueueError<M>> {
-    self.send(PriorityEnvelope::control(message, priority)).await
+  pub fn send_control_with_priority(&self, message: M, priority: i8) -> Result<(), PriorityQueueError<M>> {
+    self.send(PriorityEnvelope::control(message, priority))
   }
 
   /// Returns a reference to the internal `QueueMailboxProducer`

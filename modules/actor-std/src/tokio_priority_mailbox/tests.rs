@@ -7,15 +7,12 @@ async fn run_priority_runtime_orders_messages() {
 
   sender
     .send_with_priority(10, DEFAULT_PRIORITY)
-    .await
     .expect("send low priority");
   sender
     .send_control_with_priority(99, DEFAULT_PRIORITY + 7)
-    .await
     .expect("send high priority");
   sender
     .send_control_with_priority(20, DEFAULT_PRIORITY + 3)
-    .await
     .expect("send medium priority");
 
   tokio::task::yield_now().await;
@@ -45,7 +42,6 @@ async fn run_priority_sender_defaults_work() {
 
   sender
     .send(PriorityEnvelope::with_default_priority(5))
-    .await
     .expect("send default priority");
 
   let envelope = mailbox.recv().await.expect("receive envelope");
@@ -69,11 +65,9 @@ async fn run_control_queue_preempts_regular_messages() {
 
   sender
     .send_with_priority(1, DEFAULT_PRIORITY)
-    .await
     .expect("enqueue regular message");
   sender
     .send_control_with_priority(99, DEFAULT_PRIORITY + 5)
-    .await
     .expect("enqueue control message");
 
   let first = mailbox.recv().await.expect("first message");
@@ -102,15 +96,12 @@ async fn run_priority_mailbox_capacity_split() {
 
   sender
     .send_control_with_priority(1, DEFAULT_PRIORITY + 2)
-    .await
     .expect("control enqueue");
   sender
     .send_with_priority(2, DEFAULT_PRIORITY)
-    .await
     .expect("regular enqueue");
   sender
     .send_with_priority(3, DEFAULT_PRIORITY)
-    .await
     .expect("second regular enqueue");
 
   let err = sender

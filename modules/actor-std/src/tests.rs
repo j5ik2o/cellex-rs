@@ -31,7 +31,7 @@ async fn run_test_actor_loop_updates_state() {
     .await;
   });
 
-  sender.send(4_u32).await.expect("send message");
+  sender.send(4_u32).expect("send message");
   tokio::time::sleep(Duration::from_millis(10)).await;
 
   assert_eq!(*state.borrow(), 4_u32);
