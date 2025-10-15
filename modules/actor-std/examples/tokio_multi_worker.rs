@@ -1,6 +1,6 @@
 //! ReadyQueue ワーカを 4 本起動し、Tokio 上でメッセージを並列処理するサンプル。
 
-use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, Props};
 use cellex_actor_std_rs::{TokioMailboxRuntime, TokioSystemHandle};
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
@@ -19,7 +19,7 @@ async fn main() {
       let log = Arc::new(Mutex::new(Vec::new()));
       let log_clone = Arc::clone(&log);
 
-      let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+      let props = Props::new(move |_, msg: u32| {
         println!("Received message: {}", msg);
         log_clone.lock().unwrap().push(msg);
         Ok(())

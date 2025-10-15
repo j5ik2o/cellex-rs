@@ -29,7 +29,7 @@ use rp235x_hal::{self as hal, clocks::init_clocks_and_plls, gpio::PinState, pac,
 use hal::entry;
 
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_embedded_rs::ArcMailboxRuntime;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
@@ -93,7 +93,7 @@ fn main() -> ! {
   let behavior_led = led_pin.clone();
   let behavior_clock_hz = system_clock_hz;
 
-  let greeter_props = Props::with_behavior(MailboxOptions::default(), move || {
+  let greeter_props = Props::with_behavior(move || {
     let setup_led = behavior_led.clone();
     let clock_hz = behavior_clock_hz;
     Behaviors::setup(move |ctx| {

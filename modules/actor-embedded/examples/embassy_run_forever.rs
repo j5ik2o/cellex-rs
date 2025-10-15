@@ -1,6 +1,6 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
-  use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, MailboxOptions, Props, RuntimeEnv};
+  use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, Props, RuntimeEnv};
   use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
   use core::sync::atomic::{AtomicU32, Ordering};
   use embassy_executor::Executor;
@@ -24,7 +24,7 @@ mod sample {
       {
         let mut root = system.root_context();
         let actor_ref = root
-          .spawn(Props::new(MailboxOptions::default(), |_, msg: u32| {
+          .spawn(Props::new(|_, msg: u32| {
             MESSAGE_SUM.fetch_add(msg, Ordering::Relaxed);
             Ok(())
           }))

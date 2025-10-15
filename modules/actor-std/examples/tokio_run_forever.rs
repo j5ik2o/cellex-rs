@@ -1,6 +1,6 @@
 //! Tokio 上で `ActorSystem::run_until` を起動する最小サンプル。
 
-use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, Props};
 use cellex_actor_std_rs::TokioMailboxRuntime;
 use std::sync::{Arc, Mutex};
 
@@ -13,7 +13,7 @@ async fn main() {
   let log = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
 
-  let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+  let props = Props::new(move |_, msg: u32| {
     log_clone.lock().unwrap().push(msg);
     Ok(())
   });

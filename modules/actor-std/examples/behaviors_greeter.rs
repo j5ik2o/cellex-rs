@@ -3,7 +3,7 @@
 //! `Behaviors::setup` で状態（挨拶回数）を初期化し、
 //! `Behaviors::receive` でメッセージごとの遷移を定義しています。
 
-use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
 use cellex_actor_std_rs::TokioMailboxRuntime;
 use tracing_subscriber::FmtSubscriber;
 
@@ -23,7 +23,7 @@ fn main() {
   let mut system: ActorSystem<Command, _> = ActorSystem::new(TokioMailboxRuntime);
   let mut root = system.root_context();
 
-  let greeter_props = Props::with_behavior(MailboxOptions::default(), || {
+  let greeter_props = Props::with_behavior(|| {
     Behaviors::setup(move |ctx| {
       let mut greeted = 0usize;
       let logger = ctx.log();

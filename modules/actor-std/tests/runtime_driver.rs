@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props, RuntimeEnv};
+use cellex_actor_core_rs::{ActorSystem, Props, RuntimeEnv};
 use cellex_actor_std_rs::{FailureEventHub, TokioMailboxRuntime, TokioSystemHandle};
 
 async fn run_tokio_actor_runtime_processes_messages() {
@@ -11,7 +11,7 @@ async fn run_tokio_actor_runtime_processes_messages() {
   let state: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
   let state_clone = state.clone();
 
-  let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+  let props = Props::new(move |_, msg: u32| {
     state_clone.lock().unwrap().push(msg);
     Ok(())
   });

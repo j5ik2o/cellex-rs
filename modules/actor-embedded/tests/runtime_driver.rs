@@ -10,7 +10,7 @@ use std::sync::Arc;
 use cellex_actor_core_rs::{
   ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
 };
-use cellex_actor_core_rs::{ActorSystem, FailureEventStream, MailboxOptions, Props, RuntimeEnv};
+use cellex_actor_core_rs::{ActorSystem, FailureEventStream, Props, RuntimeEnv};
 use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, LocalMailboxRuntime};
 
 #[test]
@@ -22,7 +22,7 @@ fn embedded_actor_runtime_dispatches_message() {
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+  let props = Props::new(move |_, msg: u32| {
     log_clone.borrow_mut().push(msg);
     Ok(())
   });

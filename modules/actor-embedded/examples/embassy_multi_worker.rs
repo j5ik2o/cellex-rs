@@ -1,8 +1,7 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
   use cellex_actor_core_rs::{
-    actor::context::RootContext, ActorSystem, ActorSystemConfig, MailboxOptions, Props, ReadyQueueWorker, RuntimeEnv,
-    ShutdownToken,
+    actor::context::RootContext, ActorSystem, ActorSystemConfig, Props, ReadyQueueWorker, RuntimeEnv, ShutdownToken,
   };
   use cellex_actor_core_rs::{ArcShared, DynMessage};
   use cellex_actor_embedded_rs::{ActorRuntimeBundleEmbassyExt, LocalMailboxRuntime};
@@ -86,7 +85,7 @@ mod sample {
 
       let mut root: RootContext<'_, u32, _> = system.root_context();
       let actor_ref = root
-        .spawn(Props::new(MailboxOptions::default(), |_, msg: u32| {
+        .spawn(Props::new(|_, msg: u32| {
           MESSAGE_SUM.fetch_add(msg, Ordering::Relaxed);
           Ok(())
         }))

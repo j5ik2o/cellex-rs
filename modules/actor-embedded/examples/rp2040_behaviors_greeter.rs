@@ -7,7 +7,7 @@ mod hw {
 
   use alloc::rc::Rc;
   use alloc_cortex_m::CortexMHeap;
-  use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
+  use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
   use cellex_actor_embedded_rs::LocalMailboxRuntime;
   use core::cell::RefCell;
   use cortex_m::{asm, interrupt};
@@ -77,7 +77,7 @@ mod hw {
     let behavior_led = led_pin.clone();
     let behavior_clock_hz = system_clock_hz;
 
-    let greeter_props = Props::with_behavior(MailboxOptions::default(), move || {
+    let greeter_props = Props::with_behavior(move || {
       let setup_led = behavior_led.clone();
       let clock_hz = behavior_clock_hz;
       Behaviors::setup(move |ctx| {
