@@ -6,6 +6,8 @@ use core::task::{Context, Poll};
 use cellex_utils_core_rs::Flag;
 use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 
+use crate::runtime::scheduler::ReadyQueueHandle;
+
 use crate::runtime::metrics::{MetricsEvent, MetricsSinkShared};
 
 use super::traits::{Mailbox, MailboxSignal};
@@ -80,12 +82,12 @@ impl Default for MailboxOptions {
 /// # Type Parameters
 /// - `Q`: Message queue implementation type
 /// - `S`: Notification signal implementation type
-#[derive(Debug)]
 pub struct QueueMailbox<Q, S> {
   queue: Q,
   signal: S,
   closed: Flag,
   metrics_sink: Option<MetricsSinkShared>,
+  scheduler_hook: Option<ReadyQueueHandle>,
 }
 
 impl<Q, S> QueueMailbox<Q, S> {
@@ -100,6 +102,7 @@ impl<Q, S> QueueMailbox<Q, S> {
       signal,
       closed: Flag::default(),
       metrics_sink: None,
+      scheduler_hook: None,
     }
   }
 
@@ -125,12 +128,18 @@ impl<Q, S> QueueMailbox<Q, S> {
       signal: self.signal.clone(),
       closed: self.closed.clone(),
       metrics_sink: self.metrics_sink.clone(),
+      scheduler_hook: self.scheduler_hook.clone(),
     }
   }
 
   /// Configures a metrics sink used for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.metrics_sink = sink;
+  }
+
+  /// Installs a scheduler hook that is notified when new messages arrive.
+  pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
+    self.scheduler_hook = hook;
   }
 
   fn record_enqueue(&self) {
@@ -151,7 +160,14 @@ where
       signal: self.signal.clone(),
       closed: self.closed.clone(),
       metrics_sink: self.metrics_sink.clone(),
+      scheduler_hook: self.scheduler_hook.clone(),
     }
+  }
+}
+
+impl<Q, S> core::fmt::Debug for QueueMailbox<Q, S> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    f.debug_struct("QueueMailbox").finish()
   }
 }
 
@@ -163,12 +179,19 @@ where
 /// # Type Parameters
 /// - `Q`: Message queue implementation type
 /// - `S`: Notification signal implementation type
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct QueueMailboxProducer<Q, S> {
   queue: Q,
   signal: S,
   closed: Flag,
   metrics_sink: Option<MetricsSinkShared>,
+  scheduler_hook: Option<ReadyQueueHandle>,
+}
+
+impl<Q, S> core::fmt::Debug for QueueMailboxProducer<Q, S> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    f.debug_struct("QueueMailboxProducer").finish()
+  }
 }
 
 unsafe impl<Q, S> Send for QueueMailboxProducer<Q, S>
@@ -214,6 +237,9 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
         if let Some(sink) = &self.metrics_sink {
           sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
         }
+        if let Some(hook) = &self.scheduler_hook {
+          hook.notify_ready();
+        }
         Ok(())
       }
       Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
@@ -224,17 +250,14 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     }
   }
 
-  /// Sends a message asynchronously.
-  ///
-  /// Currently just calls `try_send`, but can be extended in the future
-  /// for features like backpressure support.
+  /// Sends a message using the mailbox queue.
   ///
   /// # Arguments
   /// - `message`: Message to send
   ///
   /// # Returns
   /// `Ok(())` on success, `Err(QueueError)` on failure
-  pub async fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
+  pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
     Q: QueueRw<M>,
     S: MailboxSignal,
@@ -245,6 +268,11 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Assigns a metrics sink for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.metrics_sink = sink;
+  }
+
+  /// Installs a scheduler hook for notifying ready queue updates.
+  pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
+    self.scheduler_hook = hook;
   }
 }
 
@@ -265,6 +293,9 @@ where
       Ok(()) => {
         self.signal.notify();
         self.record_enqueue();
+        if let Some(hook) = &self.scheduler_hook {
+          hook.notify_ready();
+        }
         Ok(())
       }
       Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
@@ -303,6 +334,10 @@ where
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.metrics_sink = sink;
+  }
+
+  fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
+    self.scheduler_hook = hook;
   }
 }
 

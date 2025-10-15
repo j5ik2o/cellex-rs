@@ -3,6 +3,8 @@ use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 
+use core::ptr;
+
 use super::Shared;
 
 /// Shared wrapper backed by `alloc::sync::Arc`.
@@ -21,14 +23,48 @@ impl<T: ?Sized> ArcShared<T> {
     Self(Arc::new(value))
   }
 
+  /// For Testing, Don't Use Production
+  ///
   /// Wraps an existing `Arc` in the shared wrapper.
-  pub fn from_arc(inner: Arc<T>) -> Self {
+  #[must_use]
+  pub const fn from_arc_for_testing_dont_use_production(inner: Arc<T>) -> Self {
     Self(inner)
   }
 
+  /// For Testing, Don't Use Production
+  ///
   /// Consumes the wrapper and returns the inner `Arc`.
-  pub fn into_arc(self) -> Arc<T> {
+  #[must_use]
+  pub fn into_arc_for_testing_dont_use_production(self) -> Arc<T> {
     self.0
+  }
+
+  /// Consumes the shared handle and returns the raw pointer.
+  #[must_use]
+  pub fn into_raw(self) -> *const T {
+    Arc::into_raw(self.0)
+  }
+
+  /// Reconstructs the shared handle from a raw pointer.
+  ///
+  /// # Safety
+  ///
+  /// The pointer must originate from `ArcShared::into_raw`.
+  pub unsafe fn from_raw(ptr: *const T) -> Self {
+    Self(unsafe { Arc::from_raw(ptr) })
+  }
+
+  /// Converts the shared handle into another dynamically sized representation.
+  pub fn into_dyn<U: ?Sized, F>(self, cast: F) -> ArcShared<U>
+  where
+    F: FnOnce(&T) -> &U, {
+    let raw = self.into_raw();
+    unsafe {
+      let reference = &*raw;
+      let trait_reference = cast(reference);
+      let trait_ptr = ptr::from_ref(trait_reference);
+      ArcShared::from_raw(trait_ptr)
+    }
   }
 }
 

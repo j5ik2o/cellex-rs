@@ -9,7 +9,7 @@
 | actor | `ActorRef`, `ActorSystem`, `Props`, `Behavior`, `Behaviors`, `SupervisorStrategy`, `MessageAdapterRef`, `TypedContext`(旧`Context`), `RootContext` | `modules/actor-core/src/api/actor/*.rs` | Typed DSL（`receive`/`supervise`/`message_adapter`）と基本操作レイヤ（TypedContext は後日リネーム予定） |
 | messaging | `MessageEnvelope` | `modules/actor-core/src/api/messaging/message_envelope.rs` | ユーザーメッセージとシステムメッセージの橋渡し |
 | identity | `ActorId`, `ActorPath` | `modules/actor-core/src/api/identity/{actor_id.rs,actor_path.rs}` | ルーティング／名前解決用 ID 型 |
-| system-support | `Mailbox`, `MailboxRuntime`, `MailboxSignal`, `PriorityEnvelope`, `SystemMessage`, `Spawn`, `Timer`, `ActorSystemParts`, `ActorSystemHandles` | `modules/actor-core/src/api/actor/system_support.rs`（実体は `runtime/mailbox/*` など） | std/embedded 両対応の抽象境界 |
+| system-support | `Mailbox`, `MailboxRuntime`, `MailboxSignal`, `PriorityEnvelope`, `SystemMessage`, `Spawn`, `Timer` | `modules/actor-core/src/api/actor/system_support.rs`（実体は `runtime/mailbox/*` など） | std/embedded 両対応の抽象境界。`ActorSystem` 初期化は `ActorSystem::new_with_runtime_and_event_stream` 経由に一本化 |
 | supervision | `Supervisor`, `SupervisorDirective`, `NoopSupervisor`, `FailureEvent`, `EscalationStage`, `EscalationSink`, `FailureEventHandler`, `FailureEventListener`, `RootEscalationSink` | `modules/actor-core/src/api/supervision/*.rs` | ユーザー拡張ポイントとして公開する監督/失敗ハンドラ |
 | shared | `Shared`, `StateCell` | 外部クレート (`cellex_utils_core_rs`) を `api/shared.rs` で再エクスポート | 共有状態抽象 |
 | event_stream | `FailureEventStream` | `modules/actor-core/src/api/event_stream.rs` | 実装は `actor-std` / `actor-embedded` など外部クレート側で提供 |
@@ -21,7 +21,7 @@
 | context | `ActorContext`, `ChildSpawnSpec`, `InternalActorRef` | `modules/actor-core/src/runtime/context/{actor_context.rs,child_spawn_spec.rs,internal_actor_ref.rs}` | API 側では `crate::runtime::context` 経由で参照 |
 | system | `InternalActorSystem`, `InternalRootContext`, `InternalProps` | `modules/actor-core/src/runtime/system/{internal_actor_system.rs,internal_root_context.rs,internal_props.rs}` | スケジューラ／ガーディアン連携の中核 |
 | mailbox | `PriorityEnvelope`, `QueueMailbox*`, `MailboxOptions`, `SystemMessage` | `modules/actor-core/src/runtime/mailbox/{messages.rs,queue_mailbox.rs,traits.rs}` | API からは `api::actor::system_support` を介して公開可否を制御 |
-| scheduler | `PriorityScheduler`, `ActorCell` | `modules/actor-core/src/runtime/scheduler/{priority_scheduler.rs,actor_cell.rs}` | 優先度スケジューラ本体（外部には未公開） |
+| scheduler | `ReadyQueueScheduler`, `ActorCell` | `modules/actor-core/src/runtime/scheduler/{ready_queue_scheduler.rs,actor_cell.rs}` | ReadyQueue ベースのスケジューラ本体（外部には未公開） |
 | guardian | `Guardian`, `GuardianStrategy` 実装, `ChildRecord` | `modules/actor-core/src/runtime/guardian/{guardian.rs,strategy.rs,child_record.rs}` | API には戦略インターフェイスのみ再公開予定 |
 | supervision | `CompositeEscalationSink`, `CustomEscalationSink`, `ParentGuardianSink`, `RootEscalationSink` 等 | `modules/actor-core/src/runtime/supervision/{parent_guardian_sink.rs,root_sink.rs,composite_sink.rs,custom_sink.rs,traits.rs}` | Root/Parent ガーディアン向け内部シンク（API には trait/handler のみ公開） |
 

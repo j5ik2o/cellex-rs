@@ -338,16 +338,16 @@ where
     self.inner.try_send(message)
   }
 
-  pub async fn send(&self, message: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    self.inner.send(message).await
+  pub fn send(&self, message: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+    self.inner.send(message)
   }
 
   pub fn try_send_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.try_send(PriorityEnvelope::new(message, priority))
   }
 
-  pub async fn send_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    self.send(PriorityEnvelope::new(message, priority)).await
+  pub fn send_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+    self.send(PriorityEnvelope::new(message, priority))
   }
 
   pub fn try_send_control_with_priority(
@@ -358,12 +358,8 @@ where
     self.try_send(PriorityEnvelope::control(message, priority))
   }
 
-  pub async fn send_control_with_priority(
-    &self,
-    message: M,
-    priority: i8,
-  ) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    self.send(PriorityEnvelope::control(message, priority)).await
+  pub fn send_control_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+    self.send(PriorityEnvelope::control(message, priority))
   }
 
   pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {

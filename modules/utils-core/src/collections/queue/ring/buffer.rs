@@ -53,6 +53,7 @@ impl<T> RingBuffer<T> {
   /// # use cellex_utils_core_rs::RingBuffer;
   /// let buffer = RingBuffer::<i32>::new(10);
   /// ```
+  #[must_use]
   pub fn new(capacity: usize) -> Self {
     assert!(capacity > 0, "capacity must be > 0");
     let buf = Self::alloc_buffer(capacity);
@@ -77,7 +78,8 @@ impl<T> RingBuffer<T> {
   /// # use cellex_utils_core_rs::RingBuffer;
   /// let buffer = RingBuffer::<i32>::new(10).with_dynamic(false);
   /// ```
-  pub fn with_dynamic(mut self, dynamic: bool) -> Self {
+  #[must_use]
+  pub const fn with_dynamic(mut self, dynamic: bool) -> Self {
     self.dynamic = dynamic;
     self
   }
@@ -87,7 +89,7 @@ impl<T> RingBuffer<T> {
   /// # Parameters
   ///
   /// * `dynamic` - If `true`, automatically expands when capacity is reached
-  pub fn set_dynamic(&mut self, dynamic: bool) {
+  pub const fn set_dynamic(&mut self, dynamic: bool) {
     self.dynamic = dynamic;
   }
 

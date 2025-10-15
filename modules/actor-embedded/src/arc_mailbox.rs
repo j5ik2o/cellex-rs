@@ -258,8 +258,8 @@ where
     self.inner.try_send(message)
   }
 
-  pub async fn send(&self, message: M) -> Result<(), QueueError<M>> {
-    self.inner.send(message).await
+  pub fn send(&self, message: M) -> Result<(), QueueError<M>> {
+    self.inner.send(message)
   }
 
   pub fn inner(&self) -> &QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {

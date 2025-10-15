@@ -1,10 +1,6 @@
 #![allow(missing_docs)]
 
 use alloc::boxed::Box;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 
 use async_trait::async_trait;
@@ -20,6 +16,8 @@ use crate::{
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
+use super::ready_queue_scheduler::ReadyQueueWorker;
+
 pub(crate) type SchedulerHandle<M, R> = Box<dyn ActorScheduler<M, R>>;
 #[cfg(target_has_atomic = "ptr")]
 type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + Send + Sync + 'static;
@@ -34,7 +32,7 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   pub runtime: R,
-  pub mailbox_factory: MailboxHandleFactoryStub<R>,
+  pub mailbox_handle_factory_stub: MailboxHandleFactoryStub<R>,
   pub map_system: MapSystemShared<M>,
   pub mailbox_options: MailboxOptions,
   pub handler: Box<ActorHandlerFn<M, R>>,
@@ -80,6 +78,12 @@ where
   fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>>;
 
   async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>>;
+
+  /// Returns a shared worker handle if the scheduler supports ReadyQueue-based execution.
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+    let _ = self;
+    None
+  }
 }
 
 #[derive(Clone)]
@@ -101,6 +105,7 @@ where
 {
   #[cfg(any(test, feature = "test-support"))]
   #[allow(dead_code)]
+  #[must_use]
   pub fn immediate() -> Self {
     use super::immediate_scheduler::ImmediateScheduler;
 
@@ -110,9 +115,9 @@ where
   pub fn new<F>(factory: F) -> Self
   where
     F: Fn(R, Extensions) -> SchedulerHandle<M, R> + SharedBound + 'static, {
-    let factory_arc: Arc<FactoryFn<M, R>> = Arc::new(factory);
+    let shared = ArcShared::new(factory);
     Self {
-      factory: ArcShared::from_arc(factory_arc),
+      factory: shared.into_dyn(|inner| inner as &FactoryFn<M, R>),
     }
   }
 

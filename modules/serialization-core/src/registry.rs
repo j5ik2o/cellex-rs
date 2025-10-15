@@ -5,10 +5,6 @@ mod tests;
 
 #[cfg(feature = "alloc")]
 use alloc::collections::BTreeMap;
-#[cfg(all(feature = "alloc", not(target_has_atomic = "ptr")))]
-use alloc::rc::Rc as SharedArc;
-#[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
-use alloc::sync::Arc as SharedArc;
 
 #[cfg(feature = "alloc")]
 use crate::error::RegistryError;
@@ -46,9 +42,8 @@ impl InMemorySerializerRegistry {
     if guard.contains_key(&serializer_id) {
       return Err(RegistryError::DuplicateEntry(serializer_id));
     }
-    let typed_arc: SharedArc<S> = serializer.into_arc();
-    let trait_arc: SharedArc<dyn Serializer> = typed_arc;
-    guard.insert(serializer_id, ArcShared::from_arc(trait_arc));
+    let trait_obj = serializer.into_dyn(|ext| ext as &dyn Serializer);
+    guard.insert(serializer_id, trait_obj);
     Ok(())
   }
 

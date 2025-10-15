@@ -1,8 +1,3 @@
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
-
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use core::fmt;
 
@@ -42,8 +37,9 @@ impl MetricsSinkShared {
   pub fn new<S>(sink: S) -> Self
   where
     S: MetricsSink + SharedBound + 'static, {
+    let shared = ArcShared::new(sink);
     Self {
-      inner: ArcShared::from_arc(Arc::new(sink) as Arc<dyn MetricsSink>),
+      inner: shared.into_dyn(|inner| inner as &dyn MetricsSink),
     }
   }
 

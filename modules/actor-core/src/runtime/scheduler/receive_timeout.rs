@@ -101,7 +101,7 @@ where
     _sender: R::Producer<PriorityEnvelope<M>>,
     _map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler> {
-    Box::new(NoopReceiveTimeoutScheduler::default())
+    Box::new(NoopReceiveTimeoutScheduler)
   }
 }
 
@@ -117,6 +117,6 @@ where
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,
 {
   fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>> {
-    ReceiveTimeoutFactoryShared::new(NoopReceiveTimeoutSchedulerFactory::default()).for_runtime_bundle()
+    ReceiveTimeoutFactoryShared::new(NoopReceiveTimeoutSchedulerFactory).for_runtime_bundle()
   }
 }

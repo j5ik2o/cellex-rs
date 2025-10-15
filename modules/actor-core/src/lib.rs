@@ -23,6 +23,7 @@
 //! ```
 
 #![deny(missing_docs)]
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(clippy::missing_errors_doc)]
@@ -46,7 +47,7 @@
 #![deny(clippy::unreachable)]
 #![deny(clippy::empty_enum)]
 #![deny(clippy::no_effect)]
-#![deny(clippy::drop_copy)]
+#![deny(dropping_copy_types)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
@@ -60,7 +61,6 @@
 #![deny(clippy::clone_on_copy)]
 #![deny(clippy::len_without_is_empty)]
 #![deny(clippy::wrong_self_convention)]
-#![deny(clippy::wrong_pub_self_convention)]
 #![deny(clippy::from_over_into)]
 #![deny(clippy::eq_op)]
 #![deny(clippy::bool_comparison)]
@@ -86,6 +86,7 @@ mod runtime;
 mod shared;
 
 pub use api::*;
+pub use cellex_utils_core_rs::sync::ArcShared;
 #[cfg(feature = "alloc")]
 pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
@@ -98,8 +99,9 @@ pub use runtime::message::{
 };
 pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 pub use runtime::scheduler::{
-  ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory, PriorityScheduler,
-  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
+  drive_ready_queue_worker, ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
+  ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
+  SchedulerBuilder, SchedulerSpawnContext,
 };
 pub use shared::{
   FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,

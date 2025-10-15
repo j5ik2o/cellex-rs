@@ -1,9 +1,3 @@
-use alloc::rc::Rc;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
-
 use crate::runtime::context::ActorContext;
 use crate::runtime::mailbox::traits::ActorRuntime;
 use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
@@ -17,13 +11,12 @@ use cellex_utils_core_rs::Element;
 use super::behavior::SupervisorStrategyConfig;
 use super::{ActorAdapter, ActorFailure, Behavior, Context};
 use crate::api::MessageEnvelope;
-use core::cell::RefCell;
 use core::marker::PhantomData;
+use spin::Mutex;
 
 /// Properties that hold configuration for actor spawning.
 ///
 /// Includes actor behavior, mailbox settings, supervisor strategy, and more.
-
 pub struct Props<U, R>
 where
   U: Element,
@@ -47,17 +40,19 @@ where
   /// Creates a new `Props` with the specified message handler.
   ///
   /// # Arguments
-  /// * `options` - Mailbox options
   /// * `handler` - Handler function to process user messages
-  pub fn new<F>(options: MailboxOptions, handler: F) -> Self
+  pub fn new<F>(handler: F) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static, {
-    let handler_cell = Rc::new(RefCell::new(handler));
-    Self::with_behavior(options, {
+    let handler_cell = ArcShared::new(Mutex::new(handler));
+    Self::with_behavior({
       let handler_cell = handler_cell.clone();
       move || {
         let handler_cell = handler_cell.clone();
-        Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| (handler_cell.borrow_mut())(ctx, msg))
+        Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| {
+          let mut guard = handler_cell.lock();
+          (guard)(ctx, msg)
+        })
       }
     })
   }
@@ -65,32 +60,32 @@ where
   /// Creates a new `Props` with the specified Behavior factory.
   ///
   /// # Arguments
-  /// * `options` - Mailbox options
   /// * `behavior_factory` - Factory function that generates actor behavior
-  pub fn with_behavior<F>(options: MailboxOptions, behavior_factory: F) -> Self
+  pub fn with_behavior<F>(behavior_factory: F) -> Self
   where
     F: Fn() -> Behavior<U, R> + 'static, {
-    Self::with_behavior_and_system::<_, fn(&mut Context<'_, '_, U, R>, SystemMessage)>(options, behavior_factory, None)
+    Self::with_behavior_and_system::<_, fn(&mut Context<'_, '_, U, R>, SystemMessage)>(behavior_factory, None)
   }
 
   /// Creates a new `Props` with user message handler and system message handler.
   ///
   /// # Arguments
-  /// * `options` - Mailbox options
   /// * `user_handler` - Handler function to process user messages
   /// * `system_handler` - Handler function to process system messages (optional)
-  pub fn with_system_handler<F, G>(options: MailboxOptions, user_handler: F, system_handler: Option<G>) -> Self
+  pub fn with_system_handler<F, G>(user_handler: F, system_handler: Option<G>) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static,
     G: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
-    let handler_cell = Rc::new(RefCell::new(user_handler));
+    let handler_cell = ArcShared::new(Mutex::new(user_handler));
     Self::with_behavior_and_system(
-      options,
       {
         let handler_cell = handler_cell.clone();
         move || {
           let handler_cell = handler_cell.clone();
-          Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| (handler_cell.borrow_mut())(ctx, msg))
+          Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| {
+            let mut guard = handler_cell.lock();
+            (guard)(ctx, msg)
+          })
         }
       },
       system_handler,
@@ -102,10 +97,16 @@ where
   /// The most flexible way to create `Props`, allowing specification of both behavior and system message handler.
   ///
   /// # Arguments
-  /// * `options` - Mailbox options
   /// * `behavior_factory` - Factory function that generates actor behavior
   /// * `system_handler` - Handler function to process system messages (optional)
-  pub fn with_behavior_and_system<F, S>(
+  pub fn with_behavior_and_system<F, S>(behavior_factory: F, system_handler: Option<S>) -> Self
+  where
+    F: Fn() -> Behavior<U, R> + 'static,
+    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
+    Self::with_behavior_and_system_with_options(MailboxOptions::default(), behavior_factory, system_handler)
+  }
+
+  fn with_behavior_and_system_with_options<F, S>(
     options: MailboxOptions,
     behavior_factory: F,
     system_handler: Option<S>,
@@ -113,8 +114,8 @@ where
   where
     F: Fn() -> Behavior<U, R> + 'static,
     S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
-    let behavior_factory: Arc<dyn Fn() -> Behavior<U, R> + 'static> = Arc::new(behavior_factory);
-    let behavior_factory = ArcShared::from_arc(behavior_factory);
+    let behavior_factory =
+      ArcShared::new(behavior_factory).into_dyn(|factory| factory as &(dyn Fn() -> Behavior<U, R> + 'static));
     let mut adapter = ActorAdapter::new(behavior_factory.clone(), system_handler);
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();
@@ -149,6 +150,13 @@ where
       _marker: PhantomData,
       supervisor,
     }
+  }
+
+  /// Overrides the mailbox options for this `Props`.
+  #[must_use]
+  pub fn with_mailbox_options(mut self, options: MailboxOptions) -> Self {
+    self.inner.options = options;
+    self
   }
 
   /// Decomposes into internal properties and supervisor configuration (internal API).

@@ -1,5 +1,7 @@
 use super::*;
 
+use alloc::boxed::Box;
+
 #[derive(Debug)]
 struct SampleError;
 

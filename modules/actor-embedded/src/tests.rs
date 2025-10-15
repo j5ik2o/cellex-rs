@@ -3,7 +3,7 @@ extern crate std;
 use super::LocalMailboxRuntime;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use cellex_actor_core_rs::{ActorSystem, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, Props};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
@@ -55,7 +55,7 @@ fn typed_actor_system_dispatch_next_processes_message() {
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+  let props = Props::new(move |_, msg: u32| {
     log_clone.borrow_mut().push(msg);
     Ok(())
   });

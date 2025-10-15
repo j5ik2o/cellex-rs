@@ -57,7 +57,7 @@
 - [ ] MailboxConcurrency マーカーと ThreadSafe/SingleThread 仕組みを導入する。
 - [ ] 各 MailboxRuntime が所属モードを宣言し、関連境界を更新する。
 - [ ] `MailboxRuntime` の associated type にプラットフォーム別境界 (`RuntimeBound`) を導入。
-- [ ] `ActorCell` / `PriorityScheduler` / `InternalActorRef` が保持する queue/signal 型のトレイト境界を `RuntimeBound` に更新。
+- [ ] `ActorCell` / `ReadyQueueScheduler` / `InternalActorRef` が保持する queue/signal 型のトレイト境界を `RuntimeBound` に更新。
 - [ ] `ReceiveTimeoutSchedulerFactory` が要求する `Send + Sync` を条件付きに整理（std→`Send + Sync`, embedded→none）。
 
 ### Scope C: DynMessage と Any 境界

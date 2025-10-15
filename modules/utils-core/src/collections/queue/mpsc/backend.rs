@@ -31,7 +31,7 @@ impl<S> RingBufferBackend<S> {
   /// # Returns
   ///
   /// A reference to the storage
-  pub fn storage(&self) -> &S {
+  pub const fn storage(&self) -> &S {
     &self.storage
   }
 

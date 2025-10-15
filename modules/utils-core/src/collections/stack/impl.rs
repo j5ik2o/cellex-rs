@@ -44,7 +44,8 @@ where
   /// # Returns
   ///
   /// A new [`Stack`] instance
-  pub fn new(backend: H) -> Self {
+  #[must_use]
+  pub const fn new(backend: H) -> Self {
     Self {
       backend,
       _marker: core::marker::PhantomData,
@@ -56,7 +57,7 @@ where
   /// # Returns
   ///
   /// Immutable reference to the backend handle
-  pub fn backend(&self) -> &H {
+  pub const fn backend(&self) -> &H {
     &self.backend
   }
 
@@ -90,6 +91,10 @@ where
   ///
   /// * `Ok(())` - Push succeeded
   /// * `Err(StackError<T>)` - Stack is full; error contains the original value
+  ///
+  /// # Errors
+  ///
+  /// * `StackError::Full(value)` - Stack is full; error contains the original value
   pub fn push(&self, value: T) -> Result<(), StackError<T>> {
     self.backend.backend().push(value)
   }
@@ -183,6 +188,9 @@ impl<H, T> StackMut<T> for Stack<H, T>
 where
   H: StackHandle<T>,
 {
+  /// # Errors
+  ///
+  /// * `StackError::Full(value)` - Stack is full; error contains the original value
   fn push(&mut self, value: T) -> Result<(), StackError<T>> {
     self.backend.backend().push(value)
   }
@@ -203,4 +211,5 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
 mod tests;

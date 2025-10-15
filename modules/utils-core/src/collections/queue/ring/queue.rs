@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
 mod tests;
 
 use core::marker::PhantomData;
@@ -28,7 +29,8 @@ where
   /// # Returns
   ///
   /// New `RingQueue` instance
-  pub fn new(backend: H) -> Self {
+  #[must_use]
+  pub const fn new(backend: H) -> Self {
     Self {
       backend,
       _marker: PhantomData,
@@ -40,7 +42,7 @@ where
   /// # Returns
   ///
   /// Immutable reference to the backend handle
-  pub fn backend(&self) -> &H {
+  pub const fn backend(&self) -> &H {
     &self.backend
   }
 
@@ -75,6 +77,7 @@ where
   /// # Returns
   ///
   /// This queue with dynamic mode set
+  #[must_use]
   pub fn with_dynamic(self, dynamic: bool) -> Self {
     self.set_dynamic(dynamic);
     self
@@ -105,6 +108,10 @@ where
   /// * `Ok(Some(E))` - Element removed from the queue
   /// * `Ok(None)` - If queue is empty
   /// * `Err(QueueError)` - If an error occurred
+  ///
+  /// # Errors
+  ///
+  /// This method currently does not return any errors, but the signature allows for future error handling.
   pub fn poll(&self) -> Result<Option<E>, QueueError<E>> {
     self.backend.backend().poll()
   }
@@ -173,6 +180,10 @@ where
   ///
   /// * `Ok(())` - If element was successfully added
   /// * `Err(QueueError)` - If queue is full and element cannot be added
+  ///
+  /// # Errors
+  ///
+  /// Returns `QueueError::Full` if the queue is full and dynamic mode is disabled.
   fn offer_mut(&mut self, element: E) -> Result<(), QueueError<E>> {
     self.offer(element)
   }
@@ -189,6 +200,10 @@ where
   /// * `Ok(Some(E))` - Element removed from the queue
   /// * `Ok(None)` - If queue is empty
   /// * `Err(QueueError)` - If an error occurred
+  ///
+  /// # Errors
+  ///
+  /// This method currently does not return any errors, but the signature allows for future error handling.
   fn poll_mut(&mut self) -> Result<Option<E>, QueueError<E>> {
     self.poll()
   }
@@ -215,6 +230,10 @@ where
   ///
   /// * `Ok(())` - If element was successfully added
   /// * `Err(QueueError)` - If queue is full and element cannot be added
+  ///
+  /// # Errors
+  ///
+  /// Returns `QueueError::Full` if the queue is full and dynamic mode is disabled.
   fn offer(&self, element: E) -> Result<(), QueueError<E>> {
     self.offer(element)
   }
@@ -226,6 +245,10 @@ where
   /// * `Ok(Some(E))` - Element removed from the queue
   /// * `Ok(None)` - If queue is empty
   /// * `Err(QueueError)` - If an error occurred
+  ///
+  /// # Errors
+  ///
+  /// This method currently does not return any errors, but the signature allows for future error handling.
   fn poll(&self) -> Result<Option<E>, QueueError<E>> {
     self.poll()
   }

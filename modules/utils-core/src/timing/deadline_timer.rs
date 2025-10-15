@@ -35,6 +35,7 @@ impl DeadlineTimerKey {
   ///
   /// An invalid key is internally represented as 0 and is used to indicate
   /// a state where the item is not registered in the timer.
+  #[must_use]
   #[inline]
   pub const fn invalid() -> Self {
     Self(0)
@@ -45,6 +46,7 @@ impl DeadlineTimerKey {
   /// # Returns
   ///
   /// Returns `true` if the key is valid (non-zero), `false` if invalid (zero).
+  #[must_use]
   #[inline]
   pub const fn is_valid(self) -> bool {
     self.0 != 0
@@ -57,6 +59,7 @@ impl DeadlineTimerKey {
   /// # Returns
   ///
   /// Returns the internal `u64` representation of the key.
+  #[must_use]
   #[inline]
   pub const fn into_raw(self) -> u64 {
     self.0
@@ -71,6 +74,7 @@ impl DeadlineTimerKey {
   /// # Returns
   ///
   /// Returns a key created from the specified integer value.
+  #[must_use]
   #[inline]
   pub const fn from_raw(raw: u64) -> Self {
     Self(raw)
@@ -110,6 +114,7 @@ impl TimerDeadline {
   /// # Returns
   ///
   /// Returns a `TimerDeadline` wrapping the specified duration.
+  #[must_use]
   #[inline]
   pub const fn from_duration(duration: Duration) -> Self {
     Self(duration)
@@ -120,6 +125,7 @@ impl TimerDeadline {
   /// # Returns
   ///
   /// Returns the wrapped `Duration` value.
+  #[must_use]
   #[inline]
   pub const fn as_duration(self) -> Duration {
     self.0
@@ -233,6 +239,10 @@ pub trait DeadlineTimer {
   ///
   /// On success, returns a `DeadlineTimerKey` to identify the registered item.
   /// On failure, returns an error.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if the timer is closed or if insertion fails.
   fn insert(&mut self, item: Self::Item, deadline: TimerDeadline) -> Result<DeadlineTimerKey, Self::Error>;
 
   /// Updates and re-registers the deadline for an element with the specified key.
@@ -246,6 +256,10 @@ pub trait DeadlineTimer {
   ///
   /// On success, returns `Ok(())`. On failure, returns an error.
   /// If the key doesn't exist, returns a `KeyNotFound` error.
+  ///
+  /// # Errors
+  ///
+  /// Returns `KeyNotFound` if the key doesn't exist, or an error if the timer is closed.
   fn reset(&mut self, key: DeadlineTimerKey, deadline: TimerDeadline) -> Result<(), Self::Error>;
 
   /// Cancels an element with the specified key and returns it.
@@ -259,6 +273,10 @@ pub trait DeadlineTimer {
   /// On success, returns the cancelled item in `Some`.
   /// If the key doesn't exist, returns `None`.
   /// If the timer is closed, returns an error.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if the timer is closed.
   fn cancel(&mut self, key: DeadlineTimerKey) -> Result<Option<Self::Item>, Self::Error>;
 
   /// Polls for the element with the closest deadline.
@@ -308,6 +326,7 @@ impl DeadlineTimerKeyAllocator {
   /// # Returns
   ///
   /// Returns a newly created `DeadlineTimerKeyAllocator`.
+  #[must_use]
   #[inline]
   pub const fn new() -> Self {
     #[cfg(target_has_atomic = "ptr")]

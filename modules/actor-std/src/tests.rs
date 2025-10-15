@@ -31,7 +31,7 @@ async fn run_test_actor_loop_updates_state() {
     .await;
   });
 
-  sender.send(4_u32).await.expect("send message");
+  sender.send(4_u32).expect("send message");
   tokio::time::sleep(Duration::from_millis(10)).await;
 
   assert_eq!(*state.borrow(), 4_u32);
@@ -54,7 +54,7 @@ async fn run_typed_actor_system_handles_user_messages() {
   let log: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
 
-  let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+  let props = Props::new(move |_, msg: u32| {
     log_clone.lock().unwrap().push(msg);
     Ok(())
   });
@@ -78,7 +78,6 @@ async fn run_receive_timeout_triggers() {
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(
-    MailboxOptions::default(),
     move |ctx: &mut Context<'_, '_, u32, RuntimeEnv<TokioMailboxRuntime>>, msg| {
       if msg == 1 {
         ctx.set_receive_timeout(Duration::from_millis(10));
@@ -130,10 +129,10 @@ async fn tokio_scheduler_builder_dispatches() {
   let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
 
-  let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+  let mailbox_handle_factory_stub = MailboxHandleFactoryStub::from_runtime(runtime.clone());
   let context = SchedulerSpawnContext {
     runtime,
-    mailbox_factory,
+    mailbox_handle_factory_stub,
     map_system: MapSystemShared::new(Message::System),
     mailbox_options: MailboxOptions::default(),
     handler: Box::new(move |_, msg: Message| {

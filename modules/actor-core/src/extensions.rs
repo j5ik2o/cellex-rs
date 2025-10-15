@@ -1,13 +1,7 @@
-#![cfg(feature = "alloc")]
-
 #[cfg(test)]
 mod tests;
 
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as SharedArc;
 use alloc::string::String;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc as SharedArc;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::fmt::{self, Debug, Formatter};
@@ -93,10 +87,8 @@ impl Extensions {
     if id < 0 {
       return;
     }
+    let handle = extension.into_dyn(|ext| ext as &dyn Extension);
     let idx = id as usize;
-    let arc: SharedArc<E> = extension.into_arc();
-    let trait_arc: SharedArc<dyn Extension> = arc;
-    let handle = ArcShared::from_arc(trait_arc);
     let mut guard = self.slots.write();
     if guard.len() <= idx {
       guard.resize_with(idx + 1, || None);

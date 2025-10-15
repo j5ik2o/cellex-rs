@@ -18,7 +18,7 @@ impl<G> GuardHandle<G> {
   /// # Arguments
   ///
   /// * `guard` - Guard object to wrap
-  pub fn new(guard: G) -> Self {
+  pub const fn new(guard: G) -> Self {
     Self { guard }
   }
 
@@ -147,6 +147,8 @@ where
   /// # Arguments
   ///
   /// * `value` - Initial value to protect
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn new(value: T) -> Self
   where
     T: Sized, {
@@ -161,7 +163,8 @@ where
   /// # Arguments
   ///
   /// * `backend` - Backend instance to use
-  pub fn from_backend(backend: B) -> Self {
+  #[must_use]
+  pub const fn from_backend(backend: B) -> Self {
     Self {
       backend,
       _marker: PhantomData,
@@ -173,7 +176,8 @@ where
   /// # Returns
   ///
   /// Immutable reference to the backend
-  pub fn backend(&self) -> &B {
+  #[must_use]
+  pub const fn backend(&self) -> &B {
     &self.backend
   }
 
@@ -266,6 +270,7 @@ where
   /// # Arguments
   ///
   /// * `value` - Initial value to protect
+  #[must_use]
   pub fn new(value: T) -> Self
   where
     T: Sized, {
@@ -280,7 +285,8 @@ where
   /// # Arguments
   ///
   /// * `backend` - Backend instance to use
-  pub fn from_backend(backend: B) -> Self {
+  #[must_use]
+  pub const fn from_backend(backend: B) -> Self {
     Self {
       backend,
       _marker: PhantomData,
@@ -292,7 +298,8 @@ where
   /// # Returns
   ///
   /// Immutable reference to the backend
-  pub fn backend(&self) -> &B {
+  #[must_use]
+  pub const fn backend(&self) -> &B {
     &self.backend
   }
 

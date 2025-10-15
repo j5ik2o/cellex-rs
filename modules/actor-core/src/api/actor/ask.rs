@@ -1,7 +1,3 @@
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use core::cell::UnsafeCell;
 use core::fmt;
 use core::future::Future;
@@ -114,6 +110,16 @@ struct AskShared<Resp> {
 }
 
 impl<Resp> AskShared<Resp> {
+  #[cfg(target_has_atomic = "ptr")]
+  const fn new() -> Self {
+    Self {
+      state: AtomicU8::new(STATE_PENDING),
+      value: UnsafeCell::new(None),
+      waker: SharedWaker::new(),
+    }
+  }
+
+  #[cfg(not(target_has_atomic = "ptr"))]
   fn new() -> Self {
     Self {
       state: AtomicU8::new(STATE_PENDING),
@@ -181,11 +187,11 @@ unsafe impl<Resp: Send> Sync for AskShared<Resp> {}
 /// Future returned when sending a message with the `ask` pattern.
 /// Waits until a response message arrives and returns the result.
 pub struct AskFuture<Resp> {
-  shared: Arc<AskShared<Resp>>,
+  shared: ArcShared<AskShared<Resp>>,
 }
 
 impl<Resp> AskFuture<Resp> {
-  fn new(shared: Arc<AskShared<Resp>>) -> Self {
+  const fn new(shared: ArcShared<AskShared<Resp>>) -> Self {
     Self { shared }
   }
 }
@@ -199,8 +205,11 @@ impl<Resp> Future for AskFuture<Resp> {
     loop {
       match shared.state() {
         STATE_READY => {
-          let value = unsafe { shared.take_value() }.expect("ask future missing value");
-          return Poll::Ready(Ok(value));
+          let value = unsafe { shared.take_value() };
+          if let Some(value) = value {
+            return Poll::Ready(Ok(value));
+          }
+          return Poll::Ready(Err(AskError::MissingResponder));
         }
         STATE_RESPONDER_DROPPED => return Poll::Ready(Err(AskError::ResponderDropped)),
         STATE_CANCELLED => return Poll::Ready(Err(AskError::ResponseAwaitCancelled)),
@@ -236,7 +245,7 @@ pub struct AskTimeoutFuture<Resp, TFut> {
 }
 
 impl<Resp, TFut> AskTimeoutFuture<Resp, TFut> {
-  fn new(ask: AskFuture<Resp>, timeout: TFut) -> Self {
+  const fn new(ask: AskFuture<Resp>, timeout: TFut) -> Self {
     Self {
       ask: Some(ask),
       timeout: Some(timeout),
@@ -291,7 +300,7 @@ impl<Resp, TFut> Drop for AskTimeoutFuture<Resp, TFut> {
 ///
 /// # Returns
 /// `AskTimeoutFuture` with timeout control
-pub fn ask_with_timeout<Resp, TFut>(future: AskFuture<Resp>, timeout: TFut) -> AskTimeoutFuture<Resp, TFut>
+pub const fn ask_with_timeout<Resp, TFut>(future: AskFuture<Resp>, timeout: TFut) -> AskTimeoutFuture<Resp, TFut>
 where
   TFut: Future<Output = ()> + Unpin,
   Resp: Element, {
@@ -306,15 +315,15 @@ pub(crate) fn create_ask_handles<Resp, C>() -> (AskFuture<Resp>, MessageSender<R
 where
   Resp: Element,
   C: MailboxConcurrency, {
-  let shared = Arc::new(AskShared::<Resp>::new());
+  let shared = ArcShared::new(AskShared::<Resp>::new());
   let future = AskFuture::new(shared.clone());
   let dispatch_state = shared.clone();
-  let drop_state = shared.clone();
+  let drop_state = shared;
 
-  let dispatch_impl: Arc<DispatchFn> = Arc::new(move |message: DynMessage, _priority: i8| {
-    let envelope = message
-      .downcast::<MessageEnvelope<Resp>>()
-      .unwrap_or_else(|_| panic!("ask responder received mismatched message type"));
+  let dispatch = ArcShared::new(move |message: DynMessage, _priority: i8| {
+    let Ok(envelope) = message.downcast::<MessageEnvelope<Resp>>() else {
+      return Err(QueueError::Disconnected);
+    };
     match envelope {
       MessageEnvelope::User(user) => {
         let (value, metadata_key) = user.into_parts();
@@ -326,17 +335,17 @@ where
         }
       }
       MessageEnvelope::System(_) => {
-        panic!("ask responder received system message");
+        return Err(QueueError::Disconnected);
       }
     }
     Ok(())
-  });
-  let dispatch = ArcShared::from_arc(dispatch_impl);
+  })
+  .into_dyn(|f| f as &DispatchFn);
 
-  let drop_hook_impl: Arc<DropHookFn> = Arc::new(move || {
+  let drop_hook = ArcShared::new(move || {
     drop_state.responder_dropped();
-  });
-  let drop_hook = ArcShared::from_arc(drop_hook_impl);
+  })
+  .into_dyn(|f| f as &DropHookFn);
 
   let internal = InternalMessageSender::<C>::with_drop_hook(dispatch, drop_hook);
   let responder = MessageSender::new(internal);

@@ -192,4 +192,5 @@ pub trait StateCell<T>: Clone {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
 mod tests;

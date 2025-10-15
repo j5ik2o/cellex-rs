@@ -5,6 +5,10 @@ use crate::collections::{
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
+#[cfg(test)]
+#[allow(clippy::disallowed_types)]
+mod tests;
+
 /// Number of priority queue levels
 ///
 /// By default, supports 8 priority levels.
@@ -58,11 +62,12 @@ where
   /// # Arguments
   ///
   /// * `levels` - Vector of queues corresponding to each priority level.
-  ///              Index 0 is lowest priority, last index is highest priority
+  ///   Index 0 is lowest priority, last index is highest priority
   ///
   /// # Panics
   ///
   /// Panics if `levels` is empty
+  #[must_use]
   pub fn new(levels: Vec<Q>) -> Self {
     assert!(!levels.is_empty(), "PriorityQueue requires at least one level");
     Self {
@@ -76,6 +81,7 @@ where
   /// # Returns
   ///
   /// Slice of queues for each priority level
+  #[must_use]
   pub fn levels(&self) -> &[Q] {
     &self.levels
   }
@@ -120,6 +126,10 @@ where
   ///
   /// * `Ok(())` - If successfully added
   /// * `Err(QueueError)` - If could not add due to reasons such as queue being full
+  ///
+  /// # Errors
+  ///
+  /// Returns `QueueError::Full` if the queue at the appropriate priority level is full.
   pub fn offer(&self, element: E) -> Result<(), QueueError<E>>
   where
     E: PriorityMessage, {
@@ -137,6 +147,10 @@ where
   /// * `Ok(Some(E))` - If element was removed
   /// * `Ok(None)` - If all queues are empty
   /// * `Err(QueueError)` - If an error occurred
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if any underlying queue operation fails.
   pub fn poll(&self) -> Result<Option<E>, QueueError<E>>
   where
     E: PriorityMessage, {
@@ -318,6 +332,3 @@ where
     self.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

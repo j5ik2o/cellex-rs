@@ -10,10 +10,6 @@ use crate::PriorityEnvelope;
 use crate::RuntimeBound;
 use crate::Supervisor;
 use crate::SystemMessage;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use alloc::{boxed::Box, string::String};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use core::fmt;
@@ -38,7 +34,6 @@ use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
 /// Typed actor execution context wrapper.
 /// 'r: lifetime of the mutable reference to ActorContext
 /// 'ctx: lifetime parameter of ActorContext itself
-
 pub struct Context<'r, 'ctx, U, R>
 where
   U: Element,
@@ -56,7 +51,7 @@ where
 pub type SetupContext<'ctx, U, R> = Context<'ctx, 'ctx, U, R>;
 
 /// Context log level.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ContextLogLevel {
   /// Trace level
   Trace,
@@ -86,12 +81,14 @@ impl ContextLogger {
   }
 
   /// Gets the actor ID of the log source.
-  pub fn actor_id(&self) -> ActorId {
+  #[must_use]
+  pub const fn actor_id(&self) -> ActorId {
     self.actor_id
   }
 
   /// Gets the actor path of the log source.
-  pub fn actor_path(&self) -> &ActorPath {
+  #[must_use]
+  pub const fn actor_path(&self) -> &ActorPath {
     &self.actor_path
   }
 
@@ -133,52 +130,52 @@ impl ContextLogger {
   fn emit<F>(&self, level: ContextLogLevel, message: F)
   where
     F: FnOnce() -> String, {
+    let text = message();
+
     #[cfg(feature = "tracing")]
-    {
-      let text = message();
-      match level {
-        ContextLogLevel::Trace => tracing::event!(
-          target: "nexus::actor",
-          tracing::Level::TRACE,
-          actor_id = %self.actor_id,
-          actor_path = %self.actor_path,
-          message = %text
-        ),
-        ContextLogLevel::Debug => tracing::event!(
-          target: "nexus::actor",
-          tracing::Level::DEBUG,
-          actor_id = %self.actor_id,
-          actor_path = %self.actor_path,
-          message = %text
-        ),
-        ContextLogLevel::Info => tracing::event!(
-          target: "nexus::actor",
-          tracing::Level::INFO,
-          actor_id = %self.actor_id,
-          actor_path = %self.actor_path,
-          message = %text
-        ),
-        ContextLogLevel::Warn => tracing::event!(
-          target: "nexus::actor",
-          tracing::Level::WARN,
-          actor_id = %self.actor_id,
-          actor_path = %self.actor_path,
-          message = %text
-        ),
-        ContextLogLevel::Error => tracing::event!(
-          target: "nexus::actor",
-          tracing::Level::ERROR,
-          actor_id = %self.actor_id,
-          actor_path = %self.actor_path,
-          message = %text
-        ),
-      }
+    match level {
+      ContextLogLevel::Trace => tracing::event!(
+        target: "nexus::actor",
+        tracing::Level::TRACE,
+        actor_id = %self.actor_id,
+        actor_path = %self.actor_path,
+        message = %text
+      ),
+      ContextLogLevel::Debug => tracing::event!(
+        target: "nexus::actor",
+        tracing::Level::DEBUG,
+        actor_id = %self.actor_id,
+        actor_path = %self.actor_path,
+        message = %text
+      ),
+      ContextLogLevel::Info => tracing::event!(
+        target: "nexus::actor",
+        tracing::Level::INFO,
+        actor_id = %self.actor_id,
+        actor_path = %self.actor_path,
+        message = %text
+      ),
+      ContextLogLevel::Warn => tracing::event!(
+        target: "nexus::actor",
+        tracing::Level::WARN,
+        actor_id = %self.actor_id,
+        actor_path = %self.actor_path,
+        message = %text
+      ),
+      ContextLogLevel::Error => tracing::event!(
+        target: "nexus::actor",
+        tracing::Level::ERROR,
+        actor_id = %self.actor_id,
+        actor_path = %self.actor_path,
+        message = %text
+      ),
     }
 
     #[cfg(not(feature = "tracing"))]
     {
-      let _ = level;
-      let _ = message;
+      let _ = self;
+      let _ = &level;
+      let _ = text;
     }
   }
 }
@@ -205,6 +202,8 @@ where
   ///
   /// # Returns
   /// `Some(&MessageMetadata)` if metadata exists, `None` otherwise
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn message_metadata(&self) -> Option<&MessageMetadata<R::Concurrency>> {
     self.metadata.as_ref()
   }
@@ -223,6 +222,8 @@ where
   }
 
   /// Returns the shared extension registry.
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn extensions(&self) -> Extensions {
     self.extensions.clone()
   }
@@ -239,6 +240,8 @@ where
   ///
   /// # Returns
   /// Actor ID
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn actor_id(&self) -> ActorId {
     self.inner.actor_id()
   }
@@ -247,6 +250,8 @@ where
   ///
   /// # Returns
   /// Reference to the actor path
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn actor_path(&self) -> &ActorPath {
     self.inner.actor_path()
   }
@@ -255,6 +260,8 @@ where
   ///
   /// # Returns
   /// Slice of watcher actor IDs
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn watchers(&self) -> &[ActorId] {
     self.inner.watchers()
   }
@@ -263,6 +270,8 @@ where
   ///
   /// # Returns
   /// Context logger
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn log(&self) -> ContextLogger {
     ContextLogger::new(self.actor_id(), self.actor_path())
   }
@@ -274,6 +283,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` when the mailbox fails to enqueue the message.
   pub fn send_to_self(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     let dyn_message = DynMessage::new(MessageEnvelope::user(message));
     self.inner.send_to_self_with_priority(dyn_message, DEFAULT_PRIORITY)
@@ -286,13 +298,18 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` when the mailbox fails to enqueue the system message.
   pub fn send_system_to_self(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    let envelope =
-      PriorityEnvelope::from_system(message.clone()).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
+    let envelope = PriorityEnvelope::from_system(message).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
     self.inner.send_envelope_to_self(envelope)
   }
 
   /// Reports a failure to the guardian using the supervision channel.
+  ///
+  /// # Errors
+  /// Returns `Err` when escalation delivery to the mailbox fails.
   pub fn fail<E>(&self, error: E) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     E: fmt::Display + fmt::Debug + Send + 'static, {
@@ -305,6 +322,8 @@ where
   ///
   /// # Returns
   /// `ActorRef` to itself
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn self_ref(&self) -> ActorRef<U, R> {
     ActorRef::new(self.inner.self_ref())
   }
@@ -320,8 +339,8 @@ where
   where
     Ext: Element,
     F: Fn(Ext) -> U + SharedBound + 'static, {
-    let adapter_impl: Arc<AdapterFn<Ext, U>> = Arc::new(f);
-    MessageAdapterRef::new(self.self_ref(), ArcShared::from_arc(adapter_impl))
+    let adapter = ArcShared::new(f).into_dyn(|func| func as &AdapterFn<Ext, U>);
+    MessageAdapterRef::new(self.self_ref(), adapter)
   }
 
   /// Registers a watcher.
@@ -344,6 +363,8 @@ where
   ///
   /// # Returns
   /// `true` if supported, `false` otherwise
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn has_receive_timeout_support(&self) -> bool {
     self.inner.has_receive_timeout_scheduler()
   }
@@ -392,6 +413,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` when the target mailbox rejects the message.
   pub fn request<V>(
     &mut self,
     target: &ActorRef<V, R>,
@@ -414,6 +438,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` when the target mailbox rejects the message.
   pub fn request_with_sender<V, S>(
     &mut self,
     target: &ActorRef<V, R>,
@@ -439,6 +466,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` when the target mailbox rejects the message.
   pub fn forward<V>(
     &mut self,
     target: &ActorRef<V, R>,
@@ -480,6 +510,9 @@ where
   ///
   /// # Returns
   /// `AskFuture` for receiving the response, or an error
+  ///
+  /// # Errors
+  /// Propagates `AskError` when the message cannot be enqueued or metadata dispatch fails.
   pub fn ask<V, Resp, F>(&mut self, target: &ActorRef<V, R>, factory: F) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
@@ -506,6 +539,9 @@ where
   ///
   /// # Returns
   /// `AskTimeoutFuture` for receiving the response with timeout, or an error
+  ///
+  /// # Errors
+  /// Propagates `AskError` when the message cannot be enqueued or metadata dispatch fails.
   pub fn ask_with_timeout<V, Resp, F, TFut>(
     &mut self,
     target: &ActorRef<V, R>,
@@ -519,7 +555,7 @@ where
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
@@ -527,7 +563,7 @@ where
       .with_sender(self.self_dispatcher())
       .with_responder(responder);
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }
@@ -540,6 +576,9 @@ where
   ///
   /// # Returns
   /// `AskFuture` for receiving the response, or an error
+  ///
+  /// # Errors
+  /// Propagates `AskError` when the message cannot be enqueued or metadata dispatch fails.
   pub fn request_future<V, Resp>(&mut self, target: &ActorRef<V, R>, message: V) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
@@ -563,6 +602,9 @@ where
   ///
   /// # Returns
   /// `AskTimeoutFuture` for receiving the response with timeout, or an error
+  ///
+  /// # Errors
+  /// Propagates `AskError` when the message cannot be enqueued or metadata dispatch fails.
   pub fn request_future_with_timeout<V, Resp, TFut>(
     &mut self,
     target: &ActorRef<V, R>,
@@ -575,13 +617,13 @@ where
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let metadata = MessageMetadata::<R::Concurrency>::new()
       .with_sender(self.self_dispatcher())
       .with_responder(responder);
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }
@@ -593,7 +635,7 @@ where
     let (internal_props, supervisor_cfg) = props.into_parts();
     let actor_ref = self
       .inner
-      .spawn_child_from_props(Box::new(supervisor_cfg.into_supervisor()), internal_props);
+      .spawn_child_from_props(Box::new(supervisor_cfg.as_supervisor()), internal_props);
     ActorRef::new(actor_ref)
   }
 }
@@ -662,6 +704,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` when the target mailbox rejects the message.
   pub fn tell(&self, message: Ext) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     let mapped = (self.adapter)(message);
     self.target.tell(mapped)
@@ -675,6 +720,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` when the target mailbox rejects the message.
   pub fn tell_with_priority(&self, message: Ext, priority: i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     let mapped = (self.adapter)(message);
     self.target.tell_with_priority(mapped, priority)
@@ -684,6 +732,8 @@ where
   ///
   /// # Returns
   /// Reference to the target `ActorRef`
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn target(&self) -> &ActorRef<U, R> {
     &self.target
   }

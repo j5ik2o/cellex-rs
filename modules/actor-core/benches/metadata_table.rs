@@ -6,13 +6,13 @@ extern crate alloc;
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-
 use cellex_actor_core_rs::{
   take_metadata, DynMessage, InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender,
   MetadataStorageMode, PriorityEnvelope, SingleThread, ThreadSafe,
 };
 use cellex_utils_core_rs::sync::ArcShared;
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use std::hint::black_box;
 
 #[cfg(target_has_atomic = "ptr")]
 type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
@@ -26,7 +26,7 @@ where
   M: Element,
   C: MetadataStorageMode, {
   let dispatch_impl: Arc<NoopDispatchFn> = Arc::new(|_, _| Ok(()));
-  let dispatch = ArcShared::from_arc(dispatch_impl);
+  let dispatch = ArcShared::from_arc_for_testing_dont_use_production(dispatch_impl);
   let internal = InternalMessageSender::<C>::new(dispatch);
   MessageSender::from_internal(internal)
 }

@@ -1,4 +1,7 @@
 #![allow(deprecated, unused_imports)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::disallowed_types)]
 
 use super::*;
 use crate::runtime::guardian::AlwaysRestart;

@@ -12,7 +12,6 @@ use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::message::{take_metadata, DynMessage};
 use crate::ActorId;
 use crate::ActorRuntime;
-use crate::MailboxOptions;
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
 use crate::SystemMessage;
@@ -31,6 +30,7 @@ use cellex_serialization_json_rs::SERDE_JSON_SERIALIZER_ID;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::cell::RefCell;
 use core::future::Future;
+use core::num::NonZeroUsize;
 use core::pin::Pin;
 use core::task::{Context as TaskContext, Poll, RawWaker, RawWakerVTable, Waker};
 use serde::{Deserialize, Serialize};
@@ -48,14 +48,58 @@ struct ChildMessage {
   text: String,
 }
 
+mod ready_queue_worker_configuration {
+  use super::*;
+  use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+
+  type TestRuntime = RuntimeEnv<TestMailboxRuntime>;
+
+  #[test]
+  fn actor_system_runner_defaults_ready_queue_worker_count_to_one() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory.clone());
+    let system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(runtime, ActorSystemConfig::default());
+    let runner = system.into_runner();
+
+    assert_eq!(runner.ready_queue_worker_count().get(), 1);
+  }
+
+  #[test]
+  fn actor_system_runner_respects_configured_ready_queue_worker_count() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory.clone());
+    let worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
+    let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(worker_count));
+
+    let system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(runtime, config);
+    let runner = system.into_runner();
+
+    assert_eq!(runner.ready_queue_worker_count(), worker_count);
+  }
+
+  #[test]
+  fn actor_system_runner_allows_overriding_worker_count() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory);
+    let worker_count = NonZeroUsize::new(4).expect("non-zero worker count");
+    let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(worker_count));
+
+    let system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(runtime, config);
+    let updated = NonZeroUsize::new(6).expect("non-zero worker count");
+    let runner = system.into_runner().with_ready_queue_worker_count(updated);
+
+    assert_eq!(runner.ready_queue_worker_count(), updated);
+  }
+}
+
 mod receive_timeout_injection {
   use super::TestRuntime;
   use super::*;
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
   use crate::runtime::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::{
-    ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, MailboxOptions, MapSystemShared, PriorityEnvelope,
-    ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv,
+    ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, MapSystemShared, PriorityEnvelope, ReceiveTimeoutDriver,
+    ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv,
   };
   use alloc::boxed::Box;
   use core::time::Duration;
@@ -118,7 +162,7 @@ mod receive_timeout_injection {
   }
 
   fn spawn_test_actor<R: ActorRuntime + Clone>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
-    let props = Props::new(MailboxOptions::default(), |_, _: u32| Ok(()));
+    let props = Props::new(|_, _: u32| Ok(()));
     let mut root = system.root_context();
     let actor_ref = root.spawn(props).expect("spawn actor");
     actor_ref.tell(0).expect("tell");
@@ -255,14 +299,14 @@ where
   M: Element, {
   let dispatch_impl: Arc<NoopDispatchFn> =
     Arc::new(|_message: DynMessage, _priority: i8| -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> { Ok(()) });
-  let dispatch = ArcShared::from_arc(dispatch_impl);
+  let dispatch = ArcShared::from_arc_for_testing_dont_use_production(dispatch_impl);
   let internal = InternalMessageSender::new(dispatch);
   MessageSender::new(internal)
 }
 
 #[test]
 fn test_supervise_builder_sets_strategy() {
-  let props = Props::with_behavior(MailboxOptions::default(), || {
+  let props = Props::with_behavior(|| {
     Behaviors::supervise(Behavior::stateless(
       |_: &mut Context<'_, '_, u32, RuntimeEnv<TestMailboxRuntime>>, _: u32| Ok(()),
     ))
@@ -289,7 +333,7 @@ fn test_supervise_stop_on_failure() {
   let config = ActorSystemConfig::default().with_failure_event_listener(Some(listener));
   let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
 
-  let props = Props::with_behavior(MailboxOptions::default(), || {
+  let props = Props::with_behavior(|| {
     Behaviors::supervise(Behaviors::receive(|_, _: u32| panic!("boom"))).with_strategy(SupervisorStrategy::Stop)
   });
   let mut root = system.root_context();
@@ -312,7 +356,7 @@ fn test_supervise_resume_on_failure() {
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
 
-  let props = Props::with_behavior(MailboxOptions::default(), {
+  let props = Props::with_behavior({
     let log_factory = log.clone();
     move || {
       let log_clone = log_factory.clone();
@@ -349,7 +393,7 @@ fn typed_actor_system_handles_user_messages() {
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+  let props = Props::new(move |_, msg: u32| {
     log_clone.borrow_mut().push(msg);
     Ok(())
   });
@@ -394,7 +438,7 @@ fn actor_context_accesses_registered_extension() {
     Some(0)
   );
 
-  let props = Props::with_behavior(MailboxOptions::default(), move || {
+  let props = Props::with_behavior(move || {
     Behaviors::receive(
       move |ctx: &mut Context<'_, '_, u32, RuntimeEnv<TestMailboxRuntime>>, msg: u32| {
         let _ = msg;
@@ -464,11 +508,7 @@ fn test_typed_actor_handles_system_stop() {
     }
   };
 
-  let props = Props::with_system_handler(
-    MailboxOptions::default(),
-    move |_, _msg: u32| Ok(()),
-    Some(system_handler),
-  );
+  let props = Props::with_system_handler(move |_, _msg: u32| Ok(()), Some(system_handler));
 
   let mut root = system.root_context();
   let actor_ref = root.spawn(props).expect("spawn typed actor");
@@ -526,7 +566,6 @@ fn test_typed_actor_handles_watch_unwatch() {
   );
 
   let props = Props::with_behavior_and_system(
-    MailboxOptions::default(),
     {
       let watchers_factory = watchers_count_clone.clone();
       move || {
@@ -597,7 +636,6 @@ fn test_typed_actor_stateful_behavior_with_system_message() {
   };
 
   let props = Props::with_behavior_and_system(
-    MailboxOptions::default(),
     {
       let count_factory = count.clone();
       move || {
@@ -637,7 +675,7 @@ fn test_behaviors_receive_self_loop() {
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
 
-  let props = Props::with_behavior(MailboxOptions::default(), {
+  let props = Props::with_behavior({
     let log_factory = log.clone();
     move || {
       let log_clone = log_factory.clone();
@@ -669,7 +707,7 @@ fn test_behaviors_receive_message_without_context() {
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
 
-  let props = Props::with_behavior(MailboxOptions::default(), {
+  let props = Props::with_behavior({
     let log_clone = log.clone();
     move || {
       let log_inner = log_clone.clone();
@@ -700,13 +738,13 @@ fn test_parent_spawns_child_with_distinct_message_type() {
   let child_log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
   let child_log_for_parent = child_log.clone();
 
-  let props = Props::with_behavior(MailboxOptions::default(), {
+  let props = Props::with_behavior({
     let child_log_factory = child_log_for_parent.clone();
     move || {
       let child_log_parent = child_log_factory.clone();
       Behaviors::receive(move |ctx: &mut Context<'_, '_, ParentMessage, _>, msg: ParentMessage| {
         let name = msg.0;
-        let child_props = Props::with_behavior(MailboxOptions::default(), {
+        let child_props = Props::with_behavior({
           let child_log_factory = child_log_parent.clone();
           move || {
             let child_log_for_child = child_log_factory.clone();
@@ -748,7 +786,7 @@ fn test_message_adapter_converts_external_message() {
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let adapter_slot: Rc<RefCell<Option<MessageAdapterRef<String, u32, _>>>> = Rc::new(RefCell::new(None));
 
-  let props = Props::with_behavior(MailboxOptions::default(), {
+  let props = Props::with_behavior({
     let log_factory = log.clone();
     let adapter_slot_factory = adapter_slot.clone();
     move || {
@@ -787,7 +825,7 @@ fn test_parent_actor_spawns_child() {
   let child_ref_holder: Rc<RefCell<Option<ActorRef<u32, _>>>> = Rc::new(RefCell::new(None));
   let child_ref_holder_clone = child_ref_holder.clone();
 
-  let props = Props::with_behavior(MailboxOptions::default(), {
+  let props = Props::with_behavior({
     let child_log_factory = child_log_for_parent.clone();
     let child_ref_holder_factory = child_ref_holder_clone.clone();
     move || {
@@ -796,7 +834,7 @@ fn test_parent_actor_spawns_child() {
       Behavior::stateless(move |ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
         if child_ref_holder_local.borrow().is_none() {
           let child_log_for_child = child_log_parent.clone();
-          let child_props = Props::new(MailboxOptions::default(), move |_, child_msg: u32| {
+          let child_props = Props::new(move |_, child_msg: u32| {
             child_log_for_child.borrow_mut().push(child_msg);
             Ok(())
           });
@@ -829,12 +867,12 @@ fn test_behaviors_setup_spawns_named_child() {
 
   let child_log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
 
-  let props = Props::with_behavior(MailboxOptions::default(), {
+  let props = Props::with_behavior({
     let child_log_factory = child_log.clone();
     move || {
       let child_log_parent = child_log_factory.clone();
       Behaviors::setup(move |ctx| {
-        let child_props = Props::with_behavior(MailboxOptions::default(), {
+        let child_props = Props::with_behavior({
           let child_log_clone = child_log_parent.clone();
           move || {
             let log_ref = child_log_clone.clone();
@@ -871,7 +909,7 @@ fn test_receive_signal_post_stop() {
   let signals: Rc<RefCell<Vec<&'static str>>> = Rc::new(RefCell::new(Vec::new()));
   let signals_clone = signals.clone();
 
-  let props = Props::with_behavior(MailboxOptions::default(), move || {
+  let props = Props::with_behavior(move || {
     let signals_cell = signals_clone.clone();
     Behaviors::receive(|_, msg: u32| {
       if msg == 0 {

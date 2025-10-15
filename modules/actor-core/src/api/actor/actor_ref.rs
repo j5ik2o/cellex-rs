@@ -38,7 +38,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Internal actor reference
-  pub(crate) fn new(inner: InternalActorRef<DynMessage, R>) -> Self {
+  pub(crate) const fn new(inner: InternalActorRef<DynMessage, R>) -> Self {
     Self {
       inner,
       _marker: PhantomData,
@@ -96,6 +96,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` if the underlying mailbox is unable to accept the message.
   pub fn tell(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     self
       .inner
@@ -110,6 +113,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` if the underlying mailbox is unable to accept the message.
   pub fn tell_with_priority(&self, message: U, priority: i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     self.inner.try_send_with_priority(Self::wrap_user(message), priority)
   }
@@ -121,9 +127,11 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, error on failure
+  ///
+  /// # Errors
+  /// Returns `Err` if the underlying mailbox is unable to accept the system message.
   pub fn send_system(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    let envelope =
-      PriorityEnvelope::from_system(message.clone()).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
+    let envelope = PriorityEnvelope::from_system(message).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
     self.inner.try_send_envelope(envelope)
   }
 
@@ -243,11 +251,11 @@ where
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let metadata = MessageMetadata::<R::Concurrency>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }
@@ -293,13 +301,13 @@ where
     TFut: Future<Output = ()> + Unpin,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let metadata = MessageMetadata::<R::Concurrency>::new()
       .with_sender(sender)
       .with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }
@@ -313,6 +321,9 @@ where
   ///
   /// # Returns
   /// `AskFuture` awaiting response
+  ///
+  /// # Errors
+  /// Returns `Err` if sending the message to the underlying mailbox fails.
   pub fn ask_with<Resp, F>(&self, factory: F) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element,
@@ -333,18 +344,21 @@ where
   ///
   /// # Returns
   /// `AskTimeoutFuture` with timeout control
+  ///
+  /// # Errors
+  /// Returns `Err` if sending the message to the underlying mailbox fails.
   pub fn ask_with_timeout<Resp, F, TFut>(&self, factory: F, timeout: TFut) -> AskResult<AskTimeoutFuture<Resp, TFut>>
   where
     Resp: Element,
     F: FnOnce(MessageSender<Resp, R::Concurrency>) -> U,
     TFut: Future<Output = ()> + Unpin, {
-    let mut timeout = Some(timeout);
+    let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, R::Concurrency>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
     let metadata = MessageMetadata::<R::Concurrency>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout.take().unwrap())),
+      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
     }
   }

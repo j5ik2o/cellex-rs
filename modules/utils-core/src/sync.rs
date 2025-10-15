@@ -1,8 +1,11 @@
+#[allow(clippy::disallowed_types)]
 mod arc_shared;
+#[allow(clippy::disallowed_types)]
 mod flag;
 /// Helper traits for shared function and factory closures.
 pub mod function;
 #[cfg(feature = "alloc")]
+#[allow(clippy::disallowed_types)]
 mod rc_shared;
 mod shared;
 mod state;

@@ -389,7 +389,7 @@ where
     self.inner.try_send(message)
   }
 
-  /// Sends a message asynchronously.
+  /// Sends a message to the mailbox.
   ///
   /// # Arguments
   ///
@@ -398,8 +398,8 @@ where
   /// # Errors
   ///
   /// Returns `QueueError` if the queue is closed
-  pub async fn send(&self, message: M) -> Result<(), QueueError<M>> {
-    self.inner.send(message).await
+  pub fn send(&self, message: M) -> Result<(), QueueError<M>> {
+    self.inner.send(message)
   }
 
   /// Returns a reference to the internal mailbox producer.

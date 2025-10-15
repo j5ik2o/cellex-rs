@@ -10,23 +10,19 @@ use std::sync::Arc;
 use cellex_actor_core_rs::{
   ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
 };
-use cellex_actor_core_rs::{ActorSystem, ActorSystemParts, FailureEventStream, MailboxOptions, Props, RuntimeEnv};
-use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, ImmediateSpawner, ImmediateTimer, LocalMailboxRuntime};
+use cellex_actor_core_rs::{ActorSystem, FailureEventStream, Props, RuntimeEnv};
+use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, LocalMailboxRuntime};
 
 #[test]
 fn embedded_actor_runtime_dispatches_message() {
-  let components = ActorSystemParts::new(
-    RuntimeEnv::new(LocalMailboxRuntime::default()),
-    ImmediateSpawner,
-    ImmediateTimer,
-    EmbeddedFailureEventHub::new(),
-  );
-  let (mut system, _) = ActorSystem::from_parts(components);
+  let hub = EmbeddedFailureEventHub::new();
+  let mut system: ActorSystem<u32, _> =
+    ActorSystem::new_with_runtime_and_event_stream(RuntimeEnv::new(LocalMailboxRuntime::default()), &hub);
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
-  let props = Props::new(MailboxOptions::default(), move |_, msg: u32| {
+  let props = Props::new(move |_, msg: u32| {
     log_clone.borrow_mut().push(msg);
     Ok(())
   });

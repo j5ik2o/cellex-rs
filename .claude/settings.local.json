@@ -35,7 +35,8 @@
       "Bash(head:*)",
       "Bash(done)",
       "Bash(RUSTFLAGS=\"-Dwarnings\" cargo check)",
-      "Bash(RUSTFLAGS=\"-Dwarnings\" cargo check -p nexus-utils-embedded-rs)"
+      "Bash(RUSTFLAGS=\"-Dwarnings\" cargo check -p nexus-utils-embedded-rs)",
+      "mcp__serena__activate_project"
     ],
     "deny": []
   },

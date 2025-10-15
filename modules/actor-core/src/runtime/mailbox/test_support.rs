@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-use alloc::rc::Rc;
 use core::cell::RefCell;
 use core::fmt;
 use core::future::Future;
@@ -9,6 +8,7 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
+use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, MpscBuffer, MpscHandle, MpscQueue, QueueSize, RingBufferBackend, Shared};
 
 use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
@@ -21,11 +21,11 @@ pub struct TestMailboxRuntime {
 }
 
 impl TestMailboxRuntime {
-  pub fn new(capacity: Option<usize>) -> Self {
+  pub const fn new(capacity: Option<usize>) -> Self {
     Self { capacity }
   }
 
-  pub fn with_capacity_per_queue(capacity: usize) -> Self {
+  pub const fn with_capacity_per_queue(capacity: usize) -> Self {
     Self::new(Some(capacity))
   }
 
@@ -33,7 +33,7 @@ impl TestMailboxRuntime {
     Self::default()
   }
 
-  fn resolve_capacity(&self, options: MailboxOptions) -> Option<usize> {
+  const fn resolve_capacity(&self, options: MailboxOptions) -> Option<usize> {
     match options.capacity {
       QueueSize::Limitless => self.capacity,
       QueueSize::Limited(value) => Some(value),
@@ -41,23 +41,23 @@ impl TestMailboxRuntime {
   }
 }
 
-pub struct RcBackendHandle<T>(Rc<RingBufferBackend<RefCell<MpscBuffer<T>>>>);
+pub struct SharedBackendHandle<T>(ArcShared<RingBufferBackend<RefCell<MpscBuffer<T>>>>);
 
-impl<T> Clone for RcBackendHandle<T> {
+impl<T> SharedBackendHandle<T> {
+  fn new(capacity: Option<usize>) -> Self {
+    let buffer = RefCell::new(MpscBuffer::new(capacity));
+    let backend = RingBufferBackend::new(buffer);
+    Self(ArcShared::new(backend))
+  }
+}
+
+impl<T> Clone for SharedBackendHandle<T> {
   fn clone(&self) -> Self {
     Self(self.0.clone())
   }
 }
 
-impl<T> RcBackendHandle<T> {
-  fn new(capacity: Option<usize>) -> Self {
-    let buffer = RefCell::new(MpscBuffer::new(capacity));
-    let backend = RingBufferBackend::new(buffer);
-    Self(Rc::new(backend))
-  }
-}
-
-impl<T> core::ops::Deref for RcBackendHandle<T> {
+impl<T> core::ops::Deref for SharedBackendHandle<T> {
   type Target = RingBufferBackend<RefCell<MpscBuffer<T>>>;
 
   fn deref(&self) -> &Self::Target {
@@ -65,15 +65,24 @@ impl<T> core::ops::Deref for RcBackendHandle<T> {
   }
 }
 
-impl<T> fmt::Debug for RcBackendHandle<T> {
+impl<T> fmt::Debug for SharedBackendHandle<T> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("RcBackendHandle").finish()
+    f.debug_struct("SharedBackendHandle").finish()
   }
 }
 
-impl<T> Shared<RingBufferBackend<RefCell<MpscBuffer<T>>>> for RcBackendHandle<T> {}
+impl<T> Shared<RingBufferBackend<RefCell<MpscBuffer<T>>>> for SharedBackendHandle<T> {
+  fn try_unwrap(self) -> Result<RingBufferBackend<RefCell<MpscBuffer<T>>>, Self>
+  where
+    RingBufferBackend<RefCell<MpscBuffer<T>>>: Sized, {
+    match self.0.try_unwrap() {
+      Ok(inner) => Ok(inner),
+      Err(shared) => Err(Self(shared)),
+    }
+  }
+}
 
-impl<T> MpscHandle<T> for RcBackendHandle<T> {
+impl<T> MpscHandle<T> for SharedBackendHandle<T> {
   type Backend = RingBufferBackend<RefCell<MpscBuffer<T>>>;
 
   fn backend(&self) -> &Self::Backend {
@@ -81,11 +90,19 @@ impl<T> MpscHandle<T> for RcBackendHandle<T> {
   }
 }
 
-pub type TestQueue<M> = MpscQueue<RcBackendHandle<M>, M>;
+pub type TestQueue<M> = MpscQueue<SharedBackendHandle<M>, M>;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct TestSignal {
-  state: Rc<RefCell<TestSignalState>>,
+  state: ArcShared<RefCell<TestSignalState>>,
+}
+
+impl Default for TestSignal {
+  fn default() -> Self {
+    Self {
+      state: ArcShared::new(RefCell::new(TestSignalState::default())),
+    }
+  }
 }
 
 #[derive(Clone, Default)]
@@ -156,7 +173,7 @@ impl MailboxRuntime for TestMailboxRuntime {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = MpscQueue::new(RcBackendHandle::new(capacity));
+    let queue = MpscQueue::new(SharedBackendHandle::new(capacity));
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

@@ -2,7 +2,7 @@ use core::convert::Infallible;
 
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::mailbox::traits::ActorRuntime;
-use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
+use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{default_failure_telemetry, FailureTelemetryShared, TelemetryObservationConfig};
 use crate::{Extensions, FailureEventHandler, FailureEventListener, MetricsSinkShared, PriorityEnvelope};
@@ -77,18 +77,18 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
-  pub fn new(mailbox_factory: R) -> Self {
-    Self::new_with_settings(mailbox_factory, InternalActorSystemSettings::default())
+  pub fn new(actor_runtime: R) -> Self {
+    Self::new_with_settings(actor_runtime, InternalActorSystemSettings::default())
   }
 
-  pub fn new_with_settings(mailbox_factory: R, settings: InternalActorSystemSettings<M, R>) -> Self {
-    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::priority());
-    Self::new_with_settings_and_builder(mailbox_factory, scheduler_builder, settings)
+  pub fn new_with_settings(actor_runtime: R, settings: InternalActorSystemSettings<M, R>) -> Self {
+    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::ready_queue());
+    Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings)
   }
 
   pub fn new_with_settings_and_builder(
-    mailbox_factory: R,
-    scheduler_builder: ArcShared<SchedulerBuilder<M, R>>,
+    actor_runtime: R,
+    scheduler_builder: &ArcShared<SchedulerBuilder<M, R>>,
     settings: InternalActorSystemSettings<M, R>,
   ) -> Self {
     let InternalActorSystemSettings {
@@ -100,19 +100,19 @@ where
       root_observation_config,
       extensions,
     } = settings;
-    let factory_shared = ArcShared::new(mailbox_factory);
-    let runtime = factory_shared.clone();
-    let factory_for_scheduler = factory_shared.with_ref(|factory| factory.clone());
-    let mut scheduler = scheduler_builder.build(factory_for_scheduler, extensions.clone());
+    let actor_runtime_shared = ArcShared::new(actor_runtime);
+    let actor_runtime_shared_cloned = actor_runtime_shared.clone();
+    let actor_runtime_cloned = actor_runtime_shared.with_ref(|r| r.clone());
+    let mut scheduler = scheduler_builder.build(actor_runtime_cloned, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
-    scheduler.set_root_failure_telemetry(root_failure_telemetry.clone());
-    scheduler.set_root_observation_config(root_observation_config.clone());
-    scheduler.set_receive_timeout_factory(receive_timeout_factory.clone());
+    scheduler.set_root_failure_telemetry(root_failure_telemetry);
+    scheduler.set_root_observation_config(root_observation_config);
+    scheduler.set_receive_timeout_factory(receive_timeout_factory);
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self {
       scheduler,
-      runtime,
+      runtime: actor_runtime_shared_cloned,
       extensions,
       metrics_sink,
       _strategy: PhantomData,
@@ -128,6 +128,7 @@ where
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
 {
+  #[allow(clippy::missing_const_for_fn)]
   pub fn root_context(&mut self) -> InternalRootContext<'_, M, R, Strat> {
     InternalRootContext { system: self }
   }
@@ -170,6 +171,11 @@ where
 
   pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
     self.metrics_sink.clone()
+  }
+
+  #[must_use]
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+    self.scheduler.ready_queue_worker()
   }
 
   async fn run_until_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>

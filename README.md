@@ -52,7 +52,7 @@ cargo add cellex-actor-std-rs --features rt-multi-thread
 ### Minimal typed example (Tokio)
 
 ```rust
-use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
 use cellex_actor_std_rs::TokioMailboxRuntime;
 
 #[tokio::main]
@@ -60,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
   let mut system: ActorSystem<u32, _> = ActorSystem::new(TokioMailboxRuntime);
   let mut root = system.root_context();
 
-  let props = Props::with_behavior(MailboxOptions::default(), || {
+  let props = Props::with_behavior(|| {
     Behaviors::receive(|_ctx, value: u32| {
       println!("received: {value}");
       Ok(Behaviors::same())
@@ -129,7 +129,7 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 ## Project Status
 
 - `QueueMailbox::recv` returns `Result<M, QueueError<M>>`; handle non-`Ok` as mailbox closure/disconnect signals.
-- `PriorityScheduler::dispatch_all` is deprecated. Prefer `dispatch_next`, `run_until`, or `run_forever` per [dispatch transition guide](docs/design/2025-10-07-dispatch-transition.md).
+- `RootContext::dispatch_all` is deprecated. Prefer `dispatch_next`, `run_until`, or `run_forever` per [dispatch transition guide](docs/design/2025-10-07-dispatch-transition.md).
 - Typed DSL is available; upcoming work focuses on richer `map_system` adapters and typed system-event enums (see [Typed DSL MUST guide](docs/worknotes/2025-10-08-typed-dsl-claude-must.md)).
 
 ## Further Reading

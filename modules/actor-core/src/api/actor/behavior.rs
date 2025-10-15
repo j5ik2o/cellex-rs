@@ -1,8 +1,4 @@
 use alloc::boxed::Box;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 
 use crate::api::supervision::{NoopSupervisor, Supervisor, SupervisorDirective};
 use crate::api::MessageEnvelope;
@@ -15,6 +11,7 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
 use super::{ActorFailure, BehaviorFailure, Context};
+use core::mem;
 
 type ReceiveFn<U, R> =
   dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static;
@@ -40,15 +37,15 @@ pub(crate) enum SupervisorStrategyConfig {
 }
 
 impl SupervisorStrategyConfig {
-  pub(crate) fn default() -> Self {
+  pub(crate) const fn default() -> Self {
     SupervisorStrategyConfig::Default
   }
 
-  pub(crate) fn from_strategy(strategy: SupervisorStrategy) -> Self {
+  pub(crate) const fn from_strategy(strategy: SupervisorStrategy) -> Self {
     SupervisorStrategyConfig::Fixed(strategy)
   }
 
-  pub(crate) fn into_supervisor<M>(&self) -> DynSupervisor<M>
+  pub(crate) fn as_supervisor<M>(&self) -> DynSupervisor<M>
   where
     M: Element, {
     let inner: Box<dyn Supervisor<M>> = match self {
@@ -227,6 +224,7 @@ where
   /// Constructs a `Behavior` with specified message receive handler.
   ///
   /// ハンドラは `Result<BehaviorDirective, ActorFailure>` を返す必要がある。
+  #[must_use]
   pub fn receive<F>(mut handler: F) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static,
@@ -240,6 +238,7 @@ where
   /// Constructs Behavior with a simple stateless handler.
   ///
   /// Handler always returns `BehaviorDirective::Same` on success.
+  #[must_use]
   pub fn stateless<F>(mut handler: F) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static, {
@@ -250,6 +249,7 @@ where
   }
 
   /// Constructs Behavior with a handler that receives only the message.
+  #[must_use]
   pub fn receive_message<F>(mut handler: F) -> Self
   where
     F: FnMut(U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static, {
@@ -257,7 +257,8 @@ where
   }
 
   /// Creates a Behavior in stopped state.
-  pub fn stopped() -> Self {
+  #[must_use]
+  pub const fn stopped() -> Self {
     Self::Stopped
   }
 
@@ -268,9 +269,9 @@ where
   pub fn setup<F>(init: F) -> Self
   where
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static, {
-    let handler: Arc<SetupFn<U, R>> = Arc::new(init);
+    let handler = ArcShared::new(init).into_dyn(|inner| inner as &SetupFn<U, R>);
     Self::Setup {
-      init: Some(ArcShared::from_arc(handler)),
+      init: Some(handler),
       signal: None,
     }
   }
@@ -290,8 +291,7 @@ where
   pub fn receive_signal<F>(self, handler: F) -> Self
   where
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static, {
-    let handler: Arc<SignalFn<U, R>> = Arc::new(handler);
-    let handler = ArcShared::from_arc(handler);
+    let handler = ArcShared::new(handler).into_dyn(|inner| inner as &SignalFn<U, R>);
     self.attach_signal_arc(Some(handler))
   }
 
@@ -318,6 +318,7 @@ pub struct Behaviors;
 
 impl Behaviors {
   /// Constructs Behavior with specified message receive handler.
+  #[must_use]
   pub fn receive<U, R, F>(handler: F) -> Behavior<U, R>
   where
     U: Element,
@@ -331,7 +332,8 @@ impl Behaviors {
   }
 
   /// Returns a directive to maintain current Behavior.
-  pub fn same<U, R>() -> BehaviorDirective<U, R>
+  #[must_use]
+  pub const fn same<U, R>() -> BehaviorDirective<U, R>
   where
     U: Element,
     R: ActorRuntime + Clone + 'static,
@@ -341,6 +343,7 @@ impl Behaviors {
   }
 
   /// Constructs Behavior with a handler that receives only the message.
+  #[must_use]
   pub fn receive_message<U, R, F>(handler: F) -> Behavior<U, R>
   where
     U: Element,
@@ -353,7 +356,8 @@ impl Behaviors {
   }
 
   /// Returns a directive to transition to a new Behavior.
-  pub fn transition<U, R>(behavior: Behavior<U, R>) -> BehaviorDirective<U, R>
+  #[must_use]
+  pub const fn transition<U, R>(behavior: Behavior<U, R>) -> BehaviorDirective<U, R>
   where
     U: Element,
     R: ActorRuntime + Clone + 'static,
@@ -363,7 +367,8 @@ impl Behaviors {
   }
 
   /// Returns a directive to transition to stopped state.
-  pub fn stopped<U, R>() -> BehaviorDirective<U, R>
+  #[must_use]
+  pub const fn stopped<U, R>() -> BehaviorDirective<U, R>
   where
     U: Element,
     R: ActorRuntime + Clone + 'static,
@@ -373,7 +378,8 @@ impl Behaviors {
   }
 
   /// Creates a builder to set supervisor strategy on Behavior.
-  pub fn supervise<U, R>(behavior: Behavior<U, R>) -> SuperviseBuilder<U, R>
+  #[must_use]
+  pub const fn supervise<U, R>(behavior: Behavior<U, R>) -> SuperviseBuilder<U, R>
   where
     U: Element,
     R: ActorRuntime + Clone + 'static,
@@ -468,8 +474,14 @@ where
   /// # Arguments
   /// * `ctx` - Actor context
   /// * `message` - Message to process
+  ///
+  /// # Errors
+  /// Returns `Err(ActorFailure)` if message handling fails or the behavior cannot be initialised.
   pub fn handle_user(&mut self, ctx: &mut Context<'_, '_, U, R>, message: U) -> Result<(), ActorFailure> {
     self.ensure_initialized(ctx)?;
+    while matches!(self.behavior, Behavior::Setup { .. }) {
+      self.ensure_initialized(ctx)?;
+    }
     match &mut self.behavior {
       Behavior::Receive(state) => match state.handle(ctx, message)? {
         BehaviorDirective::Same => {}
@@ -478,7 +490,9 @@ where
       Behavior::Stopped => {
         // 処理不要
       }
-      Behavior::Setup { .. } => unreachable!(),
+      Behavior::Setup { .. } => {
+        return Err(ActorFailure::from_message("behavior remained in setup state"));
+      }
     }
     Ok(())
   }
@@ -488,13 +502,22 @@ where
   /// # Arguments
   /// * `ctx` - Actor context
   /// * `message` - System message to process
+  ///
+  /// # Errors
+  /// Returns `Err(ActorFailure)` if system message handling fails or the behavior cannot be initialised.
   pub fn handle_system(&mut self, ctx: &mut Context<'_, '_, U, R>, message: SystemMessage) -> Result<(), ActorFailure> {
     self.ensure_initialized(ctx)?;
+    while matches!(self.behavior, Behavior::Setup { .. }) {
+      self.ensure_initialized(ctx)?;
+    }
     if matches!(message, SystemMessage::Stop) {
       self.transition(Behavior::stopped(), ctx)?;
     } else if matches!(message, SystemMessage::Restart) {
       self.behavior = (self.behavior_factory)();
       self.ensure_initialized(ctx)?;
+    }
+    if matches!(self.behavior, Behavior::Setup { .. }) {
+      return Err(ActorFailure::from_message("behavior remained in setup state"));
     }
     if let Some(handler) = self.system_handler.as_mut() {
       handler(ctx, message);
@@ -503,6 +526,7 @@ where
   }
 
   /// Creates a SystemMessage mapper for Guardian/Scheduler.
+  #[must_use]
   pub fn create_map_system() -> MapSystemShared<DynMessage> {
     MapSystemShared::new(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)))
   }
@@ -513,19 +537,21 @@ where
   }
 
   fn ensure_initialized(&mut self, ctx: &mut Context<'_, '_, U, R>) -> Result<(), ActorFailure> {
-    loop {
-      match &self.behavior {
-        Behavior::Setup { init, signal } => {
-          let signal = signal.clone();
-          if let Some(init) = init.clone() {
-            let behavior = init(ctx)?;
-            self.behavior = behavior.attach_signal_arc(signal);
-          } else {
-            self.behavior = Behavior::stopped().attach_signal_arc(signal);
-          }
+    while matches!(self.behavior, Behavior::Setup { .. }) {
+      let (init, signal) = match mem::replace(&mut self.behavior, Behavior::stopped()) {
+        Behavior::Setup { init, signal } => (init, signal),
+        other => {
+          self.behavior = other;
+          break;
         }
-        _ => break,
-      }
+      };
+      let next_signal = signal.clone();
+      let next_behavior = if let Some(init) = init {
+        init(ctx)?
+      } else {
+        Behavior::stopped()
+      };
+      self.behavior = next_behavior.attach_signal_arc(next_signal);
     }
     Ok(())
   }

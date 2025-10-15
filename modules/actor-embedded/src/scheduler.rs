@@ -4,9 +4,10 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
-  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, GuardianStrategy,
-  InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared, PriorityEnvelope, PriorityScheduler,
-  ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
+  ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
+  FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
+  PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder,
+  SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_executor::Spawner;
@@ -16,13 +17,13 @@ use crate::receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 
 /// Embassy 用スケジューラ。
 ///
-/// 既存の [`PriorityScheduler`] をラップし、`embassy_futures::yield_now` による協調切り替えを提供する。
+/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`] をラップし、`embassy_futures::yield_now` による協調切り替えを提供する。
 pub struct EmbassyScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, RuntimeEnv<R>>, {
-  inner: PriorityScheduler<M, RuntimeEnv<R>, Strat>,
+  inner: ReadyQueueScheduler<M, RuntimeEnv<R>, Strat>,
 }
 
 impl<M, R> EmbassyScheduler<M, R, AlwaysRestart>
@@ -33,7 +34,7 @@ where
   /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
   pub fn new(runtime: RuntimeEnv<R>, extensions: Extensions) -> Self {
     Self {
-      inner: PriorityScheduler::new(runtime, extensions),
+      inner: ReadyQueueScheduler::new(runtime, extensions),
     }
   }
 }
@@ -47,7 +48,7 @@ where
   /// 任意の GuardianStrategy を適用した構成を作成する。
   pub fn with_strategy(runtime: RuntimeEnv<R>, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: PriorityScheduler::with_strategy(runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
     }
   }
 }
@@ -74,19 +75,27 @@ where
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    PriorityScheduler::set_root_event_listener(&mut self.inner, listener);
+    ReadyQueueScheduler::set_root_event_listener(&mut self.inner, listener);
   }
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
-    PriorityScheduler::set_root_escalation_handler(&mut self.inner, handler);
+    ReadyQueueScheduler::set_root_escalation_handler(&mut self.inner, handler);
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    PriorityScheduler::set_metrics_sink(&mut self.inner, sink);
+    ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
+  }
+
+  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    ReadyQueueScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
+  }
+
+  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 
   fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, RuntimeEnv<R>>, map_system: MapSystemShared<M>) {
-    PriorityScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
+    ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
   fn on_escalation(
@@ -95,7 +104,7 @@ where
       dyn FnMut(&FailureInfo) -> Result<(), cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>> + 'static,
     >,
   ) {
-    PriorityScheduler::on_escalation(&mut self.inner, handler);
+    ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
 
   fn take_escalations(&mut self) -> Vec<FailureInfo> {
@@ -115,6 +124,10 @@ where
     yield_now().await;
     Ok(())
   }
+
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, RuntimeEnv<R>>>> {
+    Some(self.inner.worker_handle())
+  }
 }
 
 /// Embassy 用スケジューラビルダーを生成するユーティリティ。
@@ -124,7 +137,9 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  SchedulerBuilder::new(|runtime, extensions| Box::new(EmbassyScheduler::new(runtime, extensions)))
+  SchedulerBuilder::new(|runtime, extensions| {
+    Box::new(EmbassyScheduler::<M, R, AlwaysRestart>::new(runtime, extensions))
+  })
 }
 
 /// `ActorRuntimeBundle` に Embassy スケジューラを組み込むための拡張トレイト。

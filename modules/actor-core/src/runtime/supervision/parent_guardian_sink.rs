@@ -25,7 +25,7 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
-  pub(crate) fn new(control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) -> Self {
+  pub(crate) const fn new(control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) -> Self {
     Self {
       control_ref,
       map_system,
@@ -47,7 +47,7 @@ where
 
     if let Some(parent_info) = info.escalate_to_parent() {
       let envelope =
-        PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info.clone())).map(|sys| (self.map_system)(sys));
+        PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (self.map_system)(sys));
       if self.control_ref.sender().try_send(envelope).is_ok() {
         return Ok(());
       }

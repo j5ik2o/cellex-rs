@@ -41,7 +41,7 @@ cargo add cellex-actor-std-rs --features rt-multi-thread
 ### 最小サンプル（Tokio）
 
 ```rust
-use cellex_actor_core_rs::{ActorSystem, Behaviors, MailboxOptions, Props};
+use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
 use cellex_actor_std_rs::TokioMailboxRuntime;
 
 #[tokio::main]
@@ -49,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
   let mut system: ActorSystem<u32, _> = ActorSystem::new(TokioMailboxRuntime);
   let mut root = system.root_context();
 
-  let props = Props::with_behavior(MailboxOptions::default(), || {
+  let props = Props::with_behavior(|| {
     Behaviors::receive(|_ctx, value: u32| {
       println!("受信: {value}");
       Ok(Behaviors::same())
@@ -119,7 +119,7 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 ## 進捗ステータス
 
 - `QueueMailbox::recv` は `Result<M, QueueError<M>>` を返します。`Ok` 以外は閉鎖・切断シグナルなので停止処理を明示的に実装してください。
-- `PriorityScheduler::dispatch_all` は非推奨です。`dispatch_next` / `run_until` / `run_forever` を利用してください（詳細は [dispatch 移行ガイド](docs/design/2025-10-07-dispatch-transition.md)）。
+- `RootContext::dispatch_all` は非推奨です。`dispatch_next` / `run_until` / `run_forever` を利用してください（詳細は [dispatch 移行ガイド](docs/design/2025-10-07-dispatch-transition.md)）。
 - Typed DSL は利用可能ですが、`map_system` をユーザー定義 enum へ拡張する課題や統合テスト強化が進行中です（[Typed DSL MUST ガイド](docs/worknotes/2025-10-08-typed-dsl-claude-must.md) を参照）。
 
 ## 参考資料
