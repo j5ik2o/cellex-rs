@@ -4,7 +4,7 @@ use std::vec::Vec;
 use cellex_actor_core_rs::{
   ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
   FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, PriorityScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv,
+  PriorityEnvelope, ReadyQueueScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv,
   SchedulerBuilder, SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_std_rs::{Element, QueueError};
@@ -12,13 +12,13 @@ use tokio::task::yield_now;
 
 /// Tokio 用スケジューララッパー。
 ///
-/// 既存の [`PriorityScheduler`] を内包しつつ、`tokio::task::yield_now` による協調切り替えを行う。
+/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`] を内包しつつ、`tokio::task::yield_now` による協調切り替えを行う。
 pub struct TokioScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, RuntimeEnv<R>>, {
-  inner: PriorityScheduler<M, RuntimeEnv<R>, Strat>,
+  inner: ReadyQueueScheduler<M, RuntimeEnv<R>, Strat>,
 }
 
 impl<M, R> TokioScheduler<M, R, AlwaysRestart>
@@ -29,7 +29,7 @@ where
   /// `PriorityScheduler` を用いた既定構成を作成する。
   pub fn new(runtime: RuntimeEnv<R>, extensions: Extensions) -> Self {
     Self {
-      inner: PriorityScheduler::new(runtime, extensions),
+      inner: ReadyQueueScheduler::new(runtime, extensions),
     }
   }
 }
@@ -43,7 +43,7 @@ where
   /// カスタム GuardianStrategy を適用した構成を作成する。
   pub fn with_strategy(runtime: RuntimeEnv<R>, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: PriorityScheduler::with_strategy(runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
     }
   }
 }
@@ -70,34 +70,34 @@ where
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    PriorityScheduler::set_root_event_listener(&mut self.inner, listener);
+    ReadyQueueScheduler::set_root_event_listener(&mut self.inner, listener);
   }
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
-    PriorityScheduler::set_root_escalation_handler(&mut self.inner, handler);
+    ReadyQueueScheduler::set_root_escalation_handler(&mut self.inner, handler);
   }
 
   fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
-    PriorityScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
+    ReadyQueueScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
   }
 
   fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
-    PriorityScheduler::set_root_observation_config(&mut self.inner, config);
+    ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    PriorityScheduler::set_metrics_sink(&mut self.inner, sink);
+    ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
   fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, RuntimeEnv<R>>, map_system: MapSystemShared<M>) {
-    PriorityScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
+    ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
   fn on_escalation(
     &mut self,
     handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
   ) {
-    PriorityScheduler::on_escalation(&mut self.inner, handler);
+    ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
 
   fn take_escalations(&mut self) -> Vec<FailureInfo> {
@@ -126,7 +126,7 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  SchedulerBuilder::new(|runtime, extensions| Box::new(TokioScheduler::new(runtime, extensions)))
+  SchedulerBuilder::new(|runtime, extensions| Box::new(TokioScheduler::<M, R, AlwaysRestart>::new(runtime, extensions)))
 }
 
 use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};

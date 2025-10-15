@@ -16,6 +16,7 @@ use crate::runtime::mailbox::traits::{
 use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
+use crate::runtime::scheduler::ReadyQueueHandle;
 use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
@@ -103,6 +104,20 @@ where
     MailboxTrait::set_metrics_sink(&mut self.mailbox, sink.clone());
     MailboxProducerTrait::set_metrics_sink(&mut self.sender, sink.clone());
     self.mailbox_spawner.set_metrics_sink(sink);
+  }
+
+  pub(crate) fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>)
+  where
+    R: MailboxRuntime + Clone + 'static,
+    R::Queue<PriorityEnvelope<M>>: Clone,
+    R::Signal: Clone,
+    R::Producer<PriorityEnvelope<M>>: Clone, {
+    MailboxTrait::set_scheduler_hook(&mut self.mailbox, hook.clone());
+    MailboxProducerTrait::set_scheduler_hook(&mut self.sender, hook);
+  }
+
+  pub(crate) fn has_pending_messages(&self) -> bool {
+    !self.mailbox.is_empty()
   }
 
   fn collect_envelopes(&mut self) -> Result<Vec<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {

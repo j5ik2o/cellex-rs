@@ -5,7 +5,7 @@ use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::metrics::MetricsSinkShared;
-use crate::runtime::scheduler::SchedulerBuilder;
+use crate::runtime::scheduler::{ReadyQueueHandle, SchedulerBuilder};
 use crate::{
   FailureEventHandler, FailureEventListener, PriorityEnvelope, PriorityMailboxSpawnerHandle,
   ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
@@ -88,6 +88,9 @@ pub trait Mailbox<M> {
 
   /// Injects a metrics sink for enqueue instrumentation. Default: no-op.
   fn set_metrics_sink(&mut self, _sink: Option<MetricsSinkShared>) {}
+
+  /// Installs a scheduler hook invoked on message arrivals. Default: no-op.
+  fn set_scheduler_hook(&mut self, _hook: Option<ReadyQueueHandle>) {}
 }
 
 /// Shared interface exposed by mailbox handles that can be managed by the runtime scheduler.
@@ -113,6 +116,9 @@ where
 
   /// Injects a metrics sink for enqueue instrumentation. Default: no-op.
   fn set_metrics_sink(&mut self, _sink: Option<MetricsSinkShared>) {}
+
+  /// Installs a scheduler hook invoked on message arrivals. Default: no-op.
+  fn set_scheduler_hook(&mut self, _hook: Option<ReadyQueueHandle>) {}
 }
 
 /// Notification primitive used by `QueueMailbox` to park awaiting receivers until
@@ -322,5 +328,9 @@ where
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     <QueueMailboxProducer<Q, S>>::set_metrics_sink(self, sink);
+  }
+
+  fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
+    <QueueMailboxProducer<Q, S>>::set_scheduler_hook(self, hook);
   }
 }
