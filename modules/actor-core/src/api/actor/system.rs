@@ -3,7 +3,6 @@ use core::marker::PhantomData;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::root_context::RootContext;
-use super::{ActorSystemHandles, ActorSystemParts, Spawn, Timer};
 use crate::api::guardian::AlwaysRestart;
 use crate::runtime::mailbox::traits::{ActorRuntime, MailboxPair};
 use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
@@ -734,21 +733,13 @@ where
     }
   }
 
-  /// Constructs an actor system and handles from parts.
-  ///
-  /// # Arguments
-  /// * `parts` - Actor system parts
-  ///
-  /// # Returns
-  /// Tuple of `(ActorSystem, ActorSystemHandles)`
-  pub fn from_parts<S, T, E>(parts: ActorSystemParts<R, S, T, E>) -> (Self, ActorSystemHandles<S, T, E>)
+  /// Creates an actor system using the provided runtime and failure event stream.
+  pub fn new_with_runtime_and_event_stream<E>(runtime: R, event_stream: &E) -> Self
   where
-    S: Spawn,
-    T: Timer,
-    E: FailureEventStream, {
-    let (actor_runtime, handles) = parts.split();
-    let config = ActorSystemConfig::default().with_failure_event_listener(Some(handles.event_stream.listener()));
-    (Self::new_with_runtime(actor_runtime, config), handles)
+    E: FailureEventStream,
+  {
+    let config = ActorSystemConfig::default().with_failure_event_listener(Some(event_stream.listener()));
+    Self::new_with_runtime(runtime, config)
   }
 }
 

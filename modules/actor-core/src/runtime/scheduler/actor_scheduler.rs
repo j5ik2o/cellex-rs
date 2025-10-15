@@ -30,7 +30,7 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   pub runtime: R,
-  pub mailbox_factory: MailboxHandleFactoryStub<R>,
+  pub mailbox_handle_factory_stub: MailboxHandleFactoryStub<R>,
   pub map_system: MapSystemShared<M>,
   pub mailbox_options: MailboxOptions,
   pub handler: Box<ActorHandlerFn<M, R>>,

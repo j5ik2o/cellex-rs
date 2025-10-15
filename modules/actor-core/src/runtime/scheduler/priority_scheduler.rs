@@ -104,7 +104,7 @@ where
   ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
     let SchedulerSpawnContext {
       runtime,
-      mailbox_factory,
+      mailbox_handle_factory_stub: mailbox_factory,
       map_system,
       mailbox_options,
       handler,

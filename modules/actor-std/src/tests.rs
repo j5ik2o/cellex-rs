@@ -130,10 +130,10 @@ async fn tokio_scheduler_builder_dispatches() {
   let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
 
-  let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+  let mailbox_handle_factory_stub = MailboxHandleFactoryStub::from_runtime(runtime.clone());
   let context = SchedulerSpawnContext {
     runtime,
-    mailbox_factory,
+    mailbox_handle_factory_stub,
     map_system: MapSystemShared::new(Message::System),
     mailbox_options: MailboxOptions::default(),
     handler: Box::new(move |_, msg: Message| {

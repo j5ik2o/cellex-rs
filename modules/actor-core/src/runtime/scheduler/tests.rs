@@ -103,10 +103,10 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  let mailbox_factory = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+  let mailbox_handle_factory_stub = MailboxHandleFactoryStub::from_runtime(runtime.clone());
   let context = SchedulerSpawnContext {
     runtime,
-    mailbox_factory,
+    mailbox_handle_factory_stub: mailbox_handle_factory_stub,
     map_system,
     mailbox_options: options,
     handler,

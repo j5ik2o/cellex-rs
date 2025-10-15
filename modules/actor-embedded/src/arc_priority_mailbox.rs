@@ -358,11 +358,7 @@ where
     self.try_send(PriorityEnvelope::control(message, priority))
   }
 
-  pub fn send_control_with_priority(
-    &self,
-    message: M,
-    priority: i8,
-  ) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  pub fn send_control_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.send(PriorityEnvelope::control(message, priority))
   }
 

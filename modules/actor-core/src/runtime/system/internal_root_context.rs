@@ -54,7 +54,7 @@ where
     mailbox_factory.set_metrics_sink(self.system.metrics_sink());
     let context = SchedulerSpawnContext {
       runtime,
-      mailbox_factory,
+      mailbox_handle_factory_stub: mailbox_factory,
       map_system,
       mailbox_options: options,
       handler,

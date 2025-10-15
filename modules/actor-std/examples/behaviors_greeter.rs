@@ -14,8 +14,7 @@ enum Command {
   Stop,
 }
 
-#[tokio::main(flavor = "current_thread")]
-async fn main() {
+fn main() {
   // tracing サブスクライバを初期化（既に設定済みなら無視）
   let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
     .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));

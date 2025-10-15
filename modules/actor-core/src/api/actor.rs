@@ -29,7 +29,7 @@ pub use props::Props;
 pub use root_context::RootContext;
 pub use system::MailboxHandleFactoryStub;
 pub use system::{ActorSystem, ActorSystemConfig, ActorSystemRunner, RuntimeEnv, ShutdownToken};
-pub use system_support::{ActorSystemHandles, ActorSystemParts, Spawn, Timer};
+pub use system_support::{Spawn, Timer};
 
 #[doc(hidden)]
 mod __actor_doc_refs {
