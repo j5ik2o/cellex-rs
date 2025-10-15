@@ -594,7 +594,7 @@ where
     let (internal_props, supervisor_cfg) = props.into_parts();
     let actor_ref = self
       .inner
-      .spawn_child_from_props(Box::new(supervisor_cfg.into_supervisor()), internal_props);
+      .spawn_child_from_props(Box::new(supervisor_cfg.as_supervisor()), internal_props);
     ActorRef::new(actor_ref)
   }
 }

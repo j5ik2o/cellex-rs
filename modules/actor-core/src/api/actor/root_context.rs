@@ -47,7 +47,7 @@ where
     let (internal_props, supervisor_cfg) = props.into_parts();
     let actor_ref = self
       .inner
-      .spawn_with_supervisor(Box::new(supervisor_cfg.into_supervisor()), internal_props)?;
+      .spawn_with_supervisor(Box::new(supervisor_cfg.as_supervisor()), internal_props)?;
     Ok(ActorRef::new(actor_ref))
   }
 

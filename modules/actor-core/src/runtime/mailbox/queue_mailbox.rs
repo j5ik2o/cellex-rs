@@ -224,17 +224,14 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     }
   }
 
-  /// Sends a message asynchronously.
-  ///
-  /// Currently just calls `try_send`, but can be extended in the future
-  /// for features like backpressure support.
+  /// Sends a message using the mailbox queue.
   ///
   /// # Arguments
   /// - `message`: Message to send
   ///
   /// # Returns
   /// `Ok(())` on success, `Err(QueueError)` on failure
-  pub async fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
+  pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
     Q: QueueRw<M>,
     S: MailboxSignal,

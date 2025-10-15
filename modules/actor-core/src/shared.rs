@@ -52,6 +52,7 @@ pub struct MapSystemShared<M> {
 
 impl<M> MapSystemShared<M> {
   /// Creates a new shared mapper from a function or closure.
+  #[must_use]
   pub fn new<F>(f: F) -> Self
   where
     F: Fn(SystemMessage) -> M + SharedBound + 'static, {
@@ -62,16 +63,19 @@ impl<M> MapSystemShared<M> {
   }
 
   /// Wraps an existing shared mapper.
+  #[must_use]
   pub fn from_shared(inner: ArcShared<MapSystemFn<M>>) -> Self {
     Self { inner }
   }
 
   /// Consumes the wrapper and returns the underlying shared handle.
+  #[must_use]
   pub fn into_shared(self) -> ArcShared<MapSystemFn<M>> {
     self.inner
   }
 
   /// Returns the inner shared handle.
+  #[must_use]
   pub fn as_shared(&self) -> &ArcShared<MapSystemFn<M>> {
     &self.inner
   }
@@ -105,6 +109,7 @@ where
   R::Producer<PriorityEnvelope<M>>: Clone,
 {
   /// Creates a new shared factory from a concrete factory value.
+  #[must_use]
   pub fn new<F>(factory: F) -> Self
   where
     F: ReceiveTimeoutSchedulerFactory<M, R> + 'static, {
@@ -115,16 +120,19 @@ where
   }
 
   /// Wraps an existing shared factory.
+  #[must_use]
   pub fn from_shared(inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>) -> Self {
     Self { inner }
   }
 
   /// Consumes the wrapper and returns the underlying shared handle.
+  #[must_use]
   pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>> {
     self.inner
   }
 
   /// Adapts the factory to operate with [`RuntimeEnv`] as the runtime type.
+  #[must_use]
   pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, RuntimeEnv<R>>
   where
     R: MailboxRuntime + Clone + 'static,
@@ -208,6 +216,7 @@ where
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,
 {
   /// Creates a new shared driver from a concrete driver value.
+  #[must_use]
   pub fn new<D>(driver: D) -> Self
   where
     D: ReceiveTimeoutDriver<R> + 'static, {
@@ -218,21 +227,25 @@ where
   }
 
   /// Wraps an existing shared driver.
+  #[must_use]
   pub fn from_shared(inner: ArcShared<dyn ReceiveTimeoutDriver<R>>) -> Self {
     Self { inner }
   }
 
   /// Consumes the wrapper and returns the underlying shared handle.
+  #[must_use]
   pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutDriver<R>> {
     self.inner
   }
 
   /// Builds a factory by delegating to the underlying driver.
+  #[must_use]
   pub fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, RuntimeEnv<R>> {
     self.inner.with_ref(|driver| driver.build_factory())
   }
 
   /// Returns the inner shared handle.
+  #[must_use]
   pub fn as_shared(&self) -> &ArcShared<dyn ReceiveTimeoutDriver<R>> {
     &self.inner
   }
@@ -314,19 +327,19 @@ pub struct TelemetryContext {
 impl TelemetryContext {
   /// Creates a new telemetry context with optional metrics sink information.
   #[must_use]
-  pub fn new(metrics: Option<MetricsSinkShared>, extensions: Extensions) -> Self {
+  pub const fn new(metrics: Option<MetricsSinkShared>, extensions: Extensions) -> Self {
     Self { metrics, extensions }
   }
 
   /// Returns the metrics sink associated with the context, if any.
   #[must_use]
-  pub fn metrics_sink(&self) -> Option<&MetricsSinkShared> {
+  pub const fn metrics_sink(&self) -> Option<&MetricsSinkShared> {
     self.metrics.as_ref()
   }
 
   /// Returns the extension registry reference.
   #[must_use]
-  pub fn extensions(&self) -> &Extensions {
+  pub const fn extensions(&self) -> &Extensions {
     &self.extensions
   }
 }
@@ -383,6 +396,7 @@ pub struct FailureEventHandlerShared {
 
 impl FailureEventHandlerShared {
   /// Creates a new shared handler from a closure.
+  #[must_use]
   pub fn new<F>(handler: F) -> Self
   where
     F: Fn(&FailureInfo) + SharedBound + 'static, {
@@ -393,11 +407,13 @@ impl FailureEventHandlerShared {
   }
 
   /// Wraps an existing shared handler reference.
+  #[must_use]
   pub fn from_shared(inner: ArcShared<FailureEventHandlerFn>) -> Self {
     Self { inner }
   }
 
   /// Consumes the wrapper and returns the underlying shared handler.
+  #[must_use]
   pub fn into_shared(self) -> ArcShared<FailureEventHandlerFn> {
     self.inner
   }
@@ -426,6 +442,7 @@ pub struct FailureEventListenerShared {
 
 impl FailureEventListenerShared {
   /// Creates a new shared listener from a closure.
+  #[must_use]
   pub fn new<F>(listener: F) -> Self
   where
     F: Fn(FailureEvent) + SharedBound + 'static, {
@@ -436,11 +453,13 @@ impl FailureEventListenerShared {
   }
 
   /// Wraps an existing shared listener.
+  #[must_use]
   pub fn from_shared(inner: ArcShared<FailureEventListenerFn>) -> Self {
     Self { inner }
   }
 
   /// Consumes the wrapper and returns the underlying shared listener.
+  #[must_use]
   pub fn into_shared(self) -> ArcShared<FailureEventListenerFn> {
     self.inner
   }
