@@ -39,7 +39,6 @@ where
   _marker: PhantomData<U>,
 }
 
-/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone)]
 pub(crate) struct RuntimeEnvCore<R>
 where
@@ -154,8 +153,6 @@ where
 /// This lightweight container currently stores only the mailbox factory, but it is
 /// designed to host scheduler builders, timeout drivers, and other platform-specific
 /// elements in future iterations.
-///
-/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 #[derive(Clone)]
 pub struct RuntimeEnv<R>
 where
