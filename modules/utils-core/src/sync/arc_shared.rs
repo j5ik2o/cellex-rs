@@ -39,24 +39,6 @@ impl<T: ?Sized> ArcShared<T> {
     self.0
   }
 
-  /// For Testing, Don't Use Production
-  ///
-  /// Maps the inner Arc through a function, allowing type conversions.
-  ///
-  /// This is useful for converting concrete types to trait objects without
-  /// exposing the internal Arc implementation.
-  ///
-  /// # Example
-  /// ```ignore
-  /// let concrete = ArcShared::new(MyStruct);
-  /// let trait_obj = concrete.map_arc(|arc| arc as Arc<dyn MyTrait>);
-  /// ```
-  pub fn map_arc_for_testing_dont_use_production<U: ?Sized, F>(self, f: F) -> ArcShared<U>
-  where
-    F: FnOnce(Arc<T>) -> Arc<U>, {
-    ArcShared::from_arc_for_testing_dont_use_production(f(self.0))
-  }
-
   /// Consumes the shared handle and returns the raw pointer.
   #[must_use]
   pub fn into_raw(self) -> *const T {

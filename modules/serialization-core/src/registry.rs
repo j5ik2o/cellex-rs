@@ -42,7 +42,7 @@ impl InMemorySerializerRegistry {
     if guard.contains_key(&serializer_id) {
       return Err(RegistryError::DuplicateEntry(serializer_id));
     }
-    let trait_obj = serializer.into_serializer_shared();
+    let trait_obj = serializer.into_dyn(|ext| ext as &dyn Serializer);
     guard.insert(serializer_id, trait_obj);
     Ok(())
   }
@@ -69,19 +69,6 @@ impl InMemorySerializerRegistry {
   #[must_use]
   pub fn get(&self, serializer_id: SerializerId) -> Option<ArcShared<dyn Serializer>> {
     self.inner.read().get(&serializer_id).cloned()
-  }
-}
-
-trait SerializerSharedExt {
-  fn into_serializer_shared(self) -> ArcShared<dyn Serializer>;
-}
-
-impl<S> SerializerSharedExt for ArcShared<S>
-where
-  S: Serializer + 'static,
-{
-  fn into_serializer_shared(self) -> ArcShared<dyn Serializer> {
-    self.map_arc_for_testing_dont_use_production(|arc| arc as _)
   }
 }
 
