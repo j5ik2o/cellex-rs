@@ -1,4 +1,7 @@
 #![allow(deprecated, unused_imports)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::disallowed_types)]
 use super::priority_scheduler::PriorityScheduler;
 use super::*;
 use crate::api::actor::MailboxHandleFactoryStub;

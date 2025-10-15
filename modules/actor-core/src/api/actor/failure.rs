@@ -2,7 +2,6 @@
 mod tests;
 
 use alloc::borrow::Cow;
-use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::String;
 use core::any::Any;
@@ -10,11 +9,6 @@ use core::fmt;
 use core::ptr;
 
 use cellex_utils_core_rs::sync::ArcShared;
-
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 
 /// Supervisor 向けに提供されるエラー情報の抽象化。
 pub trait BehaviorFailure: fmt::Debug + Send + Sync + 'static {
@@ -97,10 +91,9 @@ impl ActorFailure {
   /// `BehaviorFailure` をラップして `ActorFailure` を生成する。
   #[must_use]
   pub fn new(inner: impl BehaviorFailure) -> Self {
-    let boxed: Box<dyn BehaviorFailure> = Box::new(inner);
-    let arc: Arc<dyn BehaviorFailure> = boxed.into();
+    let shared = ArcShared::new(inner);
     Self {
-      inner: ArcShared::from_arc_for_testing_dont_use_production(arc),
+      inner: shared.into_dyn(|value| value as &dyn BehaviorFailure),
     }
   }
 

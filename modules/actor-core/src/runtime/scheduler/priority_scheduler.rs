@@ -345,8 +345,8 @@ where
       }
 
       if let Some((parent_ref, map_system)) = self.guardian.child_route(parent_info.actor) {
-        let envelope =
-          PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info.clone())).map(|sys| (map_system)(sys));
+        #[allow(clippy::redundant_closure)]
+        let envelope = PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (map_system)(sys));
         if parent_ref.sender().try_send(envelope).is_ok() {
           return true;
         }

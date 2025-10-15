@@ -11,6 +11,7 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
 use super::{ActorFailure, BehaviorFailure, Context};
+use core::mem;
 
 type ReceiveFn<U, R> =
   dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static;
@@ -536,19 +537,21 @@ where
   }
 
   fn ensure_initialized(&mut self, ctx: &mut Context<'_, '_, U, R>) -> Result<(), ActorFailure> {
-    loop {
-      match &self.behavior {
-        Behavior::Setup { init, signal } => {
-          let signal = signal.clone();
-          if let Some(init) = init.clone() {
-            let behavior = init(ctx)?;
-            self.behavior = behavior.attach_signal_arc(signal);
-          } else {
-            self.behavior = Behavior::stopped().attach_signal_arc(signal);
-          }
+    while matches!(self.behavior, Behavior::Setup { .. }) {
+      let (init, signal) = match mem::replace(&mut self.behavior, Behavior::stopped()) {
+        Behavior::Setup { init, signal } => (init, signal),
+        other => {
+          self.behavior = other;
+          break;
         }
-        _ => break,
-      }
+      };
+      let next_signal = signal.clone();
+      let next_behavior = if let Some(init) = init {
+        init(ctx)?
+      } else {
+        Behavior::stopped()
+      };
+      self.behavior = next_behavior.attach_signal_arc(next_signal);
     }
     Ok(())
   }

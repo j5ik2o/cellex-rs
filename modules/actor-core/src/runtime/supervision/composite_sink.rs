@@ -107,10 +107,10 @@ where
 {
   fn handle(&mut self, info: FailureInfo, already_handled: bool) -> Result<(), FailureInfo> {
     let mut handled = already_handled;
-    let mut last_failure = info.clone();
+    let mut last_failure = info;
 
     if let Some(parent) = self.parent_guardian.as_mut() {
-      match parent.handle(info.clone(), handled) {
+      match parent.handle(last_failure.clone(), handled) {
         Ok(()) => handled = true,
         Err(unhandled) => {
           last_failure = unhandled;
@@ -120,7 +120,7 @@ where
     }
 
     if let Some(custom) = self.custom.as_mut() {
-      match custom.handle(info.clone(), handled) {
+      match custom.handle(last_failure.clone(), handled) {
         Ok(()) => handled = true,
         Err(unhandled) => {
           last_failure = unhandled;

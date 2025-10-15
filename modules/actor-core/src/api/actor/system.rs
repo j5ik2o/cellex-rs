@@ -727,7 +727,7 @@ where
     };
 
     Self {
-      inner: InternalActorSystem::new_with_settings_and_builder(runtime, scheduler_builder, settings),
+      inner: InternalActorSystem::new_with_settings_and_builder(runtime, &scheduler_builder, settings),
       shutdown: ShutdownToken::default(),
       extensions,
       _marker: PhantomData,

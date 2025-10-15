@@ -1,10 +1,6 @@
 #![allow(missing_docs)]
 
 use alloc::boxed::Box;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 
 use async_trait::async_trait;
@@ -111,9 +107,9 @@ where
   pub fn new<F>(factory: F) -> Self
   where
     F: Fn(R, Extensions) -> SchedulerHandle<M, R> + SharedBound + 'static, {
-    let factory_arc: Arc<FactoryFn<M, R>> = Arc::new(factory);
+    let shared = ArcShared::new(factory);
     Self {
-      factory: ArcShared::from_arc_for_testing_dont_use_production(factory_arc),
+      factory: shared.into_dyn(|inner| inner as &FactoryFn<M, R>),
     }
   }
 

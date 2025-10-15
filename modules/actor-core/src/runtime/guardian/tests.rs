@@ -1,3 +1,7 @@
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::disallowed_types)]
+
 use super::*;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;

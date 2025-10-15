@@ -1,9 +1,3 @@
-use alloc::rc::Rc;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
-
 use crate::runtime::context::ActorContext;
 use crate::runtime::mailbox::traits::ActorRuntime;
 use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
@@ -17,8 +11,8 @@ use cellex_utils_core_rs::Element;
 use super::behavior::SupervisorStrategyConfig;
 use super::{ActorAdapter, ActorFailure, Behavior, Context};
 use crate::api::MessageEnvelope;
-use core::cell::RefCell;
 use core::marker::PhantomData;
+use spin::Mutex;
 
 /// Properties that hold configuration for actor spawning.
 ///
@@ -51,12 +45,15 @@ where
   pub fn new<F>(options: MailboxOptions, handler: F) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static, {
-    let handler_cell = Rc::new(RefCell::new(handler));
+    let handler_cell = ArcShared::new(Mutex::new(handler));
     Self::with_behavior(options, {
       let handler_cell = handler_cell.clone();
       move || {
         let handler_cell = handler_cell.clone();
-        Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| (handler_cell.borrow_mut())(ctx, msg))
+        Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| {
+          let mut guard = handler_cell.lock();
+          (guard)(ctx, msg)
+        })
       }
     })
   }
@@ -82,14 +79,17 @@ where
   where
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static,
     G: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
-    let handler_cell = Rc::new(RefCell::new(user_handler));
+    let handler_cell = ArcShared::new(Mutex::new(user_handler));
     Self::with_behavior_and_system(
       options,
       {
         let handler_cell = handler_cell.clone();
         move || {
           let handler_cell = handler_cell.clone();
-          Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| (handler_cell.borrow_mut())(ctx, msg))
+          Behavior::stateless(move |ctx: &mut Context<'_, '_, U, R>, msg: U| {
+            let mut guard = handler_cell.lock();
+            (guard)(ctx, msg)
+          })
         }
       },
       system_handler,
@@ -112,9 +112,8 @@ where
   where
     F: Fn() -> Behavior<U, R> + 'static,
     S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
-    let behavior_factory = ArcShared::from_arc_for_testing_dont_use_production(
-      Arc::new(behavior_factory) as Arc<dyn Fn() -> Behavior<U, R> + 'static>
-    );
+    let behavior_factory =
+      ArcShared::new(behavior_factory).into_dyn(|factory| factory as &(dyn Fn() -> Behavior<U, R> + 'static));
     let mut adapter = ActorAdapter::new(behavior_factory.clone(), system_handler);
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();

@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use super::*;
 use core::pin::Pin;
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};

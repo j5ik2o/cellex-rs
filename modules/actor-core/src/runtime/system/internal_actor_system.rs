@@ -83,12 +83,12 @@ where
 
   pub fn new_with_settings(mailbox_factory: R, settings: InternalActorSystemSettings<M, R>) -> Self {
     let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::priority());
-    Self::new_with_settings_and_builder(mailbox_factory, scheduler_builder, settings)
+    Self::new_with_settings_and_builder(mailbox_factory, &scheduler_builder, settings)
   }
 
   pub fn new_with_settings_and_builder(
     mailbox_factory: R,
-    scheduler_builder: ArcShared<SchedulerBuilder<M, R>>,
+    scheduler_builder: &ArcShared<SchedulerBuilder<M, R>>,
     settings: InternalActorSystemSettings<M, R>,
   ) -> Self {
     let InternalActorSystemSettings {
@@ -106,9 +106,9 @@ where
     let mut scheduler = scheduler_builder.build(factory_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
-    scheduler.set_root_failure_telemetry(root_failure_telemetry.clone());
-    scheduler.set_root_observation_config(root_observation_config.clone());
-    scheduler.set_receive_timeout_factory(receive_timeout_factory.clone());
+    scheduler.set_root_failure_telemetry(root_failure_telemetry);
+    scheduler.set_root_observation_config(root_observation_config);
+    scheduler.set_receive_timeout_factory(receive_timeout_factory);
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self {
       scheduler,
@@ -128,6 +128,7 @@ where
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
 {
+  #[allow(clippy::missing_const_for_fn)]
   pub fn root_context(&mut self) -> InternalRootContext<'_, M, R, Strat> {
     InternalRootContext { system: self }
   }
