@@ -5,7 +5,7 @@ use cellex_actor_core_rs::{
   ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
   FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
   PriorityEnvelope, ReadyQueueScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv,
-  SchedulerBuilder, SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
+  SchedulerBuilder, SchedulerSpawnContext, SpawnError, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_std_rs::{Element, QueueError};
 use tokio::task::yield_now;
@@ -61,7 +61,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, RuntimeEnv<R>>,
-  ) -> Result<InternalActorRef<M, RuntimeEnv<R>>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<InternalActorRef<M, RuntimeEnv<R>>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 

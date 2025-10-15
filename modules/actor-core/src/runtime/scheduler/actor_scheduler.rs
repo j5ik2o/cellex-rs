@@ -1,6 +1,7 @@
 #![allow(missing_docs)]
 
 use alloc::boxed::Box;
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use async_trait::async_trait;
@@ -17,6 +18,52 @@ use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
+
+/// Naming strategy applied when spawning a child actor.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ChildNaming {
+  /// Automatically assign an incrementing identifier-based name.
+  Auto,
+  /// Generate a name using the provided prefix followed by a unique suffix.
+  WithPrefix(String),
+  /// Use the provided name verbatim; fails if the name already exists.
+  Explicit(String),
+}
+
+impl Default for ChildNaming {
+  fn default() -> Self {
+    Self::Auto
+  }
+}
+
+/// Errors that can occur while spawning an actor through the scheduler.
+#[derive(Debug)]
+pub enum SpawnError<M>
+where
+  M: Element, {
+  /// Underlying mailbox or queue failure.
+  Queue(QueueError<PriorityEnvelope<M>>),
+  /// Attempted to reuse an existing actor name.
+  NameExists(String),
+}
+
+impl<M> SpawnError<M>
+where
+  M: Element,
+{
+  pub(crate) fn name_exists(name: impl Into<String>) -> Self {
+    Self::NameExists(name.into())
+  }
+}
+
+impl<M> From<QueueError<PriorityEnvelope<M>>> for SpawnError<M>
+where
+  M: Element,
+{
+  fn from(value: QueueError<PriorityEnvelope<M>>) -> Self {
+    Self::Queue(value)
+  }
+}
 
 pub(crate) type SchedulerHandle<M, R> = Box<dyn ActorScheduler<M, R>>;
 #[cfg(target_has_atomic = "ptr")]
@@ -36,6 +83,7 @@ where
   pub map_system: MapSystemShared<M>,
   pub mailbox_options: MailboxOptions,
   pub handler: Box<ActorHandlerFn<M, R>>,
+  pub child_naming: ChildNaming,
 }
 
 #[allow(dead_code)]
@@ -50,7 +98,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>;
+  ) -> Result<InternalActorRef<M, R>, SpawnError<M>>;
 
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>);
 

@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnContext};
+use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnContext, SpawnError};
 use crate::runtime::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
 use crate::MapSystemShared;
 use crate::{
@@ -63,7 +63,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 

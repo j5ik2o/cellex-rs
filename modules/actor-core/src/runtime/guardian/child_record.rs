@@ -3,6 +3,7 @@ use crate::ActorId;
 use crate::ActorPath;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
+use alloc::string::String;
 use cellex_utils_core_rs::Element;
 
 #[allow(dead_code)]
@@ -14,4 +15,5 @@ where
   pub(super) map_system: MapSystemShared<M>,
   pub(super) watcher: Option<ActorId>,
   pub(super) path: ActorPath,
+  pub(super) name: Option<String>,
 }

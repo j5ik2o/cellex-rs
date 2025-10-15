@@ -12,10 +12,12 @@ use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::ActorHandlerFn;
 use crate::ActorId;
 use crate::BehaviorFailure;
+use crate::ChildNaming;
 use crate::Extensions;
 use crate::FailureInfo;
 use crate::NoopSupervisor;
 use crate::ShutdownToken;
+use crate::SpawnError;
 #[cfg(feature = "std")]
 use crate::SupervisorDirective;
 use crate::{DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared, PriorityEnvelope};
@@ -120,8 +122,14 @@ where
     map_system,
     mailbox_options: options,
     handler,
+    child_naming: ChildNaming::Auto,
   };
-  scheduler.spawn_actor(supervisor, context)
+  scheduler.spawn_actor(supervisor, context).map_err(|err| match err {
+    super::actor_scheduler::SpawnError::Queue(queue_err) => queue_err,
+    super::actor_scheduler::SpawnError::NameExists(name) => {
+      panic!("unexpected name conflict in scheduler test: {name}")
+    }
+  })
 }
 
 #[cfg(feature = "std")]

@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::ActorId;
 use crate::ActorPath;
+use crate::ChildNaming;
 use crate::Extensions;
 use crate::Supervisor;
 use crate::{MailboxRuntime, PriorityEnvelope};
@@ -35,4 +36,6 @@ where
   pub parent_path: ActorPath,
   /// Shared extensions available to the child actor.
   pub extensions: Extensions,
+  /// Naming strategy applied when instantiating the child actor.
+  pub child_naming: ChildNaming,
 }

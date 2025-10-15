@@ -4,7 +4,9 @@ use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::GuardianStrategy;
 use crate::runtime::mailbox::traits::ActorRuntime;
+use crate::runtime::scheduler::ChildNaming;
 use crate::runtime::scheduler::SchedulerSpawnContext;
+use crate::runtime::scheduler::SpawnError;
 use crate::NoopSupervisor;
 use crate::{Extensions, PriorityEnvelope, Supervisor};
 use cellex_utils_core_rs::sync::Shared;
@@ -31,18 +33,16 @@ where
   Strat: GuardianStrategy<M, R>,
 {
   #[allow(dead_code)]
-  pub fn spawn(
-    &mut self,
-    props: InternalProps<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-    self.spawn_with_supervisor(Box::new(NoopSupervisor), props)
+  pub fn spawn(&mut self, props: InternalProps<M, R>) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
+    self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto)
   }
 
   pub fn spawn_with_supervisor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     props: InternalProps<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+    child_naming: ChildNaming,
+  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     let InternalProps {
       options,
       map_system,
@@ -58,8 +58,8 @@ where
       map_system,
       mailbox_options: options,
       handler,
+      child_naming,
     };
-
     self.system.scheduler.spawn_actor(supervisor, context)
   }
 

@@ -99,9 +99,9 @@ pub use runtime::message::{
 };
 pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 pub use runtime::scheduler::{
-  drive_ready_queue_worker, ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
+  drive_ready_queue_worker, ActorScheduler, ChildNaming, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
   ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
-  SchedulerBuilder, SchedulerSpawnContext,
+  SchedulerBuilder, SchedulerSpawnContext, SpawnError,
 };
 pub use shared::{
   FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,

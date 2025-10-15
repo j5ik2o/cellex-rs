@@ -1,5 +1,6 @@
 use crate::runtime::mailbox::traits::ActorRuntime;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
+use crate::runtime::scheduler::{ChildNaming, SpawnError};
 use crate::runtime::system::InternalRootContext;
 use crate::{ActorRef, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
 use alloc::boxed::Box;
@@ -43,11 +44,43 @@ where
   /// # Returns
   ///
   /// Reference to the spawned actor, or a mailbox error
-  pub fn spawn(&mut self, props: Props<U, R>) -> Result<ActorRef<U, R>, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn spawn(&mut self, props: Props<U, R>) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
+  where
+    DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
-    let actor_ref = self
-      .inner
-      .spawn_with_supervisor(Box::new(supervisor_cfg.as_supervisor()), internal_props)?;
+    let actor_ref = self.inner.spawn_with_supervisor(
+      Box::new(supervisor_cfg.as_supervisor()),
+      internal_props,
+      ChildNaming::Auto,
+    )?;
+    Ok(ActorRef::new(actor_ref))
+  }
+
+  /// Spawns a new actor with a unique name generated from the provided prefix.
+  ///
+  /// The actual name will be `{prefix}-{n}` where `n` is a monotonically increasing counter.
+  pub fn spawn_prefix(&mut self, props: Props<U, R>, prefix: &str) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
+  where
+    DynMessage: Element, {
+    let (internal_props, supervisor_cfg) = props.into_parts();
+    let actor_ref = self.inner.spawn_with_supervisor(
+      Box::new(supervisor_cfg.as_supervisor()),
+      internal_props,
+      ChildNaming::WithPrefix(prefix.to_owned()),
+    )?;
+    Ok(ActorRef::new(actor_ref))
+  }
+
+  /// Spawns a new actor using the specified name. Fails if the name already exists.
+  pub fn spawn_named(&mut self, props: Props<U, R>, name: &str) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
+  where
+    DynMessage: Element, {
+    let (internal_props, supervisor_cfg) = props.into_parts();
+    let actor_ref = self.inner.spawn_with_supervisor(
+      Box::new(supervisor_cfg.as_supervisor()),
+      internal_props,
+      ChildNaming::Explicit(name.to_owned()),
+    )?;
     Ok(ActorRef::new(actor_ref))
   }
 

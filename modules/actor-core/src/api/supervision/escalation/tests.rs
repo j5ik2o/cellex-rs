@@ -76,8 +76,7 @@ impl MetricsSink for RecordingMetricsSink {
 #[test]
 fn root_escalation_sink_records_metrics() {
   let (metrics_sink_impl, metrics_events) = RecordingMetricsSink::new();
-  let mut observation =
-    TelemetryObservationConfig::new().with_metrics_sink(MetricsSinkShared::new(metrics_sink_impl));
+  let mut observation = TelemetryObservationConfig::new().with_metrics_sink(MetricsSinkShared::new(metrics_sink_impl));
   observation.set_record_timing(true);
 
   let mut sink: RootEscalationSink<DummyMessage, TestMailboxRuntime> = RootEscalationSink::new();

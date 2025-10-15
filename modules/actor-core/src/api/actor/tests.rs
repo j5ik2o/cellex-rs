@@ -10,6 +10,7 @@ use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, Messag
 use crate::next_extension_id;
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::message::{take_metadata, DynMessage};
+use crate::runtime::scheduler::SpawnError;
 use crate::ActorId;
 use crate::ActorRuntime;
 use crate::MapSystemShared;
@@ -49,6 +50,38 @@ struct ChildMessage {
 }
 
 mod ready_queue_worker_configuration {
+  #[test]
+  fn actor_system_spawn_prefix_allows_multiple_spawns() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory);
+    let mut system: ActorSystem<u32, _> = ActorSystem::new(runtime);
+    let mut root = system.root_context();
+
+    root
+      .spawn_prefix(Props::new(|_, _: u32| Ok(())), "worker")
+      .expect("spawn worker-0");
+    root
+      .spawn_prefix(Props::new(|_, _: u32| Ok(())), "worker")
+      .expect("spawn worker-1");
+  }
+
+  #[test]
+  fn actor_system_spawn_named_rejects_duplicate_names() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory);
+    let mut system: ActorSystem<u32, _> = ActorSystem::new(runtime);
+    let mut root = system.root_context();
+
+    root
+      .spawn_named(Props::new(|_, _: u32| Ok(())), "service")
+      .expect("spawn service");
+    match root.spawn_named(Props::new(|_, _: u32| Ok(())), "service") {
+      Err(SpawnError::NameExists(name)) => assert_eq!(name, "service"),
+      Err(SpawnError::Queue(err)) => panic!("unexpected queue error: {:?}", err),
+      Ok(_) => panic!("expected duplicate name error"),
+    }
+  }
+
   use super::*;
   use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 
@@ -1063,8 +1096,8 @@ mod metrics_injection {
       &mut self,
       _supervisor: Box<dyn Supervisor<M>>,
       _context: SchedulerSpawnContext<M, R>,
-    ) -> Result<crate::runtime::context::InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
-      Err(QueueError::Disconnected)
+    ) -> Result<crate::runtime::context::InternalActorRef<M, R>, SpawnError<M>> {
+      Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
     fn set_receive_timeout_factory(&mut self, _factory: Option<crate::ReceiveTimeoutFactoryShared<M, R>>) {}

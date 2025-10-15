@@ -1,8 +1,8 @@
 use super::*;
 use cellex_actor_core_rs::MailboxOptions;
 use cellex_actor_core_rs::{
-  actor_loop, ActorId, ActorSystem, Context, Extensions, MailboxHandleFactoryStub, MapSystemShared, NoopSupervisor,
-  Props, RuntimeEnv, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
+  actor_loop, ActorId, ActorSystem, ChildNaming, Context, Extensions, MailboxHandleFactoryStub, MapSystemShared,
+  NoopSupervisor, Props, RuntimeEnv, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
 };
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
@@ -139,6 +139,7 @@ async fn tokio_scheduler_builder_dispatches() {
       log_clone.lock().unwrap().push(msg);
       Ok(())
     }),
+    child_naming: ChildNaming::Auto,
   };
 
   scheduler.spawn_actor(Box::new(NoopSupervisor), context).unwrap();
