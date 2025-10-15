@@ -35,6 +35,7 @@ where
   inner: InternalActorSystem<DynMessage, R, Strat>,
   shutdown: ShutdownToken,
   extensions: Extensions,
+  ready_queue_worker_count: NonZeroUsize,
   _marker: PhantomData<U>,
 }
 
@@ -482,6 +483,8 @@ where
   failure_observation_config: Option<TelemetryObservationConfig>,
   /// Extension registry configured for the actor system.
   extensions: Extensions,
+  /// Default ReadyQueue worker count supplied by configuration.
+  ready_queue_worker_count: Option<NonZeroUsize>,
 }
 
 impl<R> Default for ActorSystemConfig<R>
@@ -499,6 +502,7 @@ where
       failure_telemetry_builder: None,
       failure_observation_config: None,
       extensions: Extensions::new(),
+      ready_queue_worker_count: None,
     }
   }
 }
@@ -545,6 +549,12 @@ where
     self
   }
 
+  /// Sets the default ReadyQueue worker count.
+  pub fn with_ready_queue_worker_count(mut self, worker_count: Option<NonZeroUsize>) -> Self {
+    self.ready_queue_worker_count = worker_count;
+    self
+  }
+
   /// Sets the metrics sink using a concrete shared handle.
   #[must_use]
   pub fn with_metrics_sink_shared(mut self, sink: MetricsSinkShared) -> Self {
@@ -582,6 +592,11 @@ where
     self.failure_observation_config = config;
   }
 
+  /// Mutable setter for the default ReadyQueue worker count.
+  pub fn set_ready_queue_worker_count(&mut self, worker_count: Option<NonZeroUsize>) {
+    self.ready_queue_worker_count = worker_count;
+  }
+
   pub(crate) fn failure_event_listener(&self) -> Option<FailureEventListener> {
     self.failure_event_listener.clone()
   }
@@ -604,6 +619,10 @@ where
 
   pub(crate) fn failure_observation_config(&self) -> Option<TelemetryObservationConfig> {
     self.failure_observation_config.clone()
+  }
+
+  pub(crate) fn ready_queue_worker_count(&self) -> Option<NonZeroUsize> {
+    self.ready_queue_worker_count
   }
 
   /// Replaces the extension registry in the configuration.
@@ -727,10 +746,15 @@ where
       extensions: extensions.clone(),
     };
 
+    let ready_queue_worker_count = config
+      .ready_queue_worker_count()
+      .unwrap_or_else(|| NonZeroUsize::new(1).expect("ReadyQueue worker count must be non-zero"));
+
     Self {
       inner: InternalActorSystem::new_with_settings_and_builder(runtime, &scheduler_builder, settings),
       shutdown: ShutdownToken::default(),
       extensions,
+      ready_queue_worker_count,
       _marker: PhantomData,
     }
   }
@@ -785,9 +809,10 @@ where
   /// # Returns
   /// Actor system runner
   pub fn into_runner(self) -> ActorSystemRunner<U, R, Strat> {
+    let ready_queue_worker_count = self.ready_queue_worker_count;
     ActorSystemRunner {
       system: self,
-      ready_queue_worker_count: NonZeroUsize::new(1).expect("ReadyQueue worker count must be non-zero"),
+      ready_queue_worker_count,
       _marker: PhantomData,
     }
   }

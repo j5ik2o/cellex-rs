@@ -2,7 +2,7 @@ use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
-use cellex_actor_core_rs::{ActorRuntime, ActorSystemRunner, ShutdownToken};
+use cellex_actor_core_rs::{drive_ready_queue_worker, ActorRuntime, ActorSystemRunner, ShutdownToken};
 use cellex_actor_core_rs::{ArcShared, PriorityEnvelope, ReadyQueueWorker, RuntimeMessage};
 use cellex_utils_std_rs::QueueError;
 use futures::future::select_all;
@@ -199,33 +199,17 @@ where
   R: ActorRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
   R::Signal: Clone, {
-  loop {
-    if shutdown.is_triggered() {
-      return Ok(());
-    }
-
-    if let Some(_) = worker.process_ready_once()? {
-      task::yield_now().await;
-      continue;
-    }
-
-    match worker.wait_for_ready() {
-      Some(wait_future) => {
-        tokio::select! {
-          _ = wait_future => {}
-          _ = wait_for_shutdown(shutdown.clone()) => {
-            return Ok(());
-          }
-        }
-      }
-      None => {
-        task::yield_now().await;
-      }
-    }
-  }
+  let shutdown_for_wait = shutdown.clone();
+  drive_ready_queue_worker(
+    worker,
+    shutdown,
+    || task::yield_now(),
+    move || wait_for_shutdown_signal(shutdown_for_wait.clone()),
+  )
+  .await
 }
 
-async fn wait_for_shutdown(token: ShutdownToken) {
+async fn wait_for_shutdown_signal(token: ShutdownToken) {
   while !token.is_triggered() {
     task::yield_now().await;
   }

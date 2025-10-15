@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnContext};
-use crate::runtime::scheduler::priority_scheduler::PriorityScheduler;
+use crate::runtime::scheduler::priority_scheduler::ReadyQueueScheduler;
 use crate::MapSystemShared;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime,
@@ -22,7 +22,7 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
-  inner: PriorityScheduler<M, R, Strat>,
+  inner: ReadyQueueScheduler<M, R, Strat>,
 }
 
 impl<M, R> ImmediateScheduler<M, R, AlwaysRestart>
@@ -32,7 +32,7 @@ where
 {
   pub fn new(runtime: R, extensions: Extensions) -> Self {
     Self {
-      inner: PriorityScheduler::new(runtime, extensions),
+      inner: ReadyQueueScheduler::new(runtime, extensions),
     }
   }
 }
@@ -45,7 +45,7 @@ where
 {
   pub fn with_strategy(runtime: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: PriorityScheduler::with_strategy(runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
     }
   }
 }
@@ -72,34 +72,34 @@ where
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    PriorityScheduler::set_root_event_listener(&mut self.inner, listener);
+    ReadyQueueScheduler::set_root_event_listener(&mut self.inner, listener);
   }
 
   fn set_root_escalation_handler(&mut self, handler: Option<FailureEventHandler>) {
-    PriorityScheduler::set_root_escalation_handler(&mut self.inner, handler);
+    ReadyQueueScheduler::set_root_escalation_handler(&mut self.inner, handler);
   }
 
   fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
-    PriorityScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
+    ReadyQueueScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
   }
 
   fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
-    PriorityScheduler::set_root_observation_config(&mut self.inner, config);
+    ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    PriorityScheduler::set_metrics_sink(&mut self.inner, sink);
+    ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
   fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
-    PriorityScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
+    ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
   fn on_escalation(
     &mut self,
     handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
   ) {
-    PriorityScheduler::on_escalation(&mut self.inner, handler);
+    ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
 
   fn take_escalations(&mut self) -> Vec<FailureInfo> {

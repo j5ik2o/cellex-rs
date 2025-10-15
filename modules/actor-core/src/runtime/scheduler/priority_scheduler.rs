@@ -25,7 +25,7 @@ use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
-use futures::future::{select_all, LocalBoxFuture};
+use futures::future::{select, select_all, Either, LocalBoxFuture};
 use futures::FutureExt;
 
 use super::actor_cell::ActorCell;
@@ -100,6 +100,9 @@ where
   }
 }
 
+#[deprecated(
+  note = "Use ReadyQueueScheduler instead; PriorityScheduler remains only for legacy scenarios and will be removed in a future release."
+)]
 pub struct PriorityScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
@@ -806,6 +809,51 @@ where
   fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>>;
 }
 
+/// Drives a single ReadyQueue worker loop until shutdown is triggered.
+pub async fn drive_ready_queue_worker<M, R, Y, YF, S, SF>(
+  worker: ArcShared<dyn ReadyQueueWorker<M, R>>,
+  shutdown: ShutdownToken,
+  mut yield_now: Y,
+  mut wait_for_shutdown: S,
+) -> Result<(), QueueError<PriorityEnvelope<M>>>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  Y: FnMut() -> YF,
+  YF: core::future::Future<Output = ()>,
+  S: FnMut() -> SF,
+  SF: core::future::Future<Output = ()>, {
+  loop {
+    if shutdown.is_triggered() {
+      return Ok(());
+    }
+
+    if let Some(progress) = worker.process_ready_once()? {
+      if progress {
+        yield_now().await;
+        continue;
+      }
+    }
+
+    match worker.wait_for_ready() {
+      Some(wait_future) => {
+        let shutdown_future = wait_for_shutdown();
+        futures::pin_mut!(wait_future);
+        futures::pin_mut!(shutdown_future);
+        match select(wait_future, shutdown_future).await {
+          Either::Left((_, _)) => {}
+          Either::Right((_, _)) => return Ok(()),
+        }
+      }
+      None => {
+        yield_now().await;
+      }
+    }
+  }
+}
+
 struct ReadyQueueWorkerImpl<M, R, Strat>
 where
   M: Element,
@@ -1116,3 +1164,4 @@ where
     Some(self.worker_handle())
   }
 }
+use crate::ShutdownToken;

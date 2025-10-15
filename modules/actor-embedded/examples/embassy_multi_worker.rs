@@ -1,15 +1,15 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
   use cellex_actor_core_rs::{
-    actor::context::RootContext, ActorSystem, ActorSystemConfig, Props, ReadyQueueWorker, RuntimeEnv, ShutdownToken,
+    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, Props, ReadyQueueWorker,
+    RuntimeEnv, ShutdownToken,
   };
   use cellex_actor_core_rs::{ArcShared, DynMessage};
   use cellex_actor_embedded_rs::{ActorRuntimeBundleEmbassyExt, LocalMailboxRuntime};
   use core::num::NonZeroUsize;
   use core::sync::atomic::{AtomicU32, Ordering};
   use embassy_executor::{Executor, Spawner};
-  use embassy_futures::select::{select, Either};
-  use embassy_futures::{pin_mut, yield_now};
+  use embassy_futures::yield_now;
   use embassy_time::Timer;
   use static_cell::StaticCell;
 
@@ -22,33 +22,15 @@ mod sample {
     worker: ArcShared<dyn ReadyQueueWorker<DynMessage, RuntimeEnv<LocalMailboxRuntime>>>,
     shutdown: ShutdownToken,
   ) {
-    loop {
-      if shutdown.is_triggered() {
-        return;
-      }
-
-      match worker.process_ready_once() {
-        Ok(Some(true)) | Ok(Some(false)) => {
-          yield_now().await;
-          continue;
-        }
-        Ok(None) => {}
-        Err(err) => panic!("ready queue processing failed: {:?}", err),
-      }
-
-      match worker.wait_for_ready() {
-        Some(wait_future) => {
-          pin_mut!(wait_future);
-          let shutdown_future = wait_for_shutdown_signal(shutdown.clone());
-          pin_mut!(shutdown_future);
-          match select(wait_future, shutdown_future).await {
-            Either::First((_, _)) => {}
-            Either::Second((_, _)) => return,
-          }
-        }
-        None => yield_now().await,
-      }
-    }
+    let mut shutdown_for_wait = shutdown.clone();
+    drive_ready_queue_worker(
+      worker,
+      shutdown,
+      || yield_now(),
+      move || wait_for_shutdown_signal(shutdown_for_wait.clone()),
+    )
+    .await
+    .expect("ready queue worker failed");
   }
 
   fn spawn_ready_queue_workers(
@@ -79,9 +61,12 @@ mod sample {
     let executor = EXECUTOR.init(Executor::new());
 
     executor.run(|spawner| {
+      let configured_worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
       let runtime = RuntimeEnv::new(LocalMailboxRuntime::default()).with_embassy_scheduler(spawner);
-      let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, ActorSystemConfig::default()));
+      let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(configured_worker_count));
+      let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, config));
       let shutdown = system.shutdown_token();
+      let worker_count = configured_worker_count;
 
       let mut root: RootContext<'_, u32, _> = system.root_context();
       let actor_ref = root
@@ -92,7 +77,7 @@ mod sample {
         .expect("spawn actor");
 
       let worker = system.ready_queue_worker().expect("ready queue worker");
-      spawn_ready_queue_workers(spawner, worker, shutdown.clone(), NonZeroUsize::new(3).unwrap());
+      spawn_ready_queue_workers(spawner, worker, shutdown.clone(), worker_count);
 
       for value in 0..10 {
         actor_ref.tell(value).expect("tell");

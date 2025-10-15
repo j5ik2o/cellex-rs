@@ -30,6 +30,7 @@ use cellex_serialization_json_rs::SERDE_JSON_SERIALIZER_ID;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::cell::RefCell;
 use core::future::Future;
+use core::num::NonZeroUsize;
 use core::pin::Pin;
 use core::task::{Context as TaskContext, Poll, RawWaker, RawWakerVTable, Waker};
 use serde::{Deserialize, Serialize};
@@ -45,6 +46,50 @@ struct ParentMessage(String);
 #[derive(Clone, Debug)]
 struct ChildMessage {
   text: String,
+}
+
+mod ready_queue_worker_configuration {
+  use super::*;
+  use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+
+  type TestRuntime = RuntimeEnv<TestMailboxRuntime>;
+
+  #[test]
+  fn actor_system_runner_defaults_ready_queue_worker_count_to_one() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory.clone());
+    let system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(runtime, ActorSystemConfig::default());
+    let runner = system.into_runner();
+
+    assert_eq!(runner.ready_queue_worker_count().get(), 1);
+  }
+
+  #[test]
+  fn actor_system_runner_respects_configured_ready_queue_worker_count() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory.clone());
+    let worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
+    let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(worker_count));
+
+    let system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(runtime, config);
+    let runner = system.into_runner();
+
+    assert_eq!(runner.ready_queue_worker_count(), worker_count);
+  }
+
+  #[test]
+  fn actor_system_runner_allows_overriding_worker_count() {
+    let factory = TestMailboxRuntime::unbounded();
+    let runtime: TestRuntime = RuntimeEnv::new(factory);
+    let worker_count = NonZeroUsize::new(4).expect("non-zero worker count");
+    let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(worker_count));
+
+    let system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(runtime, config);
+    let updated = NonZeroUsize::new(6).expect("non-zero worker count");
+    let runner = system.into_runner().with_ready_queue_worker_count(updated);
+
+    assert_eq!(runner.ready_queue_worker_count(), updated);
+  }
 }
 
 mod receive_timeout_injection {
