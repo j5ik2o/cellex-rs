@@ -100,7 +100,7 @@ impl ActorFailure {
     let boxed: Box<dyn BehaviorFailure> = Box::new(inner);
     let arc: Arc<dyn BehaviorFailure> = boxed.into();
     Self {
-      inner: ArcShared::from_arc(arc),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(arc),
     }
   }
 

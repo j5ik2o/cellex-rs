@@ -43,7 +43,7 @@ impl MetricsSinkShared {
   where
     S: MetricsSink + SharedBound + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(sink) as Arc<dyn MetricsSink>),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(sink) as Arc<dyn MetricsSink>),
     }
   }
 

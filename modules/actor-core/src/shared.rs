@@ -60,7 +60,7 @@ impl<M> MapSystemShared<M> {
   where
     F: Fn(SystemMessage) -> M + SharedBound + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(f)),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(f)),
     }
   }
 
@@ -71,7 +71,7 @@ impl<M> MapSystemShared<M> {
 
   /// Consumes the wrapper and returns the underlying `Arc`.
   pub fn into_arc(self) -> Arc<MapSystemFn<M>> {
-    self.inner.into_arc()
+    self.inner.into_arc_for_testing_dont_use_production()
   }
 
   /// Returns the inner shared handle.
@@ -112,7 +112,7 @@ where
   where
     F: ReceiveTimeoutSchedulerFactory<M, R> + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(factory)),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(factory)),
     }
   }
 
@@ -133,7 +133,7 @@ where
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
-    ReceiveTimeoutFactoryShared::from_shared(ArcShared::from_arc(Arc::new(ReceiveTimeoutFactoryAdapter {
+    ReceiveTimeoutFactoryShared::from_shared(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(ReceiveTimeoutFactoryAdapter {
       inner: self.inner.clone(),
     })))
   }
@@ -210,7 +210,7 @@ where
   where
     D: ReceiveTimeoutDriver<R> + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(driver)),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(driver)),
     }
   }
 
@@ -263,7 +263,7 @@ impl FailureTelemetryShared {
   where
     T: FailureTelemetry + SharedBound + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(telemetry) as Arc<dyn FailureTelemetry>),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(telemetry) as Arc<dyn FailureTelemetry>),
     }
   }
 
@@ -352,7 +352,7 @@ impl FailureTelemetryBuilderShared {
   where
     F: Fn(&TelemetryContext) -> FailureTelemetryShared + SharedBound + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(builder)),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(builder)),
     }
   }
 
@@ -398,7 +398,7 @@ impl FailureEventHandlerShared {
   where
     F: Fn(&FailureInfo) + SharedBound + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(handler)),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(handler)),
     }
   }
 
@@ -440,7 +440,7 @@ impl FailureEventListenerShared {
   where
     F: Fn(FailureEvent) + SharedBound + 'static, {
     Self {
-      inner: ArcShared::from_arc(Arc::new(listener)),
+      inner: ArcShared::from_arc_for_testing_dont_use_production(Arc::new(listener)),
     }
   }
 

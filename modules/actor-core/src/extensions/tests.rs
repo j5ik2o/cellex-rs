@@ -1,6 +1,5 @@
 extern crate alloc;
 
-use super::SharedArc;
 use super::*;
 #[cfg(feature = "std")]
 use alloc::string::String;
@@ -39,7 +38,7 @@ impl Extension for DummyExtension {
 #[test]
 fn register_and_lookup_extension() {
   let extensions = Extensions::new();
-  let extension = ArcShared::from_arc(SharedArc::new(DummyExtension::new(42)));
+  let extension = ArcShared::new(DummyExtension::new(42));
   let id = extension.extension_id();
   extensions.register(extension.clone());
 

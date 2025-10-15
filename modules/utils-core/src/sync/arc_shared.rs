@@ -3,6 +3,8 @@ use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 
+use core::ptr;
+
 use super::Shared;
 
 /// Shared wrapper backed by `alloc::sync::Arc`.
@@ -21,18 +23,24 @@ impl<T: ?Sized> ArcShared<T> {
     Self(Arc::new(value))
   }
 
+  /// For Testing, Don't Use Production
+  ///
   /// Wraps an existing `Arc` in the shared wrapper.
   #[must_use]
-  pub const fn from_arc(inner: Arc<T>) -> Self {
+  pub const fn from_arc_for_testing_dont_use_production(inner: Arc<T>) -> Self {
     Self(inner)
   }
 
+  /// For Testing, Don't Use Production
+  ///
   /// Consumes the wrapper and returns the inner `Arc`.
   #[must_use]
-  pub fn into_arc(self) -> Arc<T> {
+  pub fn into_arc_for_testing_dont_use_production(self) -> Arc<T> {
     self.0
   }
 
+  /// For Testing, Don't Use Production
+  ///
   /// Maps the inner Arc through a function, allowing type conversions.
   ///
   /// This is useful for converting concrete types to trait objects without
@@ -43,10 +51,38 @@ impl<T: ?Sized> ArcShared<T> {
   /// let concrete = ArcShared::new(MyStruct);
   /// let trait_obj = concrete.map_arc(|arc| arc as Arc<dyn MyTrait>);
   /// ```
-  pub fn map_arc<U: ?Sized, F>(self, f: F) -> ArcShared<U>
+  pub fn map_arc_for_testing_dont_use_production<U: ?Sized, F>(self, f: F) -> ArcShared<U>
   where
     F: FnOnce(Arc<T>) -> Arc<U>, {
-    ArcShared::from_arc(f(self.0))
+    ArcShared::from_arc_for_testing_dont_use_production(f(self.0))
+  }
+
+  /// Consumes the shared handle and returns the raw pointer.
+  #[must_use]
+  pub fn into_raw(self) -> *const T {
+    Arc::into_raw(self.0)
+  }
+
+  /// Reconstructs the shared handle from a raw pointer.
+  ///
+  /// # Safety
+  ///
+  /// The pointer must originate from `ArcShared::into_raw`.
+  pub unsafe fn from_raw(ptr: *const T) -> Self {
+    Self(unsafe { Arc::from_raw(ptr) })
+  }
+
+  /// Converts the shared handle into another dynamically sized representation.
+  pub fn into_dyn<U: ?Sized, F>(self, cast: F) -> ArcShared<U>
+  where
+    F: FnOnce(&T) -> &U, {
+    let raw = self.into_raw();
+    unsafe {
+      let reference = &*raw;
+      let trait_reference = cast(reference);
+      let trait_ptr = ptr::from_ref(trait_reference);
+      ArcShared::from_raw(trait_ptr)
+    }
   }
 }
 

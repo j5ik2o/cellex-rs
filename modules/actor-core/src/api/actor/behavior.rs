@@ -270,7 +270,7 @@ where
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static, {
     let handler: Arc<SetupFn<U, R>> = Arc::new(init);
     Self::Setup {
-      init: Some(ArcShared::from_arc(handler)),
+      init: Some(ArcShared::from_arc_for_testing_dont_use_production(handler)),
       signal: None,
     }
   }
@@ -291,7 +291,7 @@ where
   where
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static, {
     let handler: Arc<SignalFn<U, R>> = Arc::new(handler);
-    let handler = ArcShared::from_arc(handler);
+    let handler = ArcShared::from_arc_for_testing_dont_use_production(handler);
     self.attach_signal_arc(Some(handler))
   }
 

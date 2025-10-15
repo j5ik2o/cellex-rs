@@ -112,7 +112,7 @@ where
     F: Fn(R, Extensions) -> SchedulerHandle<M, R> + SharedBound + 'static, {
     let factory_arc: Arc<FactoryFn<M, R>> = Arc::new(factory);
     Self {
-      factory: ArcShared::from_arc(factory_arc),
+      factory: ArcShared::from_arc_for_testing_dont_use_production(factory_arc),
     }
   }
 

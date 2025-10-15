@@ -311,7 +311,7 @@ where
   let dispatch_state = shared.clone();
   let drop_state = shared.clone();
 
-  let dispatch = ArcShared::from_arc(Arc::new(move |message: DynMessage, _priority: i8| {
+  let dispatch = ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message: DynMessage, _priority: i8| {
     let envelope = message
       .downcast::<MessageEnvelope<Resp>>()
       .unwrap_or_else(|_| panic!("ask responder received mismatched message type"));
@@ -332,7 +332,7 @@ where
     Ok(())
   }) as Arc<DispatchFn>);
 
-  let drop_hook = ArcShared::from_arc(Arc::new(move || {
+  let drop_hook = ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move || {
     drop_state.responder_dropped();
   }) as Arc<DropHookFn>);
 

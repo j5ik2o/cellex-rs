@@ -255,7 +255,7 @@ where
   M: Element, {
   let dispatch_impl: Arc<NoopDispatchFn> =
     Arc::new(|_message: DynMessage, _priority: i8| -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> { Ok(()) });
-  let dispatch = ArcShared::from_arc(dispatch_impl);
+  let dispatch = ArcShared::from_arc_for_testing_dont_use_production(dispatch_impl);
   let internal = InternalMessageSender::new(dispatch);
   MessageSender::new(internal)
 }
