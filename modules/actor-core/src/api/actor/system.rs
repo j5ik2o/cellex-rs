@@ -1,5 +1,6 @@
 use core::convert::Infallible;
 use core::marker::PhantomData;
+use core::num::NonZeroUsize;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::root_context::RootContext;
@@ -9,7 +10,7 @@ use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
 use crate::runtime::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
-use crate::runtime::scheduler::SchedulerBuilder;
+use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder};
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
 use crate::{
@@ -661,6 +662,7 @@ where
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
   system: ActorSystem<U, R, Strat>,
+  ready_queue_worker_count: NonZeroUsize,
   _marker: PhantomData<U>,
 }
 
@@ -785,6 +787,7 @@ where
   pub fn into_runner(self) -> ActorSystemRunner<U, R, Strat> {
     ActorSystemRunner {
       system: self,
+      ready_queue_worker_count: NonZeroUsize::new(1).expect("ReadyQueue worker count must be non-zero"),
       _marker: PhantomData,
     }
   }
@@ -873,6 +876,18 @@ where
     let shutdown = self.shutdown.clone();
     self.inner.run_until_idle(|| !shutdown.is_triggered())
   }
+
+  /// Returns a ReadyQueue worker handle if supported by the underlying scheduler.
+  #[must_use]
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, R>>> {
+    self.inner.ready_queue_worker()
+  }
+
+  /// Indicates whether the scheduler supports ReadyQueue-based execution.
+  #[must_use]
+  pub fn supports_ready_queue(&self) -> bool {
+    self.ready_queue_worker().is_some()
+  }
 }
 
 impl<U, R, Strat> ActorSystemRunner<U, R, Strat>
@@ -883,6 +898,36 @@ where
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
 {
+  /// Gets the number of ReadyQueue workers to spawn when driving the system.
+  #[must_use]
+  pub fn ready_queue_worker_count(&self) -> NonZeroUsize {
+    self.ready_queue_worker_count
+  }
+
+  /// Updates the ReadyQueue worker count in place.
+  pub fn set_ready_queue_worker_count(&mut self, worker_count: NonZeroUsize) {
+    self.ready_queue_worker_count = worker_count;
+  }
+
+  /// Returns a new runner with the specified ReadyQueue worker count.
+  #[must_use]
+  pub fn with_ready_queue_worker_count(mut self, worker_count: NonZeroUsize) -> Self {
+    self.set_ready_queue_worker_count(worker_count);
+    self
+  }
+
+  /// Returns a ReadyQueue worker handle if supported by the underlying scheduler.
+  #[must_use]
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, R>>> {
+    self.system.ready_queue_worker()
+  }
+
+  /// Indicates whether the scheduler supports ReadyQueue-based execution.
+  #[must_use]
+  pub fn supports_ready_queue(&self) -> bool {
+    self.system.supports_ready_queue()
+  }
+
   /// Gets the shutdown token.
   ///
   /// # Returns

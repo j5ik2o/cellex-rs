@@ -86,6 +86,7 @@ mod runtime;
 mod shared;
 
 pub use api::*;
+pub use cellex_utils_core_rs::sync::ArcShared;
 #[cfg(feature = "alloc")]
 pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
@@ -99,7 +100,7 @@ pub use runtime::message::{
 pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 pub use runtime::scheduler::{
   ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory, PriorityScheduler, ReadyQueueScheduler,
-  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
+  ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, SchedulerBuilder, SchedulerSpawnContext,
 };
 pub use shared::{
   FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,

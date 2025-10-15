@@ -253,8 +253,7 @@ where
 
   fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static,
-  {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
     self.core.on_escalation(handler)
   }
 
@@ -793,12 +792,67 @@ where
   }
 }
 
+/// Worker interface exposing ReadyQueue operations for driver-level scheduling.
+pub trait ReadyQueueWorker<M, R>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone, {
+  /// Processes one ready actor (if any). Returns `Some(true)` if progress was made.
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>>;
+
+  /// Returns a future that resolves when any actor becomes ready.
+  fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>>;
+}
+
+struct ReadyQueueWorkerImpl<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>, {
+  context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>,
+}
+
+impl<M, R, Strat> ReadyQueueWorkerImpl<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>,
+{
+  fn new(context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>) -> Self {
+    Self { context }
+  }
+}
+
+impl<M, R, Strat> ReadyQueueWorker<M, R> for ReadyQueueWorkerImpl<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>,
+{
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>> {
+    let mut ctx = self.context.lock();
+    ctx.process_ready_once()
+  }
+
+  fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>> {
+    let ctx = self.context.lock();
+    ctx.wait_for_any_signal_future()
+  }
+}
+
 impl<M, R, Strat> ReadyQueueScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
+  pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<M, R>> {
+    let shared = ArcShared::new(ReadyQueueWorkerImpl::<M, R, Strat>::new(self.context.clone()));
+    shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<M, R>)
+  }
+
   fn make_ready_handle(&self, index: usize) -> ReadyQueueHandle {
     let state = self.state.clone();
     let notifier = ArcShared::new(ReadyNotifier::new(state, index));
@@ -871,8 +925,7 @@ where
 
   pub fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static,
-  {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
     let mut ctx = self.context.lock();
     ctx.on_escalation(handler);
   }
@@ -913,7 +966,7 @@ where
 
       let wait_future_opt = {
         let ctx = self.context.lock();
-        ctx.wait_for_any_signal()
+        ctx.wait_for_any_signal_future()
       };
 
       let Some(wait_future) = wait_future_opt else {
@@ -1057,5 +1110,9 @@ where
 
   async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     ReadyQueueScheduler::dispatch_next(self).await
+  }
+
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+    Some(self.worker_handle())
   }
 }

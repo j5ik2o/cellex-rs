@@ -4,9 +4,10 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use cellex_actor_core_rs::{
-  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo, GuardianStrategy,
-  InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared, PriorityEnvelope, ReadyQueueScheduler,
-  ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
+  ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
+  FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
+  PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutFactoryShared, RuntimeEnv, SchedulerBuilder,
+  SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_executor::Spawner;
@@ -85,6 +86,14 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
+  fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared) {
+    ReadyQueueScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
+  }
+
+  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+    ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
+  }
+
   fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, RuntimeEnv<R>>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
@@ -114,6 +123,10 @@ where
     self.inner.dispatch_next().await?;
     yield_now().await;
     Ok(())
+  }
+
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, RuntimeEnv<R>>>> {
+    Some(self.inner.worker_handle())
   }
 }
 

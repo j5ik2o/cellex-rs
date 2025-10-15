@@ -2,7 +2,7 @@ use core::convert::Infallible;
 
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::mailbox::traits::ActorRuntime;
-use crate::runtime::scheduler::{SchedulerBuilder, SchedulerHandle};
+use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{default_failure_telemetry, FailureTelemetryShared, TelemetryObservationConfig};
 use crate::{Extensions, FailureEventHandler, FailureEventListener, MetricsSinkShared, PriorityEnvelope};
@@ -171,6 +171,11 @@ where
 
   pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
     self.metrics_sink.clone()
+  }
+
+  #[must_use]
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+    self.scheduler.ready_queue_worker()
   }
 
   async fn run_until_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>

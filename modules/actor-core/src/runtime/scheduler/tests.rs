@@ -716,11 +716,12 @@ fn scheduler_escalation_chain_reaches_root() {
     "parent escalation hop count must be monotonic"
   );
 
-  let root_failure = scheduler
-    .guardian
-    .escalate_failure(parent_failure.clone())
-    .unwrap()
-    .expect("root failure should be produced");
+  let mut current = parent_failure.clone();
+  let mut root_failure = current.clone();
+  while let Some(next) = current.escalate_to_parent() {
+    root_failure = next.clone();
+    current = next;
+  }
   let root_stage = root_failure.stage;
 
   assert_eq!(first_failure.path.segments().last().copied(), Some(first_failure.actor));

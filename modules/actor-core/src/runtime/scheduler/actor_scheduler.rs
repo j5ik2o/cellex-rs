@@ -16,6 +16,8 @@ use crate::{
 use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
+use super::priority_scheduler::ReadyQueueWorker;
+
 pub(crate) type SchedulerHandle<M, R> = Box<dyn ActorScheduler<M, R>>;
 #[cfg(target_has_atomic = "ptr")]
 type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + Send + Sync + 'static;
@@ -76,6 +78,12 @@ where
   fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>>;
 
   async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>>;
+
+  /// Returns a shared worker handle if the scheduler supports ReadyQueue-based execution.
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+    let _ = self;
+    None
+  }
 }
 
 #[derive(Clone)]
