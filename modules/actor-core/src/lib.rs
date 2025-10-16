@@ -83,11 +83,11 @@ mod api;
 mod internal;
 mod shared;
 
+pub use api::actor::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 #[cfg(feature = "alloc")]
 pub use api::extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use api::extensions::{serializer_extension_id, SerializerRegistryExtension};
-pub use api::actor::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use api::*;
 pub use cellex_utils_core_rs::sync::ArcShared;
 pub use internal::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};

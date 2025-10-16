@@ -10,11 +10,11 @@ pub mod traits;
 
 #[allow(unused_imports)]
 pub use crate::api::actor::runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+pub use crate::MailboxOptions;
 pub use builder::PriorityMailboxBuilder;
 #[cfg(any(test, feature = "test-support"))]
 pub use messages::PriorityChannel;
 pub use messages::{PriorityEnvelope, SystemMessage};
-pub use queue_mailbox::MailboxOptions;
 pub use spawner::PriorityMailboxSpawnerHandle;
 #[allow(unused_imports)]
 pub use traits::{Mailbox, MailboxPair, MailboxRuntime, MailboxSignal};

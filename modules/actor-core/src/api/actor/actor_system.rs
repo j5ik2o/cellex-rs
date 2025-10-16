@@ -82,9 +82,7 @@ where
       config.failure_telemetry().unwrap_or_else(default_failure_telemetry)
     };
 
-    let mut observation_config = config
-      .failure_observation_config()
-      .unwrap_or_default();
+    let mut observation_config = config.failure_observation_config().unwrap_or_default();
     if let Some(sink) = metrics_sink.clone() {
       if observation_config.metrics_sink().is_none() {
         observation_config.set_metrics_sink(Some(sink));
