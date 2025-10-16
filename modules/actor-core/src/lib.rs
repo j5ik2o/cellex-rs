@@ -80,17 +80,15 @@ use cellex_utils_core_rs::QueueError;
 use core::time::Duration;
 
 mod api;
-#[cfg(feature = "alloc")]
-mod extensions;
 mod internal;
 mod shared;
 
+#[cfg(feature = "alloc")]
+pub use api::extensions::{next_extension_id, Extension, ExtensionId, Extensions};
+#[cfg(feature = "alloc")]
+pub use api::extensions::{serializer_extension_id, SerializerRegistryExtension};
 pub use api::*;
 pub use cellex_utils_core_rs::sync::ArcShared;
-#[cfg(feature = "alloc")]
-pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
-#[cfg(feature = "alloc")]
-pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
 pub use internal::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 pub use internal::mailbox::traits::{MailboxRuntime, SingleThread, ThreadSafe};
 pub use internal::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};

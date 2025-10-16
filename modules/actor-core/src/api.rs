@@ -1,5 +1,7 @@
 pub(crate) mod actor;
 mod event_stream;
+#[cfg(feature = "alloc")]
+pub(crate) mod extensions;
 mod guardian;
 pub(crate) mod identity;
 mod messaging;
