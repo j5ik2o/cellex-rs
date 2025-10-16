@@ -1,12 +1,12 @@
 use alloc::boxed::Box;
 
+use crate::api::actor::runtime::{ActorRuntime, MailboxOf};
 use crate::internal::context::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
 use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::scheduler::ChildNaming;
 use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::internal::scheduler::SpawnError;
-use crate::internal::traits::{ActorRuntime, MailboxOf};
 use crate::NoopSupervisor;
 use crate::{Extensions, PriorityEnvelope, Supervisor};
 use cellex_utils_core_rs::sync::Shared;

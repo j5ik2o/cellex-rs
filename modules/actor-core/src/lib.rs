@@ -87,6 +87,7 @@ mod shared;
 pub use api::extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use api::extensions::{serializer_extension_id, SerializerRegistryExtension};
+pub use api::actor::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use api::*;
 pub use cellex_utils_core_rs::sync::ArcShared;
 pub use internal::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
@@ -103,7 +104,6 @@ pub use internal::scheduler::{
   ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
   SchedulerBuilder, SchedulerSpawnContext, SpawnError,
 };
-pub use internal::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use shared::{
   FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,
   MapSystemShared, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, TelemetryContext,

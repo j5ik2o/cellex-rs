@@ -6,16 +6,16 @@ use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
 use super::root_context::RootContext;
+use super::runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::actor::shutdown_token::ShutdownToken;
 use crate::api::guardian::AlwaysRestart;
 use crate::internal::message::DynMessage;
 use crate::internal::scheduler::ReadyQueueWorker;
 use crate::internal::system::{InternalActorSystem, InternalActorSystemConfig};
-use crate::internal::traits::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::serializer_extension_id;
 use crate::{
   default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventStream, PriorityEnvelope,
-  SerializerRegistryExtension, TelemetryContext, TelemetryObservationConfig,
+  SerializerRegistryExtension, TelemetryContext,
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};

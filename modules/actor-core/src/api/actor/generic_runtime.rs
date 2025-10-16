@@ -1,11 +1,12 @@
+use crate::api::actor::runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::mailbox::traits::{MailboxPair, MailboxRuntime};
 use crate::internal::mailbox::MailboxOptions;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
+use crate::internal::runtime_state::GenericActorRuntimeState;
 use crate::internal::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
 use crate::internal::scheduler::SchedulerBuilder;
-use crate::internal::traits::{ActorRuntime, GenericActorRuntimeState, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::PriorityEnvelope;
 use crate::ReceiveTimeoutDriverShared;
 use crate::ReceiveTimeoutFactoryShared;

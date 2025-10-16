@@ -1,7 +1,7 @@
+use crate::api::actor::runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::message::{DynMessage, MetadataStorageMode};
 use crate::internal::scheduler::{ChildNaming, SpawnError};
 use crate::internal::system::InternalRootContext;
-use crate::internal::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::{ActorRef, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;

@@ -16,6 +16,7 @@ mod failure;
 mod generic_runtime;
 mod props;
 mod root_context;
+pub mod runtime;
 mod shutdown_token;
 #[cfg(test)]
 mod tests;
@@ -38,6 +39,7 @@ pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
 pub use generic_runtime::GenericActorRuntime;
 pub use props::Props;
 pub use root_context::RootContext;
+pub use runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use shutdown_token::ShutdownToken;
 
 #[doc(hidden)]

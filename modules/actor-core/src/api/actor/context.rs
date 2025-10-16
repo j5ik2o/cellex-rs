@@ -1,7 +1,7 @@
+use crate::api::actor::runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::context::ActorContext;
 use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::message::{DynMessage, MetadataStorageMode};
-use crate::internal::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extension;

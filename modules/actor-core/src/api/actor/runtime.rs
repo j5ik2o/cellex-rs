@@ -1,6 +1,13 @@
-use cellex_utils_core_rs::sync::{ArcShared, Shared};
+//! Actor runtime traits and type aliases.
+//!
+//! This module defines the high-level `ActorRuntime` trait that extends
+//! `MailboxRuntime` with actor-system-specific capabilities such as
+//! receive timeouts, failure handling, and metrics integration.
+
+use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
+use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
@@ -8,8 +15,6 @@ use crate::internal::scheduler::SchedulerBuilder;
 use crate::{
   FailureEventHandler, FailureEventListener, PriorityEnvelope, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
 };
-
-use super::mailbox::traits::MailboxRuntime;
 
 /// Helper alias mapping an actor runtime to its mailbox runtime.
 pub type MailboxOf<R> = <R as ActorRuntime>::Mailbox;
@@ -23,59 +28,14 @@ pub type MailboxSignalOf<R> = <MailboxOf<R> as MailboxRuntime>::Signal;
 /// Helper alias mapping an actor runtime to the concurrency marker of its mailbox runtime.
 pub type MailboxConcurrencyOf<R> = <MailboxOf<R> as MailboxRuntime>::Concurrency;
 
-#[derive(Clone)]
-pub(crate) struct GenericActorRuntimeState<R>
-where
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
-  mailbox_runtime: ArcShared<R>,
-  scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, R>>,
-}
-
-impl<R> GenericActorRuntimeState<R>
-where
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
-  #[must_use]
-  pub(crate) fn new(actor_runtime: R) -> Self {
-    Self {
-      mailbox_runtime: ArcShared::new(actor_runtime),
-      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, R>::ready_queue()),
-    }
-  }
-
-  #[must_use]
-  pub(crate) fn mailbox_runtime(&self) -> &R {
-    &self.mailbox_runtime
-  }
-
-  #[must_use]
-  pub(crate) fn mailbox_runtime_shared(&self) -> ArcShared<R> {
-    self.mailbox_runtime.clone()
-  }
-
-  #[must_use]
-  pub(crate) fn into_mailbox_runtime(self) -> R {
-    self
-      .mailbox_runtime
-      .try_unwrap()
-      .unwrap_or_else(|shared| (*shared).clone())
-  }
-
-  #[must_use]
-  pub(crate) fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, R>> {
-    self.scheduler_builder.clone()
-  }
-
-  pub(crate) fn set_scheduler_builder(&mut self, builder: ArcShared<SchedulerBuilder<DynMessage, R>>) {
-    self.scheduler_builder = builder;
-  }
-}
-
 /// High-level runtime interface that extends [`MailboxRuntime`] with bundle-specific capabilities.
+///
+/// This trait provides a facade over a mailbox runtime, adding actor-system-level
+/// features such as:
+/// - Receive timeout configuration
+/// - Failure event listeners and escalation handlers
+/// - Metrics integration
+/// - Scheduler builder configuration
 #[allow(dead_code)]
 pub trait ActorRuntime: Clone {
   /// Underlying mailbox runtime retained by this actor runtime facade.

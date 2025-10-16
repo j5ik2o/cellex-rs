@@ -3,6 +3,7 @@
 
 use super::ask::create_ask_handles;
 use super::behavior::{Signal, SupervisorStrategyConfig};
+use super::runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use super::*;
 use super::{ask_with_timeout, AskError};
 use crate::api::guardian::AlwaysRestart;
@@ -11,7 +12,6 @@ use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::message::{take_metadata, DynMessage};
 use crate::internal::scheduler::SpawnError;
-use crate::internal::traits::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use crate::next_extension_id;
 use crate::ActorId;
 use crate::MapSystemShared;
