@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use super::InternalRootContext;
-use crate::api::actor::actor_runtime::{ActorRuntime, MailboxOf};
+use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};

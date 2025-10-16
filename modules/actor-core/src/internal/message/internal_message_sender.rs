@@ -1,4 +1,3 @@
-use crate::api::messaging::{DropHookFn, SendFn};
 use crate::{
   DynMessage, InternalActorRef, MailboxConcurrency, MailboxRuntime, PriorityEnvelope, RuntimeBound, ThreadSafe,
 };
@@ -8,6 +7,17 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
 use core::marker::PhantomData;
+#[cfg(target_has_atomic = "ptr")]
+type DropHookFn = dyn Fn() + Send + Sync;
+
+#[cfg(not(target_has_atomic = "ptr"))]
+type DropHookFn = dyn Fn();
+
+#[cfg(target_has_atomic = "ptr")]
+type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
+
+#[cfg(not(target_has_atomic = "ptr"))]
+type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
 
 /// Internal dispatcher that abstracts the sending destination. Used for ask responses and similar purposes.
 #[derive(Clone)]

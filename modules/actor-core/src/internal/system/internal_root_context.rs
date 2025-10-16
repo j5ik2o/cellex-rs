@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use crate::api::actor::actor_runtime::{ActorRuntime, MailboxOf};
+use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
 use crate::internal::context::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
 use crate::internal::mailbox::traits::MailboxRuntime;

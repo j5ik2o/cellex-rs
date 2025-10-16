@@ -5,7 +5,7 @@ use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
-use crate::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::guardian::AlwaysRestart;
 use crate::internal::message::DynMessage;
 use crate::internal::scheduler::ReadyQueueWorker;

@@ -1,11 +1,11 @@
 #![cfg(feature = "std")]
 #![allow(deprecated)]
 
-use super::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use super::ask::create_ask_handles;
 use super::behavior::{Signal, SupervisorStrategyConfig};
 use super::*;
 use super::{ask_with_timeout, AskError};
+use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use crate::api::guardian::AlwaysRestart;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 use crate::internal::mailbox::test_support::TestMailboxRuntime;

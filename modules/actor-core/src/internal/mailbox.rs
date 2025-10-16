@@ -9,9 +9,7 @@ mod tests;
 pub mod traits;
 
 #[allow(unused_imports)]
-pub use crate::api::actor::actor_runtime::{
-  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf,
-};
+pub use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 #[allow(unused_imports)]
 pub use crate::MailboxOptions;
 pub use builder::PriorityMailboxBuilder;

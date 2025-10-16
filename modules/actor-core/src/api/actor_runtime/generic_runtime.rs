@@ -1,4 +1,4 @@
-use crate::api::actor::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;

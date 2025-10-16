@@ -1,6 +1,4 @@
-use crate::api::actor::actor_runtime::{
-  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf,
-};
+use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::context::ActorContext;
 use crate::internal::message::{take_metadata, DynMessage, MetadataStorageMode};
 use crate::internal::system::InternalProps;

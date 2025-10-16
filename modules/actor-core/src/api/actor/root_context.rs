@@ -1,6 +1,4 @@
-use crate::api::actor::actor_runtime::{
-  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf,
-};
+use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::message::{DynMessage, MetadataStorageMode};
 use crate::internal::scheduler::{ChildNaming, SpawnError};
 use crate::internal::system::InternalRootContext;

@@ -1,4 +1,5 @@
 pub(crate) mod actor;
+pub mod actor_runtime;
 mod actor_system;
 mod event_stream;
 #[cfg(feature = "alloc")]
