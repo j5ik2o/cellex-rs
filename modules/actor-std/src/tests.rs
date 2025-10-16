@@ -1,8 +1,8 @@
 use super::*;
 use cellex_actor_core_rs::MailboxOptions;
 use cellex_actor_core_rs::{
-  actor_loop, ActorId, ActorSystem, ChildNaming, Context, Extensions, MailboxHandleFactoryStub, MapSystemShared,
-  NoopSupervisor, Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
+  actor_loop, ActorId, ActorSystem, ChildNaming, Context, Extensions, MapSystemShared,
+  NoopSupervisor, Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage, ArcShared,
 };
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
@@ -129,10 +129,10 @@ async fn tokio_scheduler_builder_dispatches() {
   let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
 
-  let mailbox_handle_factory_stub = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+  let mailbox_runtime = ArcShared::new(runtime.clone());
   let context = SchedulerSpawnContext {
     runtime,
-    mailbox_handle_factory_stub,
+    mailbox_runtime,
     map_system: MapSystemShared::new(Message::System),
     mailbox_options: MailboxOptions::default(),
     handler: Box::new(move |_, msg: Message| {

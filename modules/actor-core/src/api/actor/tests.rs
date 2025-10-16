@@ -12,7 +12,7 @@ use crate::runtime::mailbox::test_support::TestMailboxRuntime;
 use crate::runtime::message::{take_metadata, DynMessage};
 use crate::runtime::scheduler::SpawnError;
 use crate::ActorId;
-use crate::ActorRuntime;
+use crate::{ActorRuntime, MailboxRuntime};
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
 use crate::SystemMessage;
@@ -212,7 +212,7 @@ mod receive_timeout_injection {
     }
   }
 
-  fn spawn_test_actor<R: ActorRuntime + Clone>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
+  fn spawn_test_actor<R: ActorRuntime + MailboxRuntime + Clone>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
     let props = Props::new(|_, _: u32| Ok(()));
     let mut root = system.root_context();
     let actor_ref = root.spawn(props).expect("spawn actor");
@@ -465,7 +465,7 @@ fn spawn_actor_with_counter_extension<R>(
   ArcShared<CounterExtension>,
 )
 where
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   let extension = CounterExtension::new();

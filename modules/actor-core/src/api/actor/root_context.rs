@@ -1,4 +1,4 @@
-use crate::runtime::mailbox::traits::ActorRuntime;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::scheduler::{ChildNaming, SpawnError};
 use crate::runtime::system::InternalRootContext;
@@ -18,7 +18,7 @@ use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 pub struct RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
@@ -30,7 +30,7 @@ where
 impl<'a, U, R, Strat> RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: ActorRuntime + Clone,
+  R: ActorRuntime + MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

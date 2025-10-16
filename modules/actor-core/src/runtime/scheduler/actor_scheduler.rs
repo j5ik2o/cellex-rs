@@ -6,7 +6,6 @@ use alloc::vec::Vec;
 
 use async_trait::async_trait;
 
-use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::{ActorHandlerFn, InternalActorRef};
 use crate::MailboxOptions;
 use crate::TelemetryObservationConfig;
@@ -79,7 +78,7 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   pub runtime: R,
-  pub mailbox_handle_factory_stub: MailboxHandleFactoryStub<R>,
+  pub mailbox_runtime: ArcShared<R>,
   pub map_system: MapSystemShared<M>,
   pub mailbox_options: MailboxOptions,
   pub handler: Box<ActorHandlerFn<M, R>>,

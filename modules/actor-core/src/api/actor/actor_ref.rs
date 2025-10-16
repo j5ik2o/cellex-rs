@@ -1,5 +1,5 @@
 use crate::runtime::context::InternalActorRef;
-use crate::runtime::mailbox::traits::ActorRuntime;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::SystemMessage;
 use crate::{PriorityEnvelope, RuntimeBound};
@@ -18,7 +18,7 @@ use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, Messag
 pub struct ActorRef<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -29,7 +29,7 @@ where
 impl<U, R> ActorRef<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,

@@ -1,9 +1,8 @@
 use alloc::boxed::Box;
 
-use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::GuardianStrategy;
-use crate::runtime::mailbox::traits::ActorRuntime;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
 use crate::runtime::scheduler::ChildNaming;
 use crate::runtime::scheduler::SchedulerSpawnContext;
 use crate::runtime::scheduler::SpawnError;
@@ -17,7 +16,7 @@ use super::{InternalActorSystem, InternalProps};
 pub(crate) struct InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
@@ -27,7 +26,7 @@ where
 impl<'a, M, R, Strat> InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
@@ -51,11 +50,10 @@ where
     } = props;
 
     let runtime = self.system.runtime.with_ref(|factory| factory.clone());
-    let mut mailbox_factory = MailboxHandleFactoryStub::new(self.system.runtime.clone());
-    mailbox_factory.set_metrics_sink(self.system.metrics_sink());
+    let mailbox_runtime = self.system.runtime.clone();
     let context = SchedulerSpawnContext {
       runtime,
-      mailbox_handle_factory_stub: mailbox_factory,
+      mailbox_runtime,
       map_system,
       mailbox_options: options,
       handler,

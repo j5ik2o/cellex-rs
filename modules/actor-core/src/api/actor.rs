@@ -27,7 +27,6 @@ pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, Se
 pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
 pub use props::Props;
 pub use root_context::RootContext;
-pub use system::MailboxHandleFactoryStub;
 pub use system::{
   ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, GenericActorRuntime, ShutdownToken,
 };

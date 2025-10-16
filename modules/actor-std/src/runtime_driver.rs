@@ -2,6 +2,7 @@ use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
+use cellex_actor_core_rs::MailboxRuntime;
 use cellex_actor_core_rs::{drive_ready_queue_worker, ActorRuntime, ActorSystemRunner, ShutdownToken};
 use cellex_actor_core_rs::{ArcShared, PriorityEnvelope, ReadyQueueWorker, RuntimeMessage};
 use cellex_utils_std_rs::QueueError;
@@ -34,7 +35,7 @@ where
   pub fn start_local<R>(runner: ActorSystemRunner<U, R>) -> Self
   where
     U: cellex_utils_std_rs::Element + 'static,
-    R: ActorRuntime + Clone + 'static, {
+    R: ActorRuntime + MailboxRuntime + Clone + 'static, {
     let shutdown = runner.shutdown_token();
     let join = task::spawn_local(async move { run_runner(runner).await });
     Self {
@@ -98,7 +99,7 @@ async fn run_runner<U, R>(
 ) -> Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>
 where
   U: cellex_utils_std_rs::Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
   R::Signal: Clone, {
   if !runner.supports_ready_queue() {
@@ -123,7 +124,7 @@ async fn run_ready_queue_workers<U, R>(
 ) -> Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>
 where
   U: cellex_utils_std_rs::Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
   R::Signal: Clone, {
   let shutdown = runner.shutdown_token();
@@ -185,7 +186,7 @@ fn spawn_worker_task<R>(
   shutdown: ShutdownToken,
 ) -> JoinHandle<Result<(), QueueError<PriorityEnvelope<RuntimeMessage>>>>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
   R::Signal: Clone, {
   task::spawn_local(async move { ready_queue_worker_loop(worker, shutdown).await })
@@ -196,7 +197,7 @@ async fn ready_queue_worker_loop<R>(
   shutdown: ShutdownToken,
 ) -> Result<(), QueueError<PriorityEnvelope<RuntimeMessage>>>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
   R::Signal: Clone, {
   let shutdown_for_wait = shutdown.clone();

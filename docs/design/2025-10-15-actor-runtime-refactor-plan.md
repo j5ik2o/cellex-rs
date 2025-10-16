@@ -2,7 +2,7 @@
 
 ## 現状サマリ
 - 旧 `ActorSystemParts` は 2025-10-15 時点でリポジトリから削除済み。`ActorSystem::new` / `::new_with_runtime` は `GenericActorRuntime`（`ActorRuntime` トレイト実装）を受け取り、メールボックス／FailureHub／メトリクス／ReceiveTimeout を束ねる。
-- `GenericActorRuntime` は Tokio / Embassy 拡張トレイトから差し替え可能で、`MailboxHandleFactoryStub` と `PriorityMailboxSpawnerHandle` を通じてスケジューラを抽象化している。
+- `GenericActorRuntime` は Tokio / Embassy 拡張トレイトから差し替え可能で、`PriorityMailboxSpawnerHandle` を通じてスケジューラを抽象化している。
 - `ActorRuntime` トレイトにより GenericActorRuntime の API 群（receive-timeout factory/driver, metrics sink, root event listener, escalation handler）が統合済み。
 - `ActorSystemParts` 由来の利用者向け複数戻り値は廃止され、ActorSystem はランタイムを一括で受け取る形に整理されている。
 - Tokio / Embassy 向けには `TokioActorRuntime` / `EmbassyActorRuntime` のプリセットを導入し、`tokio_actor_runtime()` / `embassy_actor_runtime()` で簡易生成可能にした。

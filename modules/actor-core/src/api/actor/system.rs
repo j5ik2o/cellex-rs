@@ -5,7 +5,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::root_context::RootContext;
 use crate::api::guardian::AlwaysRestart;
-use crate::runtime::mailbox::traits::{ActorRuntime, MailboxPair};
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxPair, MailboxRuntime};
 use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
@@ -15,7 +15,7 @@ use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
 use crate::serializer_extension_id;
 use crate::{
   default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener,
-  FailureEventStream, FailureTelemetryBuilderShared, FailureTelemetryShared, MailboxRuntime, PriorityEnvelope,
+  FailureEventStream, FailureTelemetryBuilderShared, FailureTelemetryShared, PriorityEnvelope,
   SerializerRegistryExtension, TelemetryContext, TelemetryObservationConfig,
 };
 use crate::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
@@ -28,7 +28,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub struct ActorSystem<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
@@ -43,7 +43,7 @@ where
 pub struct ActorSystemBuilder<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   runtime: R,
@@ -54,7 +54,7 @@ where
 impl<U, R> ActorSystemBuilder<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -170,60 +170,6 @@ where
 
 /// Shared handle used to expose mailbox construction capabilities to the scheduler layer without
 /// leaking the underlying mailbox factory implementation.
-#[derive(Clone)]
-pub struct MailboxHandleFactoryStub<R>
-where
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
-  factory: ArcShared<R>,
-  metrics_sink: Option<MetricsSinkShared>,
-}
-
-impl<R> MailboxHandleFactoryStub<R>
-where
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
-  #[must_use]
-  pub(crate) fn new(factory: ArcShared<R>) -> Self {
-    Self {
-      factory,
-      metrics_sink: None,
-    }
-  }
-
-  /// Creates a stub by cloning the provided runtime and wrapping it in a shared handle.
-  #[must_use]
-  pub fn from_runtime(runtime: R) -> Self
-  where
-    R: Clone, {
-    Self::new(ArcShared::new(runtime))
-  }
-
-  /// Returns a priority mailbox spawner for the given message type using the stored factory.
-  #[must_use]
-  pub fn priority_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, R>
-  where
-    M: Element,
-    R::Queue<PriorityEnvelope<M>>: Clone,
-    R::Signal: Clone, {
-    PriorityMailboxSpawnerHandle::new(self.factory.clone()).with_metrics_sink(self.metrics_sink.clone())
-  }
-
-  /// Returns a new stub with the provided metrics sink.
-  #[must_use]
-  pub fn with_metrics_sink(mut self, sink: Option<MetricsSinkShared>) -> Self {
-    self.metrics_sink = sink;
-    self
-  }
-
-  /// Mutable setter for the metrics sink.
-  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink;
-  }
-}
 
 /// Bundle that contains runtime-dependent components required by [`ActorSystem`].
 ///
@@ -382,14 +328,12 @@ where
 
   /// Returns a handle that can spawn priority mailboxes without exposing the factory implementation.
   #[must_use]
-  pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, GenericActorRuntime<R>>
+  pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, R>
   where
     M: Element,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone, {
-    MailboxHandleFactoryStub::from_runtime(self.clone())
-      .with_metrics_sink(self.metrics_sink.clone())
-      .priority_spawner()
+    PriorityMailboxSpawnerHandle::new(self.mailbox_runtime_shared()).with_metrics_sink(self.metrics_sink.clone())
   }
 
   /// Overrides the scheduler builder used when constructing the actor system.
@@ -448,17 +392,17 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
-  type Base = R;
+  type Mailbox = R;
 
-  fn mailbox_runtime(&self) -> &Self::Base {
+  fn mailbox_runtime(&self) -> &Self::Mailbox {
     GenericActorRuntime::mailbox_runtime(self)
   }
 
-  fn into_mailbox_runtime(self) -> Self::Base {
+  fn into_mailbox_runtime(self) -> Self::Mailbox {
     GenericActorRuntime::into_mailbox_runtime(self)
   }
 
-  fn mailbox_runtime_shared(&self) -> ArcShared<Self::Base> {
+  fn mailbox_runtime_shared(&self) -> ArcShared<Self::Mailbox> {
     GenericActorRuntime::mailbox_runtime_shared(self)
   }
 
@@ -466,11 +410,11 @@ where
     GenericActorRuntime::receive_timeout_factory(self)
   }
 
-  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Base>> {
+  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Mailbox>> {
     GenericActorRuntime::receive_timeout_driver(self)
   }
 
-  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>) -> Self {
+  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Mailbox>) -> Self {
     GenericActorRuntime::with_receive_timeout_factory(self, factory)
   }
 
@@ -478,11 +422,11 @@ where
     GenericActorRuntime::with_receive_timeout_factory_shared(self, factory)
   }
 
-  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) -> Self {
+  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Mailbox>>) -> Self {
     GenericActorRuntime::with_receive_timeout_driver(self, driver)
   }
 
-  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) {
+  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<Self::Mailbox>>) {
     GenericActorRuntime::set_receive_timeout_driver(self, driver);
   }
 
@@ -518,11 +462,11 @@ where
     GenericActorRuntime::with_metrics_sink_shared(self, sink)
   }
 
-  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self>
+  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::Mailbox>
   where
     M: Element,
-    <Self::Base as crate::MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-    <Self::Base as crate::MailboxRuntime>::Signal: Clone, {
+    <Self::Mailbox as crate::MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+    <Self::Mailbox as crate::MailboxRuntime>::Signal: Clone, {
     GenericActorRuntime::priority_mailbox_spawner(self)
   }
 
@@ -542,7 +486,7 @@ where
 /// Configuration options applied when constructing an [`ActorSystem`].
 pub struct ActorSystemConfig<R>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   /// Listener invoked when failures bubble up to the root guardian.
@@ -565,7 +509,7 @@ where
 
 impl<R> Default for ActorSystemConfig<R>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -585,7 +529,7 @@ where
 
 impl<R> ActorSystemConfig<R>
 where
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -752,7 +696,7 @@ where
 pub struct ActorSystemRunner<U, R, Strat = AlwaysRestart>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
@@ -764,7 +708,7 @@ where
 impl<U, R> ActorSystem<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -871,7 +815,7 @@ where
 impl<U, R, Strat> ActorSystem<U, R, Strat>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
@@ -1000,7 +944,7 @@ where
 impl<U, R, Strat> ActorSystemRunner<U, R, Strat>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,

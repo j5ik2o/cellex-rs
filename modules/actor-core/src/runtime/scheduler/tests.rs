@@ -4,7 +4,6 @@
 #![allow(clippy::disallowed_types)]
 use super::ReadyQueueScheduler;
 use super::*;
-use crate::api::actor::MailboxHandleFactoryStub;
 use crate::runtime::context::{ActorContext, InternalActorRef};
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;
@@ -115,10 +114,10 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  let mailbox_handle_factory_stub = MailboxHandleFactoryStub::from_runtime(runtime.clone());
+  let mailbox_runtime = ArcShared::new(runtime.clone());
   let context = SchedulerSpawnContext {
     runtime,
-    mailbox_handle_factory_stub: mailbox_handle_factory_stub,
+    mailbox_runtime,
     map_system,
     mailbox_options: options,
     handler,

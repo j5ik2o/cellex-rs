@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::mailbox::traits::ActorRuntime;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
 use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{default_failure_telemetry, FailureTelemetryShared, TelemetryObservationConfig};
@@ -16,7 +16,7 @@ use super::InternalRootContext;
 pub struct InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone,
+  R: ActorRuntime + MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
@@ -38,7 +38,7 @@ where
 impl<M, R> Default for InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: ActorRuntime + Clone,
+  R: ActorRuntime + MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -58,7 +58,7 @@ where
 pub(crate) struct InternalActorSystem<M, R, Strat = AlwaysRestart>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>, {
@@ -73,7 +73,7 @@ where
 impl<M, R> InternalActorSystem<M, R, AlwaysRestart>
 where
   M: Element,
-  R: ActorRuntime + Clone,
+  R: ActorRuntime + MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -123,7 +123,7 @@ where
 impl<M, R, Strat> InternalActorSystem<M, R, Strat>
 where
   M: Element,
-  R: ActorRuntime + Clone,
+  R: ActorRuntime + MailboxRuntime + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,

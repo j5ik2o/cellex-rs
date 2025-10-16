@@ -2,7 +2,7 @@
 
 ## 現状サマリ (2025-10-13)
 - `GenericActorRuntime` が scheduler / mailbox / receive-timeout / metrics / event ハンドラを束ねるハブとして機能し、Tokio・Embassy 拡張トレイトから差し替え可能。
-- `MailboxHandleFactoryStub` と `PriorityMailboxSpawnerHandle` により scheduler 側は mailbox 実装へ非依存でアクター生成を行えている。
+- `PriorityMailboxSpawnerHandle` により scheduler 側は mailbox 実装へ非依存でアクター生成を行えている。
 - ReceiveTimeoutDriver・EventListener/EscalationHandler の統合は GenericActorRuntime 側で完了し、Tokio ルートでは実際に運用中。
 
 ## 未解決課題

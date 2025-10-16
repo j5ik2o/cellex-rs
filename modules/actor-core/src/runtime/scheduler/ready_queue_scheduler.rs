@@ -14,6 +14,7 @@ use async_trait::async_trait;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::runtime::mailbox::traits::{Mailbox, MailboxProducer};
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
@@ -363,14 +364,13 @@ where
   ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     let SchedulerSpawnContext {
       runtime,
-      mailbox_handle_factory_stub: mailbox_factory,
+      mailbox_runtime,
       map_system,
       mailbox_options,
       handler,
       child_naming,
     } = context;
-    let mailbox_factory = mailbox_factory.with_metrics_sink(self.metrics_sink.clone());
-    let mut mailbox_spawner = mailbox_factory.priority_spawner();
+    let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_runtime);
     mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
     let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
     mailbox.set_metrics_sink(self.metrics_sink.clone());

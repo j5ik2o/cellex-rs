@@ -1,5 +1,5 @@
 use crate::runtime::context::ActorContext;
-use crate::runtime::mailbox::traits::ActorRuntime;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
 use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalProps;
 use crate::Supervisor;
@@ -20,7 +20,7 @@ use spin::Mutex;
 pub struct Props<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode, {
@@ -32,7 +32,7 @@ where
 impl<U, R> Props<U, R>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
+  R: ActorRuntime + MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Concurrency: MetadataStorageMode,
