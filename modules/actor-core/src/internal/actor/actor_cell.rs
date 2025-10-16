@@ -14,7 +14,6 @@ use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ReadyQueueHandle;
-use crate::{ActorFailure, Mailbox, MailboxHandle, MailboxProducer};
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extensions;
@@ -22,6 +21,7 @@ use crate::FailureInfo;
 use crate::SpawnError;
 use crate::Supervisor;
 use crate::SystemMessage;
+use crate::{ActorFailure, Mailbox, MailboxHandle, MailboxProducer};
 use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 

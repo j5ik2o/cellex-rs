@@ -15,7 +15,10 @@ use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::SchedulerBuilder;
-use crate::{FailureEventHandler, FailureEventListener, MailboxRuntime, PriorityEnvelope, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
+use crate::{
+  FailureEventHandler, FailureEventListener, MailboxRuntime, PriorityEnvelope, ReceiveTimeoutDriverShared,
+  ReceiveTimeoutFactoryShared,
+};
 
 /// Helper alias mapping an actor runtime to its mailbox runtime.
 pub type MailboxOf<R> = <R as ActorRuntime>::Mailbox;

@@ -3,9 +3,9 @@ use crate::api::mailbox::mailbox_handle::MailboxHandle;
 use crate::api::mailbox::mailbox_options::MailboxOptions;
 use crate::api::mailbox::mailbox_producer::MailboxProducer;
 use crate::api::mailbox::mailbox_signal::MailboxSignal;
+use crate::api::mailbox::MailboxPair;
 use crate::internal::message::MetadataStorageMode;
 use cellex_utils_core_rs::{Element, QueueRw};
-use crate::api::mailbox::MailboxPair;
 
 /// Factory trait for creating mailboxes.
 ///

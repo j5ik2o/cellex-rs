@@ -1,8 +1,8 @@
-use core::future::Future;
-use cellex_utils_core_rs::{QueueError, QueueSize};
 use crate::{MetricsSinkShared, ReadyQueueHandle};
+use cellex_utils_core_rs::{QueueError, QueueSize};
+use core::future::Future;
 
-mod thread_safe;
+mod mailbox_concurrency;
 mod mailbox_handle;
 mod mailbox_options;
 mod mailbox_producer;
@@ -12,10 +12,10 @@ mod mailbox_signal;
 /// Queue-based mailbox implementation.
 mod queue_mailbox;
 mod queue_mailbox_producer;
-mod mailbox_concurrency;
 mod single_thread;
+mod thread_safe;
 
-pub use thread_safe::ThreadSafe;
+pub use mailbox_concurrency::*;
 pub use mailbox_handle::MailboxHandle;
 pub use mailbox_options::*;
 pub use mailbox_producer::*;
@@ -23,8 +23,8 @@ pub use mailbox_runtime::*;
 pub use mailbox_signal::*;
 pub use queue_mailbox::*;
 pub use queue_mailbox_producer::*;
-pub use mailbox_concurrency::*;
 pub use single_thread::*;
+pub use thread_safe::ThreadSafe;
 
 /// Type alias for mailbox and producer pair.
 ///
@@ -105,4 +105,3 @@ pub trait Mailbox<M> {
   /// Installs a scheduler hook invoked on message arrivals. Default: no-op.
   fn set_scheduler_hook(&mut self, _hook: Option<ReadyQueueHandle>) {}
 }
-

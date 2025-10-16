@@ -1,11 +1,11 @@
 use crate::internal::context::InternalActorRef;
-use crate::{ActorFailure, MailboxProducer};
 use crate::ActorId;
 use crate::ActorPath;
 use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
+use crate::{ActorFailure, MailboxProducer};
 use crate::{ChildNaming, SpawnError};
 use crate::{PriorityEnvelope, SystemMessage};
 use alloc::collections::BTreeMap;

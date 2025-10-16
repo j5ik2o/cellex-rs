@@ -298,12 +298,12 @@ mod receive_timeout_injection {
   }
 }
 
+use crate::api::mailbox::ThreadSafe;
 use cellex_utils_core_rs::sync::ArcShared;
 use core::any::Any;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use futures::executor::block_on;
 use futures::future;
-use crate::api::mailbox::ThreadSafe;
 
 #[derive(Debug)]
 struct CounterExtension {

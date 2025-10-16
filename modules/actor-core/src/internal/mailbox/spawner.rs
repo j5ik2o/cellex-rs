@@ -2,9 +2,9 @@ use core::marker::PhantomData;
 
 use crate::internal::mailbox::PriorityMailboxBuilder;
 use crate::internal::metrics::MetricsSinkShared;
+use crate::{Mailbox, MailboxOptions, MailboxPair, MailboxProducer};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::Element;
-use crate::{Mailbox, MailboxOptions, MailboxPair, MailboxProducer};
 
 /// Shared handle that can spawn priority mailboxes without exposing the underlying factory.
 pub struct PriorityMailboxSpawnerHandle<M, B>

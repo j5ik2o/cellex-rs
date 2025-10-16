@@ -11,9 +11,9 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 use portable_atomic::{AtomicU8, Ordering};
 
+use crate::api::mailbox::MailboxConcurrency;
 #[cfg(target_has_atomic = "ptr")]
 use futures::task::AtomicWaker;
-use crate::api::mailbox::MailboxConcurrency;
 
 #[cfg(not(target_has_atomic = "ptr"))]
 mod local_waker {

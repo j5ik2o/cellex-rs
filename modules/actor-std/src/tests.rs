@@ -1,9 +1,10 @@
 use super::*;
 use cellex_actor_core_rs::{
   actor_loop, ActorId, ActorSystem, ArcShared, ChildNaming, Context, Extensions, MapSystemShared, NoopSupervisor,
-  Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
+  Props, SchedulerSpawnContext, Spawn, SystemMessage,
 };
 use cellex_actor_core_rs::{GenericActorRuntime, MailboxOptions};
+use cellex_utils_std_rs::{ArcStateCell, StateCell};
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
 
