@@ -9,11 +9,13 @@ pub mod function;
 mod rc_shared;
 mod shared;
 mod state;
+mod static_ref_shared;
 
 pub use arc_shared::ArcShared;
 pub use flag::Flag;
 pub use function::{SharedFactory, SharedFn};
 #[cfg(feature = "alloc")]
 pub use rc_shared::RcShared;
-pub use shared::{Shared, SharedBound};
+pub use shared::{Shared, SharedBound, SharedDyn};
 pub use state::StateCell;
+pub use static_ref_shared::StaticRefShared;

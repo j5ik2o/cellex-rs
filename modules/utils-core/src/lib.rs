@@ -78,7 +78,7 @@ pub use concurrent::{
 };
 #[cfg(feature = "alloc")]
 pub use sync::RcShared;
-pub use sync::{ArcShared, Flag, Shared, SharedBound, SharedFactory, SharedFn, StateCell};
+pub use sync::{ArcShared, Flag, Shared, SharedBound, SharedDyn, SharedFactory, SharedFn, StateCell, StaticRefShared};
 pub use timing::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };

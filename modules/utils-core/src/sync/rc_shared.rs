@@ -2,8 +2,10 @@
 use alloc::rc::Rc;
 #[cfg(feature = "alloc")]
 use core::ops::Deref;
+#[cfg(feature = "alloc")]
+use core::ptr;
 
-use super::Shared;
+use super::{Shared, SharedDyn};
 
 /// Shared ownership wrapper backed by `alloc::rc::Rc`.
 ///
@@ -34,6 +36,20 @@ impl<T: ?Sized> RcShared<T> {
   pub fn into_rc(self) -> Rc<T> {
     self.0
   }
+
+  /// Converts the shared handle into another dynamically sized representation.
+  #[cfg(feature = "alloc")]
+  pub fn into_dyn<U: ?Sized, F>(self, cast: F) -> RcShared<U>
+  where
+    F: FnOnce(&T) -> &U, {
+    let raw = Rc::into_raw(self.0);
+    unsafe {
+      let reference = &*raw;
+      let trait_reference = cast(reference);
+      let trait_ptr = ptr::from_ref(trait_reference);
+      RcShared::from_rc(Rc::from_raw(trait_ptr))
+    }
+  }
 }
 
 #[cfg(feature = "alloc")]
@@ -58,5 +74,16 @@ impl<T: ?Sized> Shared<T> for RcShared<T> {
   where
     T: Sized, {
     Rc::try_unwrap(self.0).map_err(RcShared)
+  }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: ?Sized> SharedDyn<T> for RcShared<T> {
+  type Dyn<U: ?Sized + 'static> = RcShared<U>;
+
+  fn into_dyn<U: ?Sized + 'static, F>(self, cast: F) -> Self::Dyn<U>
+  where
+    F: FnOnce(&T) -> &U, {
+    RcShared::into_dyn(self, cast)
   }
 }
