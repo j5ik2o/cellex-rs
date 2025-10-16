@@ -4,6 +4,10 @@
 //! [`SystemMessage`] and [`PriorityEnvelope`] from this module.
 
 mod actor_ref;
+mod actor_system;
+mod actor_system_builder;
+mod actor_system_config;
+mod actor_system_runner;
 mod ask;
 mod behavior;
 mod context;
@@ -11,7 +15,7 @@ mod failure;
 mod generic_runtime;
 mod props;
 mod root_context;
-mod system;
+mod shutdown_token;
 mod system_support;
 #[cfg(test)]
 mod tests;
@@ -22,6 +26,10 @@ pub use crate::internal::mailbox::{
 };
 pub use crate::internal::message::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;
+pub use actor_system::ActorSystem;
+pub use actor_system_builder::ActorSystemBuilder;
+pub use actor_system_config::ActorSystemConfig;
+pub use actor_system_runner::ActorSystemRunner;
 pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
 pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, SetupContext};
@@ -29,7 +37,7 @@ pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
 pub use generic_runtime::GenericActorRuntime;
 pub use props::Props;
 pub use root_context::RootContext;
-pub use system::{ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, ShutdownToken};
+pub use shutdown_token::ShutdownToken;
 pub use system_support::{Spawn, Timer};
 
 #[doc(hidden)]
