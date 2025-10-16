@@ -1,4 +1,5 @@
 pub(crate) mod actor;
+mod actor_system;
 mod event_stream;
 #[cfg(feature = "alloc")]
 pub(crate) mod extensions;
