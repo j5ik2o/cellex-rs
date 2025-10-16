@@ -14,7 +14,7 @@ use core::marker::PhantomData;
 use super::InternalRootContext;
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
-pub struct InternalActorSystemSettings<M, R>
+pub struct InternalActorSystemConfig<M, R>
 where
   M: Element,
   R: ActorRuntime + Clone,
@@ -37,7 +37,7 @@ where
   pub(crate) root_observation_config: TelemetryObservationConfig,
 }
 
-impl<M, R> Default for InternalActorSystemSettings<M, R>
+impl<M, R> Default for InternalActorSystemConfig<M, R>
 where
   M: Element,
   R: ActorRuntime + Clone,
@@ -86,10 +86,10 @@ where
   <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
 {
   pub fn new(actor_runtime: R) -> Self {
-    Self::new_with_settings(actor_runtime, InternalActorSystemSettings::default())
+    Self::new_with_settings(actor_runtime, InternalActorSystemConfig::default())
   }
 
-  pub fn new_with_settings(actor_runtime: R, settings: InternalActorSystemSettings<M, R>) -> Self {
+  pub fn new_with_settings(actor_runtime: R, settings: InternalActorSystemConfig<M, R>) -> Self {
     let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, MailboxOf<R>>::ready_queue());
     Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings)
   }
@@ -97,9 +97,9 @@ where
   pub fn new_with_settings_and_builder(
     actor_runtime: R,
     scheduler_builder: &ArcShared<SchedulerBuilder<M, MailboxOf<R>>>,
-    settings: InternalActorSystemSettings<M, R>,
+    settings: InternalActorSystemConfig<M, R>,
   ) -> Self {
-    let InternalActorSystemSettings {
+    let InternalActorSystemConfig {
       root_event_listener,
       root_escalation_handler,
       receive_timeout_factory,

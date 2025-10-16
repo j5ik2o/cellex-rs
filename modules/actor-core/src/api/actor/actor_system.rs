@@ -10,7 +10,7 @@ use crate::api::actor::shutdown_token::ShutdownToken;
 use crate::api::guardian::AlwaysRestart;
 use crate::internal::message::DynMessage;
 use crate::internal::scheduler::ReadyQueueWorker;
-use crate::internal::system::{InternalActorSystem, InternalActorSystemSettings};
+use crate::internal::system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::internal::traits::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::serializer_extension_id;
 use crate::{
@@ -91,7 +91,7 @@ where
       }
     }
 
-    let settings = InternalActorSystemSettings {
+    let settings = InternalActorSystemConfig {
       root_event_listener,
       root_escalation_handler: root_handler_from_runtime,
       receive_timeout_factory,
