@@ -1,4 +1,4 @@
-use crate::api::actor::runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::actor::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::mailbox::traits::{MailboxPair, MailboxRuntime};
 use crate::internal::mailbox::MailboxOptions;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;

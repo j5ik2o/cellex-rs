@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use core::ops::Deref;
 
-use crate::api::actor::GenericActorRuntime;
+use crate::api::actor::actor_runtime::GenericActorRuntime;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};

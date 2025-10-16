@@ -5,8 +5,8 @@ use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
+use super::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use super::root_context::RootContext;
-use super::runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::actor::shutdown_token::ShutdownToken;
 use crate::api::guardian::AlwaysRestart;
 use crate::internal::message::DynMessage;

@@ -11,9 +11,8 @@ use core::task::{Context, Poll};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, MpscBuffer, MpscHandle, MpscQueue, QueueSize, RingBufferBackend, Shared};
 
-use super::queue_mailbox::{QueueMailbox, QueueMailboxProducer};
 use super::traits::{MailboxPair, MailboxRuntime, MailboxSignal, ThreadSafe};
-use crate::MailboxOptions;
+use crate::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
 
 #[derive(Clone, Debug, Default)]
 pub struct TestMailboxRuntime {

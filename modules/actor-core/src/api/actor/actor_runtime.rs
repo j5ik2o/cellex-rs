@@ -4,6 +4,10 @@
 //! `MailboxRuntime` with actor-system-specific capabilities such as
 //! receive timeouts, failure handling, and metrics integration.
 
+mod generic_runtime;
+
+pub use generic_runtime::GenericActorRuntime;
+
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 

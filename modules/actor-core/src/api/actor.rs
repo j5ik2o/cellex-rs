@@ -4,6 +4,7 @@
 //! [`SystemMessage`] and [`PriorityEnvelope`] from this module.
 
 mod actor_ref;
+pub mod actor_runtime;
 mod actor_system;
 mod actor_system_builder;
 mod actor_system_config;
@@ -13,10 +14,8 @@ mod ask;
 mod behavior;
 mod context;
 mod failure;
-mod generic_runtime;
 mod props;
 mod root_context;
-pub mod runtime;
 mod shutdown_token;
 #[cfg(test)]
 mod tests;
@@ -26,6 +25,8 @@ pub use crate::api::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
 pub use crate::internal::mailbox::{PriorityEnvelope, SystemMessage};
 pub use crate::internal::message::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;
+pub use actor_runtime::GenericActorRuntime;
+pub use actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use actor_system::ActorSystem;
 pub use actor_system_builder::ActorSystemBuilder;
 pub use actor_system_config::ActorSystemConfig;
@@ -35,10 +36,8 @@ pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture
 pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
 pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, SetupContext};
 pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
-pub use generic_runtime::GenericActorRuntime;
 pub use props::Props;
 pub use root_context::RootContext;
-pub use runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use shutdown_token::ShutdownToken;
 
 #[doc(hidden)]

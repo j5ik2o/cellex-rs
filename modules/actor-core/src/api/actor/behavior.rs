@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use crate::api::actor::runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::actor::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::supervision::{NoopSupervisor, Supervisor, SupervisorDirective};
 use crate::api::MessageEnvelope;
 use crate::internal::message::{DynMessage, MetadataStorageMode};
