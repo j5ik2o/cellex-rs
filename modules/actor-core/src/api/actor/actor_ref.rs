@@ -1,6 +1,7 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::internal::context::InternalActorRef;
-use crate::internal::message::{DynMessage, MetadataStorageMode};
+use crate::internal::message::DynMessage;
+use crate::MetadataStorageMode;
 use crate::{MailboxRuntime, SystemMessage};
 use crate::{PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};

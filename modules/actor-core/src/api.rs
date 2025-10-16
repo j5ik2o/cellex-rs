@@ -7,7 +7,7 @@ pub(crate) mod extensions;
 mod guardian;
 pub(crate) mod identity;
 mod mailbox;
-mod messaging;
+pub(crate) mod messaging;
 mod supervision;
 
 pub use actor::*;

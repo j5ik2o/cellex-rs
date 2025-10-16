@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
-use crate::api::MessageMetadata;
-use crate::{MailboxConcurrency, SingleThread, ThreadSafe};
+use crate::api::messaging::metadata_storage::MetadataStorageRecord;
+use crate::api::messaging::{MessageMetadata, MetadataStorageMode};
 
 #[cfg(not(target_has_atomic = "ptr"))]
 use core::cell::RefCell;
@@ -13,56 +13,8 @@ use spin::{Mutex, Once};
 /// Key type for referencing metadata.
 pub type MetadataKey = u32;
 
-/// Stored representation of message metadata keyed by concurrency mode.
-#[derive(Debug, Clone)]
-pub enum StoredMessageMetadata {
-  ThreadSafe(MessageMetadata<ThreadSafe>),
-  SingleThread(MessageMetadata<SingleThread>),
-}
-
-#[cfg(not(target_has_atomic = "ptr"))]
-unsafe impl Send for StoredMessageMetadata {}
-
-#[cfg(not(target_has_atomic = "ptr"))]
-unsafe impl Sync for StoredMessageMetadata {}
-
-/// Trait describing how metadata for a particular concurrency marker is stored.
-pub trait MetadataStorageMode: MailboxConcurrency {
-  /// Converts metadata into the stored representation.
-  fn into_stored(metadata: MessageMetadata<Self>) -> StoredMessageMetadata;
-
-  /// Attempts to extract metadata of this concurrency mode from the stored representation.
-  fn from_stored(stored: StoredMessageMetadata) -> Option<MessageMetadata<Self>>;
-}
-
-impl MetadataStorageMode for ThreadSafe {
-  fn into_stored(metadata: MessageMetadata<Self>) -> StoredMessageMetadata {
-    StoredMessageMetadata::ThreadSafe(metadata)
-  }
-
-  fn from_stored(stored: StoredMessageMetadata) -> Option<MessageMetadata<Self>> {
-    match stored {
-      StoredMessageMetadata::ThreadSafe(metadata) => Some(metadata),
-      StoredMessageMetadata::SingleThread(_) => None,
-    }
-  }
-}
-
-impl MetadataStorageMode for SingleThread {
-  fn into_stored(metadata: MessageMetadata<Self>) -> StoredMessageMetadata {
-    StoredMessageMetadata::SingleThread(metadata)
-  }
-
-  fn from_stored(stored: StoredMessageMetadata) -> Option<MessageMetadata<Self>> {
-    match stored {
-      StoredMessageMetadata::SingleThread(metadata) => Some(metadata),
-      StoredMessageMetadata::ThreadSafe(_) => None,
-    }
-  }
-}
-
 struct MetadataTableInner {
-  entries: Vec<Option<StoredMessageMetadata>>,
+  entries: Vec<Option<MetadataStorageRecord>>,
   free_list: Vec<MetadataKey>,
 }
 
@@ -83,7 +35,7 @@ impl MetadataTableInner {
   fn store<C>(&mut self, metadata: MessageMetadata<C>) -> MetadataKey
   where
     C: MetadataStorageMode, {
-    let stored = C::into_stored(metadata);
+    let stored = C::into_record(metadata);
     if let Some(key) = self.free_list.pop() {
       self.entries[key as usize] = Some(stored);
       key
@@ -94,7 +46,7 @@ impl MetadataTableInner {
     }
   }
 
-  fn discard(&mut self, key: MetadataKey) -> Option<StoredMessageMetadata> {
+  fn discard(&mut self, key: MetadataKey) -> Option<MetadataStorageRecord> {
     let index = key as usize;
     if index >= self.entries.len() {
       return None;
@@ -109,7 +61,7 @@ impl MetadataTableInner {
   fn take<C>(&mut self, key: MetadataKey) -> Option<MessageMetadata<C>>
   where
     C: MetadataStorageMode, {
-    self.discard(key).and_then(C::from_stored)
+    self.discard(key).and_then(C::from_record)
   }
 }
 
