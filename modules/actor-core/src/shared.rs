@@ -1,10 +1,8 @@
-use alloc::boxed::Box;
 use core::ops::Deref;
 
-use crate::api::actor::actor_runtime::GenericActorRuntime;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
+use crate::internal::scheduler::ReceiveTimeoutSchedulerFactory;
 use crate::Extensions;
 use crate::{FailureEvent, FailureInfo, FailureTelemetry, MailboxRuntime, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
@@ -130,44 +128,6 @@ where
   pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>> {
     self.inner
   }
-
-  /// Adapts the factory to operate with [`GenericActorRuntime`] as the runtime type.
-  #[must_use]
-  pub fn for_runtime_bundle(&self) -> ReceiveTimeoutFactoryShared<M, GenericActorRuntime<R>>
-  where
-    R: MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<M>>: Clone,
-    R::Signal: Clone,
-    R::Producer<PriorityEnvelope<M>>: Clone, {
-    let adapter = ReceiveTimeoutFactoryAdapter {
-      inner: self.inner.clone(),
-    };
-    let shared = ArcShared::new(adapter);
-    ReceiveTimeoutFactoryShared::from_shared(
-      shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactory<M, GenericActorRuntime<R>>),
-    )
-  }
-}
-
-impl<M, R> ReceiveTimeoutFactoryShared<M, GenericActorRuntime<R>>
-where
-  M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone,
-{
-  /// Adapts the factory back to the underlying mailbox runtime type.
-  #[must_use]
-  pub fn for_mailbox_runtime(&self) -> ReceiveTimeoutFactoryShared<M, R> {
-    let adapter = RuntimeBundleFactoryAdapter {
-      inner: self.inner.clone(),
-    };
-    let shared = ArcShared::new(adapter);
-    ReceiveTimeoutFactoryShared::from_shared(
-      shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactory<M, R>),
-    )
-  }
 }
 
 impl<M, R> Clone for ReceiveTimeoutFactoryShared<M, R> {
@@ -183,60 +143,6 @@ impl<M, R> Deref for ReceiveTimeoutFactoryShared<M, R> {
 
   fn deref(&self) -> &Self::Target {
     &*self.inner
-  }
-}
-
-struct ReceiveTimeoutFactoryAdapter<M, R>
-where
-  M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone, {
-  inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>,
-}
-
-impl<M, R> ReceiveTimeoutSchedulerFactory<M, GenericActorRuntime<R>> for ReceiveTimeoutFactoryAdapter<M, R>
-where
-  M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone,
-{
-  fn create(
-    &self,
-    sender: <GenericActorRuntime<R> as MailboxRuntime>::Producer<PriorityEnvelope<M>>,
-    map_system: MapSystemShared<M>,
-  ) -> Box<dyn ReceiveTimeoutScheduler> {
-    self.inner.create(sender, map_system)
-  }
-}
-
-struct RuntimeBundleFactoryAdapter<M, R>
-where
-  M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone, {
-  inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, GenericActorRuntime<R>>>,
-}
-
-impl<M, R> ReceiveTimeoutSchedulerFactory<M, R> for RuntimeBundleFactoryAdapter<M, R>
-where
-  M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone,
-{
-  fn create(
-    &self,
-    sender: R::Producer<PriorityEnvelope<M>>,
-    map_system: MapSystemShared<M>,
-  ) -> Box<dyn ReceiveTimeoutScheduler> {
-    self.inner.create(sender, map_system)
   }
 }
 

@@ -66,7 +66,7 @@ where
 
     let receive_timeout_factory = config
       .receive_timeout_factory()
-      .or(actor_runtime.mailbox_receive_timeout_factory())
+      .or(actor_runtime.receive_timeout_factory())
       .or_else(|| {
         actor_runtime
           .receive_timeout_driver()
