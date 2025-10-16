@@ -21,10 +21,8 @@ mod shutdown_token;
 #[cfg(test)]
 mod tests;
 
-pub use crate::internal::mailbox::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, PriorityEnvelope, QueueMailbox,
-  QueueMailboxProducer, QueueMailboxRecv, SystemMessage,
-};
+pub use crate::api::mailbox_runtime::{Mailbox, MailboxPair, MailboxRuntime, MailboxSignal};
+pub use crate::internal::mailbox::{PriorityEnvelope, SystemMessage};
 pub use crate::internal::message::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;
 pub use actor_system::ActorSystem;
