@@ -130,12 +130,12 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 
 - `RootContext` exposes `spawn_prefix` / `spawn_named`, returning `SpawnError` when a duplicate name is requested.
 - `QueueMailbox::recv` returns `Result<M, QueueError<M>>`; handle non-`Ok` as mailbox closure/disconnect signals.
-- `RootContext::dispatch_all` is deprecated. Prefer `dispatch_next`, `run_until`, or `run_forever` per [dispatch transition guide](docs/design/2025-10-07-dispatch-transition.md).
+- `RootContext::dispatch_all` is deprecated. Prefer `dispatch_next`, `run_until`, or `run_forever` per [dispatch transition guide](docs/design/D2-dispatch-transition-next-actions.md).
 - Typed DSL is available; upcoming work focuses on richer `map_system` adapters and typed system-event enums (see [Typed DSL MUST guide](docs/worknotes/2025-10-08-typed-dsl-claude-must.md)).
 
 ## Further Reading
 
-- [Typed Actor 設計メモ](docs/design/2025-10-07-typed-actor-plan.md): design direction for behaviours, contexts, and system-event mapping.
+- [Typed Actor 設計メモ](docs/design/D5-typed-actor-next-actions.md): design direction for behaviours, contexts, and system-event mapping.
 - [Dispatcher Runtime ポリシー](docs/sources/nexus-actor-rs/docs/dispatcher_runtime_policy.md): legacy (nexus-era) shutdown guidance; concepts still apply but APIs differ.
 - [ベンチマークダッシュボード](https://j5ik2o.github.io/cellex-rs/bench_dashboard.html): weekly performance snapshots (`benchmarks/history/bench_history.csv`).
 - [ActorContext ロック計測レポート](docs/sources/nexus-actor-rs/docs/benchmarks/tracing_actor_context.md): lock-wait analysis; translate API names when using cellex.

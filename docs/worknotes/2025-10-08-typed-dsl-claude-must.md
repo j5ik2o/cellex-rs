@@ -1,7 +1,7 @@
 # Claude Code 向け Typed DSL MUST 作業指示
 
 ## 背景と目的
-- [`docs/design/2025-10-07-typed-actor-plan.md`](docs/design/2025-10-07-typed-actor-plan.md:1) の TODO #2 / #3（TypedActorAdapter + map_system 経路の強化）が継続課題。
+- [`docs/design/D5-typed-actor-next-actions.md`](docs/design/D5-typed-actor-next-actions.md) の TODO #2 / #3（TypedActorAdapter + map_system 経路の強化）が継続課題。
 - 現行の typed API は `modules/actor-core/src/api/actor/` 配下で提供され、`Behavior<U, R>` / `Context<'_, '_, U, R>` / `Props<U, R>` / `ActorAdapter<U, R>` が実装済み。
 - Guardian / Scheduler は `ActorAdapter::create_map_system()` が返すクロージャを介して制御メッセージを配送するため、ユーザー定義 enum への射影やテスト整備が未完のまま残っている。
 
@@ -25,7 +25,7 @@
 
 ### Task 2 — map_system 生成の型安全化
 1. `MapSystemShared` の既定クロージャとユーザー提供クロージャを切り替えられるようにし、`MessageEnvelope::<U>` 以外のコンテナでも動作可能にする。
-2. `Arc<dyn Fn(SystemMessage) -> MessageEnvelope<U> + Send + Sync>` インターフェースは維持しつつ、Stateless/Stateful それぞれのサンプル（enum 包含など）を `docs/design/2025-10-07-typed-actor-plan.md` に追記する。
+2. `Arc<dyn Fn(SystemMessage) -> MessageEnvelope<U> + Send + Sync>` インターフェースは維持しつつ、Stateless/Stateful それぞれのサンプル（enum 包含など）を `docs/design/D5-typed-actor-next-actions.md` に追記する。
 3. Guardian / Scheduler の呼び出し箇所で追加の型情報が不要であることを確認し、`SystemMessage::Escalate` などの優先度保証テストを `ActorAdapter` のユニットテストとして追加する。
 
 ### Task 3 — 統合テスト拡張
@@ -50,7 +50,7 @@
 - 追加テストでは panic / unwrap を避け、`Result` は `expect` で理由を明示。
 
 ## ドキュメント更新
-- 作業完了後に [`docs/design/2025-10-07-typed-actor-plan.md`](docs/design/2025-10-07-typed-actor-plan.md:79) の TODO #2 / #3 を完了扱いへ更新し、関連知見があれば新たな節を追加。
+- 作業完了後に [`docs/design/D5-typed-actor-next-actions.md`](docs/design/D5-typed-actor-next-actions.md) の TODO #2 / #3 を完了扱いへ更新し、関連知見があれば新たな節を追加。
 - `progress.md` に進捗ログを追記。
 
 ## 完了条件（Definition of Done）

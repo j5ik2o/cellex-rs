@@ -16,7 +16,7 @@
 ## 対応方針詳細
 
 1. **パニック保護 (`catch_unwind`) の扱い**  
-   - 設計方針は `docs/design/2025-10-14-actor-core-supervision.md` に集約。ここでは対応タスクの進行状況のみ管理する。
+   - 設計方針は `docs/design/D16-actor-core-supervision-next-actions.md` に集約。ここでは対応タスクの進行状況のみ管理する。
 
 2. **ブロッキング API の整理**  
    - 2025-10-14 時点で `blocking_dispatch_*` 系メソッドをすべて削除済み。今後は async API を前提とし、同期実行が必要な場合は外部ランタイム側でラップする方針。
