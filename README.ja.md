@@ -79,7 +79,7 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 - **優先度付きメールボックス** — システムメッセージとユーザーメッセージを同居させつつ制御系を先行処理。
 - **監視階層** — ガーディアン戦略、Watch/Unwatch、Failure 情報のエスカレーションをサポート。
 - **非同期スケジューリング** — `run_until` / `run_forever` / ブロッキングループでホスト・MCU を問わず常駐運転。
-- **Shared 抽象** — `MapSystemShared`、`ReceiveTimeoutFactoryShared`、`ArcShared` などを通じて std / no_std の両方で共有資源を扱いやすく。
+- **Shared 抽象** — `MapSystemShared`、`ReceiveTimeoutFactoryShared`、`ArcShared`、`RcShared`、`StaticRefShared` などを通じて std / no_std / 静的構成で共有資源を扱いやすく。
 - **拡張性** — 拡張レジストリ、Failure Event ハブ、remote / cluster モジュールで将来の分散化に備える。
 
 ## アーキテクチャ概要

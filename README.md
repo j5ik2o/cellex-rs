@@ -90,7 +90,7 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 - **Priority Mailboxes** — system envelopes and user envelopes share a mailbox while honouring control-message priority.
 - **Supervision Hierarchy** — guardians manage child actors, watchers, and escalation pathways with pluggable strategies.
 - **Async Scheduling** — `run_until`, `run_forever`, and blocking loops cover async runtimes, cooperative loops, and MCU main threads.
-- **Shared Abstractions** — `MapSystemShared`, `ReceiveTimeoutFactoryShared`, and `ArcShared` enable lock-aware sharing across std/embedded builds.
+- **Shared Abstractions** — `MapSystemShared`, `ReceiveTimeoutFactoryShared`, `ArcShared`, `RcShared`, and `StaticRefShared` enable lock-aware sharing across std/embedded/static builds.
 - **Extensibility** — extensions registry, failure event hub, and remote/cluster modules prepare cellex for distributed deployments.
 
 ## Architecture Overview
