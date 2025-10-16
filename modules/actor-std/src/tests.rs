@@ -1,9 +1,9 @@
 use super::*;
-use cellex_actor_core_rs::MailboxOptions;
 use cellex_actor_core_rs::{
   actor_loop, ActorId, ActorSystem, ArcShared, ChildNaming, Context, Extensions, MapSystemShared, NoopSupervisor,
   Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
 };
+use cellex_actor_core_rs::{GenericActorRuntime, MailboxOptions};
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
 
@@ -48,8 +48,10 @@ async fn test_actor_loop_updates_state_multi_thread() {
 }
 
 async fn run_typed_actor_system_handles_user_messages() {
-  let factory = TokioMailboxRuntime;
-  let mut system: ActorSystem<u32, _> = ActorSystem::new(factory);
+  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(
+    GenericActorRuntime::new(TokioMailboxRuntime),
+    ActorSystemConfig::default(),
+  );
 
   let log: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
@@ -69,12 +71,13 @@ async fn run_typed_actor_system_handles_user_messages() {
 }
 
 async fn run_receive_timeout_triggers() {
-  let factory = TokioMailboxRuntime;
+  let mailbox_runtime = TokioMailboxRuntime;
   let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
   config.set_receive_timeout_factory(Some(ReceiveTimeoutFactoryShared::new(
     TokioReceiveTimeoutSchedulerFactory::new(),
   )));
-  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_config(factory, config);
+  let mut system: ActorSystem<u32, _> =
+    ActorSystem::new_with_runtime(GenericActorRuntime::new(mailbox_runtime), config);
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(

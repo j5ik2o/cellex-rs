@@ -28,8 +28,8 @@ enum Message {
 #[cfg(feature = "std")]
 #[test]
 fn actor_system_spawns_and_processes_messages() {
-  let factory = TestMailboxRuntime::unbounded();
-  let runtime = GenericActorRuntime::new(factory);
+  let mailbox_runtime = TestMailboxRuntime::unbounded();
+  let runtime = GenericActorRuntime::new(mailbox_runtime);
   let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(runtime);
 
   let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));

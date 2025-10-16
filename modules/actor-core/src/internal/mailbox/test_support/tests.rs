@@ -8,8 +8,8 @@ use super::super::traits::Mailbox;
 
 #[test]
 fn test_mailbox_runtime_delivers_fifo() {
-  let factory = TestMailboxRuntime::with_capacity_per_queue(2);
-  let (mailbox, sender) = factory.build_default_mailbox::<u32>();
+  let mailbox_runtime = TestMailboxRuntime::with_capacity_per_queue(2);
+  let (mailbox, sender) = mailbox_runtime.build_default_mailbox::<u32>();
 
   sender.try_send(1).unwrap();
   sender.try_send(2).unwrap();
