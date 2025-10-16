@@ -12,8 +12,9 @@ use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
 use crate::{ActorFailure, BehaviorFailure};
+use crate::{ChildNaming, SpawnError};
 use crate::{PriorityEnvelope, SystemMessage};
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
@@ -149,4 +150,37 @@ fn guardian_strategy_receives_behavior_failure() {
   let log = captured.lock();
   assert_eq!(log.len(), 1);
   assert!(log[0].contains("child boom"));
+}
+
+#[test]
+fn guardian_rejects_duplicate_names() {
+  let (_mailbox, sender) = TestMailboxRuntime::unbounded().build_default_mailbox::<PriorityEnvelope<SystemMessage>>();
+  let ref_control: InternalActorRef<SystemMessage, TestMailboxRuntime> = InternalActorRef::new(sender.clone());
+
+  let mut guardian: Guardian<SystemMessage, _, AlwaysRestart> = Guardian::new(AlwaysRestart);
+  let parent_path = ActorPath::new();
+  guardian
+    .register_child_with_naming(
+      ref_control.clone(),
+      MapSystemShared::new(|sys| sys),
+      None,
+      &parent_path,
+      ChildNaming::Explicit("worker".to_string()),
+    )
+    .expect("first spawn");
+
+  let err = guardian
+    .register_child_with_naming(
+      InternalActorRef::new(sender),
+      MapSystemShared::new(|sys| sys),
+      None,
+      &parent_path,
+      ChildNaming::Explicit("worker".to_string()),
+    )
+    .expect_err("second spawn must fail");
+
+  match err {
+    SpawnError::NameExists(name) => assert_eq!(name, "worker"),
+    SpawnError::Queue(_) => panic!("unexpected queue error"),
+  }
 }

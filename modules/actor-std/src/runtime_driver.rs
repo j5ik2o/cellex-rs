@@ -2,7 +2,9 @@ use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
-use cellex_actor_core_rs::{drive_ready_queue_worker, ActorRuntime, ActorSystemRunner, ShutdownToken};
+use cellex_actor_core_rs::{
+  drive_ready_queue_worker, ActorRuntime, ActorSystemRunner, MailboxOf, MailboxQueueOf, MailboxSignalOf, ShutdownToken,
+};
 use cellex_actor_core_rs::{ArcShared, PriorityEnvelope, ReadyQueueWorker, RuntimeMessage};
 use cellex_utils_std_rs::QueueError;
 use futures::future::select_all;
@@ -34,7 +36,9 @@ where
   pub fn start_local<R>(runner: ActorSystemRunner<U, R>) -> Self
   where
     U: cellex_utils_std_rs::Element + 'static,
-    R: ActorRuntime + Clone + 'static, {
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+    MailboxSignalOf<R>: Clone, {
     let shutdown = runner.shutdown_token();
     let join = task::spawn_local(async move { run_runner(runner).await });
     Self {
@@ -98,9 +102,9 @@ async fn run_runner<U, R>(
 ) -> Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>
 where
   U: cellex_utils_std_rs::Element + 'static,
-  R: ActorRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   if !runner.supports_ready_queue() {
     return runner.run_forever().await;
   }
@@ -123,9 +127,9 @@ async fn run_ready_queue_workers<U, R>(
 ) -> Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>
 where
   U: cellex_utils_std_rs::Element + 'static,
-  R: ActorRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   let shutdown = runner.shutdown_token();
   let mut worker_handles = Vec::with_capacity(worker_count.get());
 
@@ -133,7 +137,7 @@ where
     let worker = runner
       .ready_queue_worker()
       .expect("ReadyQueue worker must be available when support is reported");
-    worker_handles.push(spawn_worker_task(worker, shutdown.clone()));
+    worker_handles.push(spawn_worker_task::<R>(worker, shutdown.clone()));
   }
 
   let mut worker_handles = worker_handles;
@@ -158,7 +162,7 @@ where
         let worker = runner
           .ready_queue_worker()
           .expect("ReadyQueue worker must be obtainable while scheduler remains active");
-        remaining.push(spawn_worker_task(worker, shutdown.clone()));
+        remaining.push(spawn_worker_task::<R>(worker, shutdown.clone()));
         worker_handles = remaining;
       }
       Ok(Err(err)) => return Err(err),
@@ -181,24 +185,24 @@ where
 }
 
 fn spawn_worker_task<R>(
-  worker: ArcShared<dyn ReadyQueueWorker<RuntimeMessage, R>>,
+  worker: ArcShared<dyn ReadyQueueWorker<RuntimeMessage, MailboxOf<R>>>,
   shutdown: ShutdownToken,
 ) -> JoinHandle<Result<(), QueueError<PriorityEnvelope<RuntimeMessage>>>>
 where
-  R: ActorRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
-  R::Signal: Clone, {
-  task::spawn_local(async move { ready_queue_worker_loop(worker, shutdown).await })
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
+  task::spawn_local(async move { ready_queue_worker_loop::<R>(worker, shutdown).await })
 }
 
 async fn ready_queue_worker_loop<R>(
-  worker: ArcShared<dyn ReadyQueueWorker<RuntimeMessage, R>>,
+  worker: ArcShared<dyn ReadyQueueWorker<RuntimeMessage, MailboxOf<R>>>,
   shutdown: ShutdownToken,
 ) -> Result<(), QueueError<PriorityEnvelope<RuntimeMessage>>>
 where
-  R: ActorRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<RuntimeMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   let shutdown_for_wait = shutdown.clone();
   drive_ready_queue_worker(
     worker,

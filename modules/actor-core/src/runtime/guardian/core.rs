@@ -1,17 +1,20 @@
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::mailbox::traits::MailboxProducer;
+use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
+use crate::{ChildNaming, SpawnError};
 use crate::{PriorityEnvelope, SystemMessage};
 use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::String;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::{ChildRecord, GuardianStrategy};
-use crate::ActorFailure;
 
 type ChildRoute<M, R> = (InternalActorRef<M, R>, MapSystemShared<M>);
 
@@ -23,6 +26,7 @@ where
   Strat: GuardianStrategy<M, R>, {
   next_id: usize,
   pub(crate) children: BTreeMap<ActorId, ChildRecord<M, R>>,
+  names: BTreeMap<String, ActorId>,
   strategy: Strat,
   _marker: core::marker::PhantomData<M>,
 }
@@ -40,22 +44,38 @@ where
     Self {
       next_id: 0,
       children: BTreeMap::new(),
+      names: BTreeMap::new(),
       strategy,
       _marker: core::marker::PhantomData,
     }
   }
 
-  pub fn register_child(
+  pub fn register_child_with_naming(
     &mut self,
     control_ref: InternalActorRef<M, R>,
     map_system: MapSystemShared<M>,
     watcher: Option<ActorId>,
     parent_path: &ActorPath,
-  ) -> Result<(ActorId, ActorPath), QueueError<PriorityEnvelope<M>>> {
+    naming: ChildNaming,
+  ) -> Result<(ActorId, ActorPath), SpawnError<M>> {
+    let assigned_name = match naming {
+      ChildNaming::Auto => None,
+      ChildNaming::WithPrefix(prefix) => Some(self.generate_prefixed_name(&prefix)),
+      ChildNaming::Explicit(name) => {
+        if self.names.contains_key(&name) {
+          return Err(SpawnError::name_exists(name));
+        }
+        Some(name)
+      }
+    };
+
     let id = ActorId(self.next_id);
     self.next_id += 1;
     self.strategy.before_start(id);
     let path = parent_path.push_child(id);
+    if let Some(name) = assigned_name.as_ref() {
+      self.names.insert(name.clone(), id);
+    }
     self.children.insert(
       id,
       ChildRecord {
@@ -63,13 +83,14 @@ where
         map_system: map_system.clone(),
         watcher,
         path: path.clone(),
+        name: assigned_name,
       },
     );
 
     if let Some(watcher_id) = watcher {
       let map_clone = map_system.clone();
       let envelope = PriorityEnvelope::from_system(SystemMessage::Watch(watcher_id)).map(move |sys| (map_clone)(sys));
-      control_ref.sender().try_send(envelope)?;
+      control_ref.sender().try_send(envelope).map_err(SpawnError::from)?;
     }
 
     Ok((id, path))
@@ -77,6 +98,9 @@ where
 
   pub fn remove_child(&mut self, id: ActorId) -> Option<InternalActorRef<M, R>> {
     self.children.remove(&id).map(|record| {
+      if let Some(name) = record.name.as_ref() {
+        self.names.remove(name);
+      }
       if let Some(watcher_id) = record.watcher {
         let map_clone = record.map_system.clone();
         let envelope =
@@ -123,11 +147,38 @@ where
     self.handle_directive(actor, failure, directive)
   }
 
+  pub fn register_child(
+    &mut self,
+    control_ref: InternalActorRef<M, R>,
+    map_system: MapSystemShared<M>,
+    watcher: Option<ActorId>,
+    parent_path: &ActorPath,
+  ) -> Result<(ActorId, ActorPath), QueueError<PriorityEnvelope<M>>> {
+    match self.register_child_with_naming(control_ref, map_system, watcher, parent_path, ChildNaming::Auto) {
+      Ok(result) => Ok(result),
+      Err(SpawnError::Queue(err)) => Err(err),
+      Err(SpawnError::NameExists(_)) => {
+        unreachable!("NameExists cannot occur when using automatic naming")
+      }
+    }
+  }
+
   pub fn child_route(&self, actor: ActorId) -> Option<ChildRoute<M, R>> {
     self
       .children
       .get(&actor)
       .map(|record| (record.control_ref.clone(), record.map_system.clone()))
+  }
+
+  fn generate_prefixed_name(&mut self, prefix: &str) -> String {
+    let mut attempt = 0usize;
+    loop {
+      let candidate = format!("{prefix}-{}", self.next_id + attempt);
+      if !self.names.contains_key(&candidate) {
+        return candidate;
+      }
+      attempt = attempt.saturating_add(1);
+    }
   }
 
   fn handle_directive(

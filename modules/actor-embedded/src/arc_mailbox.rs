@@ -35,7 +35,6 @@ where
   inner: QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
 }
 
-/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
 pub struct ArcMailboxRuntime<RM = CriticalSectionRawMutex>
 where
   RM: RawMutex, {

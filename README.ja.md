@@ -119,12 +119,12 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 ## 進捗ステータス
 
 - `QueueMailbox::recv` は `Result<M, QueueError<M>>` を返します。`Ok` 以外は閉鎖・切断シグナルなので停止処理を明示的に実装してください。
-- `RootContext::dispatch_all` は非推奨です。`dispatch_next` / `run_until` / `run_forever` を利用してください（詳細は [dispatch 移行ガイド](docs/design/2025-10-07-dispatch-transition.md)）。
+- `RootContext::dispatch_all` は非推奨です。`dispatch_next` / `run_until` / `run_forever` を利用してください（詳細は [dispatch 移行ガイド](docs/design/D2-dispatch-transition-next-actions.md)）。
 - Typed DSL は利用可能ですが、`map_system` をユーザー定義 enum へ拡張する課題や統合テスト強化が進行中です（[Typed DSL MUST ガイド](docs/worknotes/2025-10-08-typed-dsl-claude-must.md) を参照）。
 
 ## 参考資料
 
-- [Typed Actor 設計メモ](docs/design/2025-10-07-typed-actor-plan.md): ビヘイビア／コンテキスト／SystemMessage 映射の設計方針。
+- [Typed Actor 設計メモ](docs/design/D5-typed-actor-next-actions.md): ビヘイビア／コンテキスト／SystemMessage 映射の設計方針。
 - [Dispatcher Runtime ポリシー](docs/sources/nexus-actor-rs/docs/dispatcher_runtime_policy.md): 旧 `nexus` 世代のシャットダウン指針（概念は流用可能、API は要読み替え）。
 - [ベンチマークダッシュボード](https://j5ik2o.github.io/cellex-rs/bench_dashboard.html): 週次ベンチの推移（`benchmarks/history/bench_history.csv`）。
 - [ActorContext ロック計測レポート](docs/sources/nexus-actor-rs/docs/benchmarks/tracing_actor_context.md): ロック待ち分析（cellex API 名へ読み替え推奨）。

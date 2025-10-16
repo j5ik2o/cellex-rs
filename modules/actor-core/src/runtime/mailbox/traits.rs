@@ -3,12 +3,12 @@ use core::future::Future;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::metrics::MetricsSinkShared;
 use crate::runtime::scheduler::{ReadyQueueHandle, SchedulerBuilder};
 use crate::{
-  FailureEventHandler, FailureEventListener, PriorityEnvelope, PriorityMailboxSpawnerHandle,
-  ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
+  FailureEventHandler, FailureEventListener, PriorityEnvelope, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
 };
 
 use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
@@ -17,6 +17,18 @@ use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
 ///
 /// Pair of receiver and sender handles returned when creating a mailbox.
 pub type MailboxPair<H, P> = (H, P);
+
+/// Helper alias mapping an actor runtime to its mailbox runtime.
+pub type MailboxOf<R> = <R as ActorRuntime>::Mailbox;
+
+/// Helper alias mapping an actor runtime to the queue type of its mailbox runtime.
+pub type MailboxQueueOf<R, M> = <MailboxOf<R> as MailboxRuntime>::Queue<M>;
+
+/// Helper alias mapping an actor runtime to the signal type of its mailbox runtime.
+pub type MailboxSignalOf<R> = <MailboxOf<R> as MailboxRuntime>::Signal;
+
+/// Helper alias mapping an actor runtime to the concurrency marker of its mailbox runtime.
+pub type MailboxConcurrencyOf<R> = <MailboxOf<R> as MailboxRuntime>::Concurrency;
 
 /// Mailbox abstraction that decouples message queue implementations from core logic.
 ///
@@ -207,29 +219,34 @@ pub trait MailboxRuntime {
 
 /// High-level runtime interface that extends [`MailboxRuntime`] with bundle-specific capabilities.
 #[allow(dead_code)]
-pub trait ActorRuntime: MailboxRuntime + Clone {
+pub trait ActorRuntime: Clone {
   /// Underlying mailbox runtime retained by this actor runtime facade.
-  type Base: MailboxRuntime + Clone;
+  type Mailbox: MailboxRuntime + Clone + 'static;
 
   /// Returns a shared reference to the underlying mailbox runtime.
-  fn mailbox_runtime(&self) -> &Self::Base;
+  fn mailbox_runtime(&self) -> &Self::Mailbox;
 
   /// Consumes `self` and returns the underlying mailbox runtime.
-  fn into_mailbox_runtime(self) -> Self::Base
+  fn into_mailbox_runtime(self) -> Self::Mailbox
   where
     Self: Sized;
 
   /// Returns the shared handle to the underlying mailbox runtime.
-  fn mailbox_runtime_shared(&self) -> ArcShared<Self::Base>;
+  fn mailbox_runtime_shared(&self) -> ArcShared<Self::Mailbox>;
 
   /// Returns the receive-timeout factory configured for this runtime.
   fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, Self>>;
 
+  /// Returns the mailbox-level receive-timeout factory if available.
+  fn mailbox_receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, Self::Mailbox>> {
+    None
+  }
+
   /// Returns the receive-timeout driver configured for this runtime.
-  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Base>>;
+  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Mailbox>>;
 
   /// Overrides the receive-timeout factory using the base mailbox runtime type.
-  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Base>) -> Self
+  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, Self::Mailbox>) -> Self
   where
     Self: Sized;
 
@@ -239,12 +256,12 @@ pub trait ActorRuntime: MailboxRuntime + Clone {
     Self: Sized;
 
   /// Overrides the receive-timeout driver.
-  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>) -> Self
+  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Mailbox>>) -> Self
   where
     Self: Sized;
 
   /// Mutably overrides the receive-timeout driver.
-  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<Self::Base>>);
+  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<Self::Mailbox>>);
 
   /// Returns a factory constructed from the configured receive-timeout driver, if any.
   fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, Self>>;
@@ -279,24 +296,24 @@ pub trait ActorRuntime: MailboxRuntime + Clone {
     Self: Sized;
 
   /// Returns a priority mailbox spawner handle without exposing the internal factory.
-  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self>
+  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::Mailbox>
   where
     M: Element,
-    <<Self as ActorRuntime>::Base as crate::MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-    <<Self as ActorRuntime>::Base as crate::MailboxRuntime>::Signal: Clone;
+    MailboxQueueOf<Self, PriorityEnvelope<M>>: Clone,
+    MailboxSignalOf<Self>: Clone;
 
   /// Overrides the scheduler builder used during actor system construction.
-  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self>) -> Self
+  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self::Mailbox>) -> Self
   where
     Self: Sized;
 
   /// Overrides the scheduler builder using a shared handle.
-  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self>>) -> Self
+  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self::Mailbox>>) -> Self
   where
     Self: Sized;
 
   /// Returns the scheduler builder configured for this runtime.
-  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self>>;
+  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::Mailbox>>;
 }
 
 impl<M, Q, S> MailboxHandle<M> for QueueMailbox<Q, S>

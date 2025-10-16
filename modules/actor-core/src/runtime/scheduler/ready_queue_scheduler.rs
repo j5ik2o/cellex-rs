@@ -14,6 +14,7 @@ use async_trait::async_trait;
 use crate::runtime::context::InternalActorRef;
 use crate::runtime::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::runtime::mailbox::traits::{Mailbox, MailboxProducer};
+use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
@@ -30,6 +31,7 @@ use futures::FutureExt;
 
 use super::actor_cell::ActorCell;
 use super::actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
+use crate::SpawnError;
 use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
 /// Hook invoked by mailboxes when new messages arrive.
@@ -191,7 +193,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<(InternalActorRef<M, R>, usize), QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<(InternalActorRef<M, R>, usize), SpawnError<M>> {
     let actor_ref = self.core.spawn_actor(supervisor, context)?;
     let index = self.core.actor_count().saturating_sub(1);
     Ok((actor_ref, index))
@@ -359,16 +361,16 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     let SchedulerSpawnContext {
       runtime,
-      mailbox_handle_factory_stub: mailbox_factory,
+      mailbox_runtime,
       map_system,
       mailbox_options,
       handler,
+      child_naming,
     } = context;
-    let mailbox_factory = mailbox_factory.with_metrics_sink(self.metrics_sink.clone());
-    let mut mailbox_spawner = mailbox_factory.priority_spawner();
+    let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_runtime);
     mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
     let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
     mailbox.set_metrics_sink(self.metrics_sink.clone());
@@ -378,10 +380,13 @@ where
     let watchers = vec![ActorId::ROOT];
     let primary_watcher = watchers.first().copied();
     let parent_path = ActorPath::new();
-    let (actor_id, actor_path) =
-      self
-        .guardian
-        .register_child(control_ref.clone(), map_system.clone(), primary_watcher, &parent_path)?;
+    let (actor_id, actor_path) = self.guardian.register_child_with_naming(
+      control_ref.clone(),
+      map_system.clone(),
+      primary_watcher,
+      &parent_path,
+      child_naming,
+    )?;
     let mut cell = ActorCell::new(
       actor_id,
       map_system,
@@ -800,7 +805,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     let (actor_ref, index) = {
       let mut ctx = self.context.lock();
       ctx.spawn_actor(supervisor, context)?
@@ -935,7 +940,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     ReadyQueueScheduler::spawn_actor(self, supervisor, context)
   }
 

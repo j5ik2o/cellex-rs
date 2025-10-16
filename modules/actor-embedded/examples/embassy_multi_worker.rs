@@ -1,11 +1,11 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
   use cellex_actor_core_rs::{
-    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, Props, ReadyQueueWorker,
-    RuntimeEnv, ShutdownToken,
+    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, MailboxOf, Props,
+    ReadyQueueWorker, ShutdownToken,
   };
   use cellex_actor_core_rs::{ArcShared, DynMessage};
-  use cellex_actor_embedded_rs::{ActorRuntimeBundleEmbassyExt, LocalMailboxRuntime};
+  use cellex_actor_embedded_rs::{embassy_actor_runtime, EmbassyActorRuntime};
   use core::num::NonZeroUsize;
   use core::sync::atomic::{AtomicU32, Ordering};
   use embassy_executor::{Executor, Spawner};
@@ -14,12 +14,12 @@ mod sample {
   use static_cell::StaticCell;
 
   static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-  static SYSTEM: StaticCell<ActorSystem<u32, RuntimeEnv<LocalMailboxRuntime>>> = StaticCell::new();
+  static SYSTEM: StaticCell<ActorSystem<u32, EmbassyActorRuntime>> = StaticCell::new();
   static MESSAGE_SUM: AtomicU32 = AtomicU32::new(0);
 
   #[embassy_executor::task]
   async fn ready_queue_worker_task(
-    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, RuntimeEnv<LocalMailboxRuntime>>>,
+    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<EmbassyActorRuntime>>>,
     shutdown: ShutdownToken,
   ) {
     let mut shutdown_for_wait = shutdown.clone();
@@ -35,7 +35,7 @@ mod sample {
 
   fn spawn_ready_queue_workers(
     spawner: &Spawner,
-    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, RuntimeEnv<LocalMailboxRuntime>>>,
+    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<EmbassyActorRuntime>>>,
     shutdown: ShutdownToken,
     worker_count: NonZeroUsize,
   ) {
@@ -62,7 +62,7 @@ mod sample {
 
     executor.run(|spawner| {
       let configured_worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
-      let runtime = RuntimeEnv::new(LocalMailboxRuntime::default()).with_embassy_scheduler(spawner);
+      let runtime = embassy_actor_runtime(spawner);
       let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(configured_worker_count));
       let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, config));
       let shutdown = system.shutdown_token();

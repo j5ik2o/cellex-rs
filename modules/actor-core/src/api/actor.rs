@@ -27,8 +27,9 @@ pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, Se
 pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
 pub use props::Props;
 pub use root_context::RootContext;
-pub use system::MailboxHandleFactoryStub;
-pub use system::{ActorSystem, ActorSystemConfig, ActorSystemRunner, RuntimeEnv, ShutdownToken};
+pub use system::{
+  ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, GenericActorRuntime, ShutdownToken,
+};
 pub use system_support::{Spawn, Timer};
 
 #[doc(hidden)]
@@ -46,5 +47,10 @@ mod __actor_doc_refs {
   #[allow(dead_code)]
   pub fn _system_message_marker(message: SystemMessage) -> SystemMessage {
     message
+  }
+
+  #[allow(dead_code)]
+  pub fn _mailbox_runtime_marker<R: MailboxRuntime>(runtime: &R) -> &R {
+    runtime
   }
 }

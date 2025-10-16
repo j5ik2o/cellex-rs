@@ -1,13 +1,15 @@
 //! Tokio 上で `ActorSystem::run_until` を起動する最小サンプル。
 
-use cellex_actor_core_rs::{ActorSystem, Props};
+use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, GenericActorRuntime, Props};
 use cellex_actor_std_rs::TokioMailboxRuntime;
 use std::sync::{Arc, Mutex};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-  let factory = TokioMailboxRuntime;
-  let mut system: ActorSystem<u32, _> = ActorSystem::new(factory);
+  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(
+    GenericActorRuntime::new(TokioMailboxRuntime),
+    ActorSystemConfig::default(),
+  );
   let mut root = system.root_context();
 
   let log = Arc::new(Mutex::new(Vec::new()));

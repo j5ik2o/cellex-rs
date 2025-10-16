@@ -92,16 +92,19 @@ pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
 pub use runtime::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
-pub use runtime::mailbox::traits::{ActorRuntime, SingleThread, ThreadSafe};
+pub use runtime::mailbox::traits::{
+  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxRuntime, MailboxSignalOf, SingleThread,
+  ThreadSafe,
+};
 pub use runtime::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};
 pub use runtime::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
 };
 pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 pub use runtime::scheduler::{
-  drive_ready_queue_worker, ActorScheduler, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
+  drive_ready_queue_worker, ActorScheduler, ChildNaming, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
   ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
-  SchedulerBuilder, SchedulerSpawnContext,
+  SchedulerBuilder, SchedulerSpawnContext, SpawnError,
 };
 pub use shared::{
   FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,

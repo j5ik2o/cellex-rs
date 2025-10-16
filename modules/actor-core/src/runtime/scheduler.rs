@@ -8,7 +8,7 @@ pub mod receive_timeout;
 mod tests;
 
 pub(crate) use actor_scheduler::SchedulerHandle;
-pub use actor_scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
+pub use actor_scheduler::{ActorScheduler, ChildNaming, SchedulerBuilder, SchedulerSpawnContext, SpawnError};
 pub use ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker};
 pub use receive_timeout::{
   NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,

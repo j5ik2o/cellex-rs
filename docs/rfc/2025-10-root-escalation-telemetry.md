@@ -103,7 +103,7 @@ RootEscalationSink に導入した `FailureTelemetry` 抽象は、スナップ�
 ## 参考情報
 
 - ベンチ結果: `failure_telemetry_shared ≈ 780ps`, `failure_telemetry_direct ≈ 257ps`
-- 既存ドキュメント: `docs/design/2025-10-14-root-escalation-telemetry-plan.md`
+- 既存ドキュメント: `docs/design/D17-root-escalation-telemetry-next-actions.md`
 
 ---
 

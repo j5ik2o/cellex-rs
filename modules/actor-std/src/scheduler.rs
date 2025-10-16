@@ -2,10 +2,11 @@ use std::boxed::Box;
 use std::vec::Vec;
 
 use cellex_actor_core_rs::{
-  ActorScheduler, AlwaysRestart, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
-  FailureTelemetryShared, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, ReadyQueueScheduler, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, RuntimeEnv,
-  SchedulerBuilder, SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
+  ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
+  FailureTelemetryShared, GenericActorRuntime, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared,
+  MetricsSinkShared, PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutDriverShared,
+  ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext, SpawnError, Supervisor,
+  TelemetryObservationConfig,
 };
 use cellex_utils_std_rs::{Element, QueueError};
 use tokio::task::yield_now;
@@ -17,8 +18,8 @@ pub struct TokioScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, RuntimeEnv<R>>, {
-  inner: ReadyQueueScheduler<M, RuntimeEnv<R>, Strat>,
+  Strat: GuardianStrategy<M, R>, {
+  inner: ReadyQueueScheduler<M, R, Strat>,
 }
 
 impl<M, R> TokioScheduler<M, R, AlwaysRestart>
@@ -27,7 +28,7 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   /// ReadyQueue スケジューラを用いた既定構成を作成する。
-  pub fn new(runtime: RuntimeEnv<R>, extensions: Extensions) -> Self {
+  pub fn new(runtime: R, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::new(runtime, extensions),
     }
@@ -38,10 +39,10 @@ impl<M, R, Strat> TokioScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, RuntimeEnv<R>>,
+  Strat: GuardianStrategy<M, R>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(runtime: RuntimeEnv<R>, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(runtime: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
     }
@@ -49,23 +50,23 @@ where
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, RuntimeEnv<R>> for TokioScheduler<M, R, Strat>
+impl<M, R, Strat> ActorScheduler<M, R> for TokioScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
-  Strat: GuardianStrategy<M, RuntimeEnv<R>>,
+  Strat: GuardianStrategy<M, R>,
 {
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, RuntimeEnv<R>>,
-  ) -> Result<InternalActorRef<M, RuntimeEnv<R>>, QueueError<PriorityEnvelope<M>>> {
+    context: SchedulerSpawnContext<M, R>,
+  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, RuntimeEnv<R>>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
     self.inner.set_receive_timeout_factory(factory);
   }
 
@@ -89,7 +90,7 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, RuntimeEnv<R>>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
@@ -117,10 +118,14 @@ where
     yield_now().await;
     Ok(())
   }
+
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+    Some(self.inner.worker_handle())
+  }
 }
 
 /// Tokio 用スケジューラビルダーを生成するユーティリティ。
-pub fn tokio_scheduler_builder<M, R>() -> SchedulerBuilder<M, RuntimeEnv<R>>
+pub fn tokio_scheduler_builder<M, R>() -> SchedulerBuilder<M, R>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
@@ -131,14 +136,14 @@ where
 
 use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};
 
-/// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `ActorRuntimeBundle` に適用する。
-pub trait ActorRuntimeBundleTokioExt {
+/// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `GenericActorRuntime` に適用する。
+pub trait TokioActorRuntimeExt {
   /// スケジューラを Tokio 実装へ差し替える。
-  fn with_tokio_scheduler(self) -> RuntimeEnv<TokioMailboxRuntime>;
+  fn with_tokio_scheduler(self) -> GenericActorRuntime<TokioMailboxRuntime>;
 }
 
-impl ActorRuntimeBundleTokioExt for RuntimeEnv<TokioMailboxRuntime> {
-  fn with_tokio_scheduler(self) -> RuntimeEnv<TokioMailboxRuntime> {
+impl TokioActorRuntimeExt for GenericActorRuntime<TokioMailboxRuntime> {
+  fn with_tokio_scheduler(self) -> GenericActorRuntime<TokioMailboxRuntime> {
     self
       .with_scheduler_builder(tokio_scheduler_builder())
       .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(TokioReceiveTimeoutDriver::new())))

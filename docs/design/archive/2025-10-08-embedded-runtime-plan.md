@@ -3,7 +3,7 @@
 ## 現状サマリ (2025-10-13)
 - `ActorSystemRunner` / `ShutdownToken` を中心にしたランナー構成は actor-core に統合済みで、embedded 環境でも `run_until_idle()` を呼び出せば動作する。
 - `actor-embedded` には `ImmediateSpawner` / `ImmediateTimer` / `LocalMailboxRuntime` が揃っており、`embedded_rc` / `embedded_arc` 向けに MailboxRuntime を切り替え可能。
-- `ActorRuntimeBundleEmbassyExt` により Embassy スケジューラへの差し替えフックが提供されている。
+- `EmbassyActorRuntimeExt` により Embassy スケジューラへの差し替えフックが提供されている。
 
 ## 未解決課題
 - [MUST] ランナーを常駐タスクとして扱う `SystemDriver` 抽象（Tokio/Embedded 共通）を実装していない。現在は利用者が直接 `run_until_idle()` を呼ぶ必要がある。

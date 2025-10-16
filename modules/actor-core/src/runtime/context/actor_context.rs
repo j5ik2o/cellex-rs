@@ -8,6 +8,7 @@ use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
+use crate::ChildNaming;
 use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
@@ -164,6 +165,7 @@ where
       map_system,
       parent_path: self.actor_path.clone(),
       extensions: self.extensions.clone(),
+      child_naming: ChildNaming::Auto,
     });
     actor_ref
   }

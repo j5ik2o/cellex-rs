@@ -39,7 +39,7 @@
 ### フェーズ3: `no_std` 運用確認（進行中）
 - `NoopFailureTelemetry` での運用確認は必要（`thumb` チェックは `./scripts/ci.sh all` に任せる）。
 - `defmt` 等への拡張案を別途検討する。
-- `docs/design/2025-10-14-telemetry-defmt-spike.md` にビルダー API を用いた `defmt` 連携メモを追加し、実装方針を整理。
+- `docs/design/D18-telemetry-defmt-next-actions.md` にビルダー API を用いた `defmt` 連携メモを追加し、実装方針を整理。
 
 ### フェーズ4: ドキュメントとテスト（未着手）
 - `docs/design` に最終設計メモを追記、本ファイルを更新。
@@ -124,7 +124,7 @@
 ## フェーズ3メモ（進行中）
 - `scripts/ci.sh no-std` を実行し、`alloc` のみの構成（`thumbv6m-none-eabi` 相当）でも `FailureTelemetryShared` / 観測フックがコンパイル可能であることを確認。（2025-10-14）
 - 観測設定が未指定の場合でも `TelemetryObservationConfig::new()` を用いて no-op 動作となるよう初期値を統一。
-- `defmt` 連携案を `docs/design/2025-10-14-telemetry-defmt-spike.md` にまとめ、Builder API を通じた挿入が可能であることを確認。
+- `defmt` 連携案を `docs/design/D18-telemetry-defmt-next-actions.md` にまとめ、Builder API を通じた挿入が可能であることを確認。
 - `scripts/ci.sh all` を完走し、`std` / `no_std` 両構成および関連テストが成功することを確認。（2025-10-14）
 
 ## リスクと緩和策

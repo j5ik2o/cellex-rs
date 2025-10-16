@@ -69,7 +69,7 @@ pub use cellex_utils_std_rs::{ArcShared, ArcStateCell, Shared, SharedFactory, Sh
 pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
 pub use receive_timeout::{TokioReceiveTimeoutDriver, TokioReceiveTimeoutSchedulerFactory};
 pub use runtime_driver::TokioSystemHandle;
-pub use scheduler::{tokio_scheduler_builder, ActorRuntimeBundleTokioExt, TokioScheduler};
+pub use scheduler::{tokio_scheduler_builder, TokioActorRuntimeExt, TokioScheduler};
 pub use spawn::TokioSpawner;
 pub use timer::TokioTimer;
 pub use tokio_mailbox::{TokioMailbox, TokioMailboxRuntime, TokioMailboxSender};
@@ -90,3 +90,14 @@ pub mod prelude {
 
 #[cfg(test)]
 mod tests;
+
+/// Default actor runtime preset for Tokio environments.
+pub type TokioActorRuntime = cellex_actor_core_rs::GenericActorRuntime<TokioMailboxRuntime>;
+
+/// Builds the default Tokio-oriented actor runtime preset.
+#[must_use]
+pub fn tokio_actor_runtime() -> TokioActorRuntime {
+  use scheduler::TokioActorRuntimeExt;
+
+  cellex_actor_core_rs::GenericActorRuntime::new(TokioMailboxRuntime).with_tokio_scheduler()
+}

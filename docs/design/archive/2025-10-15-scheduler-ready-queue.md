@@ -5,10 +5,12 @@
 - `tell` はメールボックスに enqueue した後、その場で `tokio::spawn` を行わずスケジューラに任せたい。protoactor-go / Akka でも同様にメッセージ到着と実行を分離している。
 - スループットを確保するためには、スケジューラを Tokio のスレッドプール上で複数ワーカーとして動かす必要がある。
 
-## 現状整理と変更点
-- `ReadyQueueSchedulerCore` を分離し、`ReadyQueueScheduler` が `ArcShared<spin::Mutex<ReadyQueueState>>` を共有してアクターの ready 状態を管理する。
-- `SchedulerBuilder::ready_queue()` は `ReadyQueueScheduler` を返すように更新済み。Tokio / Embassy のラッパーも同スケジューラを内包する。
-- ReadyQueue は signal 通知時にスケジューラ側でキューを更新し、`process_actor_pending` との組み合わせで処理済みアクターの再スケジューリングを制御する。
+## 最新状況（2025-10-15 更新）
+- `PriorityScheduler` は完全に撤廃し、`ReadyQueueSchedulerCore`（旧 PrioritySchedulerCore）が ReadyQueue ベース処理を一本化。
+- `SchedulerBuilder::ready_queue()` が既定のビルダーとなり、Tokio / Embassy ラッパーもこの実装を利用する。
+- ReadyQueue ワーカーループは `drive_ready_queue_worker` として公開済みで、Tokio ドライバでも複数ワーカーを起動して ReadyQueue を駆動可能。
+- 子アクター生成時の命名を `ChildNaming`（`Auto` / `WithPrefix` / `Explicit`）で管理し、RootContext には `spawn_prefix` / `spawn_named` を導入。重複名時は `SpawnError::NameExists` を返す。
+- ReadyQueue は signal 通知時にスケジューラ側でキューを更新し、`process_actor_pending` と連携して処理済みアクターの再スケジューリングを制御する。
 
 ## 目標（継続）
 1. `tell` は常にメールボックスへの enqueue のみを行い、タスク化はスケジューラに委譲する。
@@ -44,20 +46,14 @@ tell → Mailbox.enqueue → (Idle → Running 遷移に成功) → ReadyQueue.p
 - `ActorRuntime` へ `spawn_system_task`, `yield_now` などの抽象を追加すると、Tokio / Embedded で共通のインタフェースになる。
 - `Spawn` ミドルウェアはアクター登録とメールボックス初期化に集中させる。実際のワーカータスク起動は Driver が一括管理。
 
-## 変更インパクト
-- ReadyQueue スケジューラの内部構造を「単一ループ」から「ReadyQueue + ワーカー群」へ再設計する必要がある。
-- メールボックスには `scheduler_status` と ReadyQueue への通知処理を追加する。
-- `ActorSystemRunner::run_forever` は ReadyQueue ワーカー起動のラッパへ置き換える。
-- テストではワーカー数 1 を指定すれば従来挙動と同等になり、Embedded 向けの動作も維持可能。
-
 ## オープン課題
 - ReadyQueue の型選定：`mpsc` or lock-free queue。push/pop のコストとバックプレッシャをどう扱うか。
 - Throughput 設定との整合：ワーカーが一度に何件処理するか、メトリクスや `yield_now` の挿入ポイント。
 - Spawn ミドルウェアとの連携：アクター登録時に ReadyQueue / Mailbox をどう初期化するかを再設計。
 - 監視・メトリクス：ワーカー数や ReadyQueue の長さをどう観測するか。
+- `SpawnError`/`ChildNaming` を活用した高レベル API（例: 名前→PID ルックアップ）の提供有無を検討。
 
 ## 次アクション
-1. Prototype: ReadyQueue + ワーカーマルチ化した `ReadyQueueScheduler` の PoC を作成。
-2. Mailbox 側に `scheduler_status` を導入し、Idle/Running ガードを実装。
-3. Driver 側（TokioSystemHandle 等）をワーカー数設定に対応させる。
-4. Spawn ミドルウェアの再導入（protoactor-go の `defaultSpawner` 相当）を検討。
+1. ReadyQueue ワーカー構成のチューニング方針を決定する（Queue 型・Throughput・メトリクス）。
+2. Spawn ミドルウェアとの統合方式を設計し、`ChildNaming` を活かした公開 API を整理する。
+3. ReadyQueue の観測ポイント（メトリクス/トレース）を追加し、ワーカー数や滞留長の可視化を進める。

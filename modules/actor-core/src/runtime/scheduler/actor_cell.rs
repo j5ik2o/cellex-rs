@@ -16,6 +16,7 @@ use crate::runtime::mailbox::traits::{
 use crate::runtime::mailbox::PriorityMailboxSpawnerHandle;
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
+use crate::runtime::scheduler::actor_scheduler::SpawnError;
 use crate::runtime::scheduler::ReadyQueueHandle;
 use crate::ActorFailure;
 use crate::ActorId;
@@ -293,7 +294,7 @@ where
     spec: ChildSpawnSpec<M, R>,
     guardian: &mut Guardian<M, R, Strat>,
     new_children: &mut Vec<ActorCell<M, R, Strat>>,
-  ) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<(), SpawnError<M>> {
     let ChildSpawnSpec {
       mailbox,
       sender,
@@ -304,12 +305,18 @@ where
       map_system,
       parent_path,
       extensions,
+      child_naming,
     } = spec;
 
     let control_ref = InternalActorRef::new(sender.clone());
     let primary_watcher = watchers.first().copied();
-    let (actor_id, actor_path) =
-      guardian.register_child(control_ref, map_system.clone(), primary_watcher, &parent_path)?;
+    let (actor_id, actor_path) = guardian.register_child_with_naming(
+      control_ref,
+      map_system.clone(),
+      primary_watcher,
+      &parent_path,
+      child_naming,
+    )?;
     let mut cell = ActorCell::new(
       actor_id,
       map_system,
@@ -372,7 +379,12 @@ where
     match handler_result {
       Ok(()) => {
         for spec in pending_specs.into_iter() {
-          self.register_child_from_spec(spec, guardian, new_children)?;
+          self
+            .register_child_from_spec(spec, guardian, new_children)
+            .map_err(|err| match err {
+              SpawnError::Queue(queue_err) => queue_err,
+              SpawnError::NameExists(name) => panic!("unexpected named spawn conflict: {name}"),
+            })?;
         }
         if should_stop {
           self.mark_stopped(guardian);

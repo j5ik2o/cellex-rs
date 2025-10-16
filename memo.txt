@@ -3,7 +3,7 @@
   Handle
     に置き換える。
     ・ReceiveTimeoutFactoryShared のアダプタ導入済み。Timeout 周りの API も Runtime 抽象に合わせて再確認する。
-    ・docs/design/2025-10-11-runtime-bundle-plan.md のフェーズ 2 TODO（Mailbox 再分割、設計レビュー）を消化すること。
+    ・docs/design/D10-runtime-bundle-next-actions.md のフェーズ 2 TODO（Mailbox 再分割、設計レビュー）を消化すること。
     ・現時点では `use crate::ReceiveTimeoutScheduler;` が shared.rs に未導入で `cargo test --workspace` が落ちる。忘れず修正す
   る。
 
