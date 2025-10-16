@@ -11,13 +11,13 @@ pub use generic_runtime::GenericActorRuntime;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::SchedulerBuilder;
+use crate::DynMessage;
 use crate::{
-  FailureEventHandler, FailureEventListener, MailboxRuntime, PriorityEnvelope, ReceiveTimeoutDriverShared,
-  ReceiveTimeoutFactoryShared,
+  FailureEventHandler, FailureEventListener, MailboxRuntime, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
 };
 
 /// Helper alias mapping an actor runtime to its mailbox runtime.

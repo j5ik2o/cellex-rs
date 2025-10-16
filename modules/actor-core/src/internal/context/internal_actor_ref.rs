@@ -1,5 +1,6 @@
-use crate::{MailboxProducer, SystemMessage};
-use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::MailboxProducer;
+use crate::{MailboxRuntime, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Actor reference. Wraps QueueMailboxProducer and provides message sending API.

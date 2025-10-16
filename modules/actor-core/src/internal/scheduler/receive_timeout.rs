@@ -3,10 +3,11 @@ use core::time::Duration;
 
 use cellex_utils_core_rs::Element;
 
-use crate::internal::message::DynMessage;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::shared::{ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared};
+use crate::DynMessage;
+use crate::MailboxRuntime;
 use crate::MapSystemShared;
-use crate::{MailboxRuntime, PriorityEnvelope};
 
 #[cfg(target_has_atomic = "ptr")]
 pub trait SchedulerBound: Send {}

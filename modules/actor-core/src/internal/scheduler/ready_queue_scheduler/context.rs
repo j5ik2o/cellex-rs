@@ -6,13 +6,14 @@ use spin::Mutex;
 
 use futures::future::LocalBoxFuture;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::context::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
+use crate::MailboxRuntime;
 use crate::{
   FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, Supervisor,
   TelemetryObservationConfig,
 };
-use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

@@ -1,9 +1,8 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::internal::message::DynMessage;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::scheduler::{ChildNaming, SpawnError};
 use crate::internal::system::InternalRootContext;
-use crate::MetadataStorageMode;
-use crate::{ActorRef, Extension, ExtensionId, Extensions, PriorityEnvelope, Props};
+use crate::{ActorRef, DynMessage, Extension, ExtensionId, Extensions, MetadataStorageMode, Props};
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use cellex_utils_core_rs::{Element, QueueError};

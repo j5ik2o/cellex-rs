@@ -1,13 +1,9 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::ActorId;
-use crate::ActorPath;
-use crate::ChildNaming;
-use crate::Extensions;
-use crate::Supervisor;
-use crate::{MailboxRuntime, PriorityEnvelope};
+use crate::{ActorId, ActorPath, ChildNaming, Extensions, MailboxRuntime, Supervisor};
 use cellex_utils_core_rs::Element;
 
 use super::ActorHandlerFn;

@@ -20,8 +20,8 @@ pub use crate::api::actor_system::{
   ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, Spawn, Timer,
 };
 pub use crate::api::mailbox::MailboxRuntime;
-pub use crate::internal::mailbox::{PriorityEnvelope, SystemMessage};
-pub use crate::internal::message::DynMessage as RuntimeMessage;
+pub use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+pub use crate::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;
 pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
@@ -34,7 +34,7 @@ pub use shutdown_token::ShutdownToken;
 #[doc(hidden)]
 mod __actor_doc_refs {
   use super::*;
-  use crate::internal::message::DynMessage;
+  use crate::DynMessage;
   use cellex_utils_core_rs::Element;
 
   #[allow(dead_code)]

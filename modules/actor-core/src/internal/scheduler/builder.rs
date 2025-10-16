@@ -2,11 +2,11 @@
 
 use alloc::boxed::Box;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::guardian::GuardianStrategy;
 #[cfg(any(test, feature = "test-support"))]
 use crate::internal::scheduler::ImmediateScheduler;
-use crate::ReadyQueueScheduler;
-use crate::{ActorScheduler, Extensions, MailboxRuntime, PriorityEnvelope};
+use crate::{ActorScheduler, Extensions, MailboxRuntime, ReadyQueueScheduler};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, SharedBound};
 

@@ -3,6 +3,7 @@
 #![allow(clippy::disallowed_types)]
 
 use super::*;
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::internal::context::InternalActorRef;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::mailbox::PriorityChannel;
@@ -13,7 +14,6 @@ use crate::MapSystemShared;
 use crate::SupervisorDirective;
 use crate::{ActorFailure, BehaviorFailure};
 use crate::{ChildNaming, SpawnError};
-use crate::{PriorityEnvelope, SystemMessage};
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;

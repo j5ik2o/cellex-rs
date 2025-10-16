@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
 
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::api::supervision::{NoopSupervisor, Supervisor, SupervisorDirective};
 use crate::api::MessageEnvelope;
-use crate::internal::message::DynMessage;
-use crate::{MapSystemShared, MetadataStorageMode, PriorityEnvelope, SystemMessage};
+use crate::{DynMessage, MapSystemShared, MetadataStorageMode};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 

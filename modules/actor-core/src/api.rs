@@ -6,7 +6,7 @@ mod event_stream;
 pub(crate) mod extensions;
 mod guardian;
 pub(crate) mod identity;
-mod mailbox;
+pub mod mailbox;
 pub(crate) mod messaging;
 mod supervision;
 

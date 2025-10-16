@@ -1,8 +1,9 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::FailureInfo;
-use crate::{MailboxRuntime, PriorityEnvelope};
+use crate::MailboxRuntime;
 use cellex_utils_core_rs::{Element, QueueError};
 
 type FailureHandler<M> = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static;

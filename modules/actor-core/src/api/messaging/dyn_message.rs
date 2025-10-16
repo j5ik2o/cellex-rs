@@ -9,9 +9,11 @@ type DynMessageInner = dyn Any + Send + Sync;
 type DynMessageInner = dyn Any;
 
 /// Type bound required for values stored inside [`DynMessage`].
+/// Trait bound describing values that can be erased into [`DynMessage`].
 #[cfg(target_has_atomic = "ptr")]
 pub trait DynMessageValue: Any + Send + Sync {}
 
+/// Trait bound describing values that can be erased into [`DynMessage`] on targets without atomic pointers.
 #[cfg(not(target_has_atomic = "ptr"))]
 pub trait DynMessageValue: Any {}
 
@@ -21,7 +23,7 @@ impl<T> DynMessageValue for T where T: Any + Send + Sync {}
 #[cfg(not(target_has_atomic = "ptr"))]
 impl<T> DynMessageValue for T where T: Any {}
 
-/// Type-erased message used internally by the runtime.
+/// Type-erased message used across the public API.
 pub struct DynMessage {
   inner: Box<DynMessageInner>,
 }
@@ -39,7 +41,7 @@ impl DynMessage {
     self.inner.as_ref().type_id()
   }
 
-  /// Attempts to downcast to type T by moving ownership.
+  /// Attempts to downcast to type `T` by moving ownership.
   pub fn downcast<T>(self) -> Result<T, Self>
   where
     T: DynMessageValue + 'static, {
@@ -49,14 +51,14 @@ impl DynMessage {
     }
   }
 
-  /// Attempts to downcast to type T through a reference.
+  /// Attempts to downcast to type `T` through a shared reference.
   pub fn downcast_ref<T>(&self) -> Option<&T>
   where
     T: DynMessageValue + 'static, {
     self.inner.downcast_ref::<T>()
   }
 
-  /// Attempts to downcast to type T through a mutable reference.
+  /// Attempts to downcast to type `T` through a mutable reference.
   pub fn downcast_mut<T>(&mut self) -> Option<&mut T>
   where
     T: DynMessageValue + 'static, {

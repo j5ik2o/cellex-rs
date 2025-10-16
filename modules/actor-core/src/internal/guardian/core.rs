@@ -1,3 +1,4 @@
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::internal::context::InternalActorRef;
 use crate::ActorId;
 use crate::ActorPath;
@@ -5,9 +6,7 @@ use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
-use crate::{ActorFailure, MailboxProducer};
-use crate::{ChildNaming, SpawnError};
-use crate::{PriorityEnvelope, SystemMessage};
+use crate::{ActorFailure, ChildNaming, MailboxProducer, SpawnError};
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
@@ -130,7 +129,7 @@ where
 
   pub fn stop_child(&mut self, actor: ActorId) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     if let Some(record) = self.children.get(&actor) {
-      let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (record.map_system)(sys));
+      let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (&*record.map_system)(sys));
       record.control_ref.sender().try_send(envelope)
     } else {
       Ok(())
@@ -190,7 +189,7 @@ where
       SupervisorDirective::Resume => Ok(None),
       SupervisorDirective::Stop => {
         if let Some(record) = self.children.get(&actor) {
-          let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (record.map_system)(sys));
+          let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (&*record.map_system)(sys));
           record.control_ref.sender().try_send(envelope)?;
           Ok(None)
         } else {
@@ -199,7 +198,7 @@ where
       }
       SupervisorDirective::Restart => {
         if let Some(record) = self.children.get(&actor) {
-          let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(|sys| (record.map_system)(sys));
+          let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(|sys| (&*record.map_system)(sys));
           record.control_ref.sender().try_send(envelope)?;
           self.strategy.after_restart(actor);
           Ok(None)

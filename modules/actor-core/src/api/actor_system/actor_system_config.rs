@@ -1,7 +1,8 @@
+use crate::api::mailbox::PriorityEnvelope;
 use crate::{
   ActorRuntime, DynMessage, Extension, Extensions, FailureEventListener, FailureTelemetryBuilderShared,
-  FailureTelemetryShared, MailboxOf, MailboxQueueOf, MailboxSignalOf, MetricsSinkShared, PriorityEnvelope,
-  ReceiveTimeoutFactoryShared, TelemetryObservationConfig,
+  FailureTelemetryShared, MailboxOf, MailboxQueueOf, MailboxSignalOf, MetricsSinkShared, ReceiveTimeoutFactoryShared,
+  TelemetryObservationConfig,
 };
 use cellex_utils_core_rs::ArcShared;
 use core::num::NonZeroUsize;

@@ -3,6 +3,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::ActorId;
 use crate::ActorPath;
@@ -11,8 +12,7 @@ use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
 use crate::Supervisor;
-use crate::{ActorFailure, MailboxProducer};
-use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
+use crate::{ActorFailure, MailboxOptions, MailboxProducer, MailboxRuntime};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use crate::internal::scheduler::ReceiveTimeoutScheduler;

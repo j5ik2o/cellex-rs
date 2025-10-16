@@ -1,14 +1,15 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::runtime_state::GenericActorRuntimeState;
 use crate::internal::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
 use crate::internal::scheduler::SchedulerBuilder;
+use crate::DynMessage;
+use crate::MailboxRuntime;
 use crate::ReceiveTimeoutDriverShared;
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{FailureEventHandler, FailureEventListener};
-use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 

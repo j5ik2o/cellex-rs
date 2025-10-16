@@ -3,8 +3,9 @@
 use futures::future::{select, Either, LocalBoxFuture};
 use spin::Mutex;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::guardian::GuardianStrategy;
-use crate::{MailboxRuntime, PriorityEnvelope, ShutdownToken};
+use crate::{MailboxRuntime, ShutdownToken};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

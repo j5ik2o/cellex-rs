@@ -7,16 +7,15 @@ use core::num::NonZeroUsize;
 
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::guardian::AlwaysRestart;
-use crate::internal::message::DynMessage;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::scheduler::ReadyQueueWorker;
 use crate::internal::system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::serializer_extension_id;
-use crate::RootContext;
-use crate::ShutdownToken;
 use crate::{
-  default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventStream, PriorityEnvelope,
-  SerializerRegistryExtension, TelemetryContext,
+  default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventStream, SerializerRegistryExtension,
+  TelemetryContext,
 };
+use crate::{DynMessage, RootContext, ShutdownToken};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

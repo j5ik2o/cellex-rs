@@ -1,8 +1,6 @@
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::context::{ActorContext, ActorHandlerFn};
-use crate::ActorFailure;
-use crate::MapSystemShared;
-use crate::Supervisor;
-use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
+use crate::{ActorFailure, MailboxOptions, MailboxRuntime, MapSystemShared, Supervisor};
 use alloc::boxed::Box;
 use cellex_utils_core_rs::Element;
 

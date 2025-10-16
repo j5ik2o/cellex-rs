@@ -1,10 +1,10 @@
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::internal::context::InternalActorRef;
 use crate::internal::mailbox::traits::MailboxProducer;
 use crate::EscalationSink;
 use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
-use crate::{PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::Element;
 
 /// Sink that forwards `SystemMessage::Escalate` to parent Guardian.
@@ -47,13 +47,13 @@ where
 
     if let Some(parent_info) = info.escalate_to_parent() {
       let envelope =
-        PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (self.map_system)(sys));
+        PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (&*self.map_system)(sys));
       if self.control_ref.sender().try_send(envelope).is_ok() {
         return Ok(());
       }
     } else {
       let envelope =
-        PriorityEnvelope::from_system(SystemMessage::Escalate(info.clone())).map(|sys| (self.map_system)(sys));
+        PriorityEnvelope::from_system(SystemMessage::Escalate(info.clone())).map(|sys| (&*self.map_system)(sys));
       if self.control_ref.sender().try_send(envelope).is_ok() {
         return Ok(());
       }

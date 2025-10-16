@@ -6,12 +6,13 @@ use alloc::vec::Vec;
 
 use async_trait::async_trait;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::context::{ActorHandlerFn, InternalActorRef};
 use crate::MailboxOptions;
 use crate::TelemetryObservationConfig;
 use crate::{
   FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime, MapSystemShared,
-  MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
+  MetricsSinkShared, ReceiveTimeoutFactoryShared, Supervisor,
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};

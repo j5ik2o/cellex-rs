@@ -4,9 +4,9 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageSender};
 use crate::internal::message::{discard_metadata, DynMessage};
-use crate::PriorityEnvelope;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 use portable_atomic::{AtomicU8, Ordering};

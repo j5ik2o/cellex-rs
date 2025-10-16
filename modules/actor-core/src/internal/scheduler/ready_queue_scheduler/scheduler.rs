@@ -7,13 +7,14 @@ use core::convert::Infallible;
 use async_trait::async_trait;
 use spin::Mutex;
 
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::context::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
+use crate::MailboxRuntime;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, Supervisor,
   TelemetryObservationConfig,
 };
-use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

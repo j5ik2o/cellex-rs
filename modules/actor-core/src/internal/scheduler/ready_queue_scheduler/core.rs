@@ -10,6 +10,7 @@ use futures::future::select_all;
 use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::internal::context::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::traits::{Mailbox, MailboxProducer};
@@ -18,8 +19,7 @@ use crate::internal::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::{EscalationSink, Extensions, FailureInfo, FailureTelemetryShared, Supervisor, TelemetryObservationConfig};
-use crate::{MailboxRuntime, PriorityEnvelope};
-use crate::{MailboxSignal, SystemMessage};
+use crate::{MailboxRuntime, MailboxSignal};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::super::actor_scheduler::SchedulerSpawnContext;
@@ -362,7 +362,8 @@ where
 
       if let Some((parent_ref, map_system)) = self.guardian.child_route(parent_info.actor) {
         #[allow(clippy::redundant_closure)]
-        let envelope = PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (map_system)(sys));
+        let envelope =
+          PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (&*map_system)(sys));
         if parent_ref.sender().try_send(envelope).is_ok() {
           return true;
         }

@@ -88,11 +88,12 @@ pub use api::actor::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueue
 pub use api::extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use api::extensions::{serializer_extension_id, SerializerRegistryExtension};
+pub use api::mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage};
 pub use api::*;
 pub use cellex_utils_core_rs::sync::ArcShared;
 pub use internal::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 pub use internal::mailbox::traits::{MailboxRuntime, SingleThread, ThreadSafe};
-pub use internal::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};
+pub use internal::mailbox::PriorityMailboxSpawnerHandle;
 pub use internal::message::{discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey};
 
 pub use internal::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};

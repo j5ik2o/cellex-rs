@@ -8,21 +8,21 @@ use core::marker::PhantomData;
 #[cfg(feature = "unwind-supervision")]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 use crate::internal::guardian::{Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ReadyQueueHandle;
 use crate::ActorId;
 use crate::ActorPath;
+use crate::DynMessage;
 use crate::Extensions;
 use crate::FailureInfo;
+use crate::MailboxRuntime;
 use crate::SpawnError;
 use crate::Supervisor;
-use crate::SystemMessage;
 use crate::{ActorFailure, Mailbox, MailboxHandle, MailboxProducer};
-use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use crate::ReceiveTimeoutScheduler;
@@ -169,7 +169,7 @@ where
     if self.stopped {
       return Ok(0);
     }
-    let first = match self.mailbox.recv().await {
+    let first: PriorityEnvelope<M> = match self.mailbox.recv().await {
       Ok(message) => message,
       Err(QueueError::Disconnected) => return Ok(0),
       Err(err) => return Err(err),

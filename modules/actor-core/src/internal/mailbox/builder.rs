@@ -1,6 +1,5 @@
-use crate::{
-  MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer, MailboxRuntime, MailboxSignal, PriorityEnvelope,
-};
+use crate::api::mailbox::PriorityEnvelope;
+use crate::{MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer, MailboxRuntime, MailboxSignal};
 use cellex_utils_core_rs::Element;
 
 /// Builder abstraction specialised for priority mailboxes.

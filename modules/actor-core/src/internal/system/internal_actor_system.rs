@@ -2,11 +2,12 @@ use core::convert::Infallible;
 
 use super::InternalRootContext;
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};
 use crate::internal::system::internal_actor_system_config::InternalActorSystemConfig;
-use crate::{Extensions, MetricsSinkShared, PriorityEnvelope};
+use crate::{Extensions, MetricsSinkShared};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;

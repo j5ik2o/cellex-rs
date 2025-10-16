@@ -1,15 +1,14 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::internal::context::ActorContext;
-use crate::internal::message::DynMessage;
 use crate::ActorPath;
+use crate::DynMessage;
 use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
 use crate::MetadataStorageMode;
-use crate::PriorityEnvelope;
 use crate::RuntimeBound;
 use crate::Supervisor;
-use crate::SystemMessage;
 use crate::{ActorId, MailboxRuntime};
 use alloc::{boxed::Box, string::String};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};

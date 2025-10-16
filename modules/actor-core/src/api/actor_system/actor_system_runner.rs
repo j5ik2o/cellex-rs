@@ -1,6 +1,7 @@
+use crate::api::mailbox::PriorityEnvelope;
 use crate::{
-  ActorRuntime, ActorSystem, AlwaysRestart, DynMessage, MailboxOf, MailboxQueueOf, MailboxSignalOf, PriorityEnvelope,
-  ReadyQueueWorker, ShutdownToken,
+  ActorRuntime, ActorSystem, AlwaysRestart, DynMessage, MailboxOf, MailboxQueueOf, MailboxSignalOf, ReadyQueueWorker,
+  ShutdownToken,
 };
 use cellex_utils_core_rs::{ArcShared, Element, QueueError};
 use core::convert::Infallible;

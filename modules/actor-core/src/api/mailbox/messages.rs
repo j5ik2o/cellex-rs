@@ -1,62 +1,43 @@
+//! Priority-aware message utilities shared across the public API.
+
 use cellex_utils_core_rs::{Element, PriorityMessage, DEFAULT_PRIORITY};
 
-use crate::ActorId;
-use crate::FailureInfo;
+use crate::{ActorId, FailureInfo};
 
-/// Channel type to distinguish control messages.
-///
-/// Used for message priority control within the mailbox.
-/// Control messages are processed with higher priority than regular messages.
+/// Channel type that distinguishes regular messages from control traffic.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PriorityChannel {
-  /// Regular application messages
+  /// Regular application messages.
   Regular,
-  /// System control messages (stop, restart, etc.)
+  /// System control messages (stop, restart, etc.).
   Control,
 }
 
-/// Control message types based on protoactor-go's `SystemMessage`.
-///
-/// Special messages used for internal control of the actor system.
-/// Field structure is kept focused on current requirements and can be extended as needed.
-///
-/// Each variant has a different priority and is used at various stages of the actor lifecycle.
+/// Control message types inspired by protoactor-go's `SystemMessage` catalogue.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SystemMessage {
-  /// Start watching another actor
+  /// Start watching another actor.
   Watch(ActorId),
-  /// Stop watching another actor
+  /// Stop watching another actor.
   Unwatch(ActorId),
-  /// Instruct actor to stop
+  /// Instruct the actor to stop.
   Stop,
-  /// Notify of a failure occurrence
+  /// Notify of a failure occurrence.
   Failure(FailureInfo),
-  /// Instruct actor to restart
+  /// Request the actor to restart.
   Restart,
-  /// Suspend actor message processing
+  /// Suspend actor message processing.
   Suspend,
-  /// Resume actor message processing
+  /// Resume actor message processing.
   Resume,
-  /// Escalate failure to parent actor
+  /// Escalate a failure to the parent actor.
   Escalate(FailureInfo),
-  /// Notify receive timeout
+  /// Notify that the receive timeout elapsed.
   ReceiveTimeout,
 }
 
 impl SystemMessage {
-  /// Gets the recommended priority. Based on protoactor-go's priority table.
-  ///
-  /// # Returns
-  /// Message priority (higher values mean higher priority)
-  ///
-  /// # Priority Order
-  /// - Escalate: Highest priority (DEFAULT_PRIORITY + 13)
-  /// - Failure: DEFAULT_PRIORITY + 12
-  /// - Restart: DEFAULT_PRIORITY + 11
-  /// - Stop: DEFAULT_PRIORITY + 10
-  /// - Suspend/Resume: DEFAULT_PRIORITY + 9
-  /// - ReceiveTimeout: DEFAULT_PRIORITY + 8
-  /// - Watch/Unwatch: DEFAULT_PRIORITY + 5
+  /// Returns the recommended runtime priority for the system message.
   pub fn priority(&self) -> i8 {
     match self {
       SystemMessage::Watch(_) | SystemMessage::Unwatch(_) => DEFAULT_PRIORITY + 5,
@@ -70,11 +51,7 @@ impl SystemMessage {
   }
 }
 
-/// Envelope type: Stores priority messages and implements `PriorityMessage`.
-///
-/// Wraps messages with priority and channel information.
-/// Used for prioritized message processing within mailboxes.
-#[allow(dead_code)]
+/// Envelope type that stores priority and channel information for messages.
 #[derive(Debug)]
 pub struct PriorityEnvelope<M> {
   message: M,
@@ -83,23 +60,13 @@ pub struct PriorityEnvelope<M> {
   system_message: Option<SystemMessage>,
 }
 
-#[allow(dead_code)]
 impl<M> PriorityEnvelope<M> {
-  /// Creates an envelope on the regular channel with specified priority.
-  ///
-  /// # Arguments
-  /// - `message`: Message to wrap
-  /// - `priority`: Message priority
+  /// Creates an envelope on the regular channel with the specified priority.
   pub fn new(message: M, priority: i8) -> Self {
     Self::with_channel(message, priority, PriorityChannel::Regular)
   }
 
-  /// Creates an envelope with specified channel and priority.
-  ///
-  /// # Arguments
-  /// - `message`: Message to wrap
-  /// - `priority`: Message priority
-  /// - `channel`: Message channel type
+  /// Creates an envelope with the provided priority and channel.
   pub fn with_channel(message: M, priority: i8, channel: PriorityChannel) -> Self {
     Self {
       message,
@@ -109,65 +76,47 @@ impl<M> PriorityEnvelope<M> {
     }
   }
 
-  /// Creates a control channel envelope.
-  ///
-  /// # Arguments
-  /// - `message`: Message to wrap
-  /// - `priority`: Message priority
+  /// Creates a control-channel envelope with the provided priority.
   pub fn control(message: M, priority: i8) -> Self {
     Self::with_channel(message, priority, PriorityChannel::Control)
   }
 
-  /// Gets a reference to the internal message.
+  /// Returns a reference to the enclosed message.
   pub fn message(&self) -> &M {
     &self.message
   }
 
-  /// Gets the message priority.
+  /// Returns the stored priority.
   pub fn priority(&self) -> i8 {
     self.priority
   }
 
-  /// Gets the message channel type.
+  /// Returns the channel where the message should be delivered.
   pub fn channel(&self) -> PriorityChannel {
     self.channel
   }
 
-  /// Checks if this is a control message.
-  ///
-  /// # Returns
-  /// `true` for control channel, `false` for regular channel
+  /// Indicates whether the message targets the control lane.
   pub fn is_control(&self) -> bool {
     matches!(self.channel, PriorityChannel::Control)
   }
 
-  /// Gets the associated system message if any.
+  /// Returns the associated system message when available.
   pub fn system_message(&self) -> Option<&SystemMessage> {
     self.system_message.as_ref()
   }
 
-  /// Decomposes the envelope to get the message and priority.
-  ///
-  /// # Returns
-  /// Tuple of `(message, priority)`
+  /// Decomposes the envelope into its message and priority components.
   pub fn into_parts(self) -> (M, i8) {
     (self.message, self.priority)
   }
 
-  /// Decomposes the envelope to get the message, priority, and channel.
-  ///
-  /// # Returns
-  /// Tuple of `(message, priority, channel)`
+  /// Decomposes the envelope into message, priority, and channel.
   pub fn into_parts_with_channel(self) -> (M, i8, PriorityChannel) {
     (self.message, self.priority, self.channel)
   }
 
-  /// Applies a function to the message and converts to an envelope of a new type.
-  ///
-  /// Priority and channel information are preserved.
-  ///
-  /// # Arguments
-  /// - `f`: Function to transform the message
+  /// Maps the underlying message while preserving priority metadata.
   pub fn map<N>(self, f: impl FnOnce(M) -> N) -> PriorityEnvelope<N> {
     PriorityEnvelope {
       message: f(self.message),
@@ -177,34 +126,22 @@ impl<M> PriorityEnvelope<M> {
     }
   }
 
-  /// Applies a function to modify the priority.
-  ///
-  /// # Arguments
-  /// - `f`: Function to transform the priority
+  /// Rewrites the priority using the supplied closure.
   pub fn map_priority(mut self, f: impl FnOnce(i8) -> i8) -> Self {
     self.priority = f(self.priority);
     self
   }
 }
 
-#[allow(dead_code)]
 impl<M> PriorityEnvelope<M> {
-  /// Creates a regular channel envelope with default priority.
-  ///
-  /// # Arguments
-  /// - `message`: Message to wrap
+  /// Creates a regular-channel envelope using the default priority.
   pub fn with_default_priority(message: M) -> Self {
     Self::new(message, DEFAULT_PRIORITY)
   }
 }
 
 impl PriorityEnvelope<SystemMessage> {
-  /// Envelope helper for SystemMessage.
-  ///
-  /// Automatically wraps system messages with appropriate priority and control channel.
-  ///
-  /// # Arguments
-  /// - `message`: System message to wrap
+  /// Wraps a system message while tagging the control channel and priority.
   pub fn from_system(message: SystemMessage) -> Self {
     let priority = message.priority();
     let system_clone = message.clone();

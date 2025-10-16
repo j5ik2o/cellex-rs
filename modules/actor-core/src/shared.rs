@@ -1,10 +1,11 @@
 use core::ops::Deref;
 
-use crate::internal::message::DynMessage;
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ReceiveTimeoutSchedulerFactory;
+use crate::DynMessage;
 use crate::Extensions;
-use crate::{FailureEvent, FailureInfo, FailureTelemetry, MailboxRuntime, PriorityEnvelope, SystemMessage};
+use crate::{FailureEvent, FailureInfo, FailureTelemetry, MailboxRuntime};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Element;
 use cellex_utils_core_rs::Shared;

@@ -4,11 +4,12 @@
 #![allow(clippy::disallowed_types)]
 
 use super::*;
+use crate::api::mailbox::SystemMessage;
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
-use crate::internal::message::DynMessage;
+use crate::DynMessage;
 use crate::GenericActorRuntime;
-use crate::{MailboxOptions, SystemMessage};
+use crate::MailboxOptions;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::cell::RefCell;
