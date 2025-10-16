@@ -763,24 +763,6 @@ where
   }
 }
 
-impl<U, B> ActorSystem<U, GenericActorRuntime<B>>
-where
-  U: Element,
-  B: MailboxRuntime + Clone + 'static,
-  B::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  B::Signal: Clone,
-{
-  /// Creates a new actor system from a mailbox runtime by wrapping it in [`GenericActorRuntime`].
-  pub fn new(mailbox_runtime: B) -> Self {
-    Self::new_with_runtime(GenericActorRuntime::new(mailbox_runtime), ActorSystemConfig::default())
-  }
-
-  /// Creates a new actor system with explicit configuration from a mailbox runtime.
-  pub fn new_with_config(mailbox_runtime: B, config: ActorSystemConfig<GenericActorRuntime<B>>) -> Self {
-    Self::new_with_runtime(GenericActorRuntime::new(mailbox_runtime), config)
-  }
-}
-
 impl<U, R, Strat> ActorSystem<U, R, Strat>
 where
   U: Element,
