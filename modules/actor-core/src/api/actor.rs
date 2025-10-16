@@ -22,6 +22,7 @@ mod shutdown_token;
 mod tests;
 
 pub use crate::api::mailbox_runtime::{Mailbox, MailboxPair, MailboxRuntime, MailboxSignal};
+pub use crate::api::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
 pub use crate::internal::mailbox::{PriorityEnvelope, SystemMessage};
 pub use crate::internal::message::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;

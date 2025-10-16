@@ -6,7 +6,7 @@ use crate::internal::message::MetadataStorageMode;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ReadyQueueHandle;
 
-pub use crate::internal::mailbox::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv};
+use super::queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer};
 
 /// Type alias for mailbox and producer pair.
 ///
