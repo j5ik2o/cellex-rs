@@ -1,12 +1,11 @@
 use crate::api::actor::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::runtime_state::GenericActorRuntimeState;
 use crate::internal::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
 use crate::internal::scheduler::SchedulerBuilder;
-use crate::PriorityEnvelope;
+use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::ReceiveTimeoutDriverShared;
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{FailureEventHandler, FailureEventListener};
@@ -105,9 +104,7 @@ where
 
   /// Builds a mailbox-level receive-timeout factory using the configured driver.
   #[must_use]
-  pub fn receive_timeout_driver_factory(
-    &self,
-  ) -> Option<ReceiveTimeoutFactoryShared<DynMessage, BundleMailbox<R>>> {
+  pub fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, BundleMailbox<R>>> {
     self
       .receive_timeout_driver
       .as_ref()

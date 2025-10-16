@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use crate::api::MessageMetadata;
-use crate::internal::mailbox::traits::{MailboxConcurrency, SingleThread, ThreadSafe};
+use crate::{MailboxConcurrency, SingleThread, ThreadSafe};
 
 #[cfg(not(target_has_atomic = "ptr"))]
 use core::cell::RefCell;

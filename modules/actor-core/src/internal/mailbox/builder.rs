@@ -1,6 +1,6 @@
-use crate::internal::mailbox::traits::{MailboxHandle, MailboxPair, MailboxProducer, MailboxRuntime, MailboxSignal};
-use crate::internal::mailbox::MailboxOptions;
-use crate::PriorityEnvelope;
+use crate::{
+  MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer, MailboxRuntime, MailboxSignal, PriorityEnvelope,
+};
 use cellex_utils_core_rs::Element;
 
 /// Builder abstraction specialised for priority mailboxes.

@@ -3,9 +3,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
-use crate::internal::mailbox::traits::MailboxProducer;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::ChildNaming;
@@ -13,6 +11,7 @@ use crate::Extension;
 use crate::ExtensionId;
 use crate::Extensions;
 use crate::Supervisor;
+use crate::{ActorFailure, MailboxProducer};
 use crate::{MailboxOptions, MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 

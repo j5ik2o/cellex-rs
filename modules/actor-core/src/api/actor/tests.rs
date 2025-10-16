@@ -9,7 +9,6 @@ use super::{ask_with_timeout, AskError};
 use crate::api::guardian::AlwaysRestart;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
-use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::message::{take_metadata, DynMessage};
 use crate::internal::scheduler::SpawnError;
 use crate::next_extension_id;
@@ -17,7 +16,6 @@ use crate::ActorId;
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
 use crate::SystemMessage;
-use crate::ThreadSafe;
 use crate::{serializer_extension_id, SerializerRegistryExtension};
 use crate::{Extension, ExtensionId};
 use crate::{FailureEvent, FailureEventListener};
@@ -305,6 +303,7 @@ use core::any::Any;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use futures::executor::block_on;
 use futures::future;
+use crate::api::mailbox::ThreadSafe;
 
 #[derive(Debug)]
 struct CounterExtension {

@@ -4,14 +4,14 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 
 use crate::internal::context::InternalActorRef;
-use crate::internal::mailbox::traits::{MailboxConcurrency, MailboxRuntime, ThreadSafe};
 use crate::internal::message::{discard_metadata, store_metadata, DynMessage, MetadataKey, MetadataStorageMode};
-use crate::SystemMessage;
+use crate::{MailboxRuntime, SystemMessage};
 use crate::{PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::marker::PhantomData;
 use core::mem::{forget, ManuallyDrop};
+use crate::api::mailbox::{MailboxConcurrency, ThreadSafe};
 
 #[cfg(target_has_atomic = "ptr")]
 type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;

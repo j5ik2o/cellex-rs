@@ -5,7 +5,6 @@ use core::pin::Pin;
 use core::task::{Context, Poll};
 
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageSender};
-use crate::internal::mailbox::traits::MailboxConcurrency;
 use crate::internal::message::{discard_metadata, DynMessage};
 use crate::PriorityEnvelope;
 use cellex_utils_core_rs::sync::ArcShared;
@@ -14,6 +13,7 @@ use portable_atomic::{AtomicU8, Ordering};
 
 #[cfg(target_has_atomic = "ptr")]
 use futures::task::AtomicWaker;
+use crate::api::mailbox::MailboxConcurrency;
 
 #[cfg(not(target_has_atomic = "ptr"))]
 mod local_waker {

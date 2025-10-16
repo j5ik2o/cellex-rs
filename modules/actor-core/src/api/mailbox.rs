@@ -1,0 +1,108 @@
+use core::future::Future;
+use cellex_utils_core_rs::{QueueError, QueueSize};
+use crate::{MetricsSinkShared, ReadyQueueHandle};
+
+mod thread_safe;
+mod mailbox_handle;
+mod mailbox_options;
+mod mailbox_producer;
+/// Mailbox runtime traits and abstractions for message queue implementations.
+mod mailbox_runtime;
+mod mailbox_signal;
+/// Queue-based mailbox implementation.
+mod queue_mailbox;
+mod queue_mailbox_producer;
+mod mailbox_concurrency;
+mod single_thread;
+
+pub use thread_safe::ThreadSafe;
+pub use mailbox_handle::MailboxHandle;
+pub use mailbox_options::*;
+pub use mailbox_producer::*;
+pub use mailbox_runtime::*;
+pub use mailbox_signal::*;
+pub use queue_mailbox::*;
+pub use queue_mailbox_producer::*;
+pub use mailbox_concurrency::*;
+pub use single_thread::*;
+
+/// Type alias for mailbox and producer pair.
+///
+/// Pair of receiver and sender handles returned when creating a mailbox.
+pub type MailboxPair<H, P> = (H, P);
+
+/// Mailbox abstraction that decouples message queue implementations from core logic.
+///
+/// Abstraction trait that decouples message queue implementations from core logic.
+/// Enables unified handling of various queue implementations (bounded/unbounded, prioritized, etc.).
+///
+/// # Type Parameters
+/// - `M`: Type of the message to process
+pub trait Mailbox<M> {
+  /// Error type for message sending
+  type SendError;
+
+  /// Future type for message reception
+  type RecvFuture<'a>: Future<Output = Result<M, QueueError<M>>> + 'a
+  where
+    Self: 'a;
+
+  /// Attempts to send a message (non-blocking).
+  ///
+  /// # Arguments
+  /// - `message`: Message to send
+  ///
+  /// # Returns
+  /// `Ok(())` on success, `Err(SendError)` on failure
+  fn try_send(&self, message: M) -> Result<(), Self::SendError>;
+
+  /// Receives a message asynchronously.
+  ///
+  /// # Returns
+  /// Future for message reception
+  fn recv(&self) -> Self::RecvFuture<'_>;
+
+  /// Gets the number of messages in the mailbox.
+  ///
+  /// Default implementation returns unlimited.
+  fn len(&self) -> QueueSize {
+    QueueSize::limitless()
+  }
+
+  /// Gets the capacity of the mailbox.
+  ///
+  /// Default implementation returns unlimited.
+  fn capacity(&self) -> QueueSize {
+    QueueSize::limitless()
+  }
+
+  /// Checks if the mailbox is empty.
+  ///
+  /// # Returns
+  /// `true` if empty, `false` if there are messages
+  fn is_empty(&self) -> bool {
+    self.len() == QueueSize::Limited(0)
+  }
+
+  /// Closes the mailbox.
+  ///
+  /// Default implementation does nothing.
+  fn close(&self) {}
+
+  /// Checks if the mailbox is closed.
+  ///
+  /// Default implementation always returns `false`.
+  ///
+  /// # Returns
+  /// `true` if closed, `false` if open
+  fn is_closed(&self) -> bool {
+    false
+  }
+
+  /// Injects a metrics sink for enqueue instrumentation. Default: no-op.
+  fn set_metrics_sink(&mut self, _sink: Option<MetricsSinkShared>) {}
+
+  /// Installs a scheduler hook invoked on message arrivals. Default: no-op.
+  fn set_scheduler_hook(&mut self, _hook: Option<ReadyQueueHandle>) {}
+}
+

@@ -10,14 +10,11 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
 use crate::internal::guardian::{Guardian, GuardianStrategy};
-use crate::internal::mailbox::traits::{
-  Mailbox as MailboxTrait, MailboxHandle, MailboxProducer as MailboxProducerTrait,
-};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ReadyQueueHandle;
-use crate::ActorFailure;
+use crate::{ActorFailure, Mailbox, MailboxHandle, MailboxProducer};
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extensions;
@@ -102,8 +99,8 @@ where
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
-    MailboxTrait::set_metrics_sink(&mut self.mailbox, sink.clone());
-    MailboxProducerTrait::set_metrics_sink(&mut self.sender, sink.clone());
+    Mailbox::set_metrics_sink(&mut self.mailbox, sink.clone());
+    MailboxProducer::set_metrics_sink(&mut self.sender, sink.clone());
     self.mailbox_spawner.set_metrics_sink(sink);
   }
 
@@ -113,8 +110,8 @@ where
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
-    MailboxTrait::set_scheduler_hook(&mut self.mailbox, hook.clone());
-    MailboxProducerTrait::set_scheduler_hook(&mut self.sender, hook);
+    Mailbox::set_scheduler_hook(&mut self.mailbox, hook.clone());
+    MailboxProducer::set_scheduler_hook(&mut self.sender, hook);
   }
 
   pub(crate) fn has_pending_messages(&self) -> bool {
@@ -123,11 +120,11 @@ where
 
   fn collect_envelopes(&mut self) -> Result<Vec<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {
     let mut drained = Vec::new();
-    while let Some(envelope) = self.mailbox.try_dequeue()? {
+    while let Some(envelope) = MailboxHandle::try_dequeue(&self.mailbox)? {
       drained.push(envelope);
     }
     if drained.len() > 1 {
-      drained.sort_by_key(|b| core::cmp::Reverse(b.priority()));
+      drained.sort_by_key(|b: &PriorityEnvelope<M>| core::cmp::Reverse(b.priority()));
     }
     Ok(drained)
   }
@@ -186,7 +183,7 @@ where
   }
 
   pub(crate) fn signal_clone(&self) -> R::Signal {
-    self.mailbox.signal()
+    MailboxHandle::signal(&self.mailbox)
   }
 
   fn dispatch_envelope(

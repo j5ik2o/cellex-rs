@@ -1,6 +1,5 @@
 use crate::internal::context::InternalActorRef;
-use crate::internal::mailbox::traits::MailboxProducer;
-use crate::ActorFailure;
+use crate::{ActorFailure, MailboxProducer};
 use crate::ActorId;
 use crate::ActorPath;
 use crate::FailureInfo;

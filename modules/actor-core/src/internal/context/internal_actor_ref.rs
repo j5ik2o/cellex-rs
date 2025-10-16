@@ -1,5 +1,4 @@
-use crate::internal::mailbox::traits::MailboxProducer;
-use crate::SystemMessage;
+use crate::{MailboxProducer, SystemMessage};
 use crate::{MailboxRuntime, PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
