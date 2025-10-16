@@ -93,6 +93,19 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 - **Shared Abstractions** — `MapSystemShared`, `ReceiveTimeoutFactoryShared`, `ArcShared`, `RcShared`, and `StaticRefShared` enable lock-aware sharing across std/embedded/static builds.
 - **Extensibility** — extensions registry, failure event hub, and remote/cluster modules prepare cellex for distributed deployments.
 
+### Shared Handles
+
+`Shared<T>` ラッパー（`ArcShared`, `RcShared`, `StaticRefShared` など）は、std / no_std / 静的構成を問わず一貫した API で共有所有権を扱うための共通インターフェイスです。トレイトオブジェクトへ変換する必要がある場合は、同じ型が実装する `SharedDyn::into_dyn` を利用してください。
+
+```rust
+use cellex_utils_core_rs::{ArcShared, SharedDyn};
+
+let serializer = ArcShared::new(JsonSerializer::default());
+let dyn_serializer = serializer.into_dyn(|s| s as &dyn Serializer);
+```
+
+`SharedDyn` を実装していない型では `into_dyn` を呼び出せないため、動的ディスパッチが必要なケースでは `ArcShared` や `RcShared` 経由で取り扱うのが基本となります。
+
 ## Architecture Overview
 
 | Path | What lives here |

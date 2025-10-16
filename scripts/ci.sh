@@ -91,6 +91,12 @@ run_std() {
 }
 
 run_embedded() {
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-embedded-rs --no-default-features --features rc"
+  run_cargo check -p cellex-utils-embedded-rs --no-default-features --features rc
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-embedded-rs --no-default-features --features arc"
+  run_cargo check -p cellex-utils-embedded-rs --no-default-features --features arc
+
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run"
   run_cargo test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run
 
