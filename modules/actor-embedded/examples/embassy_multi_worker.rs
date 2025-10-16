@@ -1,8 +1,8 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
   use cellex_actor_core_rs::{
-    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, Props, ReadyQueueWorker,
-    ShutdownToken,
+    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, MailboxOf, Props,
+    ReadyQueueWorker, ShutdownToken,
   };
   use cellex_actor_core_rs::{ArcShared, DynMessage};
   use cellex_actor_embedded_rs::{embassy_actor_runtime, EmbassyActorRuntime};
@@ -19,7 +19,7 @@ mod sample {
 
   #[embassy_executor::task]
   async fn ready_queue_worker_task(
-    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, EmbassyActorRuntime>>,
+    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<EmbassyActorRuntime>>>,
     shutdown: ShutdownToken,
   ) {
     let mut shutdown_for_wait = shutdown.clone();
@@ -35,7 +35,7 @@ mod sample {
 
   fn spawn_ready_queue_workers(
     spawner: &Spawner,
-    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, EmbassyActorRuntime>>,
+    worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<EmbassyActorRuntime>>>,
     shutdown: ShutdownToken,
     worker_count: NonZeroUsize,
   ) {

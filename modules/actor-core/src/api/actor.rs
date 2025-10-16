@@ -48,4 +48,9 @@ mod __actor_doc_refs {
   pub fn _system_message_marker(message: SystemMessage) -> SystemMessage {
     message
   }
+
+  #[allow(dead_code)]
+  pub fn _mailbox_runtime_marker<R: MailboxRuntime>(runtime: &R) -> &R {
+    runtime
+  }
 }

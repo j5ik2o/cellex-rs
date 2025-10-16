@@ -1,8 +1,8 @@
 use super::*;
 use cellex_actor_core_rs::MailboxOptions;
 use cellex_actor_core_rs::{
-  actor_loop, ActorId, ActorSystem, ChildNaming, Context, Extensions, MapSystemShared,
-  NoopSupervisor, Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage, ArcShared,
+  actor_loop, ActorId, ActorSystem, ArcShared, ChildNaming, Context, Extensions, MapSystemShared, NoopSupervisor,
+  Props, SchedulerSpawnContext, Spawn, StateCell, SystemMessage,
 };
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
@@ -71,9 +71,9 @@ async fn run_typed_actor_system_handles_user_messages() {
 async fn run_receive_timeout_triggers() {
   let factory = TokioMailboxRuntime;
   let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
-  config.set_receive_timeout_factory(Some(
-    ReceiveTimeoutFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new()).for_runtime_bundle(),
-  ));
+  config.set_receive_timeout_factory(Some(ReceiveTimeoutFactoryShared::new(
+    TokioReceiveTimeoutSchedulerFactory::new(),
+  )));
   let mut system: ActorSystem<u32, _> = ActorSystem::new_with_config(factory, config);
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
@@ -123,16 +123,17 @@ async fn typed_actor_system_handles_user_messages_multi_thread() {
 
 #[tokio::test]
 async fn tokio_scheduler_builder_dispatches() {
-  let runtime: TokioActorRuntime = tokio_actor_runtime();
-  let mut scheduler = tokio_scheduler_builder().build(runtime.clone(), Extensions::new());
+  let bundle: TokioActorRuntime = tokio_actor_runtime();
+  let mailbox_runtime = bundle.mailbox_runtime().clone();
+  let mut scheduler = tokio_scheduler_builder().build(mailbox_runtime.clone(), Extensions::new());
 
   let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
 
-  let mailbox_runtime = ArcShared::new(runtime.clone());
+  let mailbox_runtime_shared = ArcShared::new(mailbox_runtime.clone());
   let context = SchedulerSpawnContext {
-    runtime,
-    mailbox_runtime,
+    runtime: mailbox_runtime.clone(),
+    mailbox_runtime: mailbox_runtime_shared,
     map_system: MapSystemShared::new(Message::System),
     mailbox_options: MailboxOptions::default(),
     handler: Box::new(move |_, msg: Message| {

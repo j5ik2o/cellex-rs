@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 
 use crate::api::supervision::{NoopSupervisor, Supervisor, SupervisorDirective};
 use crate::api::MessageEnvelope;
-use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
@@ -139,10 +139,10 @@ where
 pub enum BehaviorDirective<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode, {
   /// Maintain the same Behavior
   Same,
   /// Transition to a new Behavior
@@ -153,9 +153,9 @@ where
 pub struct BehaviorState<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   handler: Box<ReceiveFn<U, R>>,
   supervisor: SupervisorStrategyConfig,
   signal_handler: Option<ArcShared<SignalFn<U, R>>>,
@@ -164,10 +164,10 @@ where
 impl<U, R> BehaviorState<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode,
 {
   fn new(handler: Box<ReceiveFn<U, R>>, supervisor: SupervisorStrategyConfig) -> Self {
     Self {
@@ -197,9 +197,9 @@ where
 pub enum Behavior<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   /// Message receiving state
   Receive(BehaviorState<U, R>),
   /// Execute setup processing to generate Behavior
@@ -216,10 +216,10 @@ where
 impl<U, R> Behavior<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode,
 {
   /// Constructs a `Behavior` with specified message receive handler.
   ///
@@ -322,10 +322,10 @@ impl Behaviors {
   pub fn receive<U, R, F>(handler: F) -> Behavior<U, R>
   where
     U: Element,
-    R: ActorRuntime + MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-    R::Concurrency: MetadataStorageMode,
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<R>: Clone,
+    MailboxConcurrencyOf<R>: MetadataStorageMode,
     F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static,
   {
     Behavior::receive(handler)
@@ -336,9 +336,9 @@ impl Behaviors {
   pub const fn same<U, R>() -> BehaviorDirective<U, R>
   where
     U: Element,
-    R: ActorRuntime + MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone, {
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<R>: Clone, {
     BehaviorDirective::Same
   }
 
@@ -347,10 +347,10 @@ impl Behaviors {
   pub fn receive_message<U, R, F>(handler: F) -> Behavior<U, R>
   where
     U: Element,
-    R: ActorRuntime + MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-    R::Concurrency: MetadataStorageMode,
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<R>: Clone,
+    MailboxConcurrencyOf<R>: MetadataStorageMode,
     F: FnMut(U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static, {
     Behavior::receive_message(handler)
   }
@@ -360,9 +360,9 @@ impl Behaviors {
   pub const fn transition<U, R>(behavior: Behavior<U, R>) -> BehaviorDirective<U, R>
   where
     U: Element,
-    R: ActorRuntime + MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone, {
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<R>: Clone, {
     BehaviorDirective::Become(behavior)
   }
 
@@ -371,9 +371,9 @@ impl Behaviors {
   pub const fn stopped<U, R>() -> BehaviorDirective<U, R>
   where
     U: Element,
-    R: ActorRuntime + MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone, {
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<R>: Clone, {
     BehaviorDirective::Become(Behavior::stopped())
   }
 
@@ -382,9 +382,9 @@ impl Behaviors {
   pub const fn supervise<U, R>(behavior: Behavior<U, R>) -> SuperviseBuilder<U, R>
   where
     U: Element,
-    R: ActorRuntime + MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone, {
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<R>: Clone, {
     SuperviseBuilder { behavior }
   }
 
@@ -392,10 +392,10 @@ impl Behaviors {
   pub fn setup<U, R, F>(init: F) -> Behavior<U, R>
   where
     U: Element,
-    R: ActorRuntime + MailboxRuntime + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    R::Signal: Clone,
-    R::Concurrency: MetadataStorageMode,
+    R: ActorRuntime + 'static,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<R>: Clone,
+    MailboxConcurrencyOf<R>: MetadataStorageMode,
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static, {
     Behavior::setup(init)
   }
@@ -405,19 +405,19 @@ impl Behaviors {
 pub struct SuperviseBuilder<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   behavior: Behavior<U, R>,
 }
 
 impl<U, R> SuperviseBuilder<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode,
 {
   /// Sets supervisor strategy.
   ///
@@ -437,9 +437,9 @@ where
 pub struct ActorAdapter<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   behavior_factory: ArcShared<dyn Fn() -> Behavior<U, R> + 'static>,
   pub(super) behavior: Behavior<U, R>,
   pub(super) system_handler: Option<Box<SystemHandlerFn<U, R>>>,
@@ -448,10 +448,10 @@ where
 impl<U, R> ActorAdapter<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode,
 {
   /// Creates a new `ActorAdapter`.
   ///

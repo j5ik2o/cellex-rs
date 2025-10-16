@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxOf, MailboxRuntime};
 use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{default_failure_telemetry, FailureTelemetryShared, TelemetryObservationConfig};
@@ -16,15 +16,16 @@ use super::InternalRootContext;
 pub struct InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: ActorRuntime + MailboxRuntime + Clone,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + Clone,
+  MailboxOf<R>: MailboxRuntime + Clone,
+  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxRuntime>::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
   pub(crate) root_event_listener: Option<FailureEventListener>,
   /// Escalation handler invoked when failures bubble to the root guardian.
   pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
-  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, MailboxOf<R>>>,
   /// Metrics sink shared across the actor runtime.
   pub(crate) metrics_sink: Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
@@ -38,9 +39,10 @@ where
 impl<M, R> Default for InternalActorSystemSettings<M, R>
 where
   M: Element,
-  R: ActorRuntime + MailboxRuntime + Clone,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R: ActorRuntime + Clone,
+  MailboxOf<R>: MailboxRuntime + Clone,
+  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
 {
   fn default() -> Self {
     Self {
@@ -58,13 +60,17 @@ where
 pub(crate) struct InternalActorSystem<M, R, Strat = AlwaysRestart>
 where
   M: Element + 'static,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  Strat: GuardianStrategy<M, R>, {
-  pub(super) scheduler: SchedulerHandle<M, R>,
+  R: ActorRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<R>>, {
+  pub(super) scheduler: SchedulerHandle<M, MailboxOf<R>>,
+  #[allow(dead_code)]
   pub(super) runtime: ArcShared<R>,
+  pub(super) mailbox_runtime: ArcShared<MailboxOf<R>>,
   extensions: Extensions,
+  #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
   _strategy: PhantomData<Strat>,
 }
@@ -73,22 +79,23 @@ where
 impl<M, R> InternalActorSystem<M, R, AlwaysRestart>
 where
   M: Element,
-  R: ActorRuntime + MailboxRuntime + Clone,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  R: ActorRuntime + Clone,
+  MailboxOf<R>: MailboxRuntime + Clone,
+  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
 {
   pub fn new(actor_runtime: R) -> Self {
     Self::new_with_settings(actor_runtime, InternalActorSystemSettings::default())
   }
 
   pub fn new_with_settings(actor_runtime: R, settings: InternalActorSystemSettings<M, R>) -> Self {
-    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, R>::ready_queue());
+    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, MailboxOf<R>>::ready_queue());
     Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings)
   }
 
   pub fn new_with_settings_and_builder(
     actor_runtime: R,
-    scheduler_builder: &ArcShared<SchedulerBuilder<M, R>>,
+    scheduler_builder: &ArcShared<SchedulerBuilder<M, MailboxOf<R>>>,
     settings: InternalActorSystemSettings<M, R>,
   ) -> Self {
     let InternalActorSystemSettings {
@@ -101,9 +108,9 @@ where
       extensions,
     } = settings;
     let actor_runtime_shared = ArcShared::new(actor_runtime);
-    let actor_runtime_shared_cloned = actor_runtime_shared.clone();
-    let actor_runtime_cloned = actor_runtime_shared.with_ref(|r| r.clone());
-    let mut scheduler = scheduler_builder.build(actor_runtime_cloned, extensions.clone());
+    let mailbox_runtime_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_runtime_shared());
+    let mailbox_runtime_for_scheduler = mailbox_runtime_shared.with_ref(|mr| mr.clone());
+    let mut scheduler = scheduler_builder.build(mailbox_runtime_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_root_failure_telemetry(root_failure_telemetry);
@@ -112,7 +119,8 @@ where
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self {
       scheduler,
-      runtime: actor_runtime_shared_cloned,
+      runtime: actor_runtime_shared.clone(),
+      mailbox_runtime: mailbox_runtime_shared,
       extensions,
       metrics_sink,
       _strategy: PhantomData,
@@ -123,10 +131,11 @@ where
 impl<M, R, Strat> InternalActorSystem<M, R, Strat>
 where
   M: Element,
-  R: ActorRuntime + MailboxRuntime + Clone,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  Strat: GuardianStrategy<M, R>,
+  R: ActorRuntime + Clone,
+  MailboxOf<R>: MailboxRuntime + Clone,
+  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<R>>,
 {
   #[allow(clippy::missing_const_for_fn)]
   pub fn root_context(&mut self) -> InternalRootContext<'_, M, R, Strat> {
@@ -169,12 +178,13 @@ where
     self.extensions.clone()
   }
 
+  #[allow(dead_code)]
   pub fn metrics_sink(&self) -> Option<MetricsSinkShared> {
     self.metrics_sink.clone()
   }
 
   #[must_use]
-  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MailboxOf<R>>>> {
     self.scheduler.ready_queue_worker()
   }
 

@@ -1,4 +1,4 @@
-use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
 use crate::runtime::scheduler::{ChildNaming, SpawnError};
 use crate::runtime::system::InternalRootContext;
@@ -18,11 +18,11 @@ use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 pub struct RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
   pub(crate) inner: InternalRootContext<'a, DynMessage, R, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
@@ -30,11 +30,11 @@ where
 impl<'a, U, R, Strat> RootContext<'a, U, R, Strat>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, R>,
+  R: ActorRuntime,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
 {
   /// Spawns a new actor using the specified properties.
   ///

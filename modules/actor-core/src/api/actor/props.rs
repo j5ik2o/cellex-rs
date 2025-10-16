@@ -1,5 +1,7 @@
 use crate::runtime::context::ActorContext;
-use crate::runtime::mailbox::traits::{ActorRuntime, MailboxRuntime};
+use crate::runtime::mailbox::traits::{
+  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxRuntime, MailboxSignalOf,
+};
 use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalProps;
 use crate::Supervisor;
@@ -20,11 +22,12 @@ use spin::Mutex;
 pub struct Props<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode, {
-  inner: InternalProps<DynMessage, R>,
+  R: ActorRuntime + 'static,
+  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode, {
+  inner: InternalProps<DynMessage, MailboxOf<R>>,
   _marker: PhantomData<U>,
   supervisor: SupervisorStrategyConfig,
 }
@@ -32,10 +35,11 @@ where
 impl<U, R> Props<U, R>
 where
   U: Element,
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Concurrency: MetadataStorageMode,
+  R: ActorRuntime + 'static,
+  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone,
+  MailboxConcurrencyOf<R>: MetadataStorageMode,
 {
   /// Creates a new `Props` with the specified message handler.
   ///
@@ -120,7 +124,7 @@ where
     let map_system = ActorAdapter::<U, R>::create_map_system();
     let supervisor = adapter.supervisor_config();
 
-    let handler = move |ctx: &mut ActorContext<'_, DynMessage, R, dyn Supervisor<DynMessage>>,
+    let handler = move |ctx: &mut ActorContext<'_, DynMessage, MailboxOf<R>, dyn Supervisor<DynMessage>>,
                         message: DynMessage|
           -> Result<(), ActorFailure> {
       let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
@@ -130,7 +134,7 @@ where
         MessageEnvelope::User(user) => {
           let (message, metadata_key) = user.into_parts();
           let metadata = metadata_key
-            .and_then(take_metadata::<R::Concurrency>)
+            .and_then(take_metadata::<MailboxConcurrencyOf<R>>)
             .unwrap_or_default();
           let mut typed_ctx = Context::with_metadata(ctx, metadata);
           adapter.handle_user(&mut typed_ctx, message)?;
@@ -163,7 +167,7 @@ where
   ///
   /// # Returns
   /// Tuple of `(InternalProps, SupervisorStrategyConfig)`
-  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, R>, SupervisorStrategyConfig) {
+  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, MailboxOf<R>>, SupervisorStrategyConfig) {
     (self.inner, self.supervisor)
   }
 }

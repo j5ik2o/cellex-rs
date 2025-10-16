@@ -9,10 +9,10 @@ use crate::api::guardian::AlwaysRestart;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 use crate::next_extension_id;
 use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+use crate::runtime::mailbox::traits::{ActorRuntime, MailboxQueueOf, MailboxRuntime, MailboxSignalOf};
 use crate::runtime::message::{take_metadata, DynMessage};
 use crate::runtime::scheduler::SpawnError;
 use crate::ActorId;
-use crate::{ActorRuntime, MailboxRuntime};
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
 use crate::SystemMessage;
@@ -206,13 +206,13 @@ mod receive_timeout_injection {
   }
 
   impl ReceiveTimeoutDriver<TestMailboxRuntime> for CountingDriver {
-    fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, GenericActorRuntime<TestMailboxRuntime>> {
+    fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, TestMailboxRuntime> {
       self.driver_calls.fetch_add(1, Ordering::SeqCst);
-      ReceiveTimeoutFactoryShared::new(CountingFactory::new(self.factory_calls.clone())).for_runtime_bundle()
+      ReceiveTimeoutFactoryShared::new(CountingFactory::new(self.factory_calls.clone()))
     }
   }
 
-  fn spawn_test_actor<R: ActorRuntime + MailboxRuntime + Clone>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
+  fn spawn_test_actor<R: ActorRuntime>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
     let props = Props::new(|_, _: u32| Ok(()));
     let mut root = system.root_context();
     let actor_ref = root.spawn(props).expect("spawn actor");
@@ -283,7 +283,7 @@ mod receive_timeout_injection {
       )));
 
     let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default().with_receive_timeout_factory(Some(
-      ReceiveTimeoutFactoryShared::new(CountingFactory::new(config_factory_calls.clone())).for_runtime_bundle(),
+      ReceiveTimeoutFactoryShared::new(CountingFactory::new(config_factory_calls.clone())),
     ));
 
     let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_runtime(runtime, config);
@@ -465,9 +465,9 @@ fn spawn_actor_with_counter_extension<R>(
   ArcShared<CounterExtension>,
 )
 where
-  R: ActorRuntime + MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
+  R: ActorRuntime + 'static,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<R>: Clone, {
   let extension = CounterExtension::new();
   let extension_id = extension.extension_id();
   let extension_handle = ArcShared::new(extension);
@@ -1092,11 +1092,11 @@ mod metrics_injection {
     }
   }
 
-  fn make_scheduler_builder(
-    metrics: Arc<Mutex<Option<usize>>>,
-  ) -> SchedulerBuilder<DynMessage, GenericActorRuntime<TestMailboxRuntime>> {
+  fn make_scheduler_builder(metrics: Arc<Mutex<Option<usize>>>) -> SchedulerBuilder<DynMessage, TestMailboxRuntime> {
     SchedulerBuilder::new(move |_runtime, _extensions| {
-      Box::new(RecordingScheduler::<DynMessage, GenericActorRuntime<TestMailboxRuntime>>::new(metrics.clone()))
+      Box::new(RecordingScheduler::<DynMessage, TestMailboxRuntime>::new(
+        metrics.clone(),
+      ))
     })
   }
 

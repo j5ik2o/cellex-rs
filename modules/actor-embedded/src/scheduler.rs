@@ -22,8 +22,8 @@ pub struct EmbassyScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, GenericActorRuntime<R>>, {
-  inner: ReadyQueueScheduler<M, GenericActorRuntime<R>, Strat>,
+  Strat: GuardianStrategy<M, R>, {
+  inner: ReadyQueueScheduler<M, R, Strat>,
 }
 
 impl<M, R> EmbassyScheduler<M, R, AlwaysRestart>
@@ -32,7 +32,7 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
-  pub fn new(runtime: GenericActorRuntime<R>, extensions: Extensions) -> Self {
+  pub fn new(runtime: R, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::new(runtime, extensions),
     }
@@ -43,10 +43,10 @@ impl<M, R, Strat> EmbassyScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
-  Strat: GuardianStrategy<M, GenericActorRuntime<R>>,
+  Strat: GuardianStrategy<M, R>,
 {
   /// 任意の GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(runtime: GenericActorRuntime<R>, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(runtime: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
     }
@@ -54,24 +54,23 @@ where
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, GenericActorRuntime<R>> for EmbassyScheduler<M, R, Strat>
+impl<M, R, Strat> ActorScheduler<M, R> for EmbassyScheduler<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
-  Strat: GuardianStrategy<M, GenericActorRuntime<R>>,
+  Strat: GuardianStrategy<M, R>,
 {
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, GenericActorRuntime<R>>,
-  ) -> Result<InternalActorRef<M, GenericActorRuntime<R>>, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>>
-  {
+    context: SchedulerSpawnContext<M, R>,
+  ) -> Result<InternalActorRef<M, R>, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<M>>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, GenericActorRuntime<R>>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
     self.inner.set_receive_timeout_factory(factory);
   }
 
@@ -95,11 +94,7 @@ where
     ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 
-  fn set_parent_guardian(
-    &mut self,
-    control_ref: InternalActorRef<M, GenericActorRuntime<R>>,
-    map_system: MapSystemShared<M>,
-  ) {
+  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
@@ -130,13 +125,13 @@ where
     Ok(())
   }
 
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, GenericActorRuntime<R>>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
     Some(self.inner.worker_handle())
   }
 }
 
 /// Embassy 用スケジューラビルダーを生成するユーティリティ。
-pub fn embassy_scheduler_builder<M, R>() -> SchedulerBuilder<M, GenericActorRuntime<R>>
+pub fn embassy_scheduler_builder<M, R>() -> SchedulerBuilder<M, R>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
