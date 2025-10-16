@@ -294,11 +294,13 @@ mod std_impls {
   use super::{StackBuffer, StackStorage};
 
   impl<T> StackStorage<T> for Mutex<StackBuffer<T>> {
+    #[allow(clippy::expect_used)]
     fn with_read<R>(&self, f: impl FnOnce(&StackBuffer<T>) -> R) -> R {
       let guard = self.lock().expect("mutex poisoned");
       f(&guard)
     }
 
+    #[allow(clippy::expect_used)]
     fn with_write<R>(&self, f: impl FnOnce(&mut StackBuffer<T>) -> R) -> R {
       let mut guard = self.lock().expect("mutex poisoned");
       f(&mut guard)

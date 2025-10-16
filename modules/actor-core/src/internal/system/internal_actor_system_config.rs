@@ -1,0 +1,51 @@
+use crate::{
+  default_failure_telemetry, ActorRuntime, Extensions, FailureEventHandler, FailureEventListener,
+  FailureTelemetryShared, MailboxOf, MailboxRuntime, MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared,
+  TelemetryObservationConfig,
+};
+use cellex_utils_core_rs::Element;
+
+/// Internal configuration used while assembling [`InternalActorSystem`].
+pub struct InternalActorSystemConfig<M, R>
+where
+  M: Element,
+  R: ActorRuntime + Clone,
+  MailboxOf<R>: MailboxRuntime + Clone,
+  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxRuntime>::Signal: Clone, {
+  /// Listener invoked for failures reaching the root guardian.
+  pub(crate) root_event_listener: Option<FailureEventListener>,
+  /// Escalation handler invoked when failures bubble to the root guardian.
+  pub(crate) root_escalation_handler: Option<FailureEventHandler>,
+  /// Receive-timeout scheduler factory applied to newly spawned actors.
+  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, MailboxOf<R>>>,
+  /// Metrics sink shared across the actor runtime.
+  pub(crate) metrics_sink: Option<MetricsSinkShared>,
+  /// Shared registry of actor system extensions.
+  pub(crate) extensions: Extensions,
+  /// Telemetry invoked when failures reach the root guardian。
+  pub(crate) root_failure_telemetry: FailureTelemetryShared,
+  /// Observation config applied to telemetry calls.
+  pub(crate) root_observation_config: TelemetryObservationConfig,
+}
+
+impl<M, R> Default for InternalActorSystemConfig<M, R>
+where
+  M: Element,
+  R: ActorRuntime + Clone,
+  MailboxOf<R>: MailboxRuntime + Clone,
+  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+{
+  fn default() -> Self {
+    Self {
+      root_event_listener: None,
+      root_escalation_handler: None,
+      receive_timeout_factory: None,
+      metrics_sink: None,
+      extensions: Extensions::new(),
+      root_failure_telemetry: default_failure_telemetry(),
+      root_observation_config: TelemetryObservationConfig::new(),
+    }
+  }
+}

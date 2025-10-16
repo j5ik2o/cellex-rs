@@ -16,10 +16,10 @@ use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::super::actor_cell::ActorCell;
 use super::super::actor_scheduler::SchedulerSpawnContext;
 use super::core::ReadyQueueSchedulerCore;
 use super::state::ReadyQueueState;
+use crate::internal::actor::actor_cell::ActorCell;
 use crate::SpawnError;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 

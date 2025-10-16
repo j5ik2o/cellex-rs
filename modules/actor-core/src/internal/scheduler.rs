@@ -1,4 +1,3 @@
-mod actor_cell;
 mod actor_scheduler;
 pub mod builder;
 #[cfg(any(test, feature = "test-support"))]

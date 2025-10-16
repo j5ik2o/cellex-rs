@@ -22,8 +22,8 @@ use crate::{MailboxRuntime, PriorityEnvelope};
 use crate::{MailboxSignal, SystemMessage};
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::super::actor_cell::ActorCell;
 use super::super::actor_scheduler::SchedulerSpawnContext;
+use crate::internal::actor::actor_cell::ActorCell;
 use crate::SpawnError;
 use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 

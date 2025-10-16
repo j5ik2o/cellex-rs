@@ -1,3 +1,4 @@
+mod actor;
 pub(crate) mod context;
 pub(crate) mod guardian;
 pub(crate) mod mailbox;

@@ -45,6 +45,12 @@ where
   MailboxSignalOf<R>: Clone,
 {
   /// Creates a new actor system with an explicit runtime and configuration.
+  ///
+  /// # Panics
+  ///
+  /// This function contains an `expect` call that should never panic in practice,
+  /// as it uses `NonZeroUsize::new(1)` which is guaranteed to succeed.
+  #[allow(clippy::needless_pass_by_value)]
   pub fn new_with_actor_runtime(actor_runtime: R, config: ActorSystemConfig<R>) -> Self {
     let root_listener_from_runtime = actor_runtime.root_event_listener();
     let root_handler_from_runtime = actor_runtime.root_escalation_handler();
@@ -56,7 +62,7 @@ where
       let extension = ArcShared::new(SerializerRegistryExtension::new());
       extensions_handle.register(extension);
     }
-    let extensions = extensions_handle.clone();
+    let extensions = extensions_handle;
 
     let receive_timeout_factory = config
       .receive_timeout_factory()
@@ -69,7 +75,7 @@ where
     let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
     let metrics_sink = config.metrics_sink().or(metrics_from_runtime);
     let telemetry_builder = config.failure_telemetry_builder();
-    let root_failure_telemetry = if let Some(builder) = telemetry_builder.clone() {
+    let root_failure_telemetry = if let Some(builder) = telemetry_builder {
       let ctx = TelemetryContext::new(metrics_sink.clone(), extensions.clone());
       builder.build(&ctx)
     } else {
@@ -78,7 +84,7 @@ where
 
     let mut observation_config = config
       .failure_observation_config()
-      .unwrap_or_else(TelemetryObservationConfig::new);
+      .unwrap_or_default();
     if let Some(sink) = metrics_sink.clone() {
       if observation_config.metrics_sink().is_none() {
         observation_config.set_metrics_sink(Some(sink));
@@ -103,7 +109,8 @@ where
 
     let ready_queue_worker_count = config
       .ready_queue_worker_count()
-      .unwrap_or_else(|| NonZeroUsize::new(1).expect("ReadyQueue worker count must be non-zero"));
+      // SAFETY: NonZeroUsize::new(1) is always Some(1)
+      .unwrap_or_else(|| unsafe { NonZeroUsize::new_unchecked(1) });
 
     Self {
       inner: InternalActorSystem::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings),
@@ -141,6 +148,7 @@ where
   ///
   /// # Returns
   /// Clone of the shutdown token
+  #[must_use]
   pub fn shutdown_token(&self) -> ShutdownToken {
     self.shutdown.clone()
   }
@@ -151,6 +159,8 @@ where
   ///
   /// # Returns
   /// Actor system runner
+  #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn into_runner(self) -> ActorSystemRunner<U, R, Strat> {
     let ready_queue_worker_count = self.ready_queue_worker_count;
     ActorSystemRunner {
@@ -174,6 +184,7 @@ where
   }
 
   /// Returns a clone of the shared extension registry.
+  #[must_use]
   pub fn extensions(&self) -> Extensions {
     self.extensions.clone()
   }

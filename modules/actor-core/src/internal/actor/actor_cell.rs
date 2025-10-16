@@ -16,19 +16,19 @@ use crate::internal::mailbox::traits::{
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::message::DynMessage;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::internal::scheduler::actor_scheduler::SpawnError;
 use crate::internal::scheduler::ReadyQueueHandle;
 use crate::ActorFailure;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::Extensions;
 use crate::FailureInfo;
+use crate::SpawnError;
 use crate::Supervisor;
 use crate::SystemMessage;
 use crate::{MailboxRuntime, PriorityEnvelope};
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::ReceiveTimeoutScheduler;
+use crate::ReceiveTimeoutScheduler;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 
 pub(crate) struct ActorCell<M, R, Strat>
@@ -257,7 +257,10 @@ where
     self.stopped
   }
 
-  pub(super) fn configure_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+  pub(in crate::internal) fn configure_receive_timeout_factory(
+    &mut self,
+    factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  ) {
     if let Some(cell) = self.receive_timeout_scheduler.as_ref() {
       cell.borrow_mut().cancel();
     }

@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 

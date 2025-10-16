@@ -1,62 +1,15 @@
 use core::convert::Infallible;
 
+use super::InternalRootContext;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};
+use crate::internal::system::internal_actor_system_config::InternalActorSystemConfig;
 use crate::internal::traits::{ActorRuntime, MailboxOf};
-use crate::ReceiveTimeoutFactoryShared;
-use crate::{default_failure_telemetry, FailureTelemetryShared, TelemetryObservationConfig};
-use crate::{Extensions, FailureEventHandler, FailureEventListener, MetricsSinkShared, PriorityEnvelope};
+use crate::{Extensions, MetricsSinkShared, PriorityEnvelope};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
-
-use super::InternalRootContext;
-
-/// Internal configuration used while assembling [`InternalActorSystem`].
-pub struct InternalActorSystemConfig<M, R>
-where
-  M: Element,
-  R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxRuntime + Clone,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone, {
-  /// Listener invoked for failures reaching the root guardian.
-  pub(crate) root_event_listener: Option<FailureEventListener>,
-  /// Escalation handler invoked when failures bubble to the root guardian.
-  pub(crate) root_escalation_handler: Option<FailureEventHandler>,
-  /// Receive-timeout scheduler factory applied to newly spawned actors.
-  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, MailboxOf<R>>>,
-  /// Metrics sink shared across the actor runtime.
-  pub(crate) metrics_sink: Option<MetricsSinkShared>,
-  /// Shared registry of actor system extensions.
-  pub(crate) extensions: Extensions,
-  /// Telemetry invoked when failures reach the root guardian。
-  pub(crate) root_failure_telemetry: FailureTelemetryShared,
-  /// Observation config applied to telemetry calls.
-  pub(crate) root_observation_config: TelemetryObservationConfig,
-}
-
-impl<M, R> Default for InternalActorSystemConfig<M, R>
-where
-  M: Element,
-  R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxRuntime + Clone,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
-{
-  fn default() -> Self {
-    Self {
-      root_event_listener: None,
-      root_escalation_handler: None,
-      receive_timeout_factory: None,
-      metrics_sink: None,
-      extensions: Extensions::new(),
-      root_failure_telemetry: default_failure_telemetry(),
-      root_observation_config: TelemetryObservationConfig::new(),
-    }
-  }
-}
 
 pub(crate) struct InternalActorSystem<M, R, Strat = AlwaysRestart>
 where
@@ -86,18 +39,18 @@ where
   <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
 {
   pub fn new(actor_runtime: R) -> Self {
-    Self::new_with_settings(actor_runtime, InternalActorSystemConfig::default())
+    Self::new_with_config(actor_runtime, InternalActorSystemConfig::default())
   }
 
-  pub fn new_with_settings(actor_runtime: R, settings: InternalActorSystemConfig<M, R>) -> Self {
+  pub fn new_with_config(actor_runtime: R, config: InternalActorSystemConfig<M, R>) -> Self {
     let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, MailboxOf<R>>::ready_queue());
-    Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings)
+    Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, config)
   }
 
   pub fn new_with_settings_and_builder(
     actor_runtime: R,
     scheduler_builder: &ArcShared<SchedulerBuilder<M, MailboxOf<R>>>,
-    settings: InternalActorSystemConfig<M, R>,
+    config: InternalActorSystemConfig<M, R>,
   ) -> Self {
     let InternalActorSystemConfig {
       root_event_listener,
@@ -107,7 +60,7 @@ where
       root_failure_telemetry,
       root_observation_config,
       extensions,
-    } = settings;
+    } = config;
     let actor_runtime_shared = ArcShared::new(actor_runtime);
     let mailbox_runtime_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_runtime_shared());
     let mailbox_runtime_for_scheduler = mailbox_runtime_shared.with_ref(|mr| mr.clone());
@@ -120,8 +73,8 @@ where
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self {
       scheduler,
-      actor_runtime_shared: actor_runtime_shared.clone(),
-      mailbox_runtime_shared: mailbox_runtime_shared,
+      actor_runtime_shared,
+      mailbox_runtime_shared,
       extensions,
       metrics_sink,
       _strategy: PhantomData,
