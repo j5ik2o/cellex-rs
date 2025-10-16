@@ -96,6 +96,8 @@ pub use internal::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
 };
 pub use internal::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
+#[cfg(any(test, feature = "test-support"))]
+pub use internal::scheduler::ImmediateScheduler;
 pub use internal::scheduler::{
   drive_ready_queue_worker, ActorScheduler, ChildNaming, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
   ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,

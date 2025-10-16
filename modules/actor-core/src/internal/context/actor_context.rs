@@ -57,7 +57,7 @@ where
   Sup: Supervisor<M> + ?Sized,
 {
   #[allow(clippy::too_many_arguments)]
-  pub fn new(
+  pub(crate) fn new(
     mailbox_runtime: &'a R,
     mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
     sender: &'a R::Producer<PriorityEnvelope<M>>,

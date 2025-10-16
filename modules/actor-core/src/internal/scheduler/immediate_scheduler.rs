@@ -17,7 +17,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.
 ///
 /// This scheduler simply delegates to [`ReadyQueueScheduler`] but exposes a distinct builder entry point.
-pub(crate) struct ImmediateScheduler<M, R, Strat = AlwaysRestart>
+pub struct ImmediateScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
@@ -30,6 +30,8 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
+  /// Creates a new immediate scheduler with the default guardian strategy.
+  #[must_use]
   pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
@@ -43,6 +45,8 @@ where
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
+  /// Creates a new immediate scheduler with a custom guardian strategy.
+  #[must_use]
   pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),

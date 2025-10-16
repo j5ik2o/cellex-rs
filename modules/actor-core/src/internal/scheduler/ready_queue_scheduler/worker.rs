@@ -1,0 +1,106 @@
+#![allow(missing_docs)]
+
+use futures::future::{select, Either, LocalBoxFuture};
+use spin::Mutex;
+
+use crate::internal::guardian::GuardianStrategy;
+use crate::{MailboxRuntime, PriorityEnvelope, ShutdownToken};
+use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::{Element, QueueError};
+
+use super::context::ReadyQueueContext;
+
+/// Worker interface exposing ReadyQueue operations for driver-level scheduling.
+pub trait ReadyQueueWorker<M, R>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone, {
+  /// Processes one ready actor (if any). Returns `Some(true)` if progress was made.
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>>;
+
+  /// Returns a future that resolves when any actor becomes ready.
+  fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>>;
+}
+
+/// Drives a single ReadyQueue worker loop until shutdown is triggered.
+pub async fn drive_ready_queue_worker<M, R, Y, YF, S, SF>(
+  worker: ArcShared<dyn ReadyQueueWorker<M, R>>,
+  shutdown: ShutdownToken,
+  mut yield_now: Y,
+  mut wait_for_shutdown: S,
+) -> Result<(), QueueError<PriorityEnvelope<M>>>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  Y: FnMut() -> YF,
+  YF: core::future::Future<Output = ()>,
+  S: FnMut() -> SF,
+  SF: core::future::Future<Output = ()>, {
+  loop {
+    if shutdown.is_triggered() {
+      return Ok(());
+    }
+
+    if let Some(progress) = worker.process_ready_once()? {
+      if progress {
+        yield_now().await;
+        continue;
+      }
+    }
+
+    match worker.wait_for_ready() {
+      Some(wait_future) => {
+        let shutdown_future = wait_for_shutdown();
+        futures::pin_mut!(wait_future);
+        futures::pin_mut!(shutdown_future);
+        match select(wait_future, shutdown_future).await {
+          Either::Left((_, _)) => {}
+          Either::Right((_, _)) => return Ok(()),
+        }
+      }
+      None => {
+        yield_now().await;
+      }
+    }
+  }
+}
+
+pub(super) struct ReadyQueueWorkerImpl<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>, {
+  context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>,
+}
+
+impl<M, R, Strat> ReadyQueueWorkerImpl<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>,
+{
+  pub(super) fn new(context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>) -> Self {
+    Self { context }
+  }
+}
+
+impl<M, R, Strat> ReadyQueueWorker<M, R> for ReadyQueueWorkerImpl<M, R, Strat>
+where
+  M: Element,
+  R: MailboxRuntime + Clone + 'static,
+  Strat: GuardianStrategy<M, R>,
+{
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>> {
+    let mut ctx = self.context.lock();
+    ctx.process_ready_once()
+  }
+
+  fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>> {
+    let ctx = self.context.lock();
+    ctx.wait_for_any_signal_future()
+  }
+}

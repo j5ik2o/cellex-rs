@@ -10,10 +10,10 @@ use crate::internal::context::{ActorHandlerFn, InternalActorRef};
 use crate::MailboxOptions;
 use crate::TelemetryObservationConfig;
 use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime,
-  MapSystemShared, MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
+  FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime, MapSystemShared,
+  MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor,
 };
-use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
+use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
@@ -63,12 +63,6 @@ where
     Self::Queue(value)
   }
 }
-
-pub(crate) type SchedulerHandle<M, R> = Box<dyn ActorScheduler<M, R>>;
-#[cfg(target_has_atomic = "ptr")]
-type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + Send + Sync + 'static;
-#[cfg(not(target_has_atomic = "ptr"))]
-type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + 'static;
 
 /// Parameters supplied to schedulers when spawning a new actor.
 pub struct SchedulerSpawnContext<M, R>
@@ -131,45 +125,5 @@ where
   fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
     let _ = self;
     None
-  }
-}
-
-#[derive(Clone)]
-pub struct SchedulerBuilder<M, R>
-where
-  M: Element,
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
-  factory: ArcShared<FactoryFn<M, R>>,
-}
-
-impl<M, R> SchedulerBuilder<M, R>
-where
-  M: Element,
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-{
-  #[cfg(any(test, feature = "test-support"))]
-  #[allow(dead_code)]
-  #[must_use]
-  pub fn immediate() -> Self {
-    use super::immediate_scheduler::ImmediateScheduler;
-
-    Self::new(|mailbox_runtime, extensions| Box::new(ImmediateScheduler::new(mailbox_runtime, extensions)))
-  }
-
-  pub fn new<F>(factory: F) -> Self
-  where
-    F: Fn(R, Extensions) -> SchedulerHandle<M, R> + SharedBound + 'static, {
-    let shared = ArcShared::new(factory);
-    Self {
-      factory: shared.into_dyn(|inner| inner as &FactoryFn<M, R>),
-    }
-  }
-
-  pub fn build(&self, mailbox_runtime: R, extensions: Extensions) -> SchedulerHandle<M, R> {
-    self.factory.with_ref(|factory| (factory)(mailbox_runtime, extensions))
   }
 }

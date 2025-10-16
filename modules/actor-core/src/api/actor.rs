@@ -8,6 +8,7 @@ mod actor_system;
 mod actor_system_builder;
 mod actor_system_config;
 mod actor_system_runner;
+mod actor_system_support;
 mod ask;
 mod behavior;
 mod context;
@@ -16,7 +17,6 @@ mod generic_runtime;
 mod props;
 mod root_context;
 mod shutdown_token;
-mod actor_system_support;
 #[cfg(test)]
 mod tests;
 
@@ -30,6 +30,7 @@ pub use actor_system::ActorSystem;
 pub use actor_system_builder::ActorSystemBuilder;
 pub use actor_system_config::ActorSystemConfig;
 pub use actor_system_runner::ActorSystemRunner;
+pub use actor_system_support::{Spawn, Timer};
 pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
 pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, SetupContext};
@@ -38,7 +39,6 @@ pub use generic_runtime::GenericActorRuntime;
 pub use props::Props;
 pub use root_context::RootContext;
 pub use shutdown_token::ShutdownToken;
-pub use actor_system_support::{Spawn, Timer};
 
 #[doc(hidden)]
 mod __actor_doc_refs {

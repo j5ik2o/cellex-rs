@@ -19,7 +19,7 @@ use super::{ChildRecord, GuardianStrategy};
 type ChildRoute<M, R> = (InternalActorRef<M, R>, MapSystemShared<M>);
 
 /// Guardian: Supervises child actors and sends SystemMessages.
-pub struct Guardian<M, R, Strat>
+pub(crate) struct Guardian<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime,
