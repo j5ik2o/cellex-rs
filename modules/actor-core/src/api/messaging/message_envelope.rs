@@ -3,9 +3,9 @@ use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 
-use crate::runtime::context::InternalActorRef;
-use crate::runtime::mailbox::traits::{MailboxConcurrency, MailboxRuntime, ThreadSafe};
-use crate::runtime::message::{discard_metadata, store_metadata, DynMessage, MetadataKey, MetadataStorageMode};
+use crate::internal::context::InternalActorRef;
+use crate::internal::mailbox::traits::{MailboxConcurrency, MailboxRuntime, ThreadSafe};
+use crate::internal::message::{discard_metadata, store_metadata, DynMessage, MetadataKey, MetadataStorageMode};
 use crate::SystemMessage;
 use crate::{PriorityEnvelope, RuntimeBound};
 use cellex_utils_core_rs::sync::ArcShared;

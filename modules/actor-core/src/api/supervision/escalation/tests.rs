@@ -1,5 +1,5 @@
 use super::*;
-use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::{ActorFailure, ActorId, ActorPath, FailureTelemetry, MetricsEvent, MetricsSink, MetricsSinkShared};
 use std::sync::{Arc, Mutex};
 

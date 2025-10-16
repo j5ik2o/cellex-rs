@@ -1,1 +1,1 @@
-pub use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
+pub use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};

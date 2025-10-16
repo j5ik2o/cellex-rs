@@ -15,11 +15,11 @@ mod system_support;
 #[cfg(test)]
 mod tests;
 
-pub use crate::runtime::mailbox::{
+pub use crate::internal::mailbox::{
   Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, PriorityEnvelope, QueueMailbox,
   QueueMailboxProducer, QueueMailboxRecv, SystemMessage,
 };
-pub use crate::runtime::message::DynMessage as RuntimeMessage;
+pub use crate::internal::message::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;
 pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
@@ -35,7 +35,7 @@ pub use system_support::{Spawn, Timer};
 #[doc(hidden)]
 mod __actor_doc_refs {
   use super::*;
-  use crate::runtime::message::DynMessage;
+  use crate::internal::message::DynMessage;
   use cellex_utils_core_rs::Element;
 
   #[allow(dead_code)]

@@ -82,7 +82,7 @@ use core::time::Duration;
 mod api;
 #[cfg(feature = "alloc")]
 mod extensions;
-mod runtime;
+mod internal;
 mod shared;
 
 pub use api::*;
@@ -91,19 +91,19 @@ pub use cellex_utils_core_rs::sync::ArcShared;
 pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
-pub use runtime::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
-pub use runtime::mailbox::traits::{MailboxRuntime, SingleThread, ThreadSafe};
-pub use runtime::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};
-pub use runtime::message::{
+pub use internal::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
+pub use internal::mailbox::traits::{MailboxRuntime, SingleThread, ThreadSafe};
+pub use internal::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};
+pub use internal::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
 };
-pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
-pub use runtime::scheduler::{
+pub use internal::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
+pub use internal::scheduler::{
   drive_ready_queue_worker, ActorScheduler, ChildNaming, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
   ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
   SchedulerBuilder, SchedulerSpawnContext, SpawnError,
 };
-pub use runtime::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+pub use internal::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use shared::{
   FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,
   MapSystemShared, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, TelemetryContext,

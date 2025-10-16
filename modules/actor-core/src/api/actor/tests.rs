@@ -8,11 +8,11 @@ use super::{ask_with_timeout, AskError};
 use crate::api::guardian::AlwaysRestart;
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 use crate::next_extension_id;
-use crate::runtime::mailbox::test_support::TestMailboxRuntime;
-use crate::runtime::mailbox::traits::MailboxRuntime;
-use crate::runtime::message::{take_metadata, DynMessage};
-use crate::runtime::scheduler::SpawnError;
-use crate::runtime::traits::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
+use crate::internal::mailbox::test_support::TestMailboxRuntime;
+use crate::internal::mailbox::traits::MailboxRuntime;
+use crate::internal::message::{take_metadata, DynMessage};
+use crate::internal::scheduler::SpawnError;
+use crate::internal::traits::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use crate::ActorId;
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
@@ -84,7 +84,7 @@ mod ready_queue_worker_configuration {
   }
 
   use super::*;
-  use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+  use crate::internal::mailbox::test_support::TestMailboxRuntime;
 
   type TestRuntime = GenericActorRuntime<TestMailboxRuntime>;
 
@@ -128,7 +128,7 @@ mod ready_queue_worker_configuration {
 
 mod builder_api {
   use super::*;
-  use crate::runtime::mailbox::test_support::TestMailboxRuntime;
+  use crate::internal::mailbox::test_support::TestMailboxRuntime;
 
   #[test]
   fn actor_system_builder_applies_ready_queue_override() {
@@ -147,8 +147,8 @@ mod builder_api {
 mod receive_timeout_injection {
   use super::TestRuntime;
   use super::*;
-  use crate::runtime::mailbox::test_support::TestMailboxRuntime;
-  use crate::runtime::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
+  use crate::internal::mailbox::test_support::TestMailboxRuntime;
+  use crate::internal::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::{
     ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, GenericActorRuntime, MapSystemShared, PriorityEnvelope,
     ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
@@ -1058,8 +1058,8 @@ fn ask_future_cancelled_on_drop() {
 
 mod metrics_injection {
   use super::*;
-  use crate::runtime::mailbox::test_support::TestMailboxRuntime;
-  use crate::runtime::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
+  use crate::internal::mailbox::test_support::TestMailboxRuntime;
+  use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::{
     ActorSystem, ActorSystemConfig, DynMessage, FailureTelemetryShared, GenericActorRuntime, MailboxRuntime,
     MetricsEvent, MetricsSink, MetricsSinkShared, Supervisor, TelemetryObservationConfig,
@@ -1113,7 +1113,7 @@ mod metrics_injection {
       &mut self,
       _supervisor: Box<dyn Supervisor<M>>,
       _context: SchedulerSpawnContext<M, R>,
-    ) -> Result<crate::runtime::context::InternalActorRef<M, R>, SpawnError<M>> {
+    ) -> Result<crate::internal::context::InternalActorRef<M, R>, SpawnError<M>> {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
@@ -1134,7 +1134,7 @@ mod metrics_injection {
 
     fn set_parent_guardian(
       &mut self,
-      _control_ref: crate::runtime::context::InternalActorRef<M, R>,
+      _control_ref: crate::internal::context::InternalActorRef<M, R>,
       _map_system: MapSystemShared<M>,
     ) {
     }

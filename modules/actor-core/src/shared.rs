@@ -2,9 +2,9 @@ use alloc::boxed::Box;
 use core::ops::Deref;
 
 use crate::api::actor::GenericActorRuntime;
-use crate::runtime::message::DynMessage;
-use crate::runtime::metrics::MetricsSinkShared;
-use crate::runtime::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
+use crate::internal::message::DynMessage;
+use crate::internal::metrics::MetricsSinkShared;
+use crate::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
 use crate::Extensions;
 use crate::{FailureEvent, FailureInfo, FailureTelemetry, MailboxRuntime, PriorityEnvelope, SystemMessage};
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};

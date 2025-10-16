@@ -5,14 +5,14 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::root_context::RootContext;
 use crate::api::guardian::AlwaysRestart;
-use crate::runtime::mailbox::traits::{MailboxPair, MailboxRuntime};
-use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
-use crate::runtime::message::DynMessage;
-use crate::runtime::metrics::MetricsSinkShared;
-use crate::runtime::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
-use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder};
-use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
-use crate::runtime::traits::{ActorRuntime, GenericActorRuntimeState, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::internal::mailbox::traits::{MailboxPair, MailboxRuntime};
+use crate::internal::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
+use crate::internal::message::DynMessage;
+use crate::internal::metrics::MetricsSinkShared;
+use crate::internal::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
+use crate::internal::scheduler::{ReadyQueueWorker, SchedulerBuilder};
+use crate::internal::system::{InternalActorSystem, InternalActorSystemSettings};
+use crate::internal::traits::{ActorRuntime, GenericActorRuntimeState, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::serializer_extension_id;
 use crate::{
   default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener,
