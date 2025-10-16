@@ -137,6 +137,8 @@ run_all() {
 }
 
 main() {
+  "${SCRIPT_DIR}/check_modrs.sh"
+
   if [[ $# -eq 0 ]]; then
     run_all
     return
