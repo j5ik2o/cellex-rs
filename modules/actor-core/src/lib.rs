@@ -92,10 +92,7 @@ pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
 pub use runtime::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
-pub use runtime::mailbox::traits::{
-  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxRuntime, MailboxSignalOf, SingleThread,
-  ThreadSafe,
-};
+pub use runtime::mailbox::traits::{MailboxRuntime, SingleThread, ThreadSafe};
 pub use runtime::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};
 pub use runtime::message::{
   discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
@@ -106,6 +103,7 @@ pub use runtime::scheduler::{
   ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
   SchedulerBuilder, SchedulerSpawnContext, SpawnError,
 };
+pub use runtime::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use shared::{
   FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,
   MapSystemShared, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, TelemetryContext,

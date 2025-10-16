@@ -6,3 +6,4 @@ pub(crate) mod metrics;
 pub(crate) mod scheduler;
 pub(crate) mod supervision;
 pub(crate) mod system;
+pub(crate) mod traits;

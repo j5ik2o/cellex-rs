@@ -8,6 +8,8 @@ pub mod test_support;
 mod tests;
 pub mod traits;
 
+#[allow(unused_imports)]
+pub use crate::runtime::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 pub use builder::PriorityMailboxBuilder;
 #[cfg(any(test, feature = "test-support"))]
 pub use messages::PriorityChannel;
@@ -15,7 +17,4 @@ pub use messages::{PriorityEnvelope, SystemMessage};
 pub use queue_mailbox::{MailboxOptions, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv};
 pub use spawner::PriorityMailboxSpawnerHandle;
 #[allow(unused_imports)]
-pub use traits::{
-  ActorRuntime, Mailbox, MailboxConcurrencyOf, MailboxOf, MailboxPair, MailboxQueueOf, MailboxRuntime, MailboxSignal,
-  MailboxSignalOf,
-};
+pub use traits::{Mailbox, MailboxPair, MailboxRuntime, MailboxSignal};

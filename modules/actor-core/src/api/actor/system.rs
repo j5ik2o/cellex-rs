@@ -5,15 +5,14 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::root_context::RootContext;
 use crate::api::guardian::AlwaysRestart;
-use crate::runtime::mailbox::traits::{
-  ActorRuntime, MailboxOf, MailboxPair, MailboxQueueOf, MailboxRuntime, MailboxSignalOf,
-};
+use crate::runtime::mailbox::traits::{MailboxPair, MailboxRuntime};
 use crate::runtime::mailbox::{MailboxOptions, PriorityMailboxSpawnerHandle};
 use crate::runtime::message::DynMessage;
 use crate::runtime::metrics::MetricsSinkShared;
 use crate::runtime::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
 use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder};
 use crate::runtime::system::{InternalActorSystem, InternalActorSystemSettings};
+use crate::runtime::traits::{ActorRuntime, GenericActorRuntimeState, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::serializer_extension_id;
 use crate::{
   default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventHandler, FailureEventListener,
@@ -21,7 +20,7 @@ use crate::{
   SerializerRegistryExtension, TelemetryContext, TelemetryObservationConfig,
 };
 use crate::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
-use cellex_utils_core_rs::sync::{ArcShared, Shared};
+use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Primary instance of the actor system.
@@ -112,58 +111,6 @@ where
   #[must_use]
   pub fn build(self) -> ActorSystem<U, R> {
     ActorSystem::new_with_runtime(self.runtime, self.config)
-  }
-}
-
-#[derive(Clone)]
-pub(crate) struct GenericActorRuntimeState<R>
-where
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
-  mailbox_runtime: ArcShared<R>,
-  scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, R>>,
-}
-
-impl<R> GenericActorRuntimeState<R>
-where
-  R: MailboxRuntime + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-{
-  #[must_use]
-  pub(crate) fn new(actor_runtime: R) -> Self {
-    Self {
-      mailbox_runtime: ArcShared::new(actor_runtime),
-      scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, R>::ready_queue()),
-    }
-  }
-
-  #[must_use]
-  pub(crate) fn mailbox_runtime(&self) -> &R {
-    &self.mailbox_runtime
-  }
-
-  #[must_use]
-  pub(crate) fn mailbox_runtime_shared(&self) -> ArcShared<R> {
-    self.mailbox_runtime.clone()
-  }
-
-  #[must_use]
-  pub(crate) fn into_mailbox_runtime(self) -> R {
-    self
-      .mailbox_runtime
-      .try_unwrap()
-      .unwrap_or_else(|shared| (*shared).clone())
-  }
-
-  #[must_use]
-  pub(crate) fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, R>> {
-    self.scheduler_builder.clone()
-  }
-
-  pub(crate) fn set_scheduler_builder(&mut self, builder: ArcShared<SchedulerBuilder<DynMessage, R>>) {
-    self.scheduler_builder = builder;
   }
 }
 

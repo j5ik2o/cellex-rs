@@ -2,8 +2,8 @@ use alloc::boxed::Box;
 
 use crate::api::supervision::{NoopSupervisor, Supervisor, SupervisorDirective};
 use crate::api::MessageEnvelope;
-use crate::runtime::mailbox::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
 use crate::runtime::message::{DynMessage, MetadataStorageMode};
+use crate::runtime::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
 use crate::MapSystemShared;
 use crate::PriorityEnvelope;
 use crate::SystemMessage;

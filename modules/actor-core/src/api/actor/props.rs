@@ -1,9 +1,8 @@
 use crate::runtime::context::ActorContext;
-use crate::runtime::mailbox::traits::{
-  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxRuntime, MailboxSignalOf,
-};
+use crate::runtime::mailbox::traits::MailboxRuntime;
 use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
 use crate::runtime::system::InternalProps;
+use crate::runtime::traits::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::Supervisor;
 use crate::SystemMessage;
 use crate::{MailboxOptions, PriorityEnvelope};

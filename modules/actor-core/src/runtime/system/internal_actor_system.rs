@@ -1,8 +1,9 @@
 use core::convert::Infallible;
 
 use crate::runtime::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::runtime::mailbox::traits::{ActorRuntime, MailboxOf, MailboxRuntime};
+use crate::runtime::mailbox::traits::MailboxRuntime;
 use crate::runtime::scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle};
+use crate::runtime::traits::{ActorRuntime, MailboxOf};
 use crate::ReceiveTimeoutFactoryShared;
 use crate::{default_failure_telemetry, FailureTelemetryShared, TelemetryObservationConfig};
 use crate::{Extensions, FailureEventHandler, FailureEventListener, MetricsSinkShared, PriorityEnvelope};
