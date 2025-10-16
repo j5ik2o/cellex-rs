@@ -68,8 +68,8 @@ where
   Strat: GuardianStrategy<M, MailboxOf<R>>, {
   pub(super) scheduler: SchedulerHandle<M, MailboxOf<R>>,
   #[allow(dead_code)]
-  pub(super) runtime: ArcShared<R>,
-  pub(super) mailbox_runtime: ArcShared<MailboxOf<R>>,
+  pub(super) actor_runtime_shared: ArcShared<R>,
+  pub(super) mailbox_runtime_shared: ArcShared<MailboxOf<R>>,
   extensions: Extensions,
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
@@ -120,8 +120,8 @@ where
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self {
       scheduler,
-      runtime: actor_runtime_shared.clone(),
-      mailbox_runtime: mailbox_runtime_shared,
+      actor_runtime_shared: actor_runtime_shared.clone(),
+      mailbox_runtime_shared: mailbox_runtime_shared,
       extensions,
       metrics_sink,
       _strategy: PhantomData,

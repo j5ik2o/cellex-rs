@@ -77,8 +77,8 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  pub runtime: R,
-  pub mailbox_runtime: ArcShared<R>,
+  pub mailbox_runtime: R,
+  pub mailbox_runtime_shared: ArcShared<R>,
   pub map_system: MapSystemShared<M>,
   pub mailbox_options: MailboxOptions,
   pub handler: Box<ActorHandlerFn<M, R>>,
@@ -157,7 +157,7 @@ where
   pub fn immediate() -> Self {
     use super::immediate_scheduler::ImmediateScheduler;
 
-    Self::new(|runtime, extensions| Box::new(ImmediateScheduler::new(runtime, extensions)))
+    Self::new(|mailbox_runtime, extensions| Box::new(ImmediateScheduler::new(mailbox_runtime, extensions)))
   }
 
   pub fn new<F>(factory: F) -> Self
@@ -169,7 +169,7 @@ where
     }
   }
 
-  pub fn build(&self, runtime: R, extensions: Extensions) -> SchedulerHandle<M, R> {
-    self.factory.with_ref(|factory| (factory)(runtime, extensions))
+  pub fn build(&self, mailbox_runtime: R, extensions: Extensions) -> SchedulerHandle<M, R> {
+    self.factory.with_ref(|factory| (factory)(mailbox_runtime, extensions))
   }
 }

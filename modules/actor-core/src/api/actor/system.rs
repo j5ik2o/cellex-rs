@@ -47,7 +47,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone, {
-  runtime: R,
+  actor_runtime: R,
   config: ActorSystemConfig<R>,
   _marker: PhantomData<U>,
 }
@@ -61,9 +61,9 @@ where
 {
   /// Creates a new builder with default configuration.
   #[must_use]
-  pub fn new(runtime: R) -> Self {
+  pub fn new(actor_runtime: R) -> Self {
     Self {
-      runtime,
+      actor_runtime,
       config: ActorSystemConfig::default(),
       _marker: PhantomData,
     }
@@ -71,13 +71,13 @@ where
 
   /// Returns a reference to the runtime preset owned by the builder.
   #[must_use]
-  pub fn runtime(&self) -> &R {
-    &self.runtime
+  pub fn actor_runtime(&self) -> &R {
+    &self.actor_runtime
   }
 
   /// Returns a mutable reference to the runtime preset.
-  pub fn runtime_mut(&mut self) -> &mut R {
-    &mut self.runtime
+  pub fn actor_runtime_mut(&mut self) -> &mut R {
+    &mut self.actor_runtime
   }
 
   /// Returns a reference to the configuration being accumulated.
@@ -110,7 +110,7 @@ where
   /// Consumes the builder and constructs an [`ActorSystem`].
   #[must_use]
   pub fn build(self) -> ActorSystem<U, R> {
-    ActorSystem::new_with_runtime(self.runtime, self.config)
+    ActorSystem::new_with_actor_runtime(self.actor_runtime, self.config)
   }
 }
 
@@ -683,11 +683,11 @@ where
   MailboxSignalOf<R>: Clone,
 {
   /// Creates a new actor system with an explicit runtime and configuration.
-  pub fn new_with_runtime(runtime: R, config: ActorSystemConfig<R>) -> Self {
-    let root_listener_from_runtime = runtime.root_event_listener();
-    let root_handler_from_runtime = runtime.root_escalation_handler();
-    let metrics_from_runtime = runtime.metrics_sink();
-    let scheduler_builder = runtime.scheduler_builder();
+  pub fn new_with_actor_runtime(actor_runtime: R, config: ActorSystemConfig<R>) -> Self {
+    let root_listener_from_runtime = actor_runtime.root_event_listener();
+    let root_handler_from_runtime = actor_runtime.root_escalation_handler();
+    let metrics_from_runtime = actor_runtime.metrics_sink();
+    let scheduler_builder = actor_runtime.scheduler_builder();
 
     let extensions_handle = config.extensions();
     if extensions_handle.get(serializer_extension_id()).is_none() {
@@ -698,8 +698,12 @@ where
 
     let receive_timeout_factory = config
       .receive_timeout_factory()
-      .or(runtime.mailbox_receive_timeout_factory())
-      .or_else(|| runtime.receive_timeout_driver().map(|driver| driver.build_factory()));
+      .or(actor_runtime.mailbox_receive_timeout_factory())
+      .or_else(|| {
+        actor_runtime
+          .receive_timeout_driver()
+          .map(|driver| driver.build_factory())
+      });
     let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
     let metrics_sink = config.metrics_sink().or(metrics_from_runtime);
     let telemetry_builder = config.failure_telemetry_builder();
@@ -740,7 +744,7 @@ where
       .unwrap_or_else(|| NonZeroUsize::new(1).expect("ReadyQueue worker count must be non-zero"));
 
     Self {
-      inner: InternalActorSystem::new_with_settings_and_builder(runtime, &scheduler_builder, settings),
+      inner: InternalActorSystem::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings),
       shutdown: ShutdownToken::default(),
       extensions,
       ready_queue_worker_count,
@@ -749,17 +753,17 @@ where
   }
 
   /// Creates an actor system using the provided runtime and failure event stream.
-  pub fn new_with_runtime_and_event_stream<E>(runtime: R, event_stream: &E) -> Self
+  pub fn new_with_actor_runtime_and_event_stream<E>(actor_runtime: R, event_stream: &E) -> Self
   where
     E: FailureEventStream, {
     let config = ActorSystemConfig::default().with_failure_event_listener(Some(event_stream.listener()));
-    Self::new_with_runtime(runtime, config)
+    Self::new_with_actor_runtime(actor_runtime, config)
   }
 
   /// Returns a builder that creates an actor system from the provided runtime preset.
   #[must_use]
-  pub fn builder(runtime: R) -> ActorSystemBuilder<U, R> {
-    ActorSystemBuilder::new(runtime)
+  pub fn builder(actor_runtime: R) -> ActorSystemBuilder<U, R> {
+    ActorSystemBuilder::new(actor_runtime)
   }
 }
 

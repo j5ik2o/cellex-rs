@@ -62,9 +62,9 @@ mod sample {
 
     executor.run(|spawner| {
       let configured_worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
-      let runtime = embassy_actor_runtime(spawner);
+      let actor_runtime = embassy_actor_runtime(spawner);
       let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(configured_worker_count));
-      let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, config));
+      let system = SYSTEM.init_with(|| ActorSystem::new_with_actor_runtime(actor_runtime, config));
       let shutdown = system.shutdown_token();
       let worker_count = configured_worker_count;
 

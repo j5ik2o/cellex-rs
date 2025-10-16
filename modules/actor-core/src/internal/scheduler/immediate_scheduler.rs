@@ -30,9 +30,9 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
-  pub fn new(runtime: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::new(runtime, extensions),
+      inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
     }
   }
 }
@@ -43,9 +43,9 @@ where
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
-  pub fn with_strategy(runtime: R, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),
     }
   }
 }

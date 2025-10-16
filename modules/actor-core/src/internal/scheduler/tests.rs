@@ -103,7 +103,7 @@ impl MetricsSink for EventRecordingSink {
 #[cfg(feature = "std")]
 fn spawn_with_runtime<M, R>(
   scheduler: &mut dyn ActorScheduler<M, R>,
-  runtime: R,
+  mailbox_runtime: R,
   supervisor: Box<dyn Supervisor<M>>,
   options: MailboxOptions,
   map_system: MapSystemShared<M>,
@@ -114,10 +114,10 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  let mailbox_runtime = ArcShared::new(runtime.clone());
+  let mailbox_runtime_shared = ArcShared::new(mailbox_runtime.clone());
   let context = SchedulerSpawnContext {
-    runtime,
     mailbox_runtime,
+    mailbox_runtime_shared,
     map_system,
     mailbox_options: options,
     handler,

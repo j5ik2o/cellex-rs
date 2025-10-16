@@ -78,12 +78,12 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
-  pub fn new(runtime: R, extensions: Extensions) -> Self {
-    Self::with_strategy(runtime, AlwaysRestart, extensions)
+  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
+    Self::with_strategy(mailbox_runtime, AlwaysRestart, extensions)
   }
 
   pub fn with_strategy<Strat>(
-    _runtime: R,
+    _mailbox_runtime: R,
     strategy: Strat,
     extensions: Extensions,
   ) -> ReadyQueueSchedulerCore<M, R, Strat>
@@ -289,16 +289,20 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
-  pub fn new(runtime: R, extensions: Extensions) -> Self {
-    Self::with_strategy(runtime, AlwaysRestart, extensions)
+  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
+    Self::with_strategy(mailbox_runtime, AlwaysRestart, extensions)
   }
 
-  pub fn with_strategy<Strat>(runtime: R, strategy: Strat, extensions: Extensions) -> ReadyQueueScheduler<M, R, Strat>
+  pub fn with_strategy<Strat>(
+    mailbox_runtime: R,
+    strategy: Strat,
+    extensions: Extensions,
+  ) -> ReadyQueueScheduler<M, R, Strat>
   where
     Strat: GuardianStrategy<M, R>, {
     let state = ArcShared::new(Mutex::new(ReadyQueueState::new()));
     let context = ReadyQueueContext {
-      core: ReadyQueueSchedulerCore::with_strategy(runtime, strategy, extensions),
+      core: ReadyQueueSchedulerCore::with_strategy(mailbox_runtime, strategy, extensions),
       state: state.clone(),
     };
     ReadyQueueScheduler {
@@ -332,7 +336,7 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   pub fn ready_queue() -> Self {
-    Self::new(|runtime, extensions| Box::new(ReadyQueueScheduler::new(runtime, extensions)))
+    Self::new(|mailbox_runtime, extensions| Box::new(ReadyQueueScheduler::new(mailbox_runtime, extensions)))
   }
 
   #[allow(dead_code)]
@@ -340,9 +344,9 @@ where
   where
     Strat: GuardianStrategy<M, R> + Clone + Send + Sync, {
     let _ = self;
-    Self::new(move |runtime, extensions| {
+    Self::new(move |mailbox_runtime, extensions| {
       Box::new(ReadyQueueScheduler::with_strategy(
-        runtime,
+        mailbox_runtime,
         strategy.clone(),
         extensions,
       ))
@@ -363,14 +367,14 @@ where
     context: SchedulerSpawnContext<M, R>,
   ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
     let SchedulerSpawnContext {
-      runtime,
       mailbox_runtime,
+      mailbox_runtime_shared,
       map_system,
       mailbox_options,
       handler,
       child_naming,
     } = context;
-    let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_runtime);
+    let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_runtime_shared);
     mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
     let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
     mailbox.set_metrics_sink(self.metrics_sink.clone());
@@ -392,7 +396,7 @@ where
       map_system,
       watchers,
       actor_path,
-      runtime,
+      mailbox_runtime,
       mailbox_spawner,
       mailbox,
       sender,

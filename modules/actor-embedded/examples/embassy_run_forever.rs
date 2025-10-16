@@ -18,8 +18,9 @@ mod sample {
     let executor = EXECUTOR.init(Executor::new());
 
     executor.run(|spawner| {
-      let runtime = embassy_actor_runtime(spawner);
-      let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(runtime, ActorSystemConfig::default()));
+      let actor_runtime = embassy_actor_runtime(spawner);
+      let system =
+        SYSTEM.init_with(|| ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default()));
 
       {
         let mut root = system.root_context();

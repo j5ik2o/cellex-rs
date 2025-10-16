@@ -28,9 +28,9 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   /// ReadyQueue スケジューラを用いた既定構成を作成する。
-  pub fn new(runtime: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::new(runtime, extensions),
+      inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
     }
   }
 }
@@ -42,9 +42,9 @@ where
   Strat: GuardianStrategy<M, R>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(runtime: R, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),
     }
   }
 }
@@ -131,7 +131,9 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  SchedulerBuilder::new(|runtime, extensions| Box::new(TokioScheduler::<M, R, AlwaysRestart>::new(runtime, extensions)))
+  SchedulerBuilder::new(|mailbox_runtime, extensions| {
+    Box::new(TokioScheduler::<M, R, AlwaysRestart>::new(mailbox_runtime, extensions))
+  })
 }
 
 use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};

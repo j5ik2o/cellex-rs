@@ -50,7 +50,7 @@ mod __actor_doc_refs {
   }
 
   #[allow(dead_code)]
-  pub fn _mailbox_runtime_marker<R: MailboxRuntime>(runtime: &R) -> &R {
-    runtime
+  pub fn _mailbox_runtime_marker<R: MailboxRuntime>(mailbox_runtime: &R) -> &R {
+    mailbox_runtime
   }
 }

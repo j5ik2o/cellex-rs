@@ -20,7 +20,7 @@ fn main() {
     .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
   let _ = FmtSubscriber::builder().with_env_filter(env_filter).try_init();
 
-  let mut system: ActorSystem<Command, _> = ActorSystem::new_with_runtime(
+  let mut system: ActorSystem<Command, _> = ActorSystem::new_with_actor_runtime(
     GenericActorRuntime::new(TokioMailboxRuntime),
     ActorSystemConfig::default(),
   );

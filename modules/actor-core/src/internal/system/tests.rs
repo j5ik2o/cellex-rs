@@ -29,8 +29,8 @@ enum Message {
 #[test]
 fn actor_system_spawns_and_processes_messages() {
   let mailbox_runtime = TestMailboxRuntime::unbounded();
-  let runtime = GenericActorRuntime::new(mailbox_runtime);
-  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(runtime);
+  let actor_runtime = GenericActorRuntime::new(mailbox_runtime);
+  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
   let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));

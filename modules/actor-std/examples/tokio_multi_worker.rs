@@ -11,7 +11,7 @@ async fn main() {
   let local = LocalSet::new();
   local
     .run_until(async move {
-      let mut system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(
+      let mut system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(
         GenericActorRuntime::new(TokioMailboxRuntime),
         ActorSystemConfig::default(),
       );

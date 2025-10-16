@@ -32,9 +32,9 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
-  pub fn new(runtime: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::new(runtime, extensions),
+      inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
     }
   }
 }
@@ -46,9 +46,9 @@ where
   Strat: GuardianStrategy<M, R>,
 {
   /// 任意の GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(runtime: R, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::with_strategy(runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),
     }
   }
 }
@@ -137,8 +137,11 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  SchedulerBuilder::new(|runtime, extensions| {
-    Box::new(EmbassyScheduler::<M, R, AlwaysRestart>::new(runtime, extensions))
+  SchedulerBuilder::new(|mailbox_runtime, extensions| {
+    Box::new(EmbassyScheduler::<M, R, AlwaysRestart>::new(
+      mailbox_runtime,
+      extensions,
+    ))
   })
 }
 

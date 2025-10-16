@@ -48,7 +48,7 @@ async fn test_actor_loop_updates_state_multi_thread() {
 }
 
 async fn run_typed_actor_system_handles_user_messages() {
-  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_runtime(
+  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(
     GenericActorRuntime::new(TokioMailboxRuntime),
     ActorSystemConfig::default(),
   );
@@ -77,7 +77,7 @@ async fn run_receive_timeout_triggers() {
     TokioReceiveTimeoutSchedulerFactory::new(),
   )));
   let mut system: ActorSystem<u32, _> =
-    ActorSystem::new_with_runtime(GenericActorRuntime::new(mailbox_runtime), config);
+    ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(mailbox_runtime), config);
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(
@@ -135,8 +135,8 @@ async fn tokio_scheduler_builder_dispatches() {
 
   let mailbox_runtime_shared = ArcShared::new(mailbox_runtime.clone());
   let context = SchedulerSpawnContext {
-    runtime: mailbox_runtime.clone(),
-    mailbox_runtime: mailbox_runtime_shared,
+    mailbox_runtime: mailbox_runtime.clone(),
+    mailbox_runtime_shared: mailbox_runtime_shared,
     map_system: MapSystemShared::new(Message::System),
     mailbox_options: MailboxOptions::default(),
     handler: Box::new(move |_, msg: Message| {
