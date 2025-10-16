@@ -16,7 +16,7 @@ mod generic_runtime;
 mod props;
 mod root_context;
 mod shutdown_token;
-mod system_support;
+mod actor_system_support;
 #[cfg(test)]
 mod tests;
 
@@ -38,7 +38,7 @@ pub use generic_runtime::GenericActorRuntime;
 pub use props::Props;
 pub use root_context::RootContext;
 pub use shutdown_token::ShutdownToken;
-pub use system_support::{Spawn, Timer};
+pub use actor_system_support::{Spawn, Timer};
 
 #[doc(hidden)]
 mod __actor_doc_refs {
