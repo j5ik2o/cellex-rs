@@ -9,12 +9,12 @@ use cellex_utils_core_rs::Element;
 use super::{ActorFailure, Context};
 
 mod actor_adapter;
-mod builders;
+mod behaviors;
 mod supervision;
 
 pub use actor_adapter::ActorAdapter;
 #[allow(unused_imports)]
-pub use builders::{Behaviors, SuperviseBuilder};
+pub use behaviors::{Behaviors, SuperviseBuilder};
 pub use supervision::{SupervisorStrategy, SupervisorStrategyConfig};
 
 pub(super) type ReceiveFn<U, R> =
