@@ -49,13 +49,13 @@ where
   R: MailboxFactory + Clone + 'static,
 {
   /// Creates a scheduler that uses the `AlwaysRestart` guardian strategy.
-  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
-    Self::with_strategy(mailbox_runtime, AlwaysRestart, extensions)
+  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
+    Self::with_strategy(mailbox_factory, AlwaysRestart, extensions)
   }
 
   /// Creates a scheduler with the provided guardian strategy.
   pub fn with_strategy<Strat>(
-    mailbox_runtime: R,
+    mailbox_factory: R,
     strategy: Strat,
     extensions: Extensions,
   ) -> ReadyQueueScheduler<M, R, Strat>
@@ -63,7 +63,7 @@ where
     Strat: GuardianStrategy<M, R>, {
     let state = ArcShared::new(Mutex::new(ReadyQueueState::new()));
     let context = ReadyQueueContext {
-      core: ReadyQueueSchedulerCore::with_strategy(mailbox_runtime, strategy, extensions),
+      core: ReadyQueueSchedulerCore::with_strategy(mailbox_factory, strategy, extensions),
       state: state.clone(),
     };
     ReadyQueueScheduler {

@@ -13,10 +13,10 @@ use crate::internal::scheduler::{NoopReceiveTimeoutSchedulerFactoryProvider, Sch
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
-/// Helper alias mapping a runtime bundle back to its mailbox runtime.
+/// Helper alias mapping a runtime bundle back to its use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
 pub(crate) type BundleMailbox<R> = MailboxOf<GenericActorRuntime<R>>;
 
-/// Runtime bundle that decorates a mailbox runtime with ActorSystem-specific capabilities.
+/// Runtime bundle that decorates a use cellex_actor_core_rs::api::mailbox::MailboxRuntime; with ActorSystem-specific capabilities.
 #[derive(Clone)]
 pub struct GenericActorRuntime<R>
 where
@@ -37,7 +37,7 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
-  /// Creates a new bundle for the supplied mailbox runtime.
+  /// Creates a new bundle for the supplied use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
   pub fn new(actor_runtime: R) -> Self {
     Self {
@@ -52,23 +52,23 @@ where
     }
   }
 
-  /// Returns a reference to the wrapped mailbox runtime.
+  /// Returns a reference to the wrapped use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
-  pub fn mailbox_runtime(&self) -> &R {
-    self.core.mailbox_runtime()
+  pub fn mailbox_factory(&self) -> &R {
+    self.core.mailbox_factory()
   }
 
-  /// Consumes the bundle and yields the underlying mailbox runtime.
+  /// Consumes the bundle and yields the underlying use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
-  pub fn into_mailbox_runtime(self) -> R {
+  pub fn into_mailbox_factory(self) -> R {
     let Self { core, .. } = self;
-    core.into_mailbox_runtime()
+    core.into_mailbox_factory()
   }
 
-  /// Borrows the shared handle to the mailbox runtime.
+  /// Borrows the shared handle to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
-  pub fn mailbox_runtime_shared(&self) -> ArcShared<R> {
-    self.core.mailbox_runtime_shared()
+  pub fn mailbox_factory_shared(&self) -> ArcShared<R> {
+    self.core.mailbox_factory_shared()
   }
 
   /// Returns the configured mailbox-level receive-timeout factory, if any.
@@ -176,7 +176,7 @@ where
     BundleMailbox<R>: MailboxFactory,
     <BundleMailbox<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
     <BundleMailbox<R> as MailboxFactory>::Signal: Clone, {
-    PriorityMailboxSpawnerHandle::new(self.mailbox_runtime_shared()).with_metrics_sink(self.metrics_sink.clone())
+    PriorityMailboxSpawnerHandle::new(self.mailbox_factory_shared()).with_metrics_sink(self.metrics_sink.clone())
   }
 
   /// Overrides the scheduler builder with a concrete value.
@@ -209,15 +209,15 @@ where
   type MailboxFactory = R;
 
   fn mailbox_factory(&self) -> &Self::MailboxFactory {
-    GenericActorRuntime::mailbox_runtime(self)
+    GenericActorRuntime::mailbox_factory(self)
   }
 
   fn into_mailbox_factory(self) -> Self::MailboxFactory {
-    GenericActorRuntime::into_mailbox_runtime(self)
+    GenericActorRuntime::into_mailbox_factory(self)
   }
 
   fn mailbox_factory_shared(&self) -> ArcShared<Self::MailboxFactory> {
-    GenericActorRuntime::mailbox_runtime_shared(self)
+    GenericActorRuntime::mailbox_factory_shared(self)
   }
 
   fn receive_timeout_scheduler_factory_shared_opt(

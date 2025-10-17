@@ -54,11 +54,11 @@ where
       handler,
     } = props;
 
-    let mailbox_runtime = self.system.mailbox_runtime_shared.with_ref(|mailbox| mailbox.clone());
-    let mailbox_runtime_shared = self.system.mailbox_runtime_shared.clone();
+    let mailbox_factory = self.system.mailbox_factory_shared.with_ref(|mailbox| mailbox.clone());
+    let mailbox_factory_shared = self.system.mailbox_factory_shared.clone();
     let context = SchedulerSpawnContext {
-      mailbox_runtime,
-      mailbox_runtime_shared,
+      mailbox_factory,
+      mailbox_factory_shared,
       map_system,
       mailbox_options: options,
       handler,

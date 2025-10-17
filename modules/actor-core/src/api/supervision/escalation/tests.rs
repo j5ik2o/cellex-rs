@@ -11,7 +11,7 @@ use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::telemetry::FailureSnapshot;
 use crate::api::supervision::telemetry::FailureTelemetry;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::api::test_support::TestMailboxRuntime;
+use crate::api::test_support::TestMailboxFactory;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Default)]
@@ -41,7 +41,7 @@ fn root_escalation_sink_invokes_telemetry() {
   let (telemetry_impl, events) = RecordingTelemetry::new();
   let telemetry_shared = FailureTelemetryShared::new(telemetry_impl);
 
-  let mut sink: RootEscalationSink<DummyMessage, TestMailboxRuntime> = RootEscalationSink::new();
+  let mut sink: RootEscalationSink<DummyMessage, TestMailboxFactory> = RootEscalationSink::new();
   sink.set_telemetry(telemetry_shared);
 
   let failure = ActorFailure::from_message("boom");
@@ -57,7 +57,7 @@ fn root_escalation_sink_invokes_telemetry() {
 
 #[test]
 fn telemetry_default_is_noop() {
-  let mut sink: RootEscalationSink<DummyMessage, TestMailboxRuntime> = RootEscalationSink::new();
+  let mut sink: RootEscalationSink<DummyMessage, TestMailboxFactory> = RootEscalationSink::new();
   let failure = ActorFailure::from_message("boom");
   let info = FailureInfo::new(ActorId(7), ActorPath::new(), failure);
 
@@ -90,7 +90,7 @@ fn root_escalation_sink_records_metrics() {
   let mut observation = TelemetryObservationConfig::new().with_metrics_sink(MetricsSinkShared::new(metrics_sink_impl));
   observation.set_record_timing(true);
 
-  let mut sink: RootEscalationSink<DummyMessage, TestMailboxRuntime> = RootEscalationSink::new();
+  let mut sink: RootEscalationSink<DummyMessage, TestMailboxFactory> = RootEscalationSink::new();
   sink.set_observation_config(observation);
 
   let failure = ActorFailure::from_message("boom");

@@ -41,9 +41,9 @@ where
   R: MailboxFactory + Clone + 'static,
 {
   /// ReadyQueue スケジューラを用いた既定構成を作成する。
-  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
+      inner: ReadyQueueScheduler::new(mailbox_factory, extensions),
     }
   }
 }
@@ -55,9 +55,9 @@ where
   Strat: GuardianStrategy<M, R>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(mailbox_factory: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions),
     }
   }
 }
@@ -144,8 +144,8 @@ where
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  SchedulerBuilder::new(|mailbox_runtime, extensions| {
-    Box::new(TokioScheduler::<M, R, AlwaysRestart>::new(mailbox_runtime, extensions))
+  SchedulerBuilder::new(|mailbox_factory, extensions| {
+    Box::new(TokioScheduler::<M, R, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }
 

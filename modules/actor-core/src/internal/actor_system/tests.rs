@@ -8,7 +8,7 @@ use crate::api::actor_runtime::GenericActorRuntime;
 use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
-use crate::api::test_support::TestMailboxRuntime;
+use crate::api::test_support::TestMailboxFactory;
 use crate::internal::actor::InternalProps;
 use crate::internal::guardian::AlwaysRestart;
 use alloc::rc::Rc;
@@ -30,8 +30,8 @@ enum Message {
 #[cfg(feature = "std")]
 #[test]
 fn actor_system_spawns_and_processes_messages() {
-  let mailbox_runtime = TestMailboxRuntime::unbounded();
-  let actor_runtime = GenericActorRuntime::new(mailbox_runtime);
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let actor_runtime = GenericActorRuntime::new(mailbox_factory);
   let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
   let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));

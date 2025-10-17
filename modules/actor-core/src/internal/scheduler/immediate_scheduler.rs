@@ -41,9 +41,9 @@ where
 {
   /// Creates a new immediate scheduler with the default guardian strategy.
   #[must_use]
-  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
+      inner: ReadyQueueScheduler::new(mailbox_factory, extensions),
     }
   }
 }
@@ -56,9 +56,9 @@ where
 {
   /// Creates a new immediate scheduler with a custom guardian strategy.
   #[must_use]
-  pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(mailbox_factory: R, strategy: Strat, extensions: Extensions) -> Self {
     Self {
-      inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),
+      inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions),
     }
   }
 }

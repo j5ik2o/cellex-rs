@@ -11,7 +11,7 @@ use cellex_utils_core_rs::Element;
 ///
 /// このトレイトは優先度付きメールボックスを生成する責務を `MailboxFactory`
 /// から切り出し、スケジューラ層が具象ファクトリ型へ直接依存しないようにする。
-pub(crate) trait PriorityMailboxBuilder<M>: Clone
+pub trait PriorityMailboxBuilder<M>: Clone
 where
   M: Element, {
   /// Mailbox が利用するシグナル型。
@@ -25,6 +25,7 @@ where
   fn build_priority_mailbox(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox, Self::Producer>;
 
   /// 既定設定でメールボックスを生成する。
+  #[allow(dead_code)]
   fn build_default_priority_mailbox(&self) -> MailboxPair<Self::Mailbox, Self::Producer> {
     self.build_priority_mailbox(MailboxOptions::default())
   }

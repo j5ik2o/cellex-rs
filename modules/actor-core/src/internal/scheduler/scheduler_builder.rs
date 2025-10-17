@@ -41,7 +41,7 @@ where
   #[must_use]
   /// Creates a builder that produces the immediate scheduler used in tests.
   pub fn immediate() -> Self {
-    Self::new(|mailbox_runtime, extensions| Box::new(ImmediateScheduler::new(mailbox_runtime, extensions)))
+    Self::new(|mailbox_factory, extensions| Box::new(ImmediateScheduler::new(mailbox_factory, extensions)))
   }
 
   /// Creates a builder from a factory closure producing scheduler handles.
@@ -55,8 +55,8 @@ where
   }
 
   /// Builds a scheduler using the stored factory and provided runtime components.
-  pub fn build(&self, mailbox_runtime: R, extensions: Extensions) -> SchedulerHandle<M, R> {
-    self.factory.with_ref(|factory| (factory)(mailbox_runtime, extensions))
+  pub fn build(&self, mailbox_factory: R, extensions: Extensions) -> SchedulerHandle<M, R> {
+    self.factory.with_ref(|factory| (factory)(mailbox_factory, extensions))
   }
 }
 impl<M, R> SchedulerBuilder<M, R>
@@ -66,7 +66,7 @@ where
 {
   /// Returns a builder configured to create ready-queue-based schedulers.
   pub fn ready_queue() -> Self {
-    Self::new(|mailbox_runtime, extensions| Box::new(ReadyQueueScheduler::new(mailbox_runtime, extensions)))
+    Self::new(|mailbox_factory, extensions| Box::new(ReadyQueueScheduler::new(mailbox_factory, extensions)))
   }
 
   #[allow(dead_code)]
@@ -75,9 +75,9 @@ where
   where
     Strat: GuardianStrategy<M, R> + Clone + Send + Sync, {
     let _ = self;
-    Self::new(move |mailbox_runtime, extensions| {
+    Self::new(move |mailbox_factory, extensions| {
       Box::new(ReadyQueueScheduler::with_strategy(
-        mailbox_runtime,
+        mailbox_factory,
         strategy.clone(),
         extensions,
       ))

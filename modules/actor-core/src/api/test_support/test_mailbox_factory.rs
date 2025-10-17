@@ -10,12 +10,12 @@ use crate::api::test_support::test_signal::TestSignal;
 use cellex_utils_core_rs::{Element, MpscQueue, QueueSize};
 
 #[derive(Clone, Debug, Default)]
-/// Minimal mailbox runtime used by unit tests to build queue-backed mailboxes.
-pub struct TestMailboxRuntime {
+/// Minimal use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used by unit tests to build queue-backed mailboxes.
+pub struct TestMailboxFactory {
   capacity: Option<usize>,
 }
 
-impl TestMailboxRuntime {
+impl TestMailboxFactory {
   /// Creates a runtime with an optional global capacity shared by all queues.
   pub const fn new(capacity: Option<usize>) -> Self {
     Self { capacity }
@@ -39,7 +39,7 @@ impl TestMailboxRuntime {
   }
 }
 
-impl MailboxFactory for TestMailboxRuntime {
+impl MailboxFactory for TestMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>

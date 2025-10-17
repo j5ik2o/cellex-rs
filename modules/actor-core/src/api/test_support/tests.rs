@@ -8,9 +8,9 @@ use core::pin::Pin;
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 #[test]
-fn test_mailbox_runtime_delivers_fifo() {
-  let mailbox_runtime = TestMailboxRuntime::with_capacity_per_queue(2);
-  let (mailbox, sender) = mailbox_runtime.build_default_mailbox::<u32>();
+fn test_mailbox_factory_delivers_fifo() {
+  let mailbox_factory = TestMailboxFactory::with_capacity_per_queue(2);
+  let (mailbox, sender) = mailbox_factory.build_default_mailbox::<u32>();
 
   sender.try_send(1).unwrap();
   sender.try_send(2).unwrap();

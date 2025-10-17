@@ -16,7 +16,6 @@ mod tests;
 pub use actor_scheduler::*;
 pub use child_naming::*;
 pub use noop_receive_timeout_driver::*;
-pub use noop_receive_timeout_scheduler::*;
 pub use noop_receive_timeout_scheduler_factory::*;
 pub use ready_queue_scheduler::*;
 pub use receive_timeout::*;

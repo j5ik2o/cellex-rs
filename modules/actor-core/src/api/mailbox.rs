@@ -7,20 +7,20 @@ use core::future::Future;
 
 /// Mailbox concurrency modes
 mod mailbox_concurrency;
-/// Mailbox runtime abstraction
+/// use cellex_actor_core_rs::api::mailbox::MailboxRuntime; abstraction
 mod mailbox_factory;
 /// Mailbox handle trait
 mod mailbox_handle;
 /// Mailbox configuration options
 mod mailbox_options;
-/// Mailbox factory trait
+/// use cellex_actor_core_rs::api::mailbox::MailboxRuntime; trait
 mod mailbox_producer;
 /// Mailbox signaling mechanisms
 mod mailbox_signal;
 mod messages;
 /// Queue-based mailbox implementation
 mod queue_mailbox;
-/// Queue mailbox factory
+/// Queue use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
 mod queue_mailbox_producer;
 /// Single-threaded mailbox
 mod single_thread;

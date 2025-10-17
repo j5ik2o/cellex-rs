@@ -57,12 +57,12 @@ where
   M: Element,
   R: MailboxFactory + Clone + 'static,
 {
-  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
-    Self::with_strategy(mailbox_runtime, AlwaysRestart, extensions)
+  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
+    Self::with_strategy(mailbox_factory, AlwaysRestart, extensions)
   }
 
   pub fn with_strategy<Strat>(
-    _mailbox_runtime: R,
+    _mailbox_factory: R,
     strategy: Strat,
     extensions: Extensions,
   ) -> ReadyQueueSchedulerCore<M, R, Strat>
@@ -94,14 +94,14 @@ where
     context: SchedulerSpawnContext<M, R>,
   ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
     let SchedulerSpawnContext {
-      mailbox_runtime,
-      mailbox_runtime_shared,
+      mailbox_factory,
+      mailbox_factory_shared,
       map_system,
       mailbox_options,
       handler,
       child_naming,
     } = context;
-    let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_runtime_shared);
+    let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_factory_shared);
     mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
     let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
     mailbox.set_metrics_sink(self.metrics_sink.clone());
@@ -123,7 +123,7 @@ where
       map_system,
       watchers,
       actor_path,
-      mailbox_runtime,
+      mailbox_factory,
       mailbox_spawner,
       mailbox,
       sender,

@@ -81,13 +81,13 @@ async fn run_typed_actor_system_handles_user_messages() {
 }
 
 async fn run_receive_timeout_triggers() {
-  let mailbox_runtime = TokioMailboxRuntime;
+  let mailbox_factory = TokioMailboxRuntime;
   let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
   config.set_receive_timeout_factory(Some(ReceiveTimeoutSchedulerFactoryShared::new(
     TokioReceiveTimeoutSchedulerFactory::new(),
   )));
   let mut system: ActorSystem<u32, _> =
-    ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(mailbox_runtime), config);
+    ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(mailbox_factory), config);
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(
@@ -137,16 +137,16 @@ async fn typed_actor_system_handles_user_messages_multi_thread() {
 #[tokio::test]
 async fn tokio_scheduler_builder_dispatches() {
   let bundle: TokioActorRuntime = tokio_actor_runtime();
-  let mailbox_runtime = bundle.mailbox_runtime().clone();
-  let mut scheduler = tokio_scheduler_builder().build(mailbox_runtime.clone(), Extensions::new());
+  let mailbox_factory = bundle.mailbox_factory().clone();
+  let mut scheduler = tokio_scheduler_builder().build(mailbox_factory.clone(), Extensions::new());
 
   let log: Arc<Mutex<Vec<Message>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
 
-  let mailbox_runtime_shared = ArcShared::new(mailbox_runtime.clone());
+  let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
   let context = SchedulerSpawnContext {
-    mailbox_runtime: mailbox_runtime.clone(),
-    mailbox_runtime_shared: mailbox_runtime_shared,
+    mailbox_factory: mailbox_factory.clone(),
+    mailbox_factory_shared: mailbox_factory_shared,
     map_system: MapSystemShared::new(Message::System),
     mailbox_options: MailboxOptions::default(),
     handler: Box::new(move |_, msg: Message| {

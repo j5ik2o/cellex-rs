@@ -10,6 +10,6 @@ where
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone, {
-  /// Builds a shared factory bound to the mailbox runtime for the given actor runtime.
+  /// Builds a shared factory bound to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime; for the given actor runtime.
   fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, R>;
 }

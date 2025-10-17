@@ -35,7 +35,7 @@ where
   M: Element,
   R: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized, {
-  mailbox_runtime: &'a R,
+  mailbox_factory: &'a R,
   mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
   sender: &'a R::Producer<PriorityEnvelope<M>>,
   supervisor: &'a mut Sup,
@@ -60,7 +60,7 @@ where
 {
   #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
-    mailbox_runtime: &'a R,
+    mailbox_factory: &'a R,
     mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
     sender: &'a R::Producer<PriorityEnvelope<M>>,
     supervisor: &'a mut Sup,
@@ -73,7 +73,7 @@ where
     extensions: Extensions,
   ) -> Self {
     Self {
-      mailbox_runtime,
+      mailbox_factory,
       mailbox_spawner,
       sender,
       supervisor,
@@ -102,8 +102,8 @@ where
     self.extensions.with::<E, _, _>(id, f)
   }
 
-  pub fn mailbox_runtime(&self) -> &R {
-    self.mailbox_runtime
+  pub fn mailbox_factory(&self) -> &R {
+    self.mailbox_factory
   }
 
   pub fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<M, R> {

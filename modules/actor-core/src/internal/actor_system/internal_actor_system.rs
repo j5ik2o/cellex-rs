@@ -26,7 +26,7 @@ where
   pub(super) scheduler: SchedulerHandle<M, MailboxOf<R>>,
   #[allow(dead_code)]
   pub(super) actor_runtime_shared: ArcShared<R>,
-  pub(super) mailbox_runtime_shared: ArcShared<MailboxOf<R>>,
+  pub(super) mailbox_factory_shared: ArcShared<MailboxOf<R>>,
   extensions: Extensions,
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
@@ -66,9 +66,9 @@ where
       extensions,
     } = config;
     let actor_runtime_shared = ArcShared::new(actor_runtime);
-    let mailbox_runtime_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_factory_shared());
-    let mailbox_runtime_for_scheduler = mailbox_runtime_shared.with_ref(|mr| mr.clone());
-    let mut scheduler = scheduler_builder.build(mailbox_runtime_for_scheduler, extensions.clone());
+    let mailbox_factory_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_factory_shared());
+    let mailbox_factory_for_scheduler = mailbox_factory_shared.with_ref(|mr| mr.clone());
+    let mut scheduler = scheduler_builder.build(mailbox_factory_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_root_failure_telemetry(root_failure_telemetry);
@@ -78,7 +78,7 @@ where
     Self {
       scheduler,
       actor_runtime_shared,
-      mailbox_runtime_shared,
+      mailbox_factory_shared,
       extensions,
       metrics_sink,
       _strategy: PhantomData,

@@ -16,10 +16,10 @@ where
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  /// Mailbox runtime used to create queue-backed actor mailboxes.
-  pub mailbox_runtime: R,
-  /// Shared clone of the mailbox runtime for components that require `ArcShared` access.
-  pub mailbox_runtime_shared: ArcShared<R>,
+  /// use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used to create queue-backed actor mailboxes.
+  pub mailbox_factory: R,
+  /// Shared clone of the use cellex_actor_core_rs::api::mailbox::MailboxRuntime; for components that require `ArcShared` access.
+  pub mailbox_factory_shared: ArcShared<R>,
   /// Mapping utilities used to translate system messages for the target actor type.
   pub map_system: MapSystemShared<M>,
   /// Mailbox configuration parameters applied during actor creation.
