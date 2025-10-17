@@ -93,9 +93,11 @@ pub use api::*;
 pub use cellex_utils_core_rs::sync::ArcShared;
 pub use internal::actor::InternalActorRef;
 pub use internal::context::{ActorHandlerFn, ChildSpawnSpec};
-pub use internal::mailbox::traits::{MailboxRuntime, SingleThread, ThreadSafe};
+pub use internal::guardian::{AlwaysRestart, GuardianStrategy};
 pub use internal::mailbox::PriorityMailboxSpawnerHandle;
-pub use internal::message::{discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey};
+pub use internal::message::internal_message_metadata::InternalMessageMetadata;
+pub use internal::message::internal_message_sender::InternalMessageSender;
+pub use internal::message::{discard_metadata, store_metadata, take_metadata, MetadataKey};
 
 pub use internal::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
 #[cfg(any(test, feature = "test-support"))]

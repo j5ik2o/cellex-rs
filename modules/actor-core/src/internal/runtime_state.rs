@@ -1,9 +1,9 @@
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::scheduler::SchedulerBuilder;
 use crate::DynMessage;
+use crate::MailboxRuntime;
 
 /// Internal state container for `GenericActorRuntime`.
 ///

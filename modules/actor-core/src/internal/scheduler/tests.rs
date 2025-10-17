@@ -638,7 +638,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 
   let envelope = parent_mailbox.queue().poll().unwrap().unwrap();
   let (msg, _, channel) = envelope.into_parts_with_channel();
-  assert_eq!(channel, crate::internal::mailbox::PriorityChannel::Control);
+  assert_eq!(channel, crate::PriorityChannel::Control);
   match msg {
     Message::System(SystemMessage::Escalate(info)) => {
       assert_eq!(info.actor, ActorId(0));

@@ -4,7 +4,6 @@ mod actor_system;
 #[cfg(feature = "alloc")]
 pub(crate) mod extensions;
 mod failure_event_stream;
-mod guardian;
 pub(crate) mod identity;
 pub mod mailbox;
 pub(crate) mod messaging;
@@ -12,7 +11,6 @@ mod supervision;
 
 pub use actor::*;
 pub use failure_event_stream::*;
-pub use guardian::*;
 pub use identity::*;
 pub use mailbox::Mailbox;
 pub use mailbox::MailboxConcurrency;

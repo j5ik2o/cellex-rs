@@ -15,14 +15,12 @@ mod signal;
 #[cfg(test)]
 mod tests;
 
-pub use crate::api::actor_runtime::GenericActorRuntime;
-pub use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-pub use crate::api::actor_system::{
-  ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, Spawn, Timer,
-};
-pub use crate::api::mailbox::MailboxRuntime;
-pub use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-pub use crate::DynMessage as RuntimeMessage;
+pub use super::actor_runtime::GenericActorRuntime;
+pub use super::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+pub use super::actor_system::{ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, Spawn, Timer};
+pub use super::mailbox::MailboxRuntime;
+pub use super::mailbox::{PriorityEnvelope, SystemMessage};
+pub use super::messaging::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;
 pub use actor_ref::PriorityActorRef;
 pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};

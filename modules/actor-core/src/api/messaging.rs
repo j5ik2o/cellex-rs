@@ -8,8 +8,6 @@ mod metadata_storage_mode;
 mod metadata_storage_record;
 mod user_message;
 
-pub use crate::internal::message::internal_message_metadata::InternalMessageMetadata;
-pub use crate::internal::message::internal_message_sender::InternalMessageSender;
 pub use dyn_message::DynMessage;
 pub use dyn_message_value::DynMessageValue;
 pub use message_envelope::MessageEnvelope;

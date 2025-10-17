@@ -6,11 +6,11 @@ use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::guardian::AlwaysRestart;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::internal::scheduler::ReadyQueueWorker;
 use crate::serializer_extension_id;
+use crate::AlwaysRestart;
 use crate::{
   default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventStream, SerializerRegistryExtension,
   TelemetryContext,
@@ -28,7 +28,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
+  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>, {
   inner: InternalActorSystem<DynMessage, R, Strat>,
   pub(crate) shutdown: ShutdownToken,
   extensions: Extensions,
@@ -139,7 +139,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>,
 {
   /// Gets the shutdown token.
   ///

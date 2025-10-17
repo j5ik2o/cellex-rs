@@ -7,7 +7,8 @@ use core::future::Future;
 use core::marker::PhantomData;
 
 use super::super::{ask::create_ask_handles, ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
-use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
+use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
+use crate::InternalMessageSender;
 
 /// Typed actor reference.
 ///

@@ -17,7 +17,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
+  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>, {
   pub(crate) system: ActorSystem<U, R, Strat>,
   pub(crate) ready_queue_worker_count: NonZeroUsize,
   pub(crate) _marker: PhantomData<U>,
@@ -29,7 +29,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>,
 {
   /// Gets the number of ReadyQueue workers to spawn when driving the system.
   #[must_use]

@@ -3,5 +3,4 @@ pub mod internal_message_sender;
 pub mod metadata_table;
 mod metadata_table_inner;
 
-pub use crate::api::messaging::DynMessage;
 pub use metadata_table::{discard_metadata, store_metadata, take_metadata, MetadataKey};

@@ -1,5 +1,5 @@
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::message::DynMessage;
+use crate::DynMessage;
 use cellex_utils_core_rs::QueueError;
 use core::fmt;
 
