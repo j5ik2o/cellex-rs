@@ -4,9 +4,9 @@ use crate::api::messaging::{MessageMetadata, MetadataStorageMode, MetadataStorag
 
 use super::metadata_table::MetadataKey;
 
-pub(super) struct MetadataTableInner {
-  pub(super) entries: Vec<Option<MetadataStorageRecord>>,
-  pub(super) free_list: Vec<MetadataKey>,
+pub(crate) struct MetadataTableInner {
+  pub(crate) entries: Vec<Option<MetadataStorageRecord>>,
+  pub(crate) free_list: Vec<MetadataKey>,
 }
 
 #[cfg(not(target_has_atomic = "ptr"))]
@@ -16,14 +16,14 @@ unsafe impl Send for MetadataTableInner {}
 unsafe impl Sync for MetadataTableInner {}
 
 impl MetadataTableInner {
-  pub(super) const fn new() -> Self {
+  pub(crate) const fn new() -> Self {
     Self {
       entries: Vec::new(),
       free_list: Vec::new(),
     }
   }
 
-  pub(super) fn store<C>(&mut self, metadata: MessageMetadata<C>) -> MetadataKey
+  pub(crate) fn store<C>(&mut self, metadata: MessageMetadata<C>) -> MetadataKey
   where
     C: MetadataStorageMode, {
     let stored = C::into_record(metadata);
@@ -37,7 +37,7 @@ impl MetadataTableInner {
     }
   }
 
-  pub(super) fn discard(&mut self, key: MetadataKey) -> Option<MetadataStorageRecord> {
+  pub(crate) fn discard(&mut self, key: MetadataKey) -> Option<MetadataStorageRecord> {
     let index = key as usize;
     if index >= self.entries.len() {
       return None;
@@ -49,7 +49,7 @@ impl MetadataTableInner {
     entry
   }
 
-  pub(super) fn take<C>(&mut self, key: MetadataKey) -> Option<MessageMetadata<C>>
+  pub(crate) fn take<C>(&mut self, key: MetadataKey) -> Option<MessageMetadata<C>>
   where
     C: MetadataStorageMode, {
     self.discard(key).and_then(C::from_record)

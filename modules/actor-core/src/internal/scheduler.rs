@@ -20,6 +20,7 @@ pub use child_naming::ChildNaming;
 #[cfg(any(test, feature = "test-support"))]
 pub use immediate_scheduler::ImmediateScheduler;
 pub use noop_receive_timeout_driver::NoopReceiveTimeoutDriver;
+#[allow(unused_imports)]
 pub(crate) use noop_receive_timeout_scheduler::NoopReceiveTimeoutScheduler;
 pub use noop_receive_timeout_scheduler_factory::NoopReceiveTimeoutSchedulerFactory;
 pub use ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker};

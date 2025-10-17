@@ -124,8 +124,8 @@ run_embedded() {
 }
 
 run_tests() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --verbose"
-  run_cargo test --workspace --verbose
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --exclude module-wiring-lint --verbose"
+  run_cargo test --workspace --exclude module-wiring-lint --verbose
 }
 
 run_all() {

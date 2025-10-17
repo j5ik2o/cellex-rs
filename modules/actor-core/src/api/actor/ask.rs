@@ -12,10 +12,8 @@ pub(crate) use shared::{AskShared, DispatchFn, DropHookFn};
 pub type AskResult<T> = Result<T, AskError>;
 
 use crate::api::mailbox::MailboxConcurrency;
-use crate::api::{MessageEnvelope, MessageSender};
 use crate::internal::message::discard_metadata;
-use crate::DynMessage;
-use crate::InternalMessageSender;
+use crate::{DynMessage, InternalMessageSender, MessageEnvelope, MessageSender};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;

@@ -24,8 +24,11 @@ pub(crate) use behavior_directive::BehaviorDirective;
 pub(crate) use behavior_state::BehaviorState;
 #[allow(unused_imports)]
 pub use behaviors::Behaviors;
+#[allow(unused_imports)]
 pub(crate) use dyn_supervisor::DynSupervisor;
+#[allow(unused_imports)]
 pub(crate) use fixed_directive_supervisor::FixedDirectiveSupervisor;
+#[allow(unused_imports)]
 pub(crate) use supervise_builder::SuperviseBuilder;
 #[allow(unused_imports)]
 pub use supervisor_strategy::SupervisorStrategy;

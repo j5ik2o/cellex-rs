@@ -8,7 +8,6 @@ use super::*;
 use super::{ask_with_timeout, AskError};
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::api::{MessageEnvelope, MessageMetadata, MessageSender};
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::message::take_metadata;
 use crate::internal::scheduler::SpawnError;
@@ -21,6 +20,7 @@ use crate::MapSystemShared;
 use crate::{serializer_extension_id, SerializerRegistryExtension};
 use crate::{Extension, ExtensionId};
 use crate::{FailureEvent, FailureEventListener};
+use crate::{MessageEnvelope, MessageMetadata, MessageSender};
 use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;

@@ -83,12 +83,34 @@ mod api;
 mod internal;
 mod shared;
 
-pub use api::actor::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+pub use api::actor::{
+  ActorFailure, ActorRef, Behavior, BehaviorFailure, Behaviors, Context, DefaultBehaviorFailure, Props, RootContext,
+  ShutdownToken,
+};
+pub use api::actor_runtime::{
+  ActorRuntime, GenericActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf,
+};
+pub use api::actor_system::{ActorSystem, ActorSystemConfig, ActorSystemRunner, Spawn, Timer};
 #[cfg(feature = "alloc")]
 pub use api::extensions::{next_extension_id, Extension, ExtensionId, Extensions};
 #[cfg(feature = "alloc")]
 pub use api::extensions::{serializer_extension_id, SerializerRegistryExtension};
-pub use api::mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage};
+pub use api::failure_event_stream::FailureEventStream;
+pub use api::identity::{ActorId, ActorPath};
+pub use api::mailbox::{
+  Mailbox, MailboxConcurrency, MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer, MailboxRuntime,
+  MailboxSignal, PriorityChannel, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv, SingleThread,
+  SystemMessage, ThreadSafe,
+};
+pub use api::messaging::DynMessage as RuntimeMessage;
+pub use api::messaging::{DynMessage, MetadataStorageMode};
+// Re-export for internal use
+pub(crate) use api::messaging::{MessageEnvelope, MessageMetadata, MessageSender};
+pub use api::supervision::{
+  default_failure_telemetry, EscalationSink, EscalationStage, FailureEvent, FailureEventHandler, FailureEventListener,
+  FailureInfo, FailureMetadata, FailureSnapshot, FailureTelemetry, NoopFailureTelemetry, NoopSupervisor,
+  RootEscalationSink, Supervisor, SupervisorDirective, TelemetryObservationConfig,
+};
 pub use api::*;
 pub use cellex_utils_core_rs::sync::ArcShared;
 pub use internal::actor::InternalActorRef;

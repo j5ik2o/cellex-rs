@@ -33,39 +33,39 @@ mod local_waker {
 }
 
 #[cfg(target_has_atomic = "ptr")]
-pub(super) type SharedWaker = futures::task::AtomicWaker;
+pub(crate) type SharedWaker = futures::task::AtomicWaker;
 
 #[cfg(not(target_has_atomic = "ptr"))]
-pub(super) type SharedWaker = local_waker::LocalWaker;
+pub(crate) type SharedWaker = local_waker::LocalWaker;
 
 #[cfg(target_has_atomic = "ptr")]
-pub(super) type DispatchFn =
+pub(crate) type DispatchFn =
   dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
 
 #[cfg(not(target_has_atomic = "ptr"))]
-pub(super) type DispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
+pub(crate) type DispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
 
 #[cfg(target_has_atomic = "ptr")]
-pub(super) type DropHookFn = dyn Fn() + Send + Sync;
+pub(crate) type DropHookFn = dyn Fn() + Send + Sync;
 
 #[cfg(not(target_has_atomic = "ptr"))]
-pub(super) type DropHookFn = dyn Fn();
+pub(crate) type DropHookFn = dyn Fn();
 
-pub(super) const STATE_PENDING: u8 = 0;
-pub(super) const STATE_READY: u8 = 1;
-pub(super) const STATE_CANCELLED: u8 = 2;
-pub(super) const STATE_RESPONDER_DROPPED: u8 = 3;
+pub(crate) const STATE_PENDING: u8 = 0;
+pub(crate) const STATE_READY: u8 = 1;
+pub(crate) const STATE_CANCELLED: u8 = 2;
+pub(crate) const STATE_RESPONDER_DROPPED: u8 = 3;
 
 /// Internal state shared between `AskFuture` and responder.
-pub(super) struct AskShared<Resp> {
-  pub(super) state: AtomicU8,
-  pub(super) value: UnsafeCell<Option<Resp>>,
-  pub(super) waker: SharedWaker,
+pub(crate) struct AskShared<Resp> {
+  pub(crate) state: AtomicU8,
+  pub(crate) value: UnsafeCell<Option<Resp>>,
+  pub(crate) waker: SharedWaker,
 }
 
 impl<Resp> AskShared<Resp> {
   #[cfg(target_has_atomic = "ptr")]
-  pub(super) const fn new() -> Self {
+  pub(crate) const fn new() -> Self {
     Self {
       state: AtomicU8::new(STATE_PENDING),
       value: UnsafeCell::new(None),
@@ -74,7 +74,7 @@ impl<Resp> AskShared<Resp> {
   }
 
   #[cfg(not(target_has_atomic = "ptr"))]
-  pub(super) fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self {
       state: AtomicU8::new(STATE_PENDING),
       value: UnsafeCell::new(None),
@@ -82,7 +82,7 @@ impl<Resp> AskShared<Resp> {
     }
   }
 
-  pub(super) fn complete(&self, value: Resp) -> bool {
+  pub(crate) fn complete(&self, value: Resp) -> bool {
     match self
       .state
       .compare_exchange(STATE_PENDING, STATE_READY, Ordering::AcqRel, Ordering::Acquire)
@@ -98,7 +98,7 @@ impl<Resp> AskShared<Resp> {
     }
   }
 
-  pub(super) fn cancel(&self) -> bool {
+  pub(crate) fn cancel(&self) -> bool {
     self
       .state
       .compare_exchange(STATE_PENDING, STATE_CANCELLED, Ordering::AcqRel, Ordering::Acquire)
@@ -108,7 +108,7 @@ impl<Resp> AskShared<Resp> {
       .is_ok()
   }
 
-  pub(super) fn responder_dropped(&self) {
+  pub(crate) fn responder_dropped(&self) {
     if self
       .state
       .compare_exchange(
@@ -123,11 +123,11 @@ impl<Resp> AskShared<Resp> {
     }
   }
 
-  pub(super) unsafe fn take_value(&self) -> Option<Resp> {
+  pub(crate) unsafe fn take_value(&self) -> Option<Resp> {
     unsafe { (*self.value.get()).take() }
   }
 
-  pub(super) fn state(&self) -> u8 {
+  pub(crate) fn state(&self) -> u8 {
     self.state.load(Ordering::Acquire)
   }
 }

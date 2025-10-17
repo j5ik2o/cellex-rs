@@ -11,7 +11,7 @@ use cellex_utils_core_rs::Element;
 
 use super::{ActorAdapter, ActorFailure, Behavior, Context};
 use crate::api::actor::behavior::SupervisorStrategyConfig;
-use crate::api::MessageEnvelope;
+use crate::MessageEnvelope;
 use core::marker::PhantomData;
 use spin::Mutex;
 

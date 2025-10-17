@@ -8,7 +8,7 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::ready_queue_context::ReadyQueueContext;
-pub(super) struct ReadyQueueWorkerImpl<M, R, Strat>
+pub(crate) struct ReadyQueueWorkerImpl<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
@@ -22,7 +22,7 @@ where
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
-  pub(super) fn new(context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>) -> Self {
+  pub(crate) fn new(context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>) -> Self {
     Self { context }
   }
 }

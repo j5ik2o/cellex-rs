@@ -876,7 +876,7 @@ fn scheduler_requeues_failed_custom_escalation() {
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_root_event_listener_broadcasts() {
-  use crate::api::tests::TestFailureEventStream;
+  use crate::api::failure_event_stream::tests::TestFailureEventStream;
   use crate::FailureEventStream;
   use std::sync::{Arc as StdArc, Mutex};
 

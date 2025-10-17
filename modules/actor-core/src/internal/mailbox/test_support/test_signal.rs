@@ -2,8 +2,8 @@ use crate::internal::mailbox::test_support::test_signal_state::TestSignalState;
 use crate::internal::mailbox::test_support::test_signal_wait::TestSignalWait;
 use crate::MailboxSignal;
 use cellex_utils_core_rs::ArcShared;
-use std::cell::RefCell;
-use std::marker::PhantomData;
+use core::cell::RefCell;
+use core::marker::PhantomData;
 
 #[derive(Clone)]
 pub struct TestSignal {

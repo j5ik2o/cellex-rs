@@ -1,6 +1,6 @@
 use cellex_utils_core_rs::{ArcShared, MpscBuffer, MpscHandle, RingBufferBackend, Shared};
+use core::cell::RefCell;
 use core::fmt;
-use std::cell::RefCell;
 
 pub struct SharedBackendHandle<T>(ArcShared<RingBufferBackend<RefCell<MpscBuffer<T>>>>);
 

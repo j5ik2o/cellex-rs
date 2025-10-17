@@ -23,13 +23,13 @@ use crate::internal::actor::ActorCell;
 use crate::SpawnError;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 
-pub(super) struct ReadyQueueContext<M, R, Strat>
+pub(crate) struct ReadyQueueContext<M, R, Strat>
 where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
-  pub(super) core: ReadyQueueSchedulerCore<M, R, Strat>,
-  pub(super) state: ArcShared<Mutex<ReadyQueueState>>,
+  pub(crate) core: ReadyQueueSchedulerCore<M, R, Strat>,
+  pub(crate) state: ArcShared<Mutex<ReadyQueueState>>,
 }
 
 impl<M, R, Strat> ReadyQueueContext<M, R, Strat>

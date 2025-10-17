@@ -1,8 +1,8 @@
 use crate::internal::mailbox::test_support::test_signal::TestSignal;
-use std::future::Future;
-use std::marker::PhantomData;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use core::future::Future;
+use core::marker::PhantomData;
+use core::pin::Pin;
+use core::task::{Context, Poll};
 
 pub struct TestSignalWait<'a> {
   pub(crate) signal: TestSignal,

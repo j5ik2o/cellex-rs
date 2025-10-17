@@ -1,10 +1,10 @@
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
-pub(super) struct ReadyQueueState {
-  pub(super) queue: VecDeque<usize>,
-  pub(super) queued: Vec<bool>,
-  pub(super) running: Vec<bool>,
+pub(crate) struct ReadyQueueState {
+  pub(crate) queue: VecDeque<usize>,
+  pub(crate) queued: Vec<bool>,
+  pub(crate) running: Vec<bool>,
 }
 
 impl ReadyQueueState {

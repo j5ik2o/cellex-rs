@@ -14,5 +14,6 @@ pub use failure_snapshot::*;
 pub use failure_telemetry::*;
 pub use noop_failure_telemetry::*;
 pub use telemetry_observation_config::*;
+#[allow(unused_imports)]
 pub(crate) use telemetry_tag::TelemetryTag;
 pub use tracing_failure_telemetry::*;

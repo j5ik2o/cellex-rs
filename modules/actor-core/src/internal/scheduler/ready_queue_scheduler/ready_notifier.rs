@@ -7,13 +7,13 @@ use cellex_utils_core_rs::sync::ArcShared;
 use super::ready_event_hook::ReadyEventHook;
 use super::ready_queue_state::ReadyQueueState;
 
-pub(super) struct ReadyNotifier {
+pub(crate) struct ReadyNotifier {
   state: ArcShared<Mutex<ReadyQueueState>>,
   index: usize,
 }
 
 impl ReadyNotifier {
-  pub(super) fn new(state: ArcShared<Mutex<ReadyQueueState>>, index: usize) -> Self {
+  pub(crate) fn new(state: ArcShared<Mutex<ReadyQueueState>>, index: usize) -> Self {
     Self { state, index }
   }
 }

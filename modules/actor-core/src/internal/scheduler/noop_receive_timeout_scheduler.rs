@@ -2,7 +2,7 @@ use crate::ReceiveTimeoutScheduler;
 
 /// `ReceiveTimeoutScheduler` implementation that performs no scheduling.
 #[derive(Default)]
-pub struct NoopReceiveTimeoutScheduler;
+pub(crate) struct NoopReceiveTimeoutScheduler;
 
 impl ReceiveTimeoutScheduler for NoopReceiveTimeoutScheduler {
   fn set(&mut self, _duration: core::time::Duration) {}
