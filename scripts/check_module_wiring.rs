@@ -26,6 +26,7 @@ struct ModEntry {
     is_public: bool,
     has_reexport: bool,
     is_cfg_test: bool,
+    delegates_children: bool,
     child_name: String,
 }
 
@@ -37,6 +38,11 @@ struct Violation {
 fn main() -> Result<()> {
     let root = PathBuf::from(".");
     let mut dirs = collect_source_dirs(&root)?;
+
+    println!("[RULE] 再エクスポート規約");
+    println!("  1. 末端モジュールの直属親ファイルだけが `mod child;` と `pub use child::Type;` を同居できる");
+    println!("  2. それ以外の階層では `pub mod child;` のみ許可され、`pub use`/`pub(crate) use` は禁止");
+    println!("  3. 末端以外のモジュールで `mod child;` を使う場合は違反、必ず `pub mod child;` にする");
 
     let filters = parse_filters();
     if !filters.is_empty() {
@@ -62,6 +68,7 @@ fn main() -> Result<()> {
     }
 
     let mut reports: BTreeMap<PathBuf, Vec<Violation>> = BTreeMap::new();
+    let mut delegation_cache: HashMap<PathBuf, bool> = HashMap::new();
 
     for dir in &dirs {
         for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
@@ -88,7 +95,7 @@ fn main() -> Result<()> {
             for item in &syntax.items {
                 match item {
                     Item::Mod(item_mod) => {
-                        handle_mod_item(path, item_mod, &mut mods)?;
+                        handle_mod_item(path, item_mod, &mut mods, &mut delegation_cache)?;
                     }
                     Item::Use(item_use) => {
                         handle_use_item(item_use, &mods, &mut reexports);
@@ -115,6 +122,19 @@ fn main() -> Result<()> {
                             });
                         }
                     }
+                    if entry.delegates_children {
+                        for path_repr in paths {
+                            file_violations.push(Violation {
+                                message: format!(
+                                    "`{}` は末端モジュールではないため、このファイルで再エクスポートできません",
+                                    path_repr
+                                ),
+                                suggestion: Some(format!(
+                                    "`pub mod {child};` を宣言し、再エクスポートは `{child}` の直属ファイルに限定してください"
+                                )),
+                            });
+                        }
+                    }
                 } else {
                     for path_repr in paths {
                         file_violations.push(Violation {
@@ -135,6 +155,19 @@ fn main() -> Result<()> {
                     continue;
                 }
                 if IGNORED_CHILD_MODULES.iter().any(|name| *name == entry.child_name) {
+                    continue;
+                }
+                if entry.delegates_children {
+                    if !entry.is_public {
+                        file_violations.push(Violation {
+                            message: format!(
+                                "`mod {child};` は下位モジュールを束ねているため `pub mod {child};` に切り替えてください"
+                            ),
+                            suggestion: Some(format!(
+                                "親側では `pub mod {child};` のみを宣言し、再エクスポートはさらに下位のファイルに任せてください"
+                            )),
+                        });
+                    }
                     continue;
                 }
                 if entry.is_public {
@@ -188,15 +221,21 @@ fn handle_mod_item(
     file_path: &Path,
     item_mod: &ItemMod,
     mods: &mut HashMap<String, ModEntry>,
+    delegation_cache: &mut HashMap<PathBuf, bool>,
 ) -> Result<()> {
     if item_mod.content.is_some() {
         return Ok(()); // インラインモジュールは対象外
     }
 
     let ident = item_mod.ident.to_string();
-    if IGNORED_CHILD_MODULES.iter().any(|name| *name == ident.as_str()) {
+    if is_ignored_child_module(&ident) {
         return Ok(());
     }
+
+    let child_path = match resolve_child_path(file_path, &ident) {
+        Some(path) => path,
+        None => return Ok(()),
+    };
 
     if has_cfg_test(&item_mod.attrs) {
         mods.insert(
@@ -205,16 +244,14 @@ fn handle_mod_item(
                 is_public: !matches!(item_mod.vis, Visibility::Inherited),
                 has_reexport: false,
                 is_cfg_test: true,
+                delegates_children: false,
                 child_name: ident,
             },
         );
         return Ok(());
     }
 
-    // 対象となる子ファイルが存在するか確認しておく
-    if resolve_child_path(file_path, &ident).is_none() {
-        return Ok(()); // 外部ファイルが存在しなければスキップ
-    }
+    let delegates_children = module_delegates(&child_path, delegation_cache)?;
 
     mods.insert(
         ident.clone(),
@@ -222,10 +259,47 @@ fn handle_mod_item(
             is_public: !matches!(item_mod.vis, Visibility::Inherited),
             has_reexport: false,
             is_cfg_test: false,
+            delegates_children,
             child_name: ident,
         },
     );
     Ok(())
+}
+
+fn is_ignored_child_module(name: &str) -> bool {
+    IGNORED_CHILD_MODULES.iter().any(|ignored| *ignored == name)
+}
+
+fn module_delegates(path: &Path, cache: &mut HashMap<PathBuf, bool>) -> Result<bool> {
+    if let Some(cached) = cache.get(path) {
+        return Ok(*cached);
+    }
+
+    let src = fs::read_to_string(path)
+        .with_context(|| format!("failed to read {}", path.display()))?;
+    let syntax = syn::parse_file(&src)
+        .with_context(|| format!("failed to parse {}", path.display()))?;
+
+    let mut delegates = false;
+    for item in syntax.items {
+        if let Item::Mod(item_mod) = item {
+            if item_mod.content.is_some() {
+                continue;
+            }
+            let ident = item_mod.ident.to_string();
+            if is_ignored_child_module(&ident) || ident.starts_with("__") {
+                continue;
+            }
+            if has_cfg_test(&item_mod.attrs) {
+                continue;
+            }
+            delegates = true;
+            break;
+        }
+    }
+
+    cache.insert(path.to_path_buf(), delegates);
+    Ok(delegates)
 }
 
 fn handle_use_item(
@@ -244,6 +318,7 @@ fn handle_use_item(
         if segments.is_empty() {
             continue;
         }
+        let first_segment = segments.first().cloned();
         let mut normalized = segments;
         while matches!(normalized.first().map(String::as_str), Some("self") | Some("super") | Some("crate")) {
             normalized.remove(0);
@@ -252,7 +327,9 @@ fn handle_use_item(
             continue;
         }
         let child = normalized[0].clone();
-        if mods.contains_key(&child) {
+        let should_track = mods.contains_key(&child)
+            || matches!(first_segment.as_deref(), Some("self") | Some("super") | Some("crate"));
+        if should_track {
             reexports.entry(child).or_default().push(display);
         }
     }
