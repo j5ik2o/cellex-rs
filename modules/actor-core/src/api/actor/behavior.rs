@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MetadataStorageMode;
 use cellex_utils_core_rs::sync::ArcShared;
@@ -38,8 +38,7 @@ pub use supervisor_strategy_config::SupervisorStrategyConfig;
 
 pub(super) type ReceiveFn<U, R> =
   dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static;
-pub(super) type SystemHandlerFn<U, R> =
-  dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, crate::api::mailbox::messages::SystemMessage) + 'static;
+pub(super) type SystemHandlerFn<U, R> = dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static;
 pub(super) type SignalFn<U, R> =
   dyn for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static;
 pub(super) type SetupFn<U, R> =

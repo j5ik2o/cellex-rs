@@ -1,4 +1,4 @@
-use crate::api::mailbox::thread_safe::ThreadSafe;
+use crate::api::mailbox::ThreadSafe;
 use crate::api::messaging::{MessageSender, MetadataStorageMode};
 use crate::internal::message::InternalMessageMetadata;
 use cellex_utils_core_rs::Element;

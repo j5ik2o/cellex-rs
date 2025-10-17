@@ -2,8 +2,8 @@ use super::{Behavior, BehaviorDirective, Signal, SignalFn, SupervisorStrategyCon
 use crate::api::actor::context::Context;
 use crate::api::actor::failure::ActorFailure;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::api::mailbox::messages::SystemMessage;
+use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MessageEnvelope;
 use crate::api::messaging::MetadataStorageMode;

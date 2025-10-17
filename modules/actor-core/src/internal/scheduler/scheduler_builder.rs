@@ -3,8 +3,8 @@
 use alloc::boxed::Box;
 
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::guardian::GuardianStrategy;
 use crate::internal::scheduler::actor_scheduler::ActorScheduler;
 #[cfg(any(test, feature = "test-support"))]

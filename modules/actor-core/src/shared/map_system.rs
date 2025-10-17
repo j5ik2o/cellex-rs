@@ -1,6 +1,6 @@
 use core::ops::Deref;
 
-use crate::api::mailbox::messages::SystemMessage;
+use crate::api::mailbox::SystemMessage;
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 
 #[cfg(target_has_atomic = "ptr")]

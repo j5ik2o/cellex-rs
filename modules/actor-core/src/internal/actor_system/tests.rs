@@ -5,8 +5,8 @@
 
 use super::*;
 use crate::api::actor_runtime::GenericActorRuntime;
-use crate::api::mailbox::mailbox_options::MailboxOptions;
-use crate::api::mailbox::messages::SystemMessage;
+use crate::api::mailbox::MailboxOptions;
+use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
 use crate::internal::actor::InternalProps;
 use crate::internal::guardian::AlwaysRestart;

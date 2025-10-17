@@ -1,4 +1,4 @@
-use crate::api::mailbox::mailbox_signal::MailboxSignal;
+use crate::api::mailbox::MailboxSignal;
 use crate::internal::mailbox::test_support::test_signal_state::TestSignalState;
 use crate::internal::mailbox::test_support::test_signal_wait::TestSignalWait;
 use cellex_utils_core_rs::ArcShared;

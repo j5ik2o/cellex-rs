@@ -4,7 +4,7 @@ use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, M
 use crate::api::extensions::Extension;
 use crate::api::extensions::ExtensionId;
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MetadataStorageMode;
 use crate::internal::actor_system::InternalRootContext;

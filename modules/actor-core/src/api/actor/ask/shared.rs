@@ -1,4 +1,4 @@
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use cellex_utils_core_rs::QueueError;
 use core::cell::UnsafeCell;

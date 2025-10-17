@@ -11,7 +11,7 @@ pub(crate) use shared::{AskShared, DispatchFn, DropHookFn};
 /// Result alias used by `ask` helpers.
 pub type AskResult<T> = Result<T, AskError>;
 
-use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
+use crate::api::mailbox::MailboxConcurrency;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MessageEnvelope;
 use crate::api::messaging::MessageSender;

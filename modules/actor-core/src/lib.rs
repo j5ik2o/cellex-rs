@@ -76,6 +76,7 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
 use cellex_utils_core_rs::QueueError;
 use core::time::Duration;
@@ -103,11 +104,11 @@ impl<T> RuntimeBound for T {}
 
 /// Function type alias for converting system messages to message type.
 #[cfg(target_has_atomic = "ptr")]
-pub type MapSystemFn<M> = dyn Fn(api::mailbox::messages::SystemMessage) -> M + Send + Sync;
+pub type MapSystemFn<M> = dyn Fn(SystemMessage) -> M + Send + Sync;
 
 /// Function type alias for converting system messages on non-atomic targets.
 #[cfg(not(target_has_atomic = "ptr"))]
-pub type MapSystemFn<M> = dyn Fn(api::mailbox::messages::SystemMessage) -> M;
+pub type MapSystemFn<M> = dyn Fn(SystemMessage) -> M;
 
 /// Minimal actor loop implementation.
 ///

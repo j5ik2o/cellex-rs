@@ -1,8 +1,8 @@
 use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::api::mailbox::thread_safe::ThreadSafe;
+use crate::api::mailbox::MailboxConcurrency;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::ThreadSafe;
 use crate::api::messaging::DynMessage;
 use crate::RuntimeBound;
 #[cfg(not(target_has_atomic = "ptr"))]

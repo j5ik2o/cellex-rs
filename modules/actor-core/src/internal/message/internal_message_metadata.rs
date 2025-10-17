@@ -1,5 +1,5 @@
-use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
-use crate::api::mailbox::thread_safe::ThreadSafe;
+use crate::api::mailbox::MailboxConcurrency;
+use crate::api::mailbox::ThreadSafe;
 use crate::internal::message::internal_message_sender::InternalMessageSender;
 
 /// Metadata accompanying a message (internal representation).

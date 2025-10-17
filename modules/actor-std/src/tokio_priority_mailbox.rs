@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests;
 
-use cellex_actor_core_rs::api::mailbox::mailbox_options::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
 use cellex_actor_core_rs::api::mailbox::Mailbox;
+use cellex_actor_core_rs::api::mailbox::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
+use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
+use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
 use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
 use cellex_utils_std_rs::{
   Element, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, DEFAULT_CAPACITY, PRIORITY_LEVELS,

@@ -9,16 +9,16 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-use cellex_actor_core_rs::api::mailbox::mailbox_options::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::mailbox_runtime::MailboxRuntime;
-use cellex_actor_core_rs::api::mailbox::mailbox_signal::MailboxSignal;
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
+use cellex_actor_core_rs::api::mailbox::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::MailboxSignal;
+use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 #[cfg(feature = "embedded_rc")]
-use cellex_actor_core_rs::api::mailbox::single_thread::SingleThread;
+use cellex_actor_core_rs::api::mailbox::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
-use cellex_actor_core_rs::api::mailbox::thread_safe::ThreadSafe;
+use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
+use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
 use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_utils_embedded_rs::ArcLocalMpscUnboundedQueue;

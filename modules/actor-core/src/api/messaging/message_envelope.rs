@@ -1,4 +1,4 @@
-use crate::api::mailbox::messages::SystemMessage;
+use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::{MessageMetadata, MetadataStorageMode, UserMessage};
 use cellex_utils_core_rs::Element;
 

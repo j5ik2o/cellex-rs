@@ -3,8 +3,8 @@ use std::vec::Vec;
 
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::extensions::Extensions;
-use cellex_actor_core_rs::api::mailbox::mailbox_runtime::MailboxRuntime;
-use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
+use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
 use cellex_actor_core_rs::api::supervision::escalation::{FailureEventHandler, FailureEventListener};
 use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
 use cellex_actor_core_rs::api::supervision::supervisor::Supervisor;

@@ -1,6 +1,6 @@
-use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
-use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::api::mailbox::thread_safe::ThreadSafe;
+use crate::api::mailbox::MailboxConcurrency;
+use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::ThreadSafe;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MessageEnvelope;
 use crate::internal::message::InternalMessageSender;

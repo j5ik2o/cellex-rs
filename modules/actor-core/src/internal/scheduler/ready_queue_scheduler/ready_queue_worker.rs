@@ -3,8 +3,8 @@
 use futures::future::{select, Either, LocalBoxFuture};
 
 use crate::api::actor::shutdown_token::ShutdownToken;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

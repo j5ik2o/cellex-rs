@@ -4,8 +4,8 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureInfo;

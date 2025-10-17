@@ -6,9 +6,9 @@ extern crate alloc;
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
-use cellex_actor_core_rs::api::mailbox::single_thread::SingleThread;
-use cellex_actor_core_rs::api::mailbox::thread_safe::ThreadSafe;
+use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
+use cellex_actor_core_rs::api::mailbox::SingleThread;
+use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::messaging::{
   DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode,
 };

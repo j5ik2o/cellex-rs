@@ -4,7 +4,7 @@ use crate::api::actor_runtime::MailboxOf;
 use crate::api::actor_runtime::MailboxQueueOf;
 use crate::api::actor_runtime::MailboxSignalOf;
 use crate::api::actor_system::ActorSystem;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::scheduler::ReadyQueueWorker;

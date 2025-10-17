@@ -3,7 +3,7 @@ use crate::api::actor_runtime::MailboxQueueOf;
 use crate::api::actor_runtime::MailboxSignalOf;
 use crate::api::actor_system::ActorSystem;
 use crate::api::actor_system::ActorSystemConfig;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use cellex_utils_core_rs::Element;
 use core::marker::PhantomData;

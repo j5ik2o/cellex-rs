@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::scheduler::noop_receive_timeout_scheduler::NoopReceiveTimeoutScheduler;
 use crate::internal::scheduler::receive_timeout_scheduler::ReceiveTimeoutScheduler;
 use crate::internal::scheduler::receive_timeout_scheduler_factory::ReceiveTimeoutSchedulerFactory;

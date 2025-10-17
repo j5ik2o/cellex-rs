@@ -1,6 +1,6 @@
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::MailboxRuntime;
 use crate::internal::actor::InternalActorRef;
 use crate::shared::map_system::MapSystemShared;
 use alloc::string::String;

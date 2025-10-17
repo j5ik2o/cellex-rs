@@ -1,4 +1,4 @@
-use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
+use crate::api::mailbox::MailboxConcurrency;
 use crate::api::messaging::metadata_storage_record::MetadataStorageRecord;
 use crate::api::messaging::MessageMetadata;
 

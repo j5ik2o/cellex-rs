@@ -17,9 +17,9 @@ use crate::api::extensions::{
   next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension,
 };
 use crate::api::identity::ActorId;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::api::mailbox::messages::SystemMessage;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MessageEnvelope;
 use crate::api::messaging::MessageMetadata;
@@ -163,7 +163,7 @@ mod receive_timeout_injection {
   use crate::api::actor_runtime::ActorRuntime;
   use crate::api::actor_system::ActorSystem;
   use crate::api::actor_system::ActorSystemConfig;
-  use crate::api::mailbox::messages::PriorityEnvelope;
+  use crate::api::mailbox::PriorityEnvelope;
   use crate::api::messaging::DynMessage;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
   use crate::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
@@ -316,7 +316,7 @@ mod receive_timeout_injection {
   }
 }
 
-use crate::api::mailbox::thread_safe::ThreadSafe;
+use crate::api::mailbox::ThreadSafe;
 use cellex_utils_core_rs::sync::ArcShared;
 use core::any::Any;
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -1101,7 +1101,7 @@ mod metrics_injection {
   use super::*;
   use crate::api::actor_system::ActorSystem;
   use crate::api::actor_system::ActorSystemConfig;
-  use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+  use crate::api::mailbox::MailboxRuntime;
   use crate::api::messaging::DynMessage;
   use crate::api::supervision::supervisor::Supervisor;
   use crate::api::supervision::telemetry::TelemetryObservationConfig;

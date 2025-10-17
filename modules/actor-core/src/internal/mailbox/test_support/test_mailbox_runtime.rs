@@ -1,9 +1,9 @@
-use crate::api::mailbox::mailbox_options::MailboxOptions;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::queue_mailbox::QueueMailbox;
-use crate::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
-use crate::api::mailbox::thread_safe::ThreadSafe;
+use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxPair;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::QueueMailbox;
+use crate::api::mailbox::QueueMailboxProducer;
+use crate::api::mailbox::ThreadSafe;
 use crate::internal::mailbox::test_support::common::TestQueue;
 use crate::internal::mailbox::test_support::shared_backend_handle::SharedBackendHandle;
 use crate::internal::mailbox::test_support::test_signal::TestSignal;

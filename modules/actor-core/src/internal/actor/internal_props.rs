@@ -1,7 +1,7 @@
 use crate::api::actor::failure::ActorFailure;
-use crate::api::mailbox::mailbox_options::MailboxOptions;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::MailboxOptions;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::context::{ActorContext, ActorHandlerFn};
 use crate::shared::map_system::MapSystemShared;

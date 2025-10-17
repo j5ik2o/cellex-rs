@@ -1,6 +1,6 @@
-use crate::api::mailbox::mailbox_producer::MailboxProducer;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::{PriorityEnvelope, SystemMessage};
+use crate::api::mailbox::MailboxProducer;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::RuntimeBound;
 use cellex_utils_core_rs::{Element, QueueError};
 

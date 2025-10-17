@@ -1,7 +1,7 @@
-use crate::api::mailbox::mailbox_producer::MailboxProducer;
-use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
-use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::api::mailbox::messages::SystemMessage;
+use crate::api::mailbox::MailboxProducer;
+use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::SystemMessage;
 use crate::api::supervision::escalation::EscalationSink;
 use crate::api::supervision::failure::FailureInfo;
 use crate::internal::actor::InternalActorRef;

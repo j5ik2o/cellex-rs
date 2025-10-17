@@ -14,7 +14,7 @@ use crate::api::extensions::ExtensionId;
 use crate::api::extensions::Extensions;
 use crate::api::extensions::SerializerRegistryExtension;
 use crate::api::failure_event_stream::FailureEventStream;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::supervision::telemetry::default_failure_telemetry;
 use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};

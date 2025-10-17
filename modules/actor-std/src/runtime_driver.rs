@@ -5,7 +5,7 @@ use core::num::NonZeroUsize;
 use cellex_actor_core_rs::api::actor::shutdown_token::ShutdownToken;
 use cellex_actor_core_rs::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use cellex_actor_core_rs::api::actor_system::ActorSystemRunner;
-use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
+use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
 use cellex_actor_core_rs::api::messaging::DynMessage;
 use cellex_actor_core_rs::internal::scheduler::{drive_ready_queue_worker, ReadyQueueWorker};
 use cellex_utils_core_rs::sync::ArcShared;

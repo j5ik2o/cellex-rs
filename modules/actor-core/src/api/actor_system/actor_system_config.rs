@@ -4,7 +4,7 @@ use crate::api::actor_runtime::MailboxQueueOf;
 use crate::api::actor_runtime::MailboxSignalOf;
 use crate::api::extensions::Extension;
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
