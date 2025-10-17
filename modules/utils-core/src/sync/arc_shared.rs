@@ -5,7 +5,7 @@ use alloc::sync::Arc;
 
 use core::ptr;
 
-use super::Shared;
+use super::{Shared, SharedDyn};
 
 /// Shared wrapper backed by `alloc::sync::Arc`.
 ///
@@ -81,6 +81,16 @@ impl<T: ?Sized> Shared<T> for ArcShared<T> {
   where
     T: Sized, {
     Arc::try_unwrap(self.0).map_err(ArcShared)
+  }
+}
+
+impl<T: ?Sized> SharedDyn<T> for ArcShared<T> {
+  type Dyn<U: ?Sized + 'static> = ArcShared<U>;
+
+  fn into_dyn<U: ?Sized + 'static, F>(self, cast: F) -> Self::Dyn<U>
+  where
+    F: FnOnce(&T) -> &U, {
+    ArcShared::into_dyn(self, cast)
   }
 }
 

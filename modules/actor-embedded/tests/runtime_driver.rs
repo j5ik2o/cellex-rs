@@ -7,17 +7,23 @@ use core::cell::RefCell;
 
 use std::sync::Arc;
 
-use cellex_actor_core_rs::{
-  ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
-};
-use cellex_actor_core_rs::{ActorSystem, FailureEventStream, GenericActorRuntime, Props};
+use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
+use cellex_actor_core_rs::api::actor::Props;
+use cellex_actor_core_rs::api::actor::{ActorId, ActorPath};
+use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
+use cellex_actor_core_rs::api::actor_system::ActorSystem;
+use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
+use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
+use cellex_actor_core_rs::api::supervision::failure::{FailureEvent, FailureInfo, FailureMetadata};
 use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, LocalMailboxRuntime};
 
 #[test]
 fn embedded_actor_runtime_dispatches_message() {
   let hub = EmbeddedFailureEventHub::new();
-  let mut system: ActorSystem<u32, _> =
-    ActorSystem::new_with_runtime_and_event_stream(GenericActorRuntime::new(LocalMailboxRuntime::default()), &hub);
+  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime_and_event_stream(
+    GenericActorRuntime::new(LocalMailboxRuntime::default()),
+    &hub,
+  );
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();

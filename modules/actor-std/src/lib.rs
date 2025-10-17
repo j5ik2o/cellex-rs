@@ -75,8 +75,7 @@ pub use timer::TokioTimer;
 pub use tokio_mailbox::{TokioMailbox, TokioMailboxRuntime, TokioMailboxSender};
 pub use tokio_priority_mailbox::{TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender};
 
-#[cfg(test)]
-use cellex_actor_core_rs::{ActorSystemConfig, ReceiveTimeoutFactoryShared};
+use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 
 /// A prelude module that provides commonly used re-exported types and traits.
 pub mod prelude {
@@ -92,12 +91,12 @@ pub mod prelude {
 mod tests;
 
 /// Default actor runtime preset for Tokio environments.
-pub type TokioActorRuntime = cellex_actor_core_rs::GenericActorRuntime<TokioMailboxRuntime>;
+pub type TokioActorRuntime = GenericActorRuntime<TokioMailboxRuntime>;
 
 /// Builds the default Tokio-oriented actor runtime preset.
 #[must_use]
 pub fn tokio_actor_runtime() -> TokioActorRuntime {
   use scheduler::TokioActorRuntimeExt;
 
-  cellex_actor_core_rs::GenericActorRuntime::new(TokioMailboxRuntime).with_tokio_scheduler()
+  GenericActorRuntime::new(TokioMailboxRuntime).with_tokio_scheduler()
 }

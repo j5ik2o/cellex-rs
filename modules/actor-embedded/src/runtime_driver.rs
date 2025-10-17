@@ -6,7 +6,9 @@ use alloc::vec::Vec;
 
 use spin::Mutex;
 
-use cellex_actor_core_rs::{FailureEvent, FailureEventListener, FailureEventStream};
+use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
+use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
+use cellex_actor_core_rs::api::supervision::failure::FailureEvent;
 
 /// Simple FailureEventHub implementation for embedded environments.
 #[derive(Clone, Default)]

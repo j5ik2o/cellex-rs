@@ -1,0 +1,17 @@
+use crate::api::metrics::MetricsSinkShared;
+use crate::internal::scheduler::ReadyQueueHandle;
+use cellex_utils_core_rs::{Element, QueueError};
+
+/// Sending interface exposed by mailbox producers that enqueue messages.
+pub trait MailboxProducer<M>: Clone
+where
+  M: Element, {
+  /// Attempts to enqueue a message without waiting.
+  fn try_send(&self, message: M) -> Result<(), QueueError<M>>;
+
+  /// Injects a metrics sink for enqueue instrumentation. Default: no-op.
+  fn set_metrics_sink(&mut self, _sink: Option<MetricsSinkShared>) {}
+
+  /// Installs a scheduler hook invoked on message arrivals. Default: no-op.
+  fn set_scheduler_hook(&mut self, _hook: Option<ReadyQueueHandle>) {}
+}

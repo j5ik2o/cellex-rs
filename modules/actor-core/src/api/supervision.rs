@@ -1,9 +1,8 @@
-mod escalation;
-mod failure;
-mod supervisor;
-mod telemetry;
-
-pub use escalation::*;
-pub use failure::*;
-pub use supervisor::{NoopSupervisor, Supervisor, SupervisorDirective};
-pub use telemetry::*;
+/// Escalation handling for failures
+pub mod escalation;
+/// Failure information and metadata
+pub mod failure;
+/// Supervisor strategies and directives
+pub mod supervisor;
+/// Telemetry and observability for failures
+pub mod telemetry;

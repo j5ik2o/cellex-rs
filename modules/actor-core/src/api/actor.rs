@@ -1,56 +1,32 @@
 //! Actor API aggregation module.
-//!
-//! Re-exports basic types used by the runtime layer such as
-//! [`SystemMessage`] and [`PriorityEnvelope`] from this module.
 
-mod actor_ref;
-mod ask;
-mod behavior;
-mod context;
-mod failure;
+/// Actor failure information
+pub mod actor_failure;
+mod actor_id;
+mod actor_path;
+/// Actor reference types
+pub mod actor_ref;
+/// Ask pattern for request-response communication
+pub mod ask;
+/// Actor behavior definitions
+pub mod behavior;
+/// Actor execution context
+pub mod context;
+/// Actor spawn properties
 mod props;
-mod root_context;
-mod system;
-mod system_support;
+/// Root context for top-level actors
+pub mod root_context;
+/// Shutdown coordination
+pub mod shutdown_token;
+/// Actor lifecycle signals
+pub mod signal;
+mod spawn;
 #[cfg(test)]
 mod tests;
+mod timer;
 
-pub use crate::runtime::mailbox::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, PriorityEnvelope, QueueMailbox,
-  QueueMailboxProducer, QueueMailboxRecv, SystemMessage,
-};
-pub use crate::runtime::message::DynMessage as RuntimeMessage;
-pub use actor_ref::ActorRef;
-pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
-pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
-pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, SetupContext};
-pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
+pub use actor_id::ActorId;
+pub use actor_path::ActorPath;
 pub use props::Props;
-pub use root_context::RootContext;
-pub use system::{
-  ActorSystem, ActorSystemBuilder, ActorSystemConfig, ActorSystemRunner, GenericActorRuntime, ShutdownToken,
-};
-pub use system_support::{Spawn, Timer};
-
-#[doc(hidden)]
-mod __actor_doc_refs {
-  use super::*;
-  use crate::runtime::message::DynMessage;
-  use cellex_utils_core_rs::Element;
-
-  #[allow(dead_code)]
-  pub fn _priority_envelope_marker<M: Element>() {
-    let _ = core::mem::size_of::<PriorityEnvelope<DynMessage>>();
-    let _ = core::mem::size_of::<PriorityEnvelope<M>>();
-  }
-
-  #[allow(dead_code)]
-  pub fn _system_message_marker(message: SystemMessage) -> SystemMessage {
-    message
-  }
-
-  #[allow(dead_code)]
-  pub fn _mailbox_runtime_marker<R: MailboxRuntime>(runtime: &R) -> &R {
-    runtime
-  }
-}
+pub use spawn::Spawn;
+pub use timer::Timer;

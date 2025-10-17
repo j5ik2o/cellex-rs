@@ -59,13 +59,13 @@ ensure_target_installed() {
 }
 
 run_lint() {
-  log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check"
-  cargo "+${FMT_TOOLCHAIN}" fmt -- --check
+  log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check (excluding module-wiring-lint)"
+  cargo "+${FMT_TOOLCHAIN}" fmt --all -- --check
 }
 
 run_clippy() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --all-targets -- -D warnings"
-  run_cargo clippy --workspace --all-targets -- -D warnings
+  log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --exclude module-wiring-lint --all-targets -- -D warnings"
+  run_cargo clippy --workspace --exclude module-wiring-lint --all-targets -- -D warnings
 }
 
 run_no_std() {
@@ -91,6 +91,12 @@ run_std() {
 }
 
 run_embedded() {
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-embedded-rs --no-default-features --features rc"
+  run_cargo check -p cellex-utils-embedded-rs --no-default-features --features rc
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-embedded-rs --no-default-features --features arc"
+  run_cargo check -p cellex-utils-embedded-rs --no-default-features --features arc
+
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run"
   run_cargo test -p cellex-utils-embedded-rs --no-default-features --features embassy --no-run
 
@@ -118,8 +124,8 @@ run_embedded() {
 }
 
 run_tests() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --verbose"
-  run_cargo test --workspace --verbose
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --exclude module-wiring-lint --verbose"
+  run_cargo test --workspace --exclude module-wiring-lint --verbose
 }
 
 run_all() {
@@ -131,6 +137,8 @@ run_all() {
 }
 
 main() {
+  "${SCRIPT_DIR}/check_modrs.sh"
+
   if [[ $# -eq 0 ]]; then
     run_all
     return

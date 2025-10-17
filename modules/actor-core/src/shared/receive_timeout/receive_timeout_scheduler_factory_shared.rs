@@ -1,0 +1,62 @@
+use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::PriorityEnvelope;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactory;
+use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::Element;
+
+/// Shared wrapper around a `ReceiveTimeoutSchedulerFactory` implementation.
+pub struct ReceiveTimeoutSchedulerFactoryShared<M, R> {
+  inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>,
+}
+
+impl<M, R> ReceiveTimeoutSchedulerFactoryShared<M, R>
+where
+  M: Element + 'static,
+  R: MailboxFactory + Clone + 'static,
+  R::Producer<PriorityEnvelope<M>>: Clone,
+{
+  /// Creates a new shared factory from a concrete factory value.
+  #[must_use]
+  pub fn new<F>(factory: F) -> Self
+  where
+    F: ReceiveTimeoutSchedulerFactory<M, R> + 'static, {
+    let shared = ArcShared::new(factory);
+    Self {
+      inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactory<M, R>),
+    }
+  }
+
+  /// Wraps an existing shared factory.
+  #[must_use]
+  pub fn from_shared(inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>) -> Self {
+    Self { inner }
+  }
+
+  /// Consumes the wrapper and returns the underlying shared handle.
+  #[must_use]
+  pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>> {
+    self.inner
+  }
+
+  /// Returns the inner shared handle.
+  #[must_use]
+  pub fn as_shared(&self) -> &ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>> {
+    &self.inner
+  }
+}
+
+impl<M, R> Clone for ReceiveTimeoutSchedulerFactoryShared<M, R> {
+  fn clone(&self) -> Self {
+    Self {
+      inner: self.inner.clone(),
+    }
+  }
+}
+
+impl<M, R> core::ops::Deref for ReceiveTimeoutSchedulerFactoryShared<M, R> {
+  type Target = dyn ReceiveTimeoutSchedulerFactory<M, R>;
+
+  fn deref(&self) -> &Self::Target {
+    &*self.inner
+  }
+}

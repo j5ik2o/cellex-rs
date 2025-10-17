@@ -1,18 +1,23 @@
-use crate::runtime::context::ActorContext;
-use crate::runtime::mailbox::traits::{
-  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxRuntime, MailboxSignalOf,
-};
-use crate::runtime::message::{take_metadata, DynMessage, MetadataStorageMode};
-use crate::runtime::system::InternalProps;
-use crate::Supervisor;
-use crate::SystemMessage;
-use crate::{MailboxOptions, PriorityEnvelope};
+use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxOptions;
+use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::SystemMessage;
+use crate::api::messaging::DynMessage;
+use crate::api::messaging::MetadataStorageMode;
+use crate::api::supervision::supervisor::Supervisor;
+use crate::internal::actor::InternalProps;
+use crate::internal::context::ActorContext;
+use crate::internal::message::take_metadata;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
-use super::behavior::SupervisorStrategyConfig;
-use super::{ActorAdapter, ActorFailure, Behavior, Context};
-use crate::api::MessageEnvelope;
+use super::actor_failure::ActorFailure;
+use super::behavior::ActorAdapter;
+use super::behavior::Behavior;
+use super::context::Context;
+use crate::api::actor::behavior::SupervisorStrategyConfig;
+use crate::api::messaging::MessageEnvelope;
 use core::marker::PhantomData;
 use spin::Mutex;
 
@@ -23,7 +28,7 @@ pub struct Props<U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode, {
@@ -36,7 +41,7 @@ impl<U, R> Props<U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,

@@ -20,6 +20,17 @@ pub trait Shared<T: ?Sized>: Clone + Deref<Target = T> {
   }
 }
 
+/// Extensions for shared handles that can be converted into trait objects.
+pub trait SharedDyn<T: ?Sized>: Shared<T> {
+  /// Shared wrapper yielded after converting to a new dynamically sized view.
+  type Dyn<U: ?Sized + 'static>: Shared<U>;
+
+  /// Converts the shared handle into another dynamically sized representation.
+  fn into_dyn<U: ?Sized + 'static, F>(self, cast: F) -> Self::Dyn<U>
+  where
+    F: FnOnce(&T) -> &U;
+}
+
 /// Marker trait that expresses the synchronisation guarantees required for shared closures.
 ///
 /// * On targets that provide atomic pointer operations (`target_has_atomic = "ptr"`), this marker
@@ -38,7 +49,3 @@ pub trait SharedBound {}
 
 #[cfg(not(target_has_atomic = "ptr"))]
 impl<T> SharedBound for T {}
-
-#[cfg(test)]
-#[allow(clippy::disallowed_types)]
-mod tests;

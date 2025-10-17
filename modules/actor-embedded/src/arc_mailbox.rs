@@ -10,12 +10,14 @@ use core::task::{Context, Poll};
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 use embassy_sync::signal::Signal;
 
-use cellex_actor_core_rs::MetricsSinkShared;
-use cellex_actor_core_rs::ThreadSafe;
-use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
-  QueueMailboxRecv,
-};
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
+use cellex_actor_core_rs::api::mailbox::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::MailboxSignal;
+use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
+use cellex_actor_core_rs::api::mailbox::ThreadSafe;
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
+use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
+use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
 use cellex_utils_embedded_rs::queue::mpsc::ArcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::{ArcShared, Element, QueueError, QueueSize};
 
@@ -158,7 +160,7 @@ where
   }
 }
 
-impl<RM> MailboxRuntime for ArcMailboxRuntime<RM>
+impl<RM> MailboxFactory for ArcMailboxRuntime<RM>
 where
   RM: RawMutex,
 {

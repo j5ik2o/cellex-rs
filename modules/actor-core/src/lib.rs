@@ -76,40 +76,16 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+use crate::api::mailbox::SystemMessage;
 use cellex_utils_core_rs::QueueError;
 use core::time::Duration;
 
-mod api;
-#[cfg(feature = "alloc")]
-mod extensions;
-mod runtime;
-mod shared;
-
-pub use api::*;
-pub use cellex_utils_core_rs::sync::ArcShared;
-#[cfg(feature = "alloc")]
-pub use extensions::{next_extension_id, Extension, ExtensionId, Extensions};
-#[cfg(feature = "alloc")]
-pub use extensions::{serializer_extension_id, SerializerRegistryExtension};
-pub use runtime::context::{ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
-pub use runtime::mailbox::traits::{
-  ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxRuntime, MailboxSignalOf, SingleThread,
-  ThreadSafe,
-};
-pub use runtime::mailbox::{PriorityEnvelope, PriorityMailboxSpawnerHandle, SystemMessage};
-pub use runtime::message::{
-  discard_metadata, store_metadata, take_metadata, DynMessage, MetadataKey, MetadataStorageMode,
-};
-pub use runtime::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
-pub use runtime::scheduler::{
-  drive_ready_queue_worker, ActorScheduler, ChildNaming, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
-  ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
-  SchedulerBuilder, SchedulerSpawnContext, SpawnError,
-};
-pub use shared::{
-  FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,
-  MapSystemShared, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, TelemetryContext,
-};
+/// Public API for actors
+pub mod api;
+/// Internal implementation details
+pub mod internal;
+/// Shared utilities and types
+pub mod shared;
 
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.
 #[cfg(target_has_atomic = "ptr")]
@@ -144,8 +120,8 @@ pub type MapSystemFn<M> = dyn Fn(SystemMessage) -> M;
 /// * `handler` - Handler function to process messages
 pub async fn actor_loop<M, MB, T, F>(mailbox: &MB, timer: &T, mut handler: F)
 where
-  MB: Mailbox<M>,
-  T: Timer,
+  MB: api::mailbox::Mailbox<M>,
+  T: api::actor_system::Timer,
   F: FnMut(M), {
   loop {
     match mailbox.recv().await {

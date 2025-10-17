@@ -9,15 +9,17 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-use cellex_actor_core_rs::MetricsSinkShared;
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
+use cellex_actor_core_rs::api::mailbox::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::MailboxSignal;
+use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 #[cfg(feature = "embedded_rc")]
-use cellex_actor_core_rs::SingleThread;
+use cellex_actor_core_rs::api::mailbox::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
-use cellex_actor_core_rs::ThreadSafe;
-use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
-  QueueMailboxRecv,
-};
+use cellex_actor_core_rs::api::mailbox::ThreadSafe;
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
+use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
+use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_utils_embedded_rs::ArcLocalMpscUnboundedQueue;
 #[cfg(feature = "embedded_rc")]
@@ -238,7 +240,7 @@ impl LocalMailboxRuntime {
   }
 }
 
-impl MailboxRuntime for LocalMailboxRuntime {
+impl MailboxFactory for LocalMailboxRuntime {
   #[cfg(feature = "embedded_rc")]
   type Concurrency = SingleThread;
   #[cfg(not(feature = "embedded_rc"))]

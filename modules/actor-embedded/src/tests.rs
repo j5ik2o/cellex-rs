@@ -3,7 +3,9 @@ extern crate std;
 use super::LocalMailboxRuntime;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use cellex_actor_core_rs::{ActorSystem, Props};
+use cellex_actor_core_rs::api::actor::Props;
+use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
+use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
 use core::cell::RefCell;
 use core::future::Future;
 use core::pin::Pin;
@@ -49,8 +51,10 @@ fn block_on<F: Future>(mut future: F) -> F::Output {
 
 #[test]
 fn typed_actor_system_dispatch_next_processes_message() {
-  let factory = LocalMailboxRuntime::default();
-  let mut system: ActorSystem<u32, _> = ActorSystem::new(factory);
+  let mailbox_runtime = LocalMailboxRuntime::default();
+  let actor_runtime = GenericActorRuntime::new(mailbox_runtime);
+  let mut system: ActorSystem<u32, _> =
+    ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();

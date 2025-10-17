@@ -3,12 +3,14 @@ mod tests;
 
 use std::sync::Arc;
 
-use cellex_actor_core_rs::MetricsSinkShared;
-use cellex_actor_core_rs::ThreadSafe;
-use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
-  QueueMailboxRecv,
-};
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
+use cellex_actor_core_rs::api::mailbox::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::MailboxSignal;
+use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
+use cellex_actor_core_rs::api::mailbox::ThreadSafe;
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
+use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
+use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
 use cellex_utils_std_rs::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue};
 use cellex_utils_std_rs::{Element, QueueBase, QueueError, QueueRw, QueueSize};
 use tokio::sync::{futures::Notified, Notify};
@@ -196,7 +198,7 @@ impl TokioMailboxRuntime {
   }
 }
 
-impl MailboxRuntime for TokioMailboxRuntime {
+impl MailboxFactory for TokioMailboxRuntime {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>

@@ -79,8 +79,21 @@ cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi
 - **優先度付きメールボックス** — システムメッセージとユーザーメッセージを同居させつつ制御系を先行処理。
 - **監視階層** — ガーディアン戦略、Watch/Unwatch、Failure 情報のエスカレーションをサポート。
 - **非同期スケジューリング** — `run_until` / `run_forever` / ブロッキングループでホスト・MCU を問わず常駐運転。
-- **Shared 抽象** — `MapSystemShared`、`ReceiveTimeoutFactoryShared`、`ArcShared` などを通じて std / no_std の両方で共有資源を扱いやすく。
+- **Shared 抽象** — `MapSystemShared`、`ReceiveTimeoutFactoryShared`、`ArcShared`、`RcShared`、`StaticRefShared` などを通じて std / no_std / 静的構成で共有資源を扱いやすく。
 - **拡張性** — 拡張レジストリ、Failure Event ハブ、remote / cluster モジュールで将来の分散化に備える。
+
+### Shared ハンドルの使い分け
+
+`Shared<T>` ラッパー（`ArcShared` / `RcShared` / `StaticRefShared` など）は、std / no_std / 静的環境にまたがって統一的に共有所有権を扱うための共通インターフェイスです。トレイトオブジェクトへ変換する必要がある場合は、同じ型が実装する `SharedDyn::into_dyn` を使用してください。
+
+```rust
+use cellex_utils_core_rs::{ArcShared, SharedDyn};
+
+let serializer = ArcShared::new(JsonSerializer::default());
+let dyn_serializer = serializer.into_dyn(|s| s as &dyn Serializer);
+```
+
+`SharedDyn` を実装していない型では `into_dyn` を呼べないため、動的ディスパッチが必要な箇所では `ArcShared` や `RcShared` を利用するのが推奨です。
 
 ## アーキテクチャ概要
 

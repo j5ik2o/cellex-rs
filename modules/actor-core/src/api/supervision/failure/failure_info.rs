@@ -3,10 +3,10 @@ mod tests;
 
 use alloc::borrow::Cow;
 
-use crate::ActorFailure;
-use crate::ActorId;
-use crate::ActorPath;
-use crate::BehaviorFailure;
+use crate::api::actor::actor_failure::ActorFailure;
+use crate::api::actor::actor_failure::BehaviorFailure;
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 
 use super::{EscalationStage, FailureMetadata};
 

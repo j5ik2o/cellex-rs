@@ -2,11 +2,14 @@ use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
-use cellex_actor_core_rs::{
-  drive_ready_queue_worker, ActorRuntime, ActorSystemRunner, MailboxOf, MailboxQueueOf, MailboxSignalOf, ShutdownToken,
-};
-use cellex_actor_core_rs::{ArcShared, PriorityEnvelope, ReadyQueueWorker, RuntimeMessage};
-use cellex_utils_std_rs::QueueError;
+use cellex_actor_core_rs::api::actor::shutdown_token::ShutdownToken;
+use cellex_actor_core_rs::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use cellex_actor_core_rs::api::actor_system::ActorSystemRunner;
+use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
+use cellex_actor_core_rs::api::messaging::DynMessage;
+use cellex_actor_core_rs::internal::scheduler::{drive_ready_queue_worker, ReadyQueueWorker};
+use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::{Element, QueueError};
 use futures::future::select_all;
 use tokio::signal;
 use tokio::task::{self, JoinHandle};
@@ -16,15 +19,15 @@ use tokio::task::{self, JoinHandle};
 /// Controls the startup, shutdown, and termination waiting of the actor system.
 pub struct TokioSystemHandle<U>
 where
-  U: cellex_utils_std_rs::Element, {
-  join: tokio::task::JoinHandle<Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>>,
+  U: Element, {
+  join: tokio::task::JoinHandle<Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>>,
   shutdown: ShutdownToken,
   _marker: PhantomData<U>,
 }
 
 impl<U> TokioSystemHandle<U>
 where
-  U: cellex_utils_std_rs::Element,
+  U: Element,
 {
   /// Starts the actor system as a local task
   ///
@@ -37,7 +40,7 @@ where
   where
     U: cellex_utils_std_rs::Element + 'static,
     R: ActorRuntime + 'static,
-    MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
     MailboxSignalOf<R>: Clone, {
     let shutdown = runner.shutdown_token();
     let join = task::spawn_local(async move { run_runner(runner).await });
@@ -72,7 +75,7 @@ where
   /// the inner `Result` indicates system execution errors.
   pub async fn await_terminated(
     self,
-  ) -> Result<Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>, tokio::task::JoinError> {
+  ) -> Result<Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>, tokio::task::JoinError> {
     self.join.await
   }
 
@@ -99,11 +102,11 @@ where
 
 async fn run_runner<U, R>(
   runner: ActorSystemRunner<U, R>,
-) -> Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>
+) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>
 where
-  U: cellex_utils_std_rs::Element + 'static,
+  U: Element + 'static,
   R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone, {
   if !runner.supports_ready_queue() {
     return runner.run_forever().await;
@@ -124,11 +127,11 @@ where
 async fn run_ready_queue_workers<U, R>(
   runner: ActorSystemRunner<U, R>,
   worker_count: NonZeroUsize,
-) -> Result<Infallible, QueueError<PriorityEnvelope<RuntimeMessage>>>
+) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>
 where
-  U: cellex_utils_std_rs::Element + 'static,
+  U: Element + 'static,
   R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone, {
   let shutdown = runner.shutdown_token();
   let mut worker_handles = Vec::with_capacity(worker_count.get());
@@ -185,23 +188,23 @@ where
 }
 
 fn spawn_worker_task<R>(
-  worker: ArcShared<dyn ReadyQueueWorker<RuntimeMessage, MailboxOf<R>>>,
+  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<R>>>,
   shutdown: ShutdownToken,
-) -> JoinHandle<Result<(), QueueError<PriorityEnvelope<RuntimeMessage>>>>
+) -> JoinHandle<Result<(), QueueError<PriorityEnvelope<DynMessage>>>>
 where
   R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone, {
   task::spawn_local(async move { ready_queue_worker_loop::<R>(worker, shutdown).await })
 }
 
 async fn ready_queue_worker_loop<R>(
-  worker: ArcShared<dyn ReadyQueueWorker<RuntimeMessage, MailboxOf<R>>>,
+  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<R>>>,
   shutdown: ShutdownToken,
-) -> Result<(), QueueError<PriorityEnvelope<RuntimeMessage>>>
+) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
 where
   R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<RuntimeMessage>>: Clone,
+  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone, {
   let shutdown_for_wait = shutdown.clone();
   drive_ready_queue_worker(

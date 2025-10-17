@@ -18,12 +18,12 @@
 
 | カテゴリ | シンボル | 実配置 | 備考 |
 | --- | --- | --- | --- |
-| context | `ActorContext`, `ChildSpawnSpec`, `InternalActorRef` | `modules/actor-core/src/runtime/context/{actor_context.rs,child_spawn_spec.rs,internal_actor_ref.rs}` | API 側では `crate::runtime::context` 経由で参照 |
-| system | `InternalActorSystem`, `InternalRootContext`, `InternalProps` | `modules/actor-core/src/runtime/system/{internal_actor_system.rs,internal_root_context.rs,internal_props.rs}` | スケジューラ／ガーディアン連携の中核 |
-| mailbox | `PriorityEnvelope`, `QueueMailbox*`, `MailboxOptions`, `SystemMessage` | `modules/actor-core/src/runtime/mailbox/{messages.rs,queue_mailbox.rs,traits.rs}` | API からは `api::actor::system_support` を介して公開可否を制御 |
-| scheduler | `ReadyQueueScheduler`, `ActorCell` | `modules/actor-core/src/runtime/scheduler/{ready_queue_scheduler.rs,actor_cell.rs}` | ReadyQueue ベースのスケジューラ本体（外部には未公開） |
-| guardian | `Guardian`, `GuardianStrategy` 実装, `ChildRecord` | `modules/actor-core/src/runtime/guardian/{guardian.rs,strategy.rs,child_record.rs}` | API には戦略インターフェイスのみ再公開予定 |
-| supervision | `CompositeEscalationSink`, `CustomEscalationSink`, `ParentGuardianSink`, `RootEscalationSink` 等 | `modules/actor-core/src/runtime/supervision/{parent_guardian_sink.rs,root_sink.rs,composite_sink.rs,custom_sink.rs,traits.rs}` | Root/Parent ガーディアン向け内部シンク（API には trait/handler のみ公開） |
+| context | `ActorContext`, `ChildSpawnSpec`, `InternalActorRef` | `modules/actor-core/src/internal/context/{actor_context.rs,child_spawn_spec.rs,internal_actor_ref.rs}` | API 側では `crate::internal::context` 経由で参照 |
+| system | `InternalActorSystem`, `InternalRootContext`, `InternalProps` | `modules/actor-core/src/internal/system/{internal_actor_system.rs,internal_root_context.rs,internal_props.rs}` | スケジューラ／ガーディアン連携の中核 |
+| mailbox | `PriorityEnvelope`, `QueueMailbox*`, `MailboxOptions`, `SystemMessage` | `modules/actor-core/src/internal/mailbox/{messages.rs,queue_mailbox.rs,traits.rs}` | API からは `api::actor::system_support` を介して公開可否を制御 |
+| scheduler | `ReadyQueueScheduler`, `ActorCell` | `modules/actor-core/src/internal/scheduler/{ready_queue_scheduler.rs,actor_cell.rs}` | ReadyQueue ベースのスケジューラ本体（外部には未公開） |
+| guardian | `Guardian`, `GuardianStrategy` 実装, `ChildRecord` | `modules/actor-core/src/internal/guardian/{guardian.rs,strategy.rs,child_record.rs}` | API には戦略インターフェイスのみ再公開予定 |
+| supervision | `CompositeEscalationSink`, `CustomEscalationSink`, `ParentGuardianSink`, `RootEscalationSink` 等 | `modules/actor-core/src/internal/supervision/{parent_guardian_sink.rs,root_sink.rs,composite_sink.rs,custom_sink.rs,traits.rs}` | Root/Parent ガーディアン向け内部シンク（API には trait/handler のみ公開） |
 
 ## Platform 層（Feature 切替境界）
 

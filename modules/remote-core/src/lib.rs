@@ -56,7 +56,9 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use cellex_actor_core_rs::{FailureEvent, FailureEventListener, FailureEventStream, FailureInfo, FailureMetadata};
+use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
+use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
+use cellex_actor_core_rs::api::supervision::failure::{FailureEvent, FailureInfo, FailureMetadata};
 
 /// Handler for notifying failure events from remote actors.
 ///
