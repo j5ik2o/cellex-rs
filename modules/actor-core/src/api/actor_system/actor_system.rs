@@ -16,7 +16,7 @@ use crate::api::extensions::SerializerRegistryExtension;
 use crate::api::failure_event_stream::FailureEventStream;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
-use crate::api::supervision::telemetry::default_failure_telemetry;
+use crate::api::supervision::telemetry::default_failure_telemetry_shared;
 use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::scheduler::ReadyQueueWorker;
@@ -56,10 +56,10 @@ where
   /// as it uses `NonZeroUsize::new(1)` which is guaranteed to succeed.
   #[allow(clippy::needless_pass_by_value)]
   pub fn new_with_actor_runtime(actor_runtime: R, config: ActorSystemConfig<R>) -> Self {
-    let root_listener_from_runtime = actor_runtime.root_event_listener();
-    let root_handler_from_runtime = actor_runtime.root_escalation_handler();
-    let metrics_from_runtime = actor_runtime.metrics_sink();
-    let scheduler_builder = actor_runtime.scheduler_builder();
+    let root_listener_from_runtime = actor_runtime.root_event_listener_opt();
+    let root_handler_from_runtime = actor_runtime.root_escalation_handler_opt();
+    let metrics_from_runtime = actor_runtime.metrics_sink_shared_opt();
+    let scheduler_builder = actor_runtime.scheduler_builder_shared();
 
     let extensions_handle = config.extensions();
     if extensions_handle.get(serializer_extension_id()).is_none() {
@@ -69,21 +69,23 @@ where
     let extensions = extensions_handle;
 
     let receive_timeout_factory = config
-      .receive_timeout_factory()
-      .or(actor_runtime.receive_timeout_factory())
+      .receive_timeout_scheduler_factory_shared()
+      .or(actor_runtime.receive_timeout_scheduler_factory_shared_opt())
       .or_else(|| {
         actor_runtime
-          .receive_timeout_driver()
+          .receive_timeout_scheduler_factory_provider_shared_opt()
           .map(|driver| driver.build_factory())
       });
     let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
-    let metrics_sink = config.metrics_sink().or(metrics_from_runtime);
-    let telemetry_builder = config.failure_telemetry_builder();
+    let metrics_sink = config.metrics_sink_shared().or(metrics_from_runtime);
+    let telemetry_builder = config.failure_telemetry_builder_shared();
     let root_failure_telemetry = if let Some(builder) = telemetry_builder {
       let ctx = TelemetryContext::new(metrics_sink.clone(), extensions.clone());
       builder.build(&ctx)
     } else {
-      config.failure_telemetry().unwrap_or_else(default_failure_telemetry)
+      config
+        .failure_telemetry_shared()
+        .unwrap_or_else(default_failure_telemetry_shared)
     };
 
     let mut observation_config = config.failure_observation_config().unwrap_or_default();

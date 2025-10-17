@@ -1,5 +1,7 @@
 //! Actor API aggregation module.
 
+/// Actor failure information
+pub mod actor_failure;
 /// Actor reference types
 pub mod actor_ref;
 /// Ask pattern for request-response communication
@@ -8,8 +10,6 @@ pub mod ask;
 pub mod behavior;
 /// Actor execution context
 pub mod context;
-/// Actor failure information
-pub mod failure;
 /// Actor spawn properties
 pub mod props;
 /// Root context for top-level actors

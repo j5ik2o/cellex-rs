@@ -1,5 +1,5 @@
-use crate::api::mailbox::MailboxProducer;
 use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxProducer;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::supervision::escalation::EscalationSink;

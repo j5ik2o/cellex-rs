@@ -11,7 +11,7 @@ use cellex_actor_core_rs::api::mailbox::{PriorityEnvelope, SystemMessage};
 use cellex_actor_core_rs::api::messaging::DynMessage;
 use cellex_actor_core_rs::shared::map_system::MapSystemShared;
 use cellex_actor_core_rs::shared::receive_timeout::{
-  ReceiveTimeoutFactoryProvider, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
+  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
   ReceiveTimeoutSchedulerFactoryShared,
 };
 use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
@@ -128,7 +128,7 @@ impl TokioReceiveTimeoutDriver {
   }
 }
 
-impl ReceiveTimeoutFactoryProvider<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
+impl ReceiveTimeoutSchedulerFactoryProvider<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
   fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, TokioMailboxRuntime> {
     ReceiveTimeoutSchedulerFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new())
   }

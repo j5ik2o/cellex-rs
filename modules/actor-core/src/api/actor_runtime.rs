@@ -19,7 +19,7 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::SchedulerBuilder;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryProviderShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
 use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Helper alias mapping an actor runtime to its mailbox runtime.
@@ -58,53 +58,53 @@ pub trait ActorRuntime: Clone {
   /// Returns the shared handle to the underlying mailbox runtime.
   fn mailbox_factory_shared(&self) -> ArcShared<Self::MailboxFactory>;
 
-  /// Returns the receive-timeout factory configured for this runtime.
-  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
-
-  /// Returns the receive-timeout driver configured for this runtime.
-  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>>;
+  /// Returns the receive-timeout scheduler factory configured for this runtime.
+  fn receive_timeout_scheduler_factory_shared_opt(
+    &self,
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
 
   /// Overrides the receive-timeout factory using the base mailbox runtime type.
-  fn with_receive_timeout_factory(
+  fn with_receive_timeout_scheduler_factory_shared(
     self,
     factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>,
   ) -> Self
   where
     Self: Sized;
 
+  /// Returns the receive-timeout scheduler factory provider configured for this runtime.
+  fn receive_timeout_scheduler_factory_provider_shared_opt(
+    &self,
+  ) -> Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>;
+
   /// Overrides the receive-timeout driver.
-  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>>) -> Self
+  fn with_receive_timeout_scheduler_factory_provider_shared_opt(
+    self,
+    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>,
+  ) -> Self
   where
     Self: Sized;
 
-  /// Mutably overrides the receive-timeout driver.
-  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>>);
-
-  /// Returns a factory constructed from the configured receive-timeout driver, if any.
-  fn receive_timeout_driver_factory(&self)
-    -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
-
   /// Returns the root failure event listener configured for the runtime.
-  fn root_event_listener(&self) -> Option<FailureEventListener>;
+  fn root_event_listener_opt(&self) -> Option<FailureEventListener>;
 
   /// Overrides the root failure event listener.
-  fn with_root_event_listener(self, listener: Option<FailureEventListener>) -> Self
+  fn with_root_event_listener_opt(self, listener: Option<FailureEventListener>) -> Self
   where
     Self: Sized;
 
   /// Returns the root escalation handler configured for the runtime.
-  fn root_escalation_handler(&self) -> Option<FailureEventHandler>;
+  fn root_escalation_handler_opt(&self) -> Option<FailureEventHandler>;
 
   /// Overrides the root escalation handler.
-  fn with_root_escalation_handler(self, handler: Option<FailureEventHandler>) -> Self
+  fn with_root_escalation_handler_opt(self, handler: Option<FailureEventHandler>) -> Self
   where
     Self: Sized;
 
   /// Returns the metrics sink configured for the runtime.
-  fn metrics_sink(&self) -> Option<MetricsSinkShared>;
+  fn metrics_sink_shared_opt(&self) -> Option<MetricsSinkShared>;
 
   /// Overrides the metrics sink.
-  fn with_metrics_sink(self, sink: Option<MetricsSinkShared>) -> Self
+  fn with_metrics_sink_shared_opt(self, sink: Option<MetricsSinkShared>) -> Self
   where
     Self: Sized;
 
@@ -125,11 +125,14 @@ pub trait ActorRuntime: Clone {
   where
     Self: Sized;
 
+  /// Returns the scheduler builder configured for this runtime.
+  fn scheduler_builder_shared(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>;
+
   /// Overrides the scheduler builder using a shared handle.
-  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>) -> Self
+  fn with_scheduler_builder_shared(
+    self,
+    builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>,
+  ) -> Self
   where
     Self: Sized;
-
-  /// Returns the scheduler builder configured for this runtime.
-  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>;
 }

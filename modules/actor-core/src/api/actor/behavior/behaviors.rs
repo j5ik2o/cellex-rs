@@ -1,7 +1,7 @@
 use super::{Behavior, BehaviorDirective};
+use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::actor::behavior::supervise_builder::SuperviseBuilder;
 use crate::api::actor::context::Context;
-use crate::api::actor::failure::ActorFailure;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;

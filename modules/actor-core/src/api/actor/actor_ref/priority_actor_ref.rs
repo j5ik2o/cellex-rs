@@ -1,5 +1,5 @@
-use crate::api::mailbox::MailboxProducer;
 use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxProducer;
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::RuntimeBound;
 use cellex_utils_core_rs::{Element, QueueError};

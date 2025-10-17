@@ -5,7 +5,7 @@ use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::telemetry::default_failure_telemetry;
+use crate::api::supervision::telemetry::default_failure_telemetry_shared;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
@@ -51,7 +51,7 @@ where
       receive_timeout_factory: None,
       metrics_sink: None,
       extensions: Extensions::new(),
-      root_failure_telemetry: default_failure_telemetry(),
+      root_failure_telemetry: default_failure_telemetry_shared(),
       root_observation_config: TelemetryObservationConfig::new(),
     }
   }

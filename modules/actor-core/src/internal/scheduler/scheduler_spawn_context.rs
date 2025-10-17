@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 
-use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::context::ActorHandlerFn;
 use crate::internal::scheduler::child_naming::ChildNaming;

@@ -12,7 +12,7 @@ impl FailureTelemetry for NoopFailureTelemetry {
 }
 
 /// Returns a shared handle to the no-op telemetry implementation.
-pub fn noop_failure_telemetry() -> FailureTelemetryShared {
+pub fn noop_failure_telemetry_shared() -> FailureTelemetryShared {
   #[cfg(target_has_atomic = "ptr")]
   {
     static INSTANCE: Once<FailureTelemetryShared> = Once::new();

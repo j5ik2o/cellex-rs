@@ -9,8 +9,8 @@ use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
-use cellex_actor_core_rs::api::mailbox::MailboxOptions;
 use cellex_actor_core_rs::api::mailbox::MailboxFactory;
+use cellex_actor_core_rs::api::mailbox::MailboxOptions;
 use cellex_actor_core_rs::api::mailbox::MailboxSignal;
 use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 #[cfg(feature = "embedded_rc")]

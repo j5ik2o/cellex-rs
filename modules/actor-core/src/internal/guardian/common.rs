@@ -1,9 +1,9 @@
 use super::{ChildRecord, GuardianStrategy};
-use crate::api::actor::failure::ActorFailure;
+use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
-use crate::api::mailbox::MailboxProducer;
 use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxProducer;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::supervision::failure::FailureInfo;

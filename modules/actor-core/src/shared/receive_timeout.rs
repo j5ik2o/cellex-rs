@@ -1,14 +1,14 @@
-mod receive_timeout_factory_provider;
-mod receive_timeout_factory_provider_bound;
-mod receive_timeout_factory_provider_shared;
 mod receive_timeout_scheduler;
 mod receive_timeout_scheduler_factory;
+mod receive_timeout_scheduler_factory_provider;
+mod receive_timeout_scheduler_factory_provider_bound;
+mod receive_timeout_scheduler_factory_provider_shared;
 mod receive_timeout_scheduler_factory_shared;
 
-pub use receive_timeout_factory_provider::ReceiveTimeoutFactoryProvider;
-#[allow(unused_imports)]
-pub(crate) use receive_timeout_factory_provider_bound::ReceiveTimeoutFactoryProviderBound;
-pub use receive_timeout_factory_provider_shared::ReceiveTimeoutFactoryProviderShared;
 pub use receive_timeout_scheduler::ReceiveTimeoutScheduler;
 pub use receive_timeout_scheduler_factory::ReceiveTimeoutSchedulerFactory;
+pub use receive_timeout_scheduler_factory_provider::ReceiveTimeoutSchedulerFactoryProvider;
+#[allow(unused_imports)]
+pub(crate) use receive_timeout_scheduler_factory_provider_bound::ReceiveTimeoutSchedulerFactoryProviderBound;
+pub use receive_timeout_scheduler_factory_provider_shared::ReceiveTimeoutSchedulerFactoryProviderShared;
 pub use receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared;

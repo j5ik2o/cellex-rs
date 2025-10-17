@@ -1,6 +1,6 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
@@ -12,10 +12,10 @@ use crate::internal::message::take_metadata;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
+use super::actor_failure::ActorFailure;
 use super::behavior::ActorAdapter;
 use super::behavior::Behavior;
 use super::context::Context;
-use super::failure::ActorFailure;
 use crate::api::actor::behavior::SupervisorStrategyConfig;
 use crate::api::messaging::MessageEnvelope;
 use core::marker::PhantomData;

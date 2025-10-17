@@ -4,12 +4,12 @@
 #![allow(clippy::disallowed_types)]
 use super::ready_queue_scheduler::ReadyQueueScheduler;
 use super::*;
-use crate::api::actor::failure::BehaviorFailure;
+use crate::api::actor::actor_failure::BehaviorFailure;
 use crate::api::actor::shutdown_token::ShutdownToken;
 use crate::api::extensions::Extensions;
 use crate::api::identity::ActorId;
-use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::PriorityChannel;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;

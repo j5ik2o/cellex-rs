@@ -166,9 +166,11 @@ mod receive_timeout_injection {
   use crate::api::messaging::DynMessage;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
   use crate::shared::map_system::MapSystemShared;
-  use crate::shared::receive_timeout::{ReceiveTimeoutFactoryProvider, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
-  use crate::shared::receive_timeout::ReceiveTimeoutFactoryProviderShared;
+  use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
   use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
+  use crate::shared::receive_timeout::{
+    ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
+  };
   use alloc::boxed::Box;
   use core::time::Duration;
   use futures::executor::block_on;
@@ -222,7 +224,7 @@ mod receive_timeout_injection {
     }
   }
 
-  impl ReceiveTimeoutFactoryProvider<TestMailboxRuntime> for CountingDriver {
+  impl ReceiveTimeoutSchedulerFactoryProvider<TestMailboxRuntime> for CountingDriver {
     fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, TestMailboxRuntime> {
       self.driver_calls.fetch_add(1, Ordering::SeqCst);
       ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(self.factory_calls.clone()))
@@ -243,10 +245,12 @@ mod receive_timeout_injection {
     let driver_calls = Arc::new(AtomicUsize::new(0));
     let factory_calls = Arc::new(AtomicUsize::new(0));
 
-    let actor_runtime: TestRuntime =
-      GenericActorRuntime::new(mailbox_runtime.clone()).with_receive_timeout_driver(Some(
-        ReceiveTimeoutFactoryProviderShared::new(CountingDriver::new(driver_calls.clone(), factory_calls.clone())),
-      ));
+    let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_runtime.clone()).with_receive_timeout_driver(
+      Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+        driver_calls.clone(),
+        factory_calls.clone(),
+      ))),
+    );
 
     let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default();
 
@@ -265,10 +269,9 @@ mod receive_timeout_injection {
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_runtime.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        driver_factory_calls.clone(),
-      ))))
+      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
+        CountingDriver::new(driver_calls.clone(), driver_factory_calls.clone()),
+      )))
       .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
@@ -292,10 +295,9 @@ mod receive_timeout_injection {
     let config_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_runtime.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        driver_factory_calls.clone(),
-      ))))
+      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
+        CountingDriver::new(driver_calls.clone(), driver_factory_calls.clone()),
+      )))
       .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));

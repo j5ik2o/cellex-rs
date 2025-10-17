@@ -10,8 +10,8 @@ use core::task::{Context, Poll};
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 use embassy_sync::signal::Signal;
 
-use cellex_actor_core_rs::api::mailbox::MailboxOptions;
 use cellex_actor_core_rs::api::mailbox::MailboxFactory;
+use cellex_actor_core_rs::api::mailbox::MailboxOptions;
 use cellex_actor_core_rs::api::mailbox::MailboxSignal;
 use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;

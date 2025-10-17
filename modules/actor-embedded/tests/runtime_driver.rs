@@ -7,7 +7,7 @@ use core::cell::RefCell;
 
 use std::sync::Arc;
 
-use cellex_actor_core_rs::api::actor::failure::ActorFailure;
+use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
 use cellex_actor_core_rs::api::actor::props::Props;
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::actor_system::ActorSystem;

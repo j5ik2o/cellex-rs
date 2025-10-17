@@ -3,8 +3,8 @@
 #![allow(clippy::disallowed_types)]
 
 use super::*;
-use crate::api::actor::failure::ActorFailure;
-use crate::api::actor::failure::BehaviorFailure;
+use crate::api::actor::actor_failure::ActorFailure;
+use crate::api::actor::actor_failure::BehaviorFailure;
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
 use crate::api::mailbox::MailboxFactory;

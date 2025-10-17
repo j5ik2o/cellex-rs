@@ -3,8 +3,8 @@ mod tests;
 
 use alloc::borrow::Cow;
 
-use crate::api::actor::failure::ActorFailure;
-use crate::api::actor::failure::BehaviorFailure;
+use crate::api::actor::actor_failure::ActorFailure;
+use crate::api::actor::actor_failure::BehaviorFailure;
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
 

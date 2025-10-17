@@ -159,21 +159,21 @@ where
     self.failure_event_listener.clone()
   }
 
-  pub(crate) fn receive_timeout_factory(
+  pub(crate) fn receive_timeout_scheduler_factory_shared(
     &self,
   ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>> {
     self.receive_timeout_factory.clone()
   }
 
-  pub(crate) fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+  pub(crate) fn metrics_sink_shared(&self) -> Option<MetricsSinkShared> {
     self.metrics_sink.clone()
   }
 
-  pub(crate) fn failure_telemetry(&self) -> Option<FailureTelemetryShared> {
+  pub(crate) fn failure_telemetry_shared(&self) -> Option<FailureTelemetryShared> {
     self.failure_telemetry.clone()
   }
 
-  pub(crate) fn failure_telemetry_builder(&self) -> Option<FailureTelemetryBuilderShared> {
+  pub(crate) fn failure_telemetry_builder_shared(&self) -> Option<FailureTelemetryBuilderShared> {
     self.failure_telemetry_builder.clone()
   }
 

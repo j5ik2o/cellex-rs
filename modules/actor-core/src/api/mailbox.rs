@@ -7,14 +7,14 @@ use core::future::Future;
 
 /// Mailbox concurrency modes
 mod mailbox_concurrency;
+/// Mailbox runtime abstraction
+mod mailbox_factory;
 /// Mailbox handle trait
 mod mailbox_handle;
 /// Mailbox configuration options
 mod mailbox_options;
 /// Mailbox factory trait
 mod mailbox_producer;
-/// Mailbox runtime abstraction
-mod mailbox_factory;
 /// Mailbox signaling mechanisms
 mod mailbox_signal;
 mod messages;
@@ -28,10 +28,10 @@ mod single_thread;
 mod thread_safe;
 
 pub use mailbox_concurrency::*;
+pub use mailbox_factory::*;
 pub use mailbox_handle::*;
 pub use mailbox_options::*;
 pub use mailbox_producer::*;
-pub use mailbox_factory::*;
 pub use mailbox_signal::*;
 pub use messages::*;
 pub use queue_mailbox::*;

@@ -2,7 +2,7 @@
 
 use super::*;
 
-use crate::api::actor::failure::ActorFailure;
+use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
 use crate::api::supervision::failure::FailureInfo;

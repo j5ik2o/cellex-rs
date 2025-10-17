@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 pub const MAX_FAILURE_SNAPSHOT_TAGS: usize = 8;
 
 /// Returns the default telemetry implementation for the current build configuration.
-pub fn default_failure_telemetry() -> FailureTelemetryShared {
+pub fn default_failure_telemetry_shared() -> FailureTelemetryShared {
   #[cfg(all(feature = "std", feature = "unwind-supervision"))]
   {
     return tracing_failure_telemetry();
@@ -18,7 +18,7 @@ pub fn default_failure_telemetry() -> FailureTelemetryShared {
 
   #[cfg(not(all(feature = "std", feature = "unwind-supervision")))]
   {
-    return super::noop_failure_telemetry::noop_failure_telemetry();
+    return super::noop_failure_telemetry::noop_failure_telemetry_shared();
   }
 }
 

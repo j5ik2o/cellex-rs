@@ -1,6 +1,6 @@
-use crate::api::actor::failure::ActorFailure;
-use crate::api::mailbox::MailboxOptions;
+use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::mailbox::MailboxFactory;
+use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::context::{ActorContext, ActorHandlerFn};

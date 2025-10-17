@@ -1,4 +1,4 @@
-use cellex_actor_core_rs::api::actor::failure::ActorFailure;
+use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
 use cellex_actor_core_rs::api::identity::{ActorId, ActorPath};
 use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
 use cellex_actor_core_rs::api::supervision::telemetry::{FailureSnapshot, FailureTelemetry, NoopFailureTelemetry};

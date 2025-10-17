@@ -1,6 +1,6 @@
 use super::{placeholder_metadata, RemoteFailureNotifier};
 use cellex_actor_core_rs::api::{
-  actor::failure::ActorFailure,
+  actor::actor_failure::ActorFailure,
   failure_event_stream::FailureEventStream,
   identity::{ActorId, ActorPath},
   supervision::{

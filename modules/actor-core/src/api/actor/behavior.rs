@@ -7,8 +7,8 @@ use crate::api::messaging::MetadataStorageMode;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
+use super::actor_failure::ActorFailure;
 use super::context::Context;
-use super::failure::ActorFailure;
 use super::signal::Signal;
 
 mod actor_adapter;

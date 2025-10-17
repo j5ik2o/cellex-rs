@@ -1,5 +1,5 @@
+use crate::api::actor::actor_failure::BehaviorFailure;
 use crate::api::actor::behavior::supervisor_strategy::SupervisorStrategy;
-use crate::api::actor::failure::BehaviorFailure;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::api::supervision::supervisor::SupervisorDirective;
 

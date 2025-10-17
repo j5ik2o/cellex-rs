@@ -7,8 +7,8 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::runtime_state::GenericActorRuntimeState;
-use crate::internal::scheduler::{NoopReceiveTimeoutDriver, SchedulerBuilder};
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryProviderShared;
+use crate::internal::scheduler::{NoopReceiveTimeoutSchedulerFactoryProvider, SchedulerBuilder};
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
 use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
@@ -25,7 +25,7 @@ where
   R::Signal: Clone, {
   core: GenericActorRuntimeState<R>,
   receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<R>>>,
-  receive_timeout_driver: Option<ReceiveTimeoutFactoryProviderShared<BundleMailbox<R>>>,
+  receive_timeout_driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>>,
   root_event_listener: Option<FailureEventListener>,
   root_escalation_handler: Option<FailureEventHandler>,
   metrics_sink: Option<MetricsSinkShared>,
@@ -43,8 +43,8 @@ where
     Self {
       core: GenericActorRuntimeState::new(actor_runtime),
       receive_timeout_factory: None,
-      receive_timeout_driver: Some(ReceiveTimeoutFactoryProviderShared::new(
-        NoopReceiveTimeoutDriver::default(),
+      receive_timeout_driver: Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
+        NoopReceiveTimeoutSchedulerFactoryProvider::default(),
       )),
       root_event_listener: None,
       root_escalation_handler: None,
@@ -79,7 +79,7 @@ where
 
   /// Returns the receive-timeout driver associated with the bundle.
   #[must_use]
-  pub fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutFactoryProviderShared<BundleMailbox<R>>> {
+  pub fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>> {
     self.receive_timeout_driver.clone()
   }
 
@@ -97,14 +97,17 @@ where
   #[must_use]
   pub fn with_receive_timeout_driver(
     mut self,
-    driver: Option<ReceiveTimeoutFactoryProviderShared<BundleMailbox<R>>>,
+    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>>,
   ) -> Self {
     self.receive_timeout_driver = driver;
     self
   }
 
   /// Mutably replaces the receive-timeout driver.
-  pub fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutFactoryProviderShared<BundleMailbox<R>>>) {
+  pub fn set_receive_timeout_driver(
+    &mut self,
+    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>>,
+  ) {
     self.receive_timeout_driver = driver;
   }
 
@@ -217,54 +220,53 @@ where
     GenericActorRuntime::mailbox_runtime_shared(self)
   }
 
-  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>> {
+  fn receive_timeout_scheduler_factory_shared_opt(
+    &self,
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>> {
     GenericActorRuntime::receive_timeout_factory(self)
   }
 
-  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>> {
+  fn receive_timeout_scheduler_factory_provider_shared_opt(
+    &self,
+  ) -> Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>> {
     GenericActorRuntime::receive_timeout_driver(self)
   }
 
-  fn with_receive_timeout_factory(
+  fn with_receive_timeout_scheduler_factory_shared(
     self,
     factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>,
   ) -> Self {
     GenericActorRuntime::with_receive_timeout_factory(self, factory)
   }
 
-  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>>) -> Self {
+  fn with_receive_timeout_scheduler_factory_provider_shared_opt(
+    self,
+    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>,
+  ) -> Self {
     GenericActorRuntime::with_receive_timeout_driver(self, driver)
   }
 
-  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>>) {
-    GenericActorRuntime::set_receive_timeout_driver(self, driver);
-  }
-
-  fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>> {
-    GenericActorRuntime::receive_timeout_driver_factory(self)
-  }
-
-  fn root_event_listener(&self) -> Option<FailureEventListener> {
+  fn root_event_listener_opt(&self) -> Option<FailureEventListener> {
     GenericActorRuntime::root_event_listener(self)
   }
 
-  fn with_root_event_listener(self, listener: Option<FailureEventListener>) -> Self {
+  fn with_root_event_listener_opt(self, listener: Option<FailureEventListener>) -> Self {
     GenericActorRuntime::with_root_event_listener(self, listener)
   }
 
-  fn root_escalation_handler(&self) -> Option<FailureEventHandler> {
+  fn root_escalation_handler_opt(&self) -> Option<FailureEventHandler> {
     GenericActorRuntime::root_escalation_handler(self)
   }
 
-  fn with_root_escalation_handler(self, handler: Option<FailureEventHandler>) -> Self {
+  fn with_root_escalation_handler_opt(self, handler: Option<FailureEventHandler>) -> Self {
     GenericActorRuntime::with_root_escalation_handler(self, handler)
   }
 
-  fn metrics_sink(&self) -> Option<MetricsSinkShared> {
+  fn metrics_sink_shared_opt(&self) -> Option<MetricsSinkShared> {
     GenericActorRuntime::metrics_sink(self)
   }
 
-  fn with_metrics_sink(self, sink: Option<MetricsSinkShared>) -> Self {
+  fn with_metrics_sink_shared_opt(self, sink: Option<MetricsSinkShared>) -> Self {
     GenericActorRuntime::with_metrics_sink(self, sink)
   }
 
@@ -284,11 +286,14 @@ where
     GenericActorRuntime::with_scheduler_builder(self, builder)
   }
 
-  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>) -> Self {
+  fn with_scheduler_builder_shared(
+    self,
+    builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>,
+  ) -> Self {
     GenericActorRuntime::with_scheduler_builder_shared(self, builder)
   }
 
-  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>> {
+  fn scheduler_builder_shared(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
 }

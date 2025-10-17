@@ -1,12 +1,12 @@
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
-
-use super::receive_timeout_factory_provider_bound::ReceiveTimeoutFactoryProviderBound;
-use super::receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared;
+use crate::shared::receive_timeout::{
+  ReceiveTimeoutSchedulerFactoryProviderBound, ReceiveTimeoutSchedulerFactoryShared,
+};
 
 /// Trait representing a runtime-specific provider for receive-timeout scheduler factories.
-pub trait ReceiveTimeoutFactoryProvider<R>: ReceiveTimeoutFactoryProviderBound
+pub trait ReceiveTimeoutSchedulerFactoryProvider<R>: ReceiveTimeoutSchedulerFactoryProviderBound
 where
   R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,

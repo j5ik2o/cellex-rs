@@ -1,6 +1,6 @@
+use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::actor::actor_ref::ActorRef;
 use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
-use crate::api::actor::failure::ActorFailure;
 use crate::api::actor::props::Props;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::extensions::Extension;

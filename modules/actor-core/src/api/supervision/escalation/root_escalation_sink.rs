@@ -3,7 +3,7 @@ use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener};
 use crate::api::supervision::failure::FailureEvent;
 use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::telemetry::default_failure_telemetry;
+use crate::api::supervision::telemetry::default_failure_telemetry_shared;
 use crate::api::supervision::telemetry::FailureSnapshot;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
@@ -42,7 +42,7 @@ where
     Self {
       event_handler: None,
       event_listener: None,
-      telemetry: default_failure_telemetry(),
+      telemetry: default_failure_telemetry_shared(),
       observation: TelemetryObservationConfig::default(),
       _marker: PhantomData,
     }
