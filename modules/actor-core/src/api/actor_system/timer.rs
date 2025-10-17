@@ -1,18 +1,6 @@
 use core::future::Future;
 use core::time::Duration;
 
-/// Interface for abstracting asynchronous task execution.
-///
-/// Provides an abstraction layer for spawning asynchronous tasks in an environment-independent manner.
-pub trait Spawn {
-  /// Spawns a new asynchronous task.
-  ///
-  /// # Arguments
-  ///
-  /// * `fut` - Asynchronous task to execute
-  fn spawn(&self, fut: impl Future<Output = ()> + Send + 'static);
-}
-
 /// Generic timer abstraction.
 ///
 /// Provides an abstraction layer for delayed execution in an environment-independent manner.
