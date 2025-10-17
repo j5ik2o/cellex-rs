@@ -77,7 +77,6 @@
 extern crate alloc;
 
 use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
 use cellex_utils_core_rs::QueueError;
 use core::time::Duration;
 

@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -26,7 +24,7 @@ use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::internal::supervision::CompositeEscalationSink;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
 use cellex_utils_core_rs::{Element, QueueError};

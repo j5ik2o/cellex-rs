@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 mod common;
 mod ready_event_hook;
 mod ready_notifier;

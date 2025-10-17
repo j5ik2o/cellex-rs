@@ -1,4 +1,3 @@
-use super::*;
 use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::PriorityChannel;
 use crate::api::mailbox::PriorityEnvelope;

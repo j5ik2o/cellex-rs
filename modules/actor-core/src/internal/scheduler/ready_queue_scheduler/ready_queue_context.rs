@@ -15,7 +15,7 @@ use crate::api::supervision::supervisor::Supervisor;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
-use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};

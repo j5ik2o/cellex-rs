@@ -3,7 +3,6 @@
 
 use super::ask::create_ask_handles;
 use super::behavior::{SupervisorStrategy, SupervisorStrategyConfig};
-use super::*;
 use crate::api::actor::actor_ref::ActorRef;
 use crate::api::actor::ask::{ask_with_timeout, AskError};
 use crate::api::actor::behavior::{Behavior, Behaviors};
@@ -30,7 +29,7 @@ use crate::internal::guardian::AlwaysRestart;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::message::take_metadata;
 use crate::internal::message::InternalMessageSender;
-use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext, SpawnError};
+use crate::internal::scheduler::SpawnError;
 use crate::shared::map_system::MapSystemShared;
 use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
