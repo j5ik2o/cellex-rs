@@ -1,10 +1,11 @@
 #![allow(clippy::unwrap_used)]
 
+use super::super::traits::Mailbox;
 use super::*;
+use crate::MailboxRuntime;
+use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-
-use super::super::traits::Mailbox;
 
 #[test]
 fn test_mailbox_runtime_delivers_fifo() {

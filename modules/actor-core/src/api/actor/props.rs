@@ -9,8 +9,8 @@ use crate::{MailboxRuntime, Supervisor};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
-use super::behavior::SupervisorStrategyConfig;
 use super::{ActorAdapter, ActorFailure, Behavior, Context};
+use crate::api::actor::behavior::SupervisorStrategyConfig;
 use crate::api::MessageEnvelope;
 use core::marker::PhantomData;
 use spin::Mutex;

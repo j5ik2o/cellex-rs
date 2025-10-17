@@ -54,7 +54,7 @@ where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
     let actor_ref = self.inner.spawn_with_supervisor(
-      Box::new(supervisor_cfg.as_supervisor()),
+      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::Auto,
     )?;
@@ -74,7 +74,7 @@ where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
     let actor_ref = self.inner.spawn_with_supervisor(
-      Box::new(supervisor_cfg.as_supervisor()),
+      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::WithPrefix(prefix.to_owned()),
     )?;
@@ -92,7 +92,7 @@ where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
     let actor_ref = self.inner.spawn_with_supervisor(
-      Box::new(supervisor_cfg.as_supervisor()),
+      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::Explicit(name.to_owned()),
     )?;

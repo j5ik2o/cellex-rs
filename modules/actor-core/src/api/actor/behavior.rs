@@ -9,13 +9,23 @@ use cellex_utils_core_rs::Element;
 use super::{ActorFailure, Context};
 
 mod actor_adapter;
+mod behavior_directive;
+mod behavior_state;
 mod behaviors;
-mod supervision;
+mod dyn_supervisor;
+mod fixed_directive_supervisor;
+mod supervise_builder;
+mod supervisor_strategy;
+mod supervisor_strategy_config;
 
 pub use actor_adapter::ActorAdapter;
+use behavior_directive::BehaviorDirective;
+use behavior_state::BehaviorState;
 #[allow(unused_imports)]
-pub use behaviors::{Behaviors, SuperviseBuilder};
-pub use supervision::{SupervisorStrategy, SupervisorStrategyConfig};
+pub use behaviors::Behaviors;
+#[allow(unused_imports)]
+pub use supervisor_strategy::SupervisorStrategy;
+pub use supervisor_strategy_config::SupervisorStrategyConfig;
 
 pub(super) type ReceiveFn<U, R> =
   dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static;
@@ -31,61 +41,6 @@ pub(super) type SetupFn<U, R> =
 pub enum Signal {
   /// Signal sent after actor stops
   PostStop,
-}
-
-/// State transition directive after user message processing.
-pub enum BehaviorDirective<U, R>
-where
-  U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode, {
-  /// Maintain the same Behavior
-  Same,
-  /// Transition to a new Behavior
-  Become(Behavior<U, R>),
-}
-
-/// Struct that holds the internal state of Behavior.
-pub struct BehaviorState<U, R>
-where
-  U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
-  handler: Box<ReceiveFn<U, R>>,
-  pub(super) supervisor: SupervisorStrategyConfig,
-  signal_handler: Option<ArcShared<SignalFn<U, R>>>,
-}
-
-impl<U, R> BehaviorState<U, R>
-where
-  U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
-{
-  fn new(handler: Box<ReceiveFn<U, R>>, supervisor: SupervisorStrategyConfig) -> Self {
-    Self {
-      handler,
-      supervisor,
-      signal_handler: None,
-    }
-  }
-
-  fn handle(&mut self, ctx: &mut Context<'_, '_, U, R>, message: U) -> Result<BehaviorDirective<U, R>, ActorFailure> {
-    (self.handler)(ctx, message)
-  }
-
-  pub(super) fn signal_handler(&self) -> Option<ArcShared<SignalFn<U, R>>> {
-    self.signal_handler.clone()
-  }
-
-  pub(super) fn set_signal_handler(&mut self, handler: ArcShared<SignalFn<U, R>>) {
-    self.signal_handler = Some(handler);
-  }
 }
 
 /// Typed Behavior representation. Equivalent to Akka/Pekko Typed's `Behavior`.

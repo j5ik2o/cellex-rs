@@ -134,6 +134,180 @@ fn sort_dependencies(file_path: &Path) -> Result<(), Box<dyn std::error::Error>>
 }
 '''
 
+[tasks.check-source-policy]
+description = "Enforce source policy: ban mod.rs and one top-level type/trait per file (workspace-aware, ignores tests.rs/lib.rs/main.rs)"
+workspace = false
+script_runner = "@rust"
+script = '''
+//! ```cargo
+//! [dependencies]
+//! walkdir = "2"
+//! glob = "0.3"
+//! anyhow = "1"
+//! regex = "1"
+//! syn = { version = "2", features = ["full", "parsing"] }
+//! toml = "0.8"
+//! ```
+use anyhow::{anyhow, Context, Result};
+use glob::glob;
+use regex::Regex;
+use std::{collections::HashSet, env, fs, path::{Path, PathBuf}};
+use toml::Value;
+use walkdir::WalkDir;
+
+fn read_toml(path: &Path) -> Result<Value> {
+    let s = fs::read_to_string(path)
+        .with_context(|| format!("failed to read {}", path.display()))?;
+    Ok(s.parse::<Value>()?)
+}
+
+fn is_dir_exists(p: &Path) -> bool { p.exists() && p.is_dir() }
+fn is_file_exists(p: &Path) -> bool { p.exists() && p.is_file() }
+
+fn collect_source_dirs(root: &Path) -> Result<Vec<PathBuf>> {
+    let root_toml = root.join("Cargo.toml");
+    let doc = read_toml(&root_toml)
+        .with_context(|| "failed to parse top-level Cargo.toml")?;
+
+    let include_tests = env::var("ONE_TYPE_INCLUDE_TESTS").ok().as_deref() == Some("1");
+
+    let mut exclude_patterns: Vec<String> = Vec::new();
+    if let Some(ws) = doc.get("workspace") {
+        if let Some(ex) = ws.get("exclude") {
+            if let Some(arr) = ex.as_array() {
+                for v in arr.iter().filter_map(|v| v.as_str()) {
+                    exclude_patterns.push(v.to_string());
+                }
+            }
+        }
+    }
+
+    let excluded = |p: &Path| -> bool {
+        let s = p.to_string_lossy().to_string();
+        exclude_patterns.iter().any(|pat| s.contains(pat))
+    };
+
+    let mut crate_dirs: HashSet<PathBuf> = HashSet::new();
+    if let Some(ws) = doc.get("workspace") {
+        if let Some(members) = ws.get("members") {
+            if let Some(arr) = members.as_array() {
+                for pat in arr.iter().filter_map(|v| v.as_str()) {
+                    let pattern = root.join(pat).to_string_lossy().to_string();
+                    for entry in glob(&pattern)? {
+                        let path = entry?;
+                        let dir = if path.is_file() { path.parent().unwrap().to_path_buf() } else { path.clone() };
+                        if excluded(&dir) { continue; }
+                        if is_file_exists(&dir.join("Cargo.toml")) {
+                            crate_dirs.insert(dir);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if doc.get("package").is_some() && !excluded(root) {
+        crate_dirs.insert(root.to_path_buf());
+    }
+
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    for cd in crate_dirs {
+        let src = cd.join("src");
+        if is_dir_exists(&src) { dirs.push(src); }
+        if include_tests {
+            for extra in ["tests", "benches", "examples"] {
+                let p = cd.join(extra);
+                if is_dir_exists(&p) { dirs.push(p); }
+            }
+        }
+    }
+
+    dirs.sort();
+    dirs.dedup();
+    Ok(dirs)
+}
+
+fn has_allow_comment(src: &str) -> bool {
+    src.lines().take(80).any(|l| l.contains("allow:multi-types"))
+}
+
+fn is_exception_file(path: &Path) -> bool {
+    matches!(
+        path.file_name().and_then(|s| s.to_str()),
+        Some("lib.rs") | Some("main.rs") | Some("build.rs") | Some("tests.rs") | Some("core.rs") | Some("common.rs")
+    )
+}
+
+fn count_top_level_types(src: &str) -> Result<usize> {
+    let file = syn::parse_file(src)?;
+    use syn::Item::*;
+    let mut count = 0usize;
+    for item in file.items {
+        match item {
+            Struct(_) | Enum(_) | Trait(_) => count += 1,
+            _ => {}
+        }
+    }
+    Ok(count)
+}
+
+fn main() -> Result<()> {
+    let root = PathBuf::from(".");
+    let dirs = collect_source_dirs(&root)?;
+    if dirs.is_empty() {
+        println!("[WARN] no source dirs detected from workspace; nothing to check");
+        return Ok(());
+    }
+
+    let re_modrs = Regex::new(r"(^|/|\\)mod\\.rs$").unwrap();
+    let mut errors: Vec<String> = Vec::new();
+
+    for dir in &dirs {
+        for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
+            if !entry.file_type().is_file() { continue; }
+            let path = entry.path();
+
+            if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+                continue;
+            }
+
+            if is_exception_file(path) {
+                continue;
+            }
+
+            if re_modrs.is_match(&path.to_string_lossy()) {
+                errors.push(format!("mod.rs is not allowed: {}", path.display()));
+                continue;
+            }
+
+            let src = fs::read_to_string(path)
+                .with_context(|| format!("failed to read {}", path.display()))?;
+            if has_allow_comment(&src) {
+                continue;
+            }
+
+            match count_top_level_types(&src) {
+                Ok(n) if n <= 1 => {}
+                Ok(n) => errors.push(format!(
+                    "More than one top-level type/trait in {} (found: {})",
+                    path.display(), n
+                )),
+                Err(e) => errors.push(format!("Parse error in {}: {e}", path.display())),
+            }
+        }
+    }
+
+    if errors.is_empty() {
+        println!("[OK] source policy passed on {} dirs:", dirs.len());
+        for d in dirs { println!("  - {}", d.display()); }
+        Ok(())
+    } else {
+        eprintln!("source policy violations:");
+        for e in &errors { eprintln!("  - {e}"); }
+        Err(anyhow!("violations found"))
+    }
+}
+'''
 [tasks.coverage-grcov]
 description = "Generate code coverage report using grcov"
 workspace = false

@@ -16,8 +16,8 @@ use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::traits::{Mailbox, MailboxProducer};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::supervision::CompositeEscalationSink;
-use crate::ActorId;
 use crate::ActorPath;
+use crate::{ActorId, SchedulerSpawnContext};
 use crate::{
   EscalationSink, Extensions, FailureInfo, FailureTelemetryShared, Supervisor, SystemMessage,
   TelemetryObservationConfig,
@@ -25,7 +25,6 @@ use crate::{
 use crate::{MailboxRuntime, MailboxSignal};
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::super::actor_scheduler::SchedulerSpawnContext;
 use crate::internal::actor::ActorCell;
 use crate::SpawnError;
 use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};

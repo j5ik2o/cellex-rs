@@ -1,4 +1,5 @@
-use super::{Behavior, BehaviorDirective, SupervisorStrategy, SupervisorStrategyConfig};
+use super::{Behavior, BehaviorDirective};
+use crate::api::actor::behavior::supervise_builder::SuperviseBuilder;
 use crate::api::actor::context::Context;
 use crate::api::actor::ActorFailure;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
@@ -91,32 +92,5 @@ impl Behaviors {
     MailboxConcurrencyOf<R>: MetadataStorageMode,
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static, {
     Behavior::setup(init)
-  }
-}
-
-/// Builder for setting supervisor strategy.
-pub struct SuperviseBuilder<U, R>
-where
-  U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
-  behavior: Behavior<U, R>,
-}
-
-impl<U, R> SuperviseBuilder<U, R>
-where
-  U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
-{
-  /// Sets supervisor strategy.
-  pub fn with_strategy(mut self, strategy: SupervisorStrategy) -> Behavior<U, R> {
-    if let Behavior::Receive(state) = &mut self.behavior {
-      state.supervisor = SupervisorStrategyConfig::from_strategy(strategy);
-    }
-    self.behavior
   }
 }

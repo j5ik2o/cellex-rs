@@ -1,3 +1,4 @@
+// allow:multi-types
 #![allow(missing_docs)]
 
 use cellex_utils_core_rs::sync::ArcShared;

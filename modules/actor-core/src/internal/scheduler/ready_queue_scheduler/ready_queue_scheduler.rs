@@ -10,21 +10,22 @@ use spin::Mutex;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::MailboxRuntime;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, Supervisor,
   TelemetryObservationConfig,
 };
+use crate::{MailboxRuntime, SchedulerSpawnContext};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::super::actor_scheduler::{ActorScheduler, SchedulerSpawnContext};
+use super::super::actor_scheduler::ActorScheduler;
 use super::common::ReadyQueueSchedulerCore;
 use super::ready_event_hook::{ReadyEventHook, ReadyQueueHandle};
 use super::ready_notifier::ReadyNotifier;
 use super::ready_queue_context::ReadyQueueContext;
 use super::ready_queue_state::ReadyQueueState;
 use super::ready_queue_worker::ReadyQueueWorker;
+use crate::internal::scheduler::ready_queue_scheduler::ready_queue_worker_impl::ReadyQueueWorkerImpl;
 use crate::SpawnError;
 use crate::{MapSystemShared, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
@@ -73,7 +74,6 @@ where
   Strat: GuardianStrategy<M, R>,
 {
   pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<M, R>> {
-    use super::ready_queue_worker::ReadyQueueWorkerImpl;
     let shared = ArcShared::new(ReadyQueueWorkerImpl::<M, R, Strat>::new(self.context.clone()));
     shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<M, R>)
   }

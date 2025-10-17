@@ -9,15 +9,14 @@ use futures::future::LocalBoxFuture;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
-use crate::MailboxRuntime;
 use crate::{
   FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, Supervisor,
   TelemetryObservationConfig,
 };
+use crate::{MailboxRuntime, SchedulerSpawnContext};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::super::actor_scheduler::SchedulerSpawnContext;
 use super::common::ReadyQueueSchedulerCore;
 use super::ready_queue_state::ReadyQueueState;
 use crate::internal::actor::ActorCell;

@@ -124,8 +124,8 @@ where
     child_naming: ChildNaming::Auto,
   };
   scheduler.spawn_actor(supervisor, context).map_err(|err| match err {
-    super::actor_scheduler::SpawnError::Queue(queue_err) => queue_err,
-    super::actor_scheduler::SpawnError::NameExists(name) => {
+    SpawnError::Queue(queue_err) => queue_err,
+    SpawnError::NameExists(name) => {
       panic!("unexpected name conflict in scheduler test: {name}")
     }
   })

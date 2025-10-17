@@ -5,13 +5,13 @@ use alloc::vec::Vec;
 
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::internal::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnContext, SpawnError};
+use crate::internal::scheduler::actor_scheduler::ActorScheduler;
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
-use crate::MapSystemShared;
 use crate::{
   Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime,
   MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor, TelemetryObservationConfig,
 };
+use crate::{MapSystemShared, SchedulerSpawnContext, SpawnError};
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.

@@ -7,6 +7,7 @@ mod ready_queue_context;
 mod ready_queue_scheduler;
 mod ready_queue_state;
 pub mod ready_queue_worker;
+mod ready_queue_worker_impl;
 
 pub use ready_event_hook::ReadyQueueHandle;
 pub use ready_queue_scheduler::ReadyQueueScheduler;
