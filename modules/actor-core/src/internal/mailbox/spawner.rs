@@ -4,8 +4,8 @@ use crate::api::mailbox::Mailbox;
 use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxPair;
 use crate::api::mailbox::MailboxProducer;
+use crate::api::metrics::MetricsSinkShared;
 use crate::internal::mailbox::PriorityMailboxBuilder;
-use crate::internal::metrics::MetricsSinkShared;
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::Element;
 

@@ -1,5 +1,5 @@
-use crate::internal::metrics::MetricsEvent;
-use crate::internal::metrics::MetricsSinkShared;
+use crate::api::metrics::MetricsEvent;
+use crate::api::metrics::MetricsSinkShared;
 
 /// Telemetry 呼び出しの観測設定。
 #[derive(Clone, Default, Debug)]

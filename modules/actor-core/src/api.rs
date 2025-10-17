@@ -13,5 +13,7 @@ pub mod failure_event_stream;
 pub mod mailbox;
 /// Message envelope and metadata handling.
 pub mod messaging;
+/// Internal metrics collection and observers wired to scheduler components.
+pub mod metrics;
 /// Supervision strategies and failure handling.
 pub mod supervision;

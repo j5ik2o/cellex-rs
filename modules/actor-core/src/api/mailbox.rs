@@ -1,6 +1,6 @@
 //! Public mailbox abstractions shared across the crate.
 
-use crate::internal::metrics::MetricsSinkShared;
+use crate::api::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{QueueError, QueueSize};
 use core::future::Future;

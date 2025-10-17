@@ -19,7 +19,7 @@ use cellex_actor_core_rs::api::mailbox::SingleThread;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
 use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
+use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_utils_embedded_rs::ArcLocalMpscUnboundedQueue;
 #[cfg(feature = "embedded_rc")]

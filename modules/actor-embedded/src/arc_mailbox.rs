@@ -17,7 +17,7 @@ use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
 use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
+use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
 use cellex_utils_embedded_rs::queue::mpsc::ArcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::{ArcShared, Element, QueueError, QueueSize};
 

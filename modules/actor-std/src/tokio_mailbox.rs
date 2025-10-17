@@ -10,7 +10,7 @@ use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
 use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
+use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
 use cellex_utils_std_rs::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue};
 use cellex_utils_std_rs::{Element, QueueBase, QueueError, QueueRw, QueueSize};
 use tokio::sync::{futures::Notified, Notify};

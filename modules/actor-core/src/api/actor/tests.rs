@@ -1104,12 +1104,12 @@ mod metrics_injection {
   use crate::api::actor_system::ActorSystemConfig;
   use crate::api::mailbox::MailboxFactory;
   use crate::api::messaging::DynMessage;
+  use crate::api::metrics::MetricsEvent;
+  use crate::api::metrics::MetricsSink;
+  use crate::api::metrics::MetricsSinkShared;
   use crate::api::supervision::supervisor::Supervisor;
   use crate::api::supervision::telemetry::TelemetryObservationConfig;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
-  use crate::internal::metrics::MetricsEvent;
-  use crate::internal::metrics::MetricsSink;
-  use crate::internal::metrics::MetricsSinkShared;
   use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::shared::failure_telemetry::FailureTelemetryShared;
   use alloc::boxed::Box;

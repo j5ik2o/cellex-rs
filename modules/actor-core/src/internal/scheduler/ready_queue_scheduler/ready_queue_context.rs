@@ -120,7 +120,7 @@ where
     self.core.set_receive_timeout_factory(factory)
   }
 
-  pub(super) fn set_metrics_sink(&mut self, sink: Option<crate::internal::metrics::MetricsSinkShared>) {
+  pub(super) fn set_metrics_sink(&mut self, sink: Option<crate::api::metrics::MetricsSinkShared>) {
     self.core.set_metrics_sink(sink)
   }
 

@@ -1,4 +1,4 @@
-use crate::internal::metrics::MetricsSinkShared;
+use crate::api::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{Element, QueueError};
 
