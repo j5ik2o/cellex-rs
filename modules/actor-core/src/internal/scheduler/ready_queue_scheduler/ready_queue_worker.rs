@@ -1,7 +1,7 @@
 use futures::future::{select, Either, LocalBoxFuture};
 
 use crate::api::actor::shutdown_token::ShutdownToken;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
@@ -10,7 +10,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub trait ReadyQueueWorker<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Processes one ready actor (if any). Returns `Some(true)` if progress was made.
@@ -35,7 +35,7 @@ pub async fn drive_ready_queue_worker<M, R, Y, YF, S, SF>(
 ) -> Result<(), QueueError<PriorityEnvelope<M>>>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Y: FnMut() -> YF,

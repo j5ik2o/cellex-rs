@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use spin::Mutex;
 
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
@@ -37,7 +37,7 @@ use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 pub struct ReadyQueueScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>,
   state: ArcShared<Mutex<ReadyQueueState>>,
@@ -47,7 +47,7 @@ where
 impl<M, R> ReadyQueueScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
 {
   /// Creates a scheduler that uses the `AlwaysRestart` guardian strategy.
   pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
@@ -77,7 +77,7 @@ where
 impl<M, R, Strat> ReadyQueueScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   /// Returns a handle that exposes ready-queue controls for cooperative workers.
@@ -247,7 +247,7 @@ where
 impl<M, R, Strat> ActorScheduler<M, R> for ReadyQueueScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   fn spawn_actor(

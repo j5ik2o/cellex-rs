@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::failure::FailureInfo;
 use cellex_utils_core_rs::{Element, QueueError};
@@ -14,7 +14,7 @@ use crate::api::supervision::escalation::EscalationSink;
 pub(crate) struct CustomEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   handler: Box<FailureHandler<M>>,
@@ -24,7 +24,7 @@ where
 impl<M, R> CustomEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -41,7 +41,7 @@ where
 impl<M, R> EscalationSink<M, R> for CustomEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

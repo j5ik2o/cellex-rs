@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use crate::api::extensions::Extensions;
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
@@ -18,7 +18,7 @@ use crate::shared::map_system::MapSystemShared;
 pub struct ChildSpawnSpec<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone, {
+  R: MailboxFactory + Clone, {
   /// Mailbox instance assigned to the child actor.
   pub mailbox: R::Mailbox<PriorityEnvelope<M>>,
   /// Producer handle used to send messages to the child actor.

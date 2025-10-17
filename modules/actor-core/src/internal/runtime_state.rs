@@ -1,6 +1,6 @@
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::internal::scheduler::SchedulerBuilder;
@@ -12,7 +12,7 @@ use crate::internal::scheduler::SchedulerBuilder;
 #[derive(Clone)]
 pub(crate) struct GenericActorRuntimeState<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   mailbox_runtime: ArcShared<R>,
@@ -21,7 +21,7 @@ where
 
 impl<R> GenericActorRuntimeState<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {

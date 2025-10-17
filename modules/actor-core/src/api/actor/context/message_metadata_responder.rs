@@ -2,7 +2,7 @@ use super::Context;
 use crate::api::actor::ask::{AskError, AskResult};
 use crate::api::actor_runtime::MailboxOf;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MetadataStorageMode;
@@ -14,7 +14,7 @@ use cellex_utils_core_rs::Element;
 pub trait MessageMetadataResponder<R>
 where
   R: ActorRuntime,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static, {
+  MailboxOf<R>: MailboxFactory + Clone + 'static, {
   /// Sends a response message back to the original sender.
   fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
   where
@@ -25,7 +25,7 @@ where
 impl<R> MessageMetadataResponder<R> for MessageMetadata<MailboxConcurrencyOf<R>>
 where
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
   MailboxSignalOf<R>: Clone + RuntimeBound + 'static,
   MailboxConcurrencyOf<R>: MetadataStorageMode,

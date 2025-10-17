@@ -7,7 +7,7 @@ use crate::api::actor::failure::ActorFailure;
 use crate::api::actor::failure::BehaviorFailure;
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityChannel;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
@@ -61,7 +61,7 @@ fn guardian_sends_stop_message() {
   impl<M, R> GuardianStrategy<M, R> for AlwaysStop
   where
     M: Element,
-    R: MailboxRuntime,
+    R: MailboxFactory,
   {
     fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
       SupervisorDirective::Stop
@@ -128,7 +128,7 @@ fn guardian_strategy_receives_behavior_failure() {
   impl<M, R> GuardianStrategy<M, R> for CaptureStrategy
   where
     M: Element,
-    R: MailboxRuntime,
+    R: MailboxFactory,
   {
     fn decide(&mut self, _actor: ActorId, error: &dyn BehaviorFailure) -> SupervisorDirective {
       self.0.lock().push(error.description().into_owned());

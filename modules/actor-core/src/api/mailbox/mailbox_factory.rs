@@ -11,7 +11,7 @@ use cellex_utils_core_rs::{Element, QueueRw};
 ///
 /// Generates mailbox and queue implementations according to
 /// specific async runtimes (Tokio, Async-std, etc.).
-pub trait MailboxRuntime {
+pub trait MailboxFactory {
   /// Declares the concurrency mode for this factory.
   type Concurrency: MailboxConcurrency + MetadataStorageMode;
 

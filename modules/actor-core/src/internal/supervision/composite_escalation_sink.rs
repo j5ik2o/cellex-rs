@@ -1,4 +1,4 @@
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::EscalationSink;
 use crate::api::supervision::escalation::FailureEventHandler;
@@ -17,7 +17,7 @@ use super::{CustomEscalationSink, ParentGuardianSink};
 pub(crate) struct CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   parent_guardian: Option<ParentGuardianSink<M, R>>,
@@ -28,7 +28,7 @@ where
 impl<M, R> CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -94,7 +94,7 @@ where
 impl<M, R> Default for CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -106,7 +106,7 @@ where
 impl<M, R> EscalationSink<M, R> for CompositeEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

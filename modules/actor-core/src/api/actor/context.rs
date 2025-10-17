@@ -8,7 +8,7 @@ use crate::api::extensions::ExtensionId;
 use crate::api::extensions::Extensions;
 use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
@@ -48,7 +48,7 @@ pub struct Context<'r, 'ctx, U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode, {
@@ -65,7 +65,7 @@ impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,
@@ -85,7 +85,7 @@ impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,
@@ -111,7 +111,7 @@ impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,
@@ -193,7 +193,7 @@ impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,
@@ -214,7 +214,7 @@ impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,

@@ -1,4 +1,4 @@
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use cellex_utils_core_rs::sync::ArcShared;
@@ -14,7 +14,7 @@ pub struct ReceiveTimeoutFactoryProviderShared<R> {
 
 impl<R> ReceiveTimeoutFactoryProviderShared<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,

@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use async_trait::async_trait;
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
@@ -27,7 +27,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub trait ActorScheduler<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Spawns a new actor instance and returns its internal reference on success.

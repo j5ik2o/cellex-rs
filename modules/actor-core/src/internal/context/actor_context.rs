@@ -12,7 +12,7 @@ use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
 use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
@@ -33,7 +33,7 @@ pub type ActorHandlerFn<M, R> =
 pub struct ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxRuntime + Clone,
+  R: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized, {
   mailbox_runtime: &'a R,
   mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
@@ -55,7 +55,7 @@ where
 impl<'a, M, R, Sup> ActorContext<'a, M, R, Sup>
 where
   M: Element,
-  R: MailboxRuntime + Clone,
+  R: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized,
 {
   #[allow(clippy::too_many_arguments)]
@@ -199,7 +199,7 @@ where
     props: InternalProps<M, R>,
   ) -> PriorityActorRef<M, R>
   where
-    R: MailboxRuntime + Clone + 'static, {
+    R: MailboxFactory + Clone + 'static, {
     let InternalProps {
       options,
       map_system,

@@ -1,5 +1,5 @@
 use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::RuntimeBound;
 use cellex_utils_core_rs::{Element, QueueError};
@@ -13,7 +13,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub struct PriorityActorRef<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   sender: R::Producer<PriorityEnvelope<M>>,
@@ -22,7 +22,7 @@ where
 unsafe impl<M, R> Send for PriorityActorRef<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
   R::Signal: Clone + RuntimeBound,
 {
@@ -31,7 +31,7 @@ where
 unsafe impl<M, R> Sync for PriorityActorRef<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
   R::Signal: Clone + RuntimeBound,
 {
@@ -40,7 +40,7 @@ where
 impl<M, R> Clone for PriorityActorRef<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
@@ -55,7 +55,7 @@ where
 impl<M, R> PriorityActorRef<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
@@ -94,7 +94,7 @@ where
 
 impl<R> PriorityActorRef<SystemMessage, R>
 where
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Producer<PriorityEnvelope<SystemMessage>>: Clone,
 {
   /// Sends a system message via the reference.

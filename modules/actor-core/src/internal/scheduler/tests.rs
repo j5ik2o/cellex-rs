@@ -9,7 +9,7 @@ use crate::api::actor::shutdown_token::ShutdownToken;
 use crate::api::extensions::Extensions;
 use crate::api::identity::ActorId;
 use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityChannel;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
@@ -61,7 +61,7 @@ use std::sync::{Arc, Mutex};
 fn handler_from_fn<M, R, F>(mut f: F) -> Box<ActorHandlerFn<M, R>>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static, {
@@ -79,7 +79,7 @@ struct AlwaysEscalate;
 impl<M, R> GuardianStrategy<M, R> for AlwaysEscalate
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Escalate
@@ -124,7 +124,7 @@ fn spawn_with_runtime<M, R>(
 ) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   let mailbox_runtime_shared = ArcShared::new(mailbox_runtime.clone());

@@ -6,7 +6,7 @@
 use core::time::Duration;
 
 use crate::TokioMailboxRuntime;
-use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
 use cellex_actor_core_rs::api::mailbox::{PriorityEnvelope, SystemMessage};
 use cellex_actor_core_rs::api::messaging::DynMessage;
 use cellex_actor_core_rs::shared::map_system::MapSystemShared;
@@ -20,7 +20,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
 
 /// Producer for sending `PriorityEnvelope<DynMessage>` to Tokio mailbox.
-type TokioSender = <TokioMailboxRuntime as MailboxRuntime>::Producer<PriorityEnvelope<DynMessage>>;
+type TokioSender = <TokioMailboxRuntime as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>;
 
 #[derive(Debug)]
 enum Command {

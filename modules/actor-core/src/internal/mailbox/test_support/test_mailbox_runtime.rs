@@ -1,6 +1,6 @@
 use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxPair;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::QueueMailbox;
 use crate::api::mailbox::QueueMailboxProducer;
 use crate::api::mailbox::ThreadSafe;
@@ -35,7 +35,7 @@ impl TestMailboxRuntime {
   }
 }
 
-impl MailboxRuntime for TestMailboxRuntime {
+impl MailboxFactory for TestMailboxRuntime {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>

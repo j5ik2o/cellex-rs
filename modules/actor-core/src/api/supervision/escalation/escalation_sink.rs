@@ -1,4 +1,4 @@
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::failure::FailureInfo;
 use crate::shared::failure_telemetry::FailureEventHandlerShared;
@@ -21,7 +21,7 @@ pub type FailureEventListener = FailureEventListenerShared;
 pub trait EscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Processes failure information.

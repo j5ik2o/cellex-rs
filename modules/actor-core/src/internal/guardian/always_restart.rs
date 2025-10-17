@@ -1,6 +1,6 @@
 use crate::api::actor::failure::BehaviorFailure;
 use crate::api::identity::ActorId;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::supervision::supervisor::SupervisorDirective;
 use cellex_utils_core_rs::Element;
 
@@ -23,7 +23,7 @@ pub struct AlwaysRestart;
 impl<M, R> GuardianStrategy<M, R> for AlwaysRestart
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Restart

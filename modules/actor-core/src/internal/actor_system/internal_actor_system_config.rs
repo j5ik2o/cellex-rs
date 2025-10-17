@@ -1,7 +1,7 @@
 use crate::api::actor_runtime::ActorRuntime;
 use crate::api::actor_runtime::MailboxOf;
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
@@ -17,9 +17,9 @@ pub struct InternalActorSystemConfig<M, R>
 where
   M: Element,
   R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxRuntime + Clone,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone, {
+  MailboxOf<R>: MailboxFactory + Clone,
+  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxFactory>::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
   pub(crate) root_event_listener: Option<FailureEventListener>,
   /// Escalation handler invoked when failures bubble to the root guardian.
@@ -40,9 +40,9 @@ impl<M, R> Default for InternalActorSystemConfig<M, R>
 where
   M: Element,
   R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxRuntime + Clone,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  MailboxOf<R>: MailboxFactory + Clone,
+  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
 {
   fn default() -> Self {
     Self {

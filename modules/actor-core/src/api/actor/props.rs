@@ -1,6 +1,6 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
@@ -28,7 +28,7 @@ pub struct Props<U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode, {
@@ -41,7 +41,7 @@ impl<U, R> Props<U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,

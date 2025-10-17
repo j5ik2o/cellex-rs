@@ -10,7 +10,7 @@ use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
 
 use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
 use cellex_actor_core_rs::api::mailbox::MailboxSignal;
 use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 #[cfg(feature = "embedded_rc")]
@@ -240,7 +240,7 @@ impl LocalMailboxRuntime {
   }
 }
 
-impl MailboxRuntime for LocalMailboxRuntime {
+impl MailboxFactory for LocalMailboxRuntime {
   #[cfg(feature = "embedded_rc")]
   type Concurrency = SingleThread;
   #[cfg(not(feature = "embedded_rc"))]

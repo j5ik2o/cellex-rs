@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::scheduler::noop_receive_timeout_scheduler::NoopReceiveTimeoutScheduler;
 use crate::shared::map_system::MapSystemShared;
@@ -14,7 +14,7 @@ pub struct NoopReceiveTimeoutSchedulerFactory;
 impl<M, R> ReceiveTimeoutSchedulerFactory<M, R> for NoopReceiveTimeoutSchedulerFactory
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,

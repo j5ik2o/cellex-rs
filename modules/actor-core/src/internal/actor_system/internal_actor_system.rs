@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use super::InternalRootContext;
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::actor_system::internal_actor_system_config::InternalActorSystemConfig;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
@@ -19,9 +19,9 @@ pub(crate) struct InternalActorSystem<M, R, Strat = AlwaysRestart>
 where
   M: Element + 'static,
   R: ActorRuntime + Clone + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
+  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<M, MailboxOf<R>>, {
   pub(super) scheduler: SchedulerHandle<M, MailboxOf<R>>,
   #[allow(dead_code)]
@@ -38,9 +38,9 @@ impl<M, R> InternalActorSystem<M, R, AlwaysRestart>
 where
   M: Element,
   R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxRuntime + Clone,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  MailboxOf<R>: MailboxFactory + Clone,
+  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
 {
   pub fn new(actor_runtime: R) -> Self {
     Self::new_with_config(actor_runtime, InternalActorSystemConfig::default())
@@ -66,7 +66,7 @@ where
       extensions,
     } = config;
     let actor_runtime_shared = ArcShared::new(actor_runtime);
-    let mailbox_runtime_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_runtime_shared());
+    let mailbox_runtime_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_factory_shared());
     let mailbox_runtime_for_scheduler = mailbox_runtime_shared.with_ref(|mr| mr.clone());
     let mut scheduler = scheduler_builder.build(mailbox_runtime_for_scheduler, extensions.clone());
     scheduler.set_root_event_listener(root_event_listener);
@@ -90,9 +90,9 @@ impl<M, R, Strat> InternalActorSystem<M, R, Strat>
 where
   M: Element,
   R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxRuntime + Clone,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  MailboxOf<R>: MailboxFactory + Clone,
+  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<M, MailboxOf<R>>,
 {
   #[allow(clippy::missing_const_for_fn)]

@@ -4,7 +4,7 @@ use spin::Mutex;
 
 use futures::future::LocalBoxFuture;
 
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
@@ -28,7 +28,7 @@ use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 pub(crate) struct ReadyQueueContext<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   pub(crate) core: ReadyQueueSchedulerCore<M, R, Strat>,
   pub(crate) state: ArcShared<Mutex<ReadyQueueState>>,
@@ -37,7 +37,7 @@ where
 impl<M, R, Strat> ReadyQueueContext<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   pub(super) fn actor_count(&self) -> usize {

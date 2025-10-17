@@ -1,4 +1,4 @@
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactory;
 use cellex_utils_core_rs::sync::ArcShared;
@@ -12,7 +12,7 @@ pub struct ReceiveTimeoutSchedulerFactoryShared<M, R> {
 impl<M, R> ReceiveTimeoutSchedulerFactoryShared<M, R>
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Producer<PriorityEnvelope<M>>: Clone,
 {
   /// Creates a new shared factory from a concrete factory value.

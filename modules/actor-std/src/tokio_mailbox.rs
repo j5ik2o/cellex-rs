@@ -4,7 +4,7 @@ mod tests;
 use std::sync::Arc;
 
 use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
 use cellex_actor_core_rs::api::mailbox::MailboxSignal;
 use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
@@ -198,7 +198,7 @@ impl TokioMailboxRuntime {
   }
 }
 
-impl MailboxRuntime for TokioMailboxRuntime {
+impl MailboxFactory for TokioMailboxRuntime {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>

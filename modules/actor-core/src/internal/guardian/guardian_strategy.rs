@@ -1,6 +1,6 @@
 use crate::api::actor::failure::BehaviorFailure;
 use crate::api::identity::ActorId;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::supervision::supervisor::SupervisorDirective;
 use cellex_utils_core_rs::Element;
 
@@ -15,7 +15,7 @@ use cellex_utils_core_rs::Element;
 pub trait GuardianStrategy<M, R>: Send + 'static
 where
   M: Element,
-  R: MailboxRuntime, {
+  R: MailboxFactory, {
   /// Determines the handling policy when an actor fails.
   ///
   /// # Arguments

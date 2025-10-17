@@ -1,4 +1,4 @@
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener};
 use crate::api::supervision::failure::FailureEvent;
@@ -18,7 +18,7 @@ use std::time::Instant;
 pub struct RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   event_handler: Option<FailureEventHandler>,
@@ -31,7 +31,7 @@ where
 impl<M, R> RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -90,7 +90,7 @@ where
 impl<M, R> Default for RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -102,7 +102,7 @@ where
 impl<M, R> EscalationSink<M, R> for RootEscalationSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

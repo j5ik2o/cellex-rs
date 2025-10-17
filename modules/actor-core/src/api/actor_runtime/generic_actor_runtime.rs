@@ -1,5 +1,5 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::supervision::escalation::FailureEventHandler;
@@ -20,7 +20,7 @@ pub(crate) type BundleMailbox<R> = MailboxOf<GenericActorRuntime<R>>;
 #[derive(Clone)]
 pub struct GenericActorRuntime<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone, {
   core: GenericActorRuntimeState<R>,
@@ -33,7 +33,7 @@ where
 
 impl<R> GenericActorRuntime<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
@@ -170,9 +170,9 @@ where
   pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, BundleMailbox<R>>
   where
     M: Element,
-    BundleMailbox<R>: MailboxRuntime,
-    <BundleMailbox<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-    <BundleMailbox<R> as MailboxRuntime>::Signal: Clone, {
+    BundleMailbox<R>: MailboxFactory,
+    <BundleMailbox<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+    <BundleMailbox<R> as MailboxFactory>::Signal: Clone, {
     PriorityMailboxSpawnerHandle::new(self.mailbox_runtime_shared()).with_metrics_sink(self.metrics_sink.clone())
   }
 
@@ -199,48 +199,48 @@ where
 
 impl<R> ActorRuntime for GenericActorRuntime<R>
 where
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
 {
-  type Mailbox = R;
+  type MailboxFactory = R;
 
-  fn mailbox_runtime(&self) -> &Self::Mailbox {
+  fn mailbox_factory(&self) -> &Self::MailboxFactory {
     GenericActorRuntime::mailbox_runtime(self)
   }
 
-  fn into_mailbox_runtime(self) -> Self::Mailbox {
+  fn into_mailbox_factory(self) -> Self::MailboxFactory {
     GenericActorRuntime::into_mailbox_runtime(self)
   }
 
-  fn mailbox_runtime_shared(&self) -> ArcShared<Self::Mailbox> {
+  fn mailbox_factory_shared(&self) -> ArcShared<Self::MailboxFactory> {
     GenericActorRuntime::mailbox_runtime_shared(self)
   }
 
-  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::Mailbox>> {
+  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>> {
     GenericActorRuntime::receive_timeout_factory(self)
   }
 
-  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutFactoryProviderShared<Self::Mailbox>> {
+  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>> {
     GenericActorRuntime::receive_timeout_driver(self)
   }
 
   fn with_receive_timeout_factory(
     self,
-    factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::Mailbox>,
+    factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>,
   ) -> Self {
     GenericActorRuntime::with_receive_timeout_factory(self, factory)
   }
 
-  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::Mailbox>>) -> Self {
+  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>>) -> Self {
     GenericActorRuntime::with_receive_timeout_driver(self, driver)
   }
 
-  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::Mailbox>>) {
+  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::MailboxFactory>>) {
     GenericActorRuntime::set_receive_timeout_driver(self, driver);
   }
 
-  fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::Mailbox>> {
+  fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>> {
     GenericActorRuntime::receive_timeout_driver_factory(self)
   }
 
@@ -272,7 +272,7 @@ where
     GenericActorRuntime::with_metrics_sink_shared(self, sink)
   }
 
-  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::Mailbox>
+  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
   where
     M: Element,
     MailboxQueueOf<Self, PriorityEnvelope<M>>: Clone,
@@ -280,15 +280,15 @@ where
     GenericActorRuntime::priority_mailbox_spawner(self)
   }
 
-  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self::Mailbox>) -> Self {
+  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self::MailboxFactory>) -> Self {
     GenericActorRuntime::with_scheduler_builder(self, builder)
   }
 
-  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self::Mailbox>>) -> Self {
+  fn with_scheduler_builder_shared(self, builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>) -> Self {
     GenericActorRuntime::with_scheduler_builder_shared(self, builder)
   }
 
-  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::Mailbox>> {
+  fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
 }

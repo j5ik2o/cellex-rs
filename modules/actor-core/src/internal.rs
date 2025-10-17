@@ -5,7 +5,8 @@ pub(crate) mod context;
 /// Guardian supervision tree utilities used for internal actor bootstrapping.
 pub mod guardian;
 pub(crate) mod mailbox;
-pub(crate) mod message;
+/// Internal message metadata storage and dispatch primitives.
+pub mod message;
 /// Internal metrics collection and observers wired to scheduler components.
 pub mod metrics;
 pub(crate) mod runtime_state;

@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::guardian::GuardianStrategy;
 use crate::internal::scheduler::actor_scheduler::ActorScheduler;
@@ -23,7 +23,7 @@ type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + 'static;
 pub struct SchedulerBuilder<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   factory: ArcShared<FactoryFn<M, R>>,
@@ -32,7 +32,7 @@ where
 impl<M, R> SchedulerBuilder<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -62,7 +62,7 @@ where
 impl<M, R> SchedulerBuilder<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
 {
   /// Returns a builder configured to create ready-queue-based schedulers.
   pub fn ready_queue() -> Self {

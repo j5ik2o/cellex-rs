@@ -3,7 +3,7 @@ use std::vec::Vec;
 
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::extensions::Extensions;
-use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
 use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
 use cellex_actor_core_rs::api::supervision::escalation::{FailureEventHandler, FailureEventListener};
 use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
@@ -30,7 +30,7 @@ use tokio::task::yield_now;
 pub struct TokioScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   inner: ReadyQueueScheduler<M, R, Strat>,
 }
@@ -38,7 +38,7 @@ where
 impl<M, R> TokioScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
 {
   /// ReadyQueue スケジューラを用いた既定構成を作成する。
   pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
@@ -51,7 +51,7 @@ where
 impl<M, R, Strat> TokioScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
@@ -66,7 +66,7 @@ where
 impl<M, R, Strat> ActorScheduler<M, R> for TokioScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,
@@ -141,7 +141,7 @@ where
 pub fn tokio_scheduler_builder<M, R>() -> SchedulerBuilder<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   SchedulerBuilder::new(|mailbox_runtime, extensions| {

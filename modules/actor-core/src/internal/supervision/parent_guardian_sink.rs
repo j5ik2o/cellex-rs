@@ -1,5 +1,5 @@
 use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::supervision::escalation::EscalationSink;
@@ -12,7 +12,7 @@ use cellex_utils_core_rs::Element;
 pub(crate) struct ParentGuardianSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   control_ref: InternalActorRef<M, R>,
@@ -22,7 +22,7 @@ where
 impl<M, R> ParentGuardianSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -37,7 +37,7 @@ where
 impl<M, R> EscalationSink<M, R> for ParentGuardianSink<M, R>
 where
   M: Element,
-  R: MailboxRuntime,
+  R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

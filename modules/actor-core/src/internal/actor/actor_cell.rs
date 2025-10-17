@@ -14,7 +14,7 @@ use crate::api::identity::ActorPath;
 use crate::api::mailbox::Mailbox;
 use crate::api::mailbox::MailboxHandle;
 use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
@@ -34,7 +34,7 @@ use crate::shared::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSche
 pub(crate) struct ActorCell<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
   actor_id: ActorId,
@@ -57,7 +57,7 @@ where
 impl<M, R, Strat> ActorCell<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   #[allow(clippy::too_many_arguments)]
@@ -98,7 +98,7 @@ where
 
   pub(crate) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>)
   where
-    R: MailboxRuntime + Clone + 'static,
+    R: MailboxFactory + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
@@ -109,7 +109,7 @@ where
 
   pub(crate) fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>)
   where
-    R: MailboxRuntime + Clone + 'static,
+    R: MailboxFactory + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {

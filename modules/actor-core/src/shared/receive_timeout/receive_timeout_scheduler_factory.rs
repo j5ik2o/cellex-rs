@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::scheduler::SchedulerFactoryBound;
 use crate::shared::map_system::MapSystemShared;
@@ -17,7 +17,7 @@ use cellex_utils_core_rs::Element;
 pub trait ReceiveTimeoutSchedulerFactory<M, R>: SchedulerFactoryBound
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone, {

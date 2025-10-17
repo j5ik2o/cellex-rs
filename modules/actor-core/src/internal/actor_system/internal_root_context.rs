@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 use super::InternalActorSystem;
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::{NoopSupervisor, Supervisor};
 use crate::internal::actor::{InternalActorRef, InternalProps};
@@ -18,8 +18,8 @@ pub(crate) struct InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
   R: ActorRuntime + Clone + 'static,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<M, MailboxOf<R>>, {
   pub(super) system: &'a mut InternalActorSystem<M, R, Strat>,
 }
@@ -28,8 +28,8 @@ impl<'a, M, R, Strat> InternalRootContext<'a, M, R, Strat>
 where
   M: Element + 'static,
   R: ActorRuntime + Clone + 'static,
-  <MailboxOf<R> as MailboxRuntime>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxRuntime>::Signal: Clone,
+  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<M, MailboxOf<R>>,
 {
   #[allow(dead_code)]

@@ -1,6 +1,6 @@
 use crate::api::actor::failure::ActorFailure;
 use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::context::{ActorContext, ActorHandlerFn};
@@ -11,7 +11,7 @@ use cellex_utils_core_rs::Element;
 pub(crate) struct InternalProps<M, R>
 where
   M: Element + 'static,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   pub options: MailboxOptions,
@@ -22,7 +22,7 @@ where
 impl<M, R> InternalProps<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone,
+  R: MailboxFactory + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {

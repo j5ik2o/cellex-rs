@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 
 use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::context::ActorHandlerFn;
 use crate::internal::scheduler::child_naming::ChildNaming;
@@ -13,7 +13,7 @@ use cellex_utils_core_rs::Element;
 pub struct SchedulerSpawnContext<M, R>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   /// Mailbox runtime used to create queue-backed actor mailboxes.

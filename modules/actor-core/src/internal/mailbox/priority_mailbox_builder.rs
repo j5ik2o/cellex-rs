@@ -2,7 +2,7 @@ use crate::api::mailbox::MailboxHandle;
 use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxPair;
 use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::MailboxSignal;
 use crate::api::mailbox::PriorityEnvelope;
 use cellex_utils_core_rs::Element;
@@ -33,7 +33,7 @@ where
 impl<M, R> PriorityMailboxBuilder<M> for R
 where
   M: Element,
-  R: MailboxRuntime + Clone,
+  R: MailboxFactory + Clone,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
@@ -42,10 +42,10 @@ where
   type Signal = R::Signal;
 
   fn build_priority_mailbox(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox, Self::Producer> {
-    MailboxRuntime::build_mailbox::<PriorityEnvelope<M>>(self, options)
+    MailboxFactory::build_mailbox::<PriorityEnvelope<M>>(self, options)
   }
 
   fn build_default_priority_mailbox(&self) -> MailboxPair<Self::Mailbox, Self::Producer> {
-    MailboxRuntime::build_default_mailbox::<PriorityEnvelope<M>>(self)
+    MailboxFactory::build_default_mailbox::<PriorityEnvelope<M>>(self)
   }
 }

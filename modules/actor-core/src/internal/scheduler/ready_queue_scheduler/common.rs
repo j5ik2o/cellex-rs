@@ -13,7 +13,7 @@ use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
 use crate::api::mailbox::Mailbox;
 use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::MailboxSignal;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
@@ -40,7 +40,7 @@ use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 pub(crate) struct ReadyQueueSchedulerCore<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   pub(super) guardian: Guardian<M, R, Strat>,
   actors: Vec<ActorCell<M, R, Strat>>,
@@ -56,7 +56,7 @@ where
 impl<M, R> ReadyQueueSchedulerCore<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
 {
   pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
     Self::with_strategy(mailbox_runtime, AlwaysRestart, extensions)
@@ -86,7 +86,7 @@ where
 impl<M, R, Strat> ReadyQueueSchedulerCore<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   pub fn spawn_actor(

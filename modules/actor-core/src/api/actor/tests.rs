@@ -16,7 +16,7 @@ use crate::api::extensions::{
   next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension,
 };
 use crate::api::identity::ActorId;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
@@ -165,9 +165,8 @@ mod receive_timeout_injection {
   use crate::api::mailbox::PriorityEnvelope;
   use crate::api::messaging::DynMessage;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
-  use crate::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::shared::map_system::MapSystemShared;
-  use crate::shared::receive_timeout::ReceiveTimeoutFactoryProvider;
+  use crate::shared::receive_timeout::{ReceiveTimeoutFactoryProvider, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::shared::receive_timeout::ReceiveTimeoutFactoryProviderShared;
   use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
   use alloc::boxed::Box;
@@ -200,7 +199,7 @@ mod receive_timeout_injection {
   impl ReceiveTimeoutSchedulerFactory<DynMessage, TestMailboxRuntime> for CountingFactory {
     fn create(
       &self,
-      _sender: <TestMailboxRuntime as MailboxRuntime>::Producer<PriorityEnvelope<DynMessage>>,
+      _sender: <TestMailboxRuntime as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>,
       _map_system: MapSystemShared<DynMessage>,
     ) -> Box<dyn ReceiveTimeoutScheduler> {
       self.calls.fetch_add(1, Ordering::SeqCst);
@@ -1100,7 +1099,7 @@ mod metrics_injection {
   use super::*;
   use crate::api::actor_system::ActorSystem;
   use crate::api::actor_system::ActorSystemConfig;
-  use crate::api::mailbox::MailboxRuntime;
+  use crate::api::mailbox::MailboxFactory;
   use crate::api::messaging::DynMessage;
   use crate::api::supervision::supervisor::Supervisor;
   use crate::api::supervision::telemetry::TelemetryObservationConfig;
@@ -1152,7 +1151,7 @@ mod metrics_injection {
   impl<M, R> ActorScheduler<M, R> for RecordingScheduler<M, R>
   where
     M: Element,
-    R: MailboxRuntime + Clone + 'static,
+    R: MailboxFactory + Clone + 'static,
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
   {

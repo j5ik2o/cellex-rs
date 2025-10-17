@@ -1,6 +1,6 @@
 use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::mailbox::MailboxConcurrency;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::ThreadSafe;
 use crate::api::messaging::DynMessage;
@@ -51,7 +51,7 @@ where
   /// * `actor_ref` - Actor reference to send to
   pub(crate) fn from_factory_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
   where
-    R: MailboxRuntime<Concurrency = C> + Clone + 'static,
+    R: MailboxFactory<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
@@ -129,7 +129,7 @@ impl InternalMessageSender {
   #[allow(dead_code)]
   pub(crate) fn from_internal_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
   where
-    R: MailboxRuntime + Clone + 'static,
+    R: MailboxFactory + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     R::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();

@@ -1,7 +1,7 @@
 use super::priority_actor_ref::PriorityActorRef;
 use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 use crate::api::messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode};
 use crate::internal::message::InternalMessageSender;
@@ -19,7 +19,7 @@ pub struct ActorRef<U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode, {
@@ -31,7 +31,7 @@ impl<U, R> ActorRef<U, R>
 where
   U: Element,
   R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
+  MailboxOf<R>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,

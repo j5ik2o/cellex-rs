@@ -1,7 +1,7 @@
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::guardian::GuardianStrategy;
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
@@ -12,7 +12,7 @@ use super::ready_queue_context::ReadyQueueContext;
 pub(crate) struct ReadyQueueWorkerImpl<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>,
 }
@@ -20,7 +20,7 @@ where
 impl<M, R, Strat> ReadyQueueWorkerImpl<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   pub(crate) fn new(context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>) -> Self {
@@ -31,7 +31,7 @@ where
 impl<M, R, Strat> ReadyQueueWorker<M, R> for ReadyQueueWorkerImpl<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>> {

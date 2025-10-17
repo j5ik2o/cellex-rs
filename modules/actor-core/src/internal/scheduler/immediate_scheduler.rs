@@ -4,7 +4,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxRuntime;
+use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
@@ -29,7 +29,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 pub struct ImmediateScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>, {
   inner: ReadyQueueScheduler<M, R, Strat>,
 }
@@ -37,7 +37,7 @@ where
 impl<M, R> ImmediateScheduler<M, R, AlwaysRestart>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
 {
   /// Creates a new immediate scheduler with the default guardian strategy.
   #[must_use]
@@ -51,7 +51,7 @@ where
 impl<M, R, Strat> ImmediateScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
   /// Creates a new immediate scheduler with a custom guardian strategy.
@@ -67,7 +67,7 @@ where
 impl<M, R, Strat> ActorScheduler<M, R> for ImmediateScheduler<M, R, Strat>
 where
   M: Element,
-  R: MailboxRuntime + Clone + 'static,
+  R: MailboxFactory + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
   Strat: GuardianStrategy<M, R>,

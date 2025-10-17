@@ -11,7 +11,7 @@ use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 use embassy_sync::signal::Signal;
 
 use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::MailboxFactory;
 use cellex_actor_core_rs::api::mailbox::MailboxSignal;
 use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
@@ -160,7 +160,7 @@ where
   }
 }
 
-impl<RM> MailboxRuntime for ArcMailboxRuntime<RM>
+impl<RM> MailboxFactory for ArcMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
