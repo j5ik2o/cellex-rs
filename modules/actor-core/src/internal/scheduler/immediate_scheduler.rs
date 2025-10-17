@@ -3,6 +3,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::extensions::Extensions;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
@@ -11,7 +12,6 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::actor_scheduler::ActorScheduler;
@@ -76,7 +76,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
+  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
@@ -104,7 +104,7 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 

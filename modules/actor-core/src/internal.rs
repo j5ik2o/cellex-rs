@@ -1,5 +1,5 @@
 /// Internal actor implementation
-pub mod actor;
+pub(crate) mod actor;
 pub(crate) mod actor_system;
 pub(crate) mod context;
 /// Guardian supervision tree utilities used for internal actor bootstrapping.

@@ -63,7 +63,7 @@ pub trait ActorRuntime: Clone {
     &self,
   ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
 
-  /// Overrides the receive-timeout factory using the base mailbox runtime type.
+  /// Overrides the receive-timeout scheduler factory using the base mailbox runtime type.
   fn with_receive_timeout_scheduler_factory_shared(
     self,
     factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>,
@@ -76,7 +76,7 @@ pub trait ActorRuntime: Clone {
     &self,
   ) -> Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>;
 
-  /// Overrides the receive-timeout driver.
+  /// Overrides the receive-timeout scheduler factory provider.
   fn with_receive_timeout_scheduler_factory_provider_shared_opt(
     self,
     driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>,

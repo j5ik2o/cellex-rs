@@ -1,10 +1,10 @@
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::MailboxProducer;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::supervision::escalation::EscalationSink;
 use crate::api::supervision::failure::FailureInfo;
-use crate::internal::actor::InternalActorRef;
 use crate::shared::map_system::MapSystemShared;
 use cellex_utils_core_rs::Element;
 
@@ -15,7 +15,7 @@ where
   R: MailboxFactory,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  control_ref: InternalActorRef<M, R>,
+  control_ref: PriorityActorRef<M, R>,
   map_system: MapSystemShared<M>,
 }
 
@@ -26,7 +26,7 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone,
 {
-  pub(crate) const fn new(control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) -> Self {
+  pub(crate) const fn new(control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) -> Self {
     Self {
       control_ref,
       map_system,

@@ -1,5 +1,6 @@
 use super::{ChildRecord, GuardianStrategy};
 use crate::api::actor::actor_failure::ActorFailure;
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::actor::ActorId;
 use crate::api::actor::ActorPath;
 use crate::api::mailbox::MailboxFactory;
@@ -8,7 +9,6 @@ use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::internal::actor::InternalActorRef;
 use crate::internal::scheduler::ChildNaming;
 use crate::internal::scheduler::SpawnError;
 use crate::shared::map_system::MapSystemShared;
@@ -17,7 +17,7 @@ use alloc::format;
 use alloc::string::String;
 use cellex_utils_core_rs::{Element, QueueError};
 
-type ChildRoute<M, R> = (InternalActorRef<M, R>, MapSystemShared<M>);
+type ChildRoute<M, R> = (PriorityActorRef<M, R>, MapSystemShared<M>);
 
 /// Guardian: Supervises child actors and sends SystemMessages.
 pub(crate) struct Guardian<M, R, Strat>
@@ -53,7 +53,7 @@ where
 
   pub fn register_child_with_naming(
     &mut self,
-    control_ref: InternalActorRef<M, R>,
+    control_ref: PriorityActorRef<M, R>,
     map_system: MapSystemShared<M>,
     watcher: Option<ActorId>,
     parent_path: &ActorPath,
@@ -97,7 +97,7 @@ where
     Ok((id, path))
   }
 
-  pub fn remove_child(&mut self, id: ActorId) -> Option<InternalActorRef<M, R>> {
+  pub fn remove_child(&mut self, id: ActorId) -> Option<PriorityActorRef<M, R>> {
     self.children.remove(&id).map(|record| {
       if let Some(name) = record.name.as_ref() {
         self.names.remove(name);
@@ -112,7 +112,7 @@ where
     })
   }
 
-  pub fn child_ref(&self, id: ActorId) -> Option<&InternalActorRef<M, R>> {
+  pub fn child_ref(&self, id: ActorId) -> Option<&PriorityActorRef<M, R>> {
     self.children.get(&id).map(|record| &record.control_ref)
   }
 
@@ -150,7 +150,7 @@ where
 
   pub fn register_child(
     &mut self,
-    control_ref: InternalActorRef<M, R>,
+    control_ref: PriorityActorRef<M, R>,
     map_system: MapSystemShared<M>,
     watcher: Option<ActorId>,
     parent_path: &ActorPath,

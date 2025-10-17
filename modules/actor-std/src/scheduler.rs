@@ -1,6 +1,7 @@
 use std::boxed::Box;
 use std::vec::Vec;
 
+use cellex_actor_core_rs::api::actor::actor_ref::PriorityActorRef;
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::extensions::Extensions;
 use cellex_actor_core_rs::api::mailbox::MailboxFactory;
@@ -9,7 +10,6 @@ use cellex_actor_core_rs::api::supervision::escalation::{FailureEventHandler, Fa
 use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
 use cellex_actor_core_rs::api::supervision::supervisor::Supervisor;
 use cellex_actor_core_rs::api::supervision::telemetry::TelemetryObservationConfig;
-use cellex_actor_core_rs::internal::actor::InternalActorRef;
 use cellex_actor_core_rs::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
 use cellex_actor_core_rs::internal::scheduler::{
@@ -75,7 +75,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
+  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
@@ -103,7 +103,7 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 

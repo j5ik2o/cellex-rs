@@ -1,12 +1,13 @@
 use alloc::boxed::Box;
 
 use super::InternalActorSystem;
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
 use crate::api::extensions::Extensions;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::{NoopSupervisor, Supervisor};
-use crate::internal::actor::{InternalActorRef, InternalProps};
+use crate::internal::actor::InternalProps;
 use crate::internal::guardian::GuardianStrategy;
 use crate::internal::scheduler::ChildNaming;
 use crate::internal::scheduler::SchedulerSpawnContext;
@@ -36,7 +37,7 @@ where
   pub fn spawn(
     &mut self,
     props: InternalProps<M, MailboxOf<R>>,
-  ) -> Result<InternalActorRef<M, MailboxOf<R>>, SpawnError<M>> {
+  ) -> Result<PriorityActorRef<M, MailboxOf<R>>, SpawnError<M>> {
     self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto)
   }
 
@@ -46,7 +47,7 @@ where
     supervisor: Box<dyn Supervisor<M>>,
     props: InternalProps<M, MailboxOf<R>>,
     child_naming: ChildNaming,
-  ) -> Result<InternalActorRef<M, MailboxOf<R>>, SpawnError<M>> {
+  ) -> Result<PriorityActorRef<M, MailboxOf<R>>, SpawnError<M>> {
     let InternalProps {
       options,
       map_system,

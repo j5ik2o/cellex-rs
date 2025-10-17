@@ -1,3 +1,5 @@
+use super::{CustomEscalationSink, ParentGuardianSink};
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::EscalationSink;
@@ -6,12 +8,9 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::escalation::RootEscalationSink;
 use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::actor::InternalActorRef;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
 use crate::shared::map_system::MapSystemShared;
 use cellex_utils_core_rs::{Element, QueueError};
-
-use super::{CustomEscalationSink, ParentGuardianSink};
 
 /// Composes multiple sinks and applies them in order.
 pub(crate) struct CompositeEscalationSink<M, R>
@@ -40,7 +39,7 @@ where
     }
   }
 
-  pub(crate) fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+  pub(crate) fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
     self.parent_guardian = Some(ParentGuardianSink::new(control_ref, map_system));
   }
 

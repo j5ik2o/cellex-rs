@@ -8,6 +8,7 @@ use futures::future::select_all;
 use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::actor::ActorId;
 use crate::api::actor::ActorPath;
 use crate::api::extensions::Extensions;
@@ -21,20 +22,18 @@ use crate::api::supervision::escalation::EscalationSink;
 use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::actor::InternalActorRef;
+use crate::internal::actor::ActorCell;
 use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::supervision::CompositeEscalationSink;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
-use cellex_utils_core_rs::{Element, QueueError};
-
-use crate::internal::actor::ActorCell;
 use crate::internal::metrics::MetricsEvent;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::internal::scheduler::SchedulerSpawnContext;
+use crate::internal::supervision::CompositeEscalationSink;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
 use crate::shared::map_system::MapSystemShared;
 use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
+use cellex_utils_core_rs::{Element, QueueError};
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub(crate) struct ReadyQueueSchedulerCore<M, R, Strat = AlwaysRestart>
@@ -93,7 +92,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
+  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
     let SchedulerSpawnContext {
       mailbox_runtime,
       mailbox_runtime_shared,
@@ -108,7 +107,7 @@ where
     mailbox.set_metrics_sink(self.metrics_sink.clone());
     sender.set_metrics_sink(self.metrics_sink.clone());
     let actor_sender = sender.clone();
-    let control_ref = InternalActorRef::new(actor_sender.clone());
+    let control_ref = PriorityActorRef::new(actor_sender.clone());
     let watchers = vec![ActorId::ROOT];
     let primary_watcher = watchers.first().copied();
     let parent_path = ActorPath::new();
@@ -239,7 +238,7 @@ where
     self.escalation_sink.set_custom_handler(handler);
   }
 
-  pub fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+  pub fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
     self.escalation_sink.set_parent_guardian(control_ref, map_system);
   }
 

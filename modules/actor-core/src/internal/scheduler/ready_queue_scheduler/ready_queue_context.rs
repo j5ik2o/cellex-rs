@@ -4,6 +4,9 @@ use spin::Mutex;
 
 use futures::future::LocalBoxFuture;
 
+use super::common::ReadyQueueSchedulerCore;
+use super::ready_queue_state::ReadyQueueState;
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
@@ -11,19 +14,15 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::actor::InternalActorRef;
+use crate::internal::actor::ActorCell;
 use crate::internal::guardian::GuardianStrategy;
+use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
-
-use super::common::ReadyQueueSchedulerCore;
-use super::ready_queue_state::ReadyQueueState;
-use crate::internal::actor::ActorCell;
-use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::shared::map_system::MapSystemShared;
 use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
+use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::{Element, QueueError};
 
 pub(crate) struct ReadyQueueContext<M, R, Strat>
 where
@@ -56,7 +55,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<(InternalActorRef<M, R>, usize), SpawnError<M>> {
+  ) -> Result<(PriorityActorRef<M, R>, usize), SpawnError<M>> {
     let actor_ref = self.core.spawn_actor(supervisor, context)?;
     let index = self.core.actor_count().saturating_sub(1);
     Ok((actor_ref, index))
@@ -125,7 +124,7 @@ where
     self.core.set_metrics_sink(sink)
   }
 
-  pub(super) fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>) {
+  pub(super) fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
     self.core.set_parent_guardian(control_ref, map_system)
   }
 

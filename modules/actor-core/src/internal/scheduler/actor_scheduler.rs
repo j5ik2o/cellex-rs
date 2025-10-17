@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use async_trait::async_trait;
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::FailureEventHandler;
@@ -11,7 +12,6 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::actor::InternalActorRef;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::internal::scheduler::SpawnError;
@@ -35,7 +35,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     context: SchedulerSpawnContext<M, R>,
-  ) -> Result<InternalActorRef<M, R>, SpawnError<M>>;
+  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>>;
 
   /// Installs a factory used to create receive-timeout drivers for child actors.
   fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>);
@@ -56,7 +56,7 @@ where
   fn set_root_observation_config(&mut self, config: TelemetryObservationConfig);
 
   /// Wires the parent guardian reference used for supervising spawned actors.
-  fn set_parent_guardian(&mut self, control_ref: InternalActorRef<M, R>, map_system: MapSystemShared<M>);
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>);
 
   /// Registers a callback invoked when escalations occur during execution.
   fn on_escalation(

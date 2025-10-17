@@ -5,6 +5,7 @@
 use super::ready_queue_scheduler::ReadyQueueScheduler;
 use super::*;
 use crate::api::actor::actor_failure::BehaviorFailure;
+use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::actor::shutdown_token::ShutdownToken;
 use crate::api::actor::ActorId;
 use crate::api::extensions::Extensions;
@@ -21,7 +22,6 @@ use crate::api::supervision::supervisor::NoopSupervisor;
 use crate::api::supervision::supervisor::Supervisor;
 #[cfg(feature = "std")]
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::internal::actor::InternalActorRef;
 use crate::internal::context::ActorContext;
 use crate::internal::context::ActorHandlerFn;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
@@ -121,7 +121,7 @@ fn spawn_with_runtime<M, R>(
   options: MailboxOptions,
   map_system: MapSystemShared<M>,
   handler: Box<ActorHandlerFn<M, R>>,
-) -> Result<InternalActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
+) -> Result<PriorityActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
 where
   M: Element,
   R: MailboxFactory + Clone + 'static,
@@ -620,7 +620,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
     ReadyQueueScheduler::with_strategy(mailbox_runtime.clone(), AlwaysEscalate, Extensions::new());
 
   let (parent_mailbox, parent_sender) = mailbox_runtime.build_default_mailbox::<PriorityEnvelope<Message>>();
-  let parent_ref: InternalActorRef<Message, TestMailboxRuntime> = InternalActorRef::new(parent_sender);
+  let parent_ref: PriorityActorRef<Message, TestMailboxRuntime> = PriorityActorRef::new(parent_sender);
   scheduler.set_parent_guardian(parent_ref, MapSystemShared::new(Message::System));
 
   let should_panic = Rc::new(Cell::new(true));
