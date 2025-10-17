@@ -1,10 +1,17 @@
+use crate::api::actor::failure::ActorFailure;
+use crate::api::identity::ActorId;
+use crate::api::identity::ActorPath;
 use crate::api::supervision::escalation::escalation_sink::EscalationSink;
 use crate::api::supervision::escalation::root_escalation_sink::RootEscalationSink;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
-use crate::{
-  ActorFailure, ActorId, ActorPath, FailureInfo, FailureSnapshot, FailureTelemetry, FailureTelemetryShared,
-  MetricsEvent, MetricsSink, MetricsSinkShared, TelemetryObservationConfig,
-};
+use crate::internal::metrics::MetricsEvent;
+use crate::internal::metrics::MetricsSink;
+use crate::internal::metrics::MetricsSinkShared;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
+use crate::FailureSnapshot;
+use crate::FailureTelemetry;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Default)]

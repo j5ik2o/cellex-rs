@@ -4,7 +4,8 @@ use crate::api::actor::context::Context;
 use crate::api::actor::failure::ActorFailure;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::{DynMessage, MetadataStorageMode};
+use crate::api::messaging::DynMessage;
+use crate::api::messaging::MetadataStorageMode;
 use cellex_utils_core_rs::Element;
 
 /// Behavior DSL builder.

@@ -2,10 +2,11 @@
 use alloc::boxed::Box;
 
 use crate::api::mailbox::mailbox_options::MailboxOptions;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::context::ActorHandlerFn;
 use crate::internal::scheduler::child_naming::ChildNaming;
-use crate::{MailboxRuntime, MapSystemShared};
+use crate::shared::map_system::MapSystemShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 

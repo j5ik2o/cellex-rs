@@ -1,8 +1,11 @@
 use core::marker::PhantomData;
 
+use crate::api::mailbox::mailbox_options::MailboxOptions;
+use crate::api::mailbox::mailbox_producer::MailboxProducer;
+use crate::api::mailbox::Mailbox;
+use crate::api::mailbox::MailboxPair;
 use crate::internal::mailbox::PriorityMailboxBuilder;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::{Mailbox, MailboxOptions, MailboxPair, MailboxProducer};
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::Element;
 

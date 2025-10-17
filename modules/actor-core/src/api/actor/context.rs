@@ -1,15 +1,23 @@
+use crate::api::actor::actor_ref::ActorRef;
 use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
-use crate::api::actor::{ActorFailure, ActorRef, Props};
+use crate::api::actor::failure::ActorFailure;
+use crate::api::actor::props::Props;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::extensions::Extension;
+use crate::api::extensions::ExtensionId;
+use crate::api::extensions::Extensions;
+use crate::api::identity::ActorId;
+use crate::api::identity::ActorPath;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::mailbox::messages::SystemMessage;
+use crate::api::messaging::DynMessage;
+use crate::api::messaging::MetadataStorageMode;
 use crate::api::messaging::{MessageEnvelope, MessageMetadata, MessageSender};
 use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::context::ActorContext;
-use crate::{
-  ActorId, ActorPath, DynMessage, Extension, ExtensionId, Extensions, MailboxRuntime, MetadataStorageMode,
-  RuntimeBound, Supervisor,
-};
+use crate::RuntimeBound;
 use alloc::boxed::Box;
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};

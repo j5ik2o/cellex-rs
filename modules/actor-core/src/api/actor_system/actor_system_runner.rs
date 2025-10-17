@@ -1,8 +1,13 @@
+use crate::api::actor::shutdown_token::ShutdownToken;
+use crate::api::actor_runtime::ActorRuntime;
+use crate::api::actor_runtime::MailboxOf;
+use crate::api::actor_runtime::MailboxQueueOf;
+use crate::api::actor_runtime::MailboxSignalOf;
+use crate::api::actor_system::ActorSystem;
 use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::{
-  ActorRuntime, ActorSystem, AlwaysRestart, DynMessage, MailboxOf, MailboxQueueOf, MailboxSignalOf, ReadyQueueWorker,
-  ShutdownToken,
-};
+use crate::api::messaging::DynMessage;
+use crate::internal::guardian::AlwaysRestart;
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
 use cellex_utils_core_rs::{ArcShared, Element, QueueError};
 use core::convert::Infallible;
 use core::marker::PhantomData;
@@ -17,7 +22,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>, {
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
   pub(crate) system: ActorSystem<U, R, Strat>,
   pub(crate) ready_queue_worker_count: NonZeroUsize,
   pub(crate) _marker: PhantomData<U>,
@@ -29,7 +34,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
 {
   /// Gets the number of ReadyQueue workers to spawn when driving the system.
   #[must_use]

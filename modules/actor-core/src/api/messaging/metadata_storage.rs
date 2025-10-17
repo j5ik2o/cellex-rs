@@ -1,4 +1,4 @@
-use crate::api::mailbox::ThreadSafe;
+use crate::api::mailbox::thread_safe::ThreadSafe;
 use crate::api::messaging::{MessageMetadata, MetadataStorageMode, MetadataStorageRecord};
 
 impl MetadataStorageMode for ThreadSafe {

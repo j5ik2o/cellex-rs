@@ -1,7 +1,8 @@
 use crate::api::actor::behavior::dyn_supervisor::DynSupervisor;
 use crate::api::actor::behavior::fixed_directive_supervisor::FixedDirectiveSupervisor;
 use crate::api::actor::behavior::supervisor_strategy::SupervisorStrategy;
-use crate::{NoopSupervisor, Supervisor};
+use crate::api::supervision::supervisor::NoopSupervisor;
+use crate::api::supervision::supervisor::Supervisor;
 use alloc::boxed::Box;
 use cellex_utils_core_rs::Element;
 

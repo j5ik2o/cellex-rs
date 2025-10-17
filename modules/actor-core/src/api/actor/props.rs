@@ -1,16 +1,21 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::mailbox_options::MailboxOptions;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::mailbox::messages::SystemMessage;
+use crate::api::messaging::DynMessage;
+use crate::api::messaging::MetadataStorageMode;
+use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::actor::InternalProps;
 use crate::internal::context::ActorContext;
 use crate::internal::message::take_metadata;
-use crate::{DynMessage, MetadataStorageMode};
-use crate::{MailboxRuntime, Supervisor};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
-use super::{ActorAdapter, ActorFailure, Behavior, Context};
+use super::behavior::ActorAdapter;
+use super::behavior::Behavior;
+use super::context::Context;
+use super::failure::ActorFailure;
 use crate::api::actor::behavior::SupervisorStrategyConfig;
 use crate::api::messaging::MessageEnvelope;
 use core::marker::PhantomData;

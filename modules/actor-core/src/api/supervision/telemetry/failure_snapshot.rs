@@ -1,6 +1,11 @@
-use crate::api::supervision::telemetry::common::build_snapshot_tags;
-use crate::api::supervision::telemetry::telemetry_tag::TelemetryTag;
-use crate::{ActorFailure, ActorId, ActorPath, EscalationStage, FailureInfo, FailureMetadata};
+use crate::api::actor::failure::ActorFailure;
+use crate::api::identity::ActorId;
+use crate::api::identity::ActorPath;
+use crate::api::supervision::failure::EscalationStage;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::failure::FailureMetadata;
+use crate::api::supervision::telemetry::build_snapshot_tags;
+use crate::api::supervision::telemetry::TelemetryTag;
 use alloc::string::String;
 use alloc::vec::Vec;
 

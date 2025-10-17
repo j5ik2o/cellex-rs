@@ -1,6 +1,8 @@
 use super::*;
+use crate::api::mailbox::mailbox_options::MailboxOptions;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::mailbox::messages::SystemMessage;
-use crate::{MailboxOptions, PriorityChannel, PriorityEnvelope};
+use crate::PriorityChannel;
 use cellex_utils_core_rs::{QueueSize, DEFAULT_PRIORITY};
 
 #[test]

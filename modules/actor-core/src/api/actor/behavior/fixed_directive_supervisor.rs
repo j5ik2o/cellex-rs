@@ -1,5 +1,7 @@
 use crate::api::actor::behavior::supervisor_strategy::SupervisorStrategy;
-use crate::{BehaviorFailure, Supervisor, SupervisorDirective};
+use crate::api::actor::failure::BehaviorFailure;
+use crate::api::supervision::supervisor::Supervisor;
+use crate::api::supervision::supervisor::SupervisorDirective;
 
 pub struct FixedDirectiveSupervisor {
   directive: SupervisorDirective,

@@ -1,5 +1,7 @@
 use super::*;
-use crate::{ActorFailure, ActorId, ActorPath};
+use crate::api::actor::failure::ActorFailure;
+use crate::api::identity::ActorId;
+use crate::api::identity::ActorPath;
 
 #[test]
 fn escalation_stage_increments_with_parent_hops() {

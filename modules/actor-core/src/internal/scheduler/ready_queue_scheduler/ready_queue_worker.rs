@@ -2,8 +2,9 @@
 
 use futures::future::{select, Either, LocalBoxFuture};
 
+use crate::api::actor::shutdown_token::ShutdownToken;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::{MailboxRuntime, ShutdownToken};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -22,6 +23,12 @@ where
 }
 
 /// Drives a single ReadyQueue worker loop until shutdown is triggered.
+///
+/// # Arguments
+/// * `worker` - ReadyQueue worker instance
+/// * `shutdown` - Shutdown signal token
+/// * `yield_now` - Closure to yield execution
+/// * `wait_for_shutdown` - Closure to wait for shutdown signal
 pub async fn drive_ready_queue_worker<M, R, Y, YF, S, SF>(
   worker: ArcShared<dyn ReadyQueueWorker<M, R>>,
   shutdown: ShutdownToken,

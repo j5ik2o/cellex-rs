@@ -6,14 +6,20 @@ use alloc::vec::Vec;
 use async_trait::async_trait;
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::escalation::FailureEventHandler;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::Supervisor;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
-use crate::{
-  FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime, MapSystemShared,
-  MetricsSinkShared, ReceiveTimeoutFactoryShared, Supervisor,
-};
-use crate::{SchedulerSpawnContext, SpawnError};
+use crate::internal::metrics::MetricsSinkShared;
+use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
+use crate::shared::map_system::MapSystemShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

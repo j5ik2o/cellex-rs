@@ -6,14 +6,17 @@ use spin::Mutex;
 
 use futures::future::LocalBoxFuture;
 
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::escalation::FailureEventHandler;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::Supervisor;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
-use crate::{
-  FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, Supervisor,
-  TelemetryObservationConfig,
-};
-use crate::{MailboxRuntime, SchedulerSpawnContext};
+use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -21,7 +24,8 @@ use super::common::ReadyQueueSchedulerCore;
 use super::ready_queue_state::ReadyQueueState;
 use crate::internal::actor::ActorCell;
 use crate::internal::scheduler::spawn_error::SpawnError;
-use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
+use crate::shared::map_system::MapSystemShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 
 pub(crate) struct ReadyQueueContext<M, R, Strat>
 where

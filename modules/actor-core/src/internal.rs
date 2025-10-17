@@ -1,3 +1,4 @@
+/// Internal actor implementation
 pub mod actor;
 pub(crate) mod actor_system;
 pub(crate) mod context;

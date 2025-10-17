@@ -1,9 +1,10 @@
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::guardian::GuardianStrategy;
-use crate::{MailboxRuntime, ReadyQueueWorker};
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

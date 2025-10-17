@@ -7,14 +7,18 @@ use core::convert::Infallible;
 use async_trait::async_trait;
 use spin::Mutex;
 
+use crate::api::extensions::Extensions;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::escalation::FailureEventHandler;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::Supervisor;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, Supervisor,
-  TelemetryObservationConfig,
-};
-use crate::{MailboxRuntime, SchedulerSpawnContext};
+use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -25,9 +29,11 @@ use super::ready_notifier::ReadyNotifier;
 use super::ready_queue_context::ReadyQueueContext;
 use super::ready_queue_state::ReadyQueueState;
 use super::ready_queue_worker::ReadyQueueWorker;
+use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ready_queue_scheduler::ready_queue_worker_impl::ReadyQueueWorkerImpl;
 use crate::internal::scheduler::spawn_error::SpawnError;
-use crate::{MapSystemShared, MetricsSinkShared, ReceiveTimeoutFactoryShared};
+use crate::shared::map_system::MapSystemShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 
 pub struct ReadyQueueScheduler<M, R, Strat = AlwaysRestart>
 where

@@ -10,24 +10,33 @@ use futures::future::select_all;
 use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
+use crate::api::extensions::Extensions;
+use crate::api::identity::ActorId;
 use crate::api::identity::ActorPath;
+use crate::api::mailbox::mailbox_producer::MailboxProducer;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::mailbox_signal::MailboxSignal;
 use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::messages::SystemMessage;
+use crate::api::mailbox::Mailbox;
+use crate::api::supervision::escalation::EscalationSink;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::Supervisor;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
+use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
 use crate::internal::supervision::CompositeEscalationSink;
-use crate::{ActorId, SchedulerSpawnContext};
-use crate::{
-  EscalationSink, Extensions, FailureInfo, FailureTelemetryShared, Supervisor, SystemMessage,
-  TelemetryObservationConfig,
-};
-use crate::{Mailbox, MailboxProducer};
-use crate::{MailboxRuntime, MailboxSignal};
+use crate::shared::failure_telemetry::FailureTelemetryShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use crate::internal::actor::ActorCell;
+use crate::internal::metrics::MetricsEvent;
+use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::spawn_error::SpawnError;
-use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
+use crate::shared::map_system::MapSystemShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub(crate) struct ReadyQueueSchedulerCore<M, R, Strat = AlwaysRestart>

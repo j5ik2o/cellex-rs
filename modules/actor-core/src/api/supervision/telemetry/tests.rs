@@ -2,9 +2,12 @@
 
 use super::*;
 
+use crate::api::actor::failure::ActorFailure;
+use crate::api::identity::ActorId;
+use crate::api::identity::ActorPath;
+use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::failure::{EscalationStage, FailureMetadata};
 use crate::api::supervision::telemetry::tracing_failure_telemetry::TracingFailureTelemetry;
-use crate::{ActorFailure, ActorId, ActorPath, FailureInfo};
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use tracing::subscriber::with_default;

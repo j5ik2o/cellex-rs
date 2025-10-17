@@ -1,4 +1,6 @@
-use crate::{MessageMetadata, SingleThread, ThreadSafe};
+use crate::api::mailbox::single_thread::SingleThread;
+use crate::api::mailbox::thread_safe::ThreadSafe;
+use crate::api::messaging::MessageMetadata;
 
 /// Internal storage record used by metadata tables to preserve per-concurrency metadata.
 #[doc(hidden)]

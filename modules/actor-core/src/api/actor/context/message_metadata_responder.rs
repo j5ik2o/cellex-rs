@@ -1,9 +1,13 @@
-use super::context::Context;
+use super::Context;
 use crate::api::actor::ask::{AskError, AskResult};
+use crate::api::actor_runtime::MailboxOf;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::messaging::DynMessage;
+use crate::api::messaging::MetadataStorageMode;
 use crate::api::messaging::{MessageEnvelope, MessageMetadata};
-use crate::{DynMessage, MailboxOf, MailboxRuntime, MetadataStorageMode, RuntimeBound};
+use crate::RuntimeBound;
 use cellex_utils_core_rs::Element;
 
 /// Trait allowing message metadata to respond to the original sender.
@@ -11,6 +15,7 @@ pub trait MessageMetadataResponder<R>
 where
   R: ActorRuntime,
   MailboxOf<R>: MailboxRuntime + Clone + 'static, {
+  /// Sends a response message back to the original sender.
   fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
   where
     Resp: Element,

@@ -3,15 +3,24 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::api::extensions::Extensions;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::escalation::FailureEventHandler;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::Supervisor;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
+use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::actor_scheduler::ActorScheduler;
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
-use crate::{
-  Extensions, FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime,
-  MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared, Supervisor, TelemetryObservationConfig,
-};
-use crate::{MapSystemShared, SchedulerSpawnContext, SpawnError};
+use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
+use crate::shared::map_system::MapSystemShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.

@@ -1,5 +1,6 @@
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::{DynMessage, MailboxRuntime};
+use crate::api::messaging::DynMessage;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Shared;
 

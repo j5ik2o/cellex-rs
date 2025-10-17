@@ -1,4 +1,5 @@
-use crate::{ActorId, FailureInfo};
+use crate::api::identity::ActorId;
+use crate::api::supervision::failure::FailureInfo;
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 
 /// Control message types inspired by protoactor-go's `SystemMessage` catalogue.

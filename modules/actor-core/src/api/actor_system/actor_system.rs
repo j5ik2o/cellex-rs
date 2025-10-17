@@ -5,17 +5,22 @@ use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
+use crate::api::actor::root_context::RootContext;
+use crate::api::actor::shutdown_token::ShutdownToken;
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::extensions::serializer_extension_id;
+use crate::api::extensions::Extension;
+use crate::api::extensions::ExtensionId;
+use crate::api::extensions::Extensions;
+use crate::api::extensions::SerializerRegistryExtension;
+use crate::api::failure_event_stream::FailureEventStream;
 use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::messaging::DynMessage;
+use crate::api::supervision::telemetry::default_failure_telemetry;
 use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
-use crate::{
-  default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventStream, SerializerRegistryExtension,
-  TelemetryContext,
-};
-use crate::{DynMessage, RootContext, ShutdownToken};
+use crate::shared::failure_telemetry::TelemetryContext;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -28,7 +33,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>, {
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
   inner: InternalActorSystem<DynMessage, R, Strat>,
   pub(crate) shutdown: ShutdownToken,
   extensions: Extensions,
@@ -139,7 +144,7 @@ where
   R: ActorRuntime + Clone + 'static,
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
-  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
 {
   /// Gets the shutdown token.
   ///

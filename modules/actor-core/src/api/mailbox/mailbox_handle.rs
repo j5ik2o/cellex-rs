@@ -1,4 +1,5 @@
-use crate::{Mailbox, MailboxSignal};
+use crate::api::mailbox::mailbox_signal::MailboxSignal;
+use crate::api::mailbox::Mailbox;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Shared interface exposed by mailbox handles that can be managed by the runtime scheduler.

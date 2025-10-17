@@ -2,12 +2,14 @@ use alloc::boxed::Box;
 
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::{DynMessage, MetadataStorageMode};
+use crate::api::messaging::DynMessage;
+use crate::api::messaging::MetadataStorageMode;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
+use super::context::Context;
+use super::failure::ActorFailure;
 use super::signal::Signal;
-use super::{ActorFailure, Context};
 
 mod actor_adapter;
 mod behavior_directive;

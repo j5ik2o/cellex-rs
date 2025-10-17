@@ -1,4 +1,5 @@
-use crate::{MetricsSinkShared, ReadyQueueHandle};
+use crate::internal::metrics::MetricsSinkShared;
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Sending interface exposed by mailbox producers that enqueue messages.

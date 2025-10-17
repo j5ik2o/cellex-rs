@@ -1,15 +1,22 @@
+use crate::api::actor::actor_ref::ActorRef;
+use crate::api::actor::props::Props;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::extensions::Extension;
+use crate::api::extensions::ExtensionId;
+use crate::api::extensions::Extensions;
 use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::messaging::DynMessage;
+use crate::api::messaging::MetadataStorageMode;
 use crate::internal::actor_system::InternalRootContext;
-use crate::internal::scheduler::{ChildNaming, SpawnError};
-use crate::{ActorRef, DynMessage, Extension, ExtensionId, Extensions, MetadataStorageMode, Props};
+use crate::internal::scheduler::child_naming::ChildNaming;
+use crate::internal::scheduler::spawn_error::SpawnError;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
 use core::marker::PhantomData;
 
-use super::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
+use super::ask::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 
 /// Context for operating root actors.
 ///
@@ -22,7 +29,7 @@ where
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,
-  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>, {
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
   pub(crate) inner: InternalRootContext<'a, DynMessage, R, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
@@ -34,7 +41,7 @@ where
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode,
-  Strat: crate::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
 {
   /// Spawns a new actor using the specified properties.
   ///

@@ -1,8 +1,15 @@
-use crate::{
-  default_failure_telemetry, ActorRuntime, Extensions, FailureEventHandler, FailureEventListener,
-  FailureTelemetryShared, MailboxOf, MailboxRuntime, MetricsSinkShared, PriorityEnvelope, ReceiveTimeoutFactoryShared,
-  TelemetryObservationConfig,
-};
+use crate::api::actor_runtime::ActorRuntime;
+use crate::api::actor_runtime::MailboxOf;
+use crate::api::extensions::Extensions;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::escalation::FailureEventHandler;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::telemetry::default_failure_telemetry;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
+use crate::internal::metrics::MetricsSinkShared;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 use cellex_utils_core_rs::Element;
 
 /// Internal configuration used while assembling [`InternalActorSystem`].

@@ -1,9 +1,17 @@
+use crate::api::actor_runtime::ActorRuntime;
+use crate::api::actor_runtime::MailboxOf;
+use crate::api::actor_runtime::MailboxQueueOf;
+use crate::api::actor_runtime::MailboxSignalOf;
+use crate::api::extensions::Extension;
+use crate::api::extensions::Extensions;
 use crate::api::mailbox::messages::PriorityEnvelope;
-use crate::{
-  ActorRuntime, DynMessage, Extension, Extensions, FailureEventListener, FailureTelemetryBuilderShared,
-  FailureTelemetryShared, MailboxOf, MailboxQueueOf, MailboxSignalOf, MetricsSinkShared, ReceiveTimeoutFactoryShared,
-  TelemetryObservationConfig,
-};
+use crate::api::messaging::DynMessage;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
+use crate::internal::metrics::MetricsSinkShared;
+use crate::shared::failure_telemetry::FailureTelemetryBuilderShared;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 use cellex_utils_core_rs::ArcShared;
 use core::num::NonZeroUsize;
 

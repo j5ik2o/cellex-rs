@@ -8,20 +8,25 @@ use super::*;
 use super::{ask_with_timeout, AskError};
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use crate::api::extensions::next_extension_id;
+use crate::api::extensions::Extension;
+use crate::api::extensions::ExtensionId;
+use crate::api::extensions::SerializerRegistryExtension;
 use crate::api::identity::ActorId;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::mailbox::messages::SystemMessage;
 use crate::api::messaging::DynMessage;
+use crate::api::messaging::MessageEnvelope;
+use crate::api::messaging::MessageMetadata;
+use crate::api::messaging::MessageSender;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::failure::FailureEvent;
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::message::internal_message_sender::InternalMessageSender;
 use crate::internal::message::take_metadata;
 use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::serializer_extension_id;
 use crate::shared::map_system::MapSystemShared;
-use crate::{serializer_extension_id, SerializerRegistryExtension};
-use crate::{Extension, ExtensionId};
-use crate::{FailureEvent, FailureEventListener};
-use crate::{MessageEnvelope, MessageMetadata, MessageSender};
 use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
@@ -150,12 +155,19 @@ mod builder_api {
 mod receive_timeout_injection {
   use super::TestRuntime;
   use super::*;
+  use crate::api::actor_runtime::ActorRuntime;
+  use crate::api::actor_system::ActorSystem;
+  use crate::api::actor_system::ActorSystemConfig;
+  use crate::api::mailbox::messages::PriorityEnvelope;
+  use crate::api::messaging::DynMessage;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
-  use crate::{
-    ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, GenericActorRuntime, MapSystemShared, PriorityEnvelope,
-    ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, ReceiveTimeoutScheduler,
-    ReceiveTimeoutSchedulerFactory,
-  };
+  use crate::internal::scheduler::receive_timeout_scheduler::ReceiveTimeoutScheduler;
+  use crate::internal::scheduler::receive_timeout_scheduler_factory::ReceiveTimeoutSchedulerFactory;
+  use crate::shared::map_system::MapSystemShared;
+  use crate::shared::receive_timeout::ReceiveTimeoutDriver;
+  use crate::shared::receive_timeout::ReceiveTimeoutDriverShared;
+  use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+  use crate::GenericActorRuntime;
   use alloc::boxed::Box;
   use core::time::Duration;
   use futures::executor::block_on;
@@ -301,7 +313,7 @@ mod receive_timeout_injection {
   }
 }
 
-use crate::api::mailbox::ThreadSafe;
+use crate::api::mailbox::thread_safe::ThreadSafe;
 use cellex_utils_core_rs::sync::ArcShared;
 use core::any::Any;
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -1084,13 +1096,20 @@ fn ask_future_cancelled_on_drop() {
 
 mod metrics_injection {
   use super::*;
+  use crate::api::actor_system::ActorSystem;
+  use crate::api::actor_system::ActorSystemConfig;
+  use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+  use crate::api::messaging::DynMessage;
+  use crate::api::supervision::supervisor::Supervisor;
+  use crate::api::supervision::telemetry::TelemetryObservationConfig;
   use crate::internal::actor::InternalActorRef;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
+  use crate::internal::metrics::MetricsEvent;
+  use crate::internal::metrics::MetricsSink;
+  use crate::internal::metrics::MetricsSinkShared;
   use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
-  use crate::{
-    ActorSystem, ActorSystemConfig, DynMessage, FailureTelemetryShared, GenericActorRuntime, MailboxRuntime,
-    MetricsEvent, MetricsSink, MetricsSinkShared, Supervisor, TelemetryObservationConfig,
-  };
+  use crate::shared::failure_telemetry::FailureTelemetryShared;
+  use crate::GenericActorRuntime;
   use alloc::boxed::Box;
   use core::marker::PhantomData;
   use std::sync::{Arc, Mutex};

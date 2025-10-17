@@ -1,5 +1,8 @@
+/// Shared failure telemetry infrastructure
 pub mod failure_telemetry;
+/// System message mapping functionality
 pub mod map_system;
+/// Receive timeout handling
 pub mod receive_timeout;
 
 #[cfg(test)]

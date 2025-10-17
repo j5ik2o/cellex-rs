@@ -5,16 +5,26 @@ use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{QueueError, QueueSize};
 use core::future::Future;
 
+/// Mailbox concurrency modes
 pub mod mailbox_concurrency;
+/// Mailbox handle trait
 pub mod mailbox_handle;
+/// Mailbox configuration options
 pub mod mailbox_options;
+/// Mailbox factory trait
 pub mod mailbox_producer;
+/// Mailbox runtime abstraction
 pub mod mailbox_runtime;
+/// Mailbox signaling mechanisms
 pub mod mailbox_signal;
 pub mod messages;
+/// Queue-based mailbox implementation
 pub mod queue_mailbox;
+/// Queue mailbox factory
 pub mod queue_mailbox_producer;
+/// Single-threaded mailbox
 pub mod single_thread;
+/// Thread-safe mailbox
 pub mod thread_safe;
 
 /// Type alias for mailbox and producer pair.

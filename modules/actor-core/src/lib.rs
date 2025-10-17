@@ -79,8 +79,11 @@ extern crate alloc;
 use cellex_utils_core_rs::QueueError;
 use core::time::Duration;
 
+/// Public API for actors
 pub mod api;
+/// Internal implementation details
 pub mod internal;
+/// Shared utilities and types
 pub mod shared;
 
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.
