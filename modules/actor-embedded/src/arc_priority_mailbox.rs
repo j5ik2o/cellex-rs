@@ -4,10 +4,12 @@ use core::marker::PhantomData;
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 
-use cellex_actor_core_rs::MetricsSinkShared;
-use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv,
-};
+use cellex_actor_core_rs::api::mailbox::mailbox_options::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
+use cellex_actor_core_rs::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
+use cellex_actor_core_rs::api::mailbox::Mailbox;
+use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
 use cellex_utils_embedded_rs::queue::priority::ArcPriorityQueue;
 use cellex_utils_embedded_rs::queue::ring::ArcRingQueue;
 use cellex_utils_embedded_rs::{

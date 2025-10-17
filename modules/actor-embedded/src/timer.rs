@@ -1,7 +1,7 @@
 use core::future::Ready;
 use core::time::Duration;
 
-use cellex_actor_core_rs::Timer;
+use cellex_actor_core_rs::api::actor_system::Timer;
 
 /// A timer that completes immediately.
 ///

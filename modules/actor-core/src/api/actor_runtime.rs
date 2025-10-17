@@ -18,7 +18,7 @@ use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
+use crate::internal::scheduler::SchedulerBuilder;
 use crate::shared::receive_timeout::ReceiveTimeoutDriverShared;
 use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 

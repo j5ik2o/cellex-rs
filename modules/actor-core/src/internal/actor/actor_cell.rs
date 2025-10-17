@@ -24,11 +24,11 @@ use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec};
 use crate::internal::guardian::{Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueHandle;
-use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::internal::scheduler::ReadyQueueHandle;
+use crate::internal::scheduler::SpawnError;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::internal::scheduler::receive_timeout_scheduler::ReceiveTimeoutScheduler;
+use crate::internal::scheduler::ReceiveTimeoutScheduler;
 use crate::shared::map_system::MapSystemShared;
 use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
 

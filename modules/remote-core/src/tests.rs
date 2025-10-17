@@ -1,6 +1,12 @@
 use super::{placeholder_metadata, RemoteFailureNotifier};
-use cellex_actor_core_rs::{
-  ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureEventStream, FailureInfo,
+use cellex_actor_core_rs::api::{
+  actor::failure::ActorFailure,
+  failure_event_stream::FailureEventStream,
+  identity::{ActorId, ActorPath},
+  supervision::{
+    escalation::FailureEventListener,
+    failure::{FailureEvent, FailureInfo},
+  },
 };
 use cellex_actor_std_rs::FailureEventHub;
 use std::sync::{Arc, Mutex};

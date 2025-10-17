@@ -8,9 +8,9 @@ use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::supervision::supervisor::{NoopSupervisor, Supervisor};
 use crate::internal::actor::{InternalActorRef, InternalProps};
 use crate::internal::guardian::GuardianStrategy;
-use crate::internal::scheduler::child_naming::ChildNaming;
-use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
-use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::internal::scheduler::ChildNaming;
+use crate::internal::scheduler::SchedulerSpawnContext;
+use crate::internal::scheduler::SpawnError;
 use cellex_utils_core_rs::sync::Shared;
 use cellex_utils_core_rs::{Element, QueueError};
 

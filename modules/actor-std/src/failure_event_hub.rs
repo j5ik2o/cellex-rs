@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod tests;
 
+use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
+use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
+use cellex_actor_core_rs::api::supervision::failure::FailureEvent;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-
-use cellex_actor_core_rs::{FailureEvent, FailureEventListener, FailureEventStream};
 
 /// FailureEventStream implementation for std.
 #[derive(Clone, Default)]

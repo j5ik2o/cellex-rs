@@ -16,12 +16,12 @@ use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::child_naming::ChildNaming;
+use crate::internal::scheduler::ChildNaming;
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use super::ChildSpawnSpec;
 use crate::internal::actor::InternalProps;
-use crate::internal::scheduler::receive_timeout_scheduler::ReceiveTimeoutScheduler;
+use crate::internal::scheduler::ReceiveTimeoutScheduler;
 use crate::shared::map_system::MapSystemShared;
 use core::cell::RefCell;
 use core::time::Duration;

@@ -19,7 +19,7 @@ use crate::api::messaging::DynMessage;
 use crate::api::supervision::telemetry::default_failure_telemetry;
 use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::internal::guardian::AlwaysRestart;
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
+use crate::internal::scheduler::ReadyQueueWorker;
 use crate::shared::failure_telemetry::TelemetryContext;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};

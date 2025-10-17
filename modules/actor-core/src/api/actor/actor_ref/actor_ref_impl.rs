@@ -4,7 +4,7 @@ use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, M
 use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::{PriorityEnvelope, SystemMessage};
 use crate::api::messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode};
-use crate::internal::message::internal_message_sender::InternalMessageSender;
+use crate::internal::message::InternalMessageSender;
 use crate::RuntimeBound;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::future::Future;

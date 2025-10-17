@@ -1,16 +1,17 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
-
-use cellex_actor_core_rs::MetricsSinkShared;
-use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv,
-};
+use cellex_actor_core_rs::api::mailbox::mailbox_options::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
+use cellex_actor_core_rs::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
+use cellex_actor_core_rs::api::mailbox::Mailbox;
+use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
 use cellex_utils_std_rs::{
   Element, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, DEFAULT_CAPACITY, PRIORITY_LEVELS,
 };
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 
 type PriorityQueueError<M> = Box<QueueError<PriorityEnvelope<M>>>;
 

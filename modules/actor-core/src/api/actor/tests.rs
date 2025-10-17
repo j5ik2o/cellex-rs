@@ -26,15 +26,11 @@ use crate::api::messaging::MessageMetadata;
 use crate::api::messaging::MessageSender;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureEvent;
-use crate::api::supervision::telemetry::FailureSnapshot;
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
-use crate::internal::message::internal_message_sender::InternalMessageSender;
 use crate::internal::message::take_metadata;
-use crate::internal::scheduler::actor_scheduler::ActorScheduler;
-use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
-use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
-use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::internal::message::InternalMessageSender;
+use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext, SpawnError};
 use crate::shared::map_system::MapSystemShared;
 use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
@@ -170,8 +166,7 @@ mod receive_timeout_injection {
   use crate::api::mailbox::messages::PriorityEnvelope;
   use crate::api::messaging::DynMessage;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
-  use crate::internal::scheduler::receive_timeout_scheduler::ReceiveTimeoutScheduler;
-  use crate::internal::scheduler::receive_timeout_scheduler_factory::ReceiveTimeoutSchedulerFactory;
+  use crate::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::shared::map_system::MapSystemShared;
   use crate::shared::receive_timeout::ReceiveTimeoutDriver;
   use crate::shared::receive_timeout::ReceiveTimeoutDriverShared;
@@ -1115,9 +1110,7 @@ mod metrics_injection {
   use crate::internal::metrics::MetricsEvent;
   use crate::internal::metrics::MetricsSink;
   use crate::internal::metrics::MetricsSinkShared;
-  use crate::internal::scheduler::actor_scheduler::ActorScheduler;
-  use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
-  use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+  use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::shared::failure_telemetry::FailureTelemetryShared;
   use alloc::boxed::Box;
   use core::marker::PhantomData;

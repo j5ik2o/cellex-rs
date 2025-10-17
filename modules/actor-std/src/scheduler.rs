@@ -1,14 +1,25 @@
 use std::boxed::Box;
 use std::vec::Vec;
 
-use cellex_actor_core_rs::InternalActorRef;
-use cellex_actor_core_rs::{
-  ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
-  FailureTelemetryShared, GenericActorRuntime, GuardianStrategy, MailboxRuntime, MapSystemShared, MetricsSinkShared,
-  PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
-  SchedulerBuilder, SchedulerSpawnContext, SpawnError, Supervisor, TelemetryObservationConfig,
+use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
+use cellex_actor_core_rs::api::extensions::Extensions;
+use cellex_actor_core_rs::api::mailbox::mailbox_runtime::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
+use cellex_actor_core_rs::api::supervision::escalation::{FailureEventHandler, FailureEventListener};
+use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
+use cellex_actor_core_rs::api::supervision::supervisor::Supervisor;
+use cellex_actor_core_rs::api::supervision::telemetry::TelemetryObservationConfig;
+use cellex_actor_core_rs::internal::actor::InternalActorRef;
+use cellex_actor_core_rs::internal::guardian::{AlwaysRestart, GuardianStrategy};
+use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
+use cellex_actor_core_rs::internal::scheduler::{
+  ActorScheduler, ReadyQueueScheduler, ReadyQueueWorker, SchedulerBuilder, SchedulerSpawnContext, SpawnError,
 };
-use cellex_utils_std_rs::{Element, QueueError};
+use cellex_actor_core_rs::shared::failure_telemetry::FailureTelemetryShared;
+use cellex_actor_core_rs::shared::map_system::MapSystemShared;
+use cellex_actor_core_rs::shared::receive_timeout::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
+use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::{Element, QueueError};
 use tokio::task::yield_now;
 
 /// Tokio 用スケジューララッパー。

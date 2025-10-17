@@ -7,7 +7,7 @@ use crate::api::actor_system::ActorSystem;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::internal::guardian::AlwaysRestart;
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
+use crate::internal::scheduler::ReadyQueueWorker;
 use cellex_utils_core_rs::{ArcShared, Element, QueueError};
 use core::convert::Infallible;
 use core::marker::PhantomData;

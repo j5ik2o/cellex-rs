@@ -8,7 +8,7 @@ use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::child_naming::ChildNaming;
+use crate::internal::scheduler::ChildNaming;
 use cellex_utils_core_rs::Element;
 
 use super::ActorHandlerFn;

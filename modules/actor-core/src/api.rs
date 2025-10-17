@@ -5,7 +5,8 @@ pub mod actor_runtime;
 /// Actor system infrastructure and lifecycle management.
 pub mod actor_system;
 #[cfg(feature = "alloc")]
-pub(crate) mod extensions;
+/// Extensions for actor system and actor runtime.
+pub mod extensions;
 /// Failure event stream for telemetry and monitoring.
 pub mod failure_event_stream;
 /// Actor identity types including ActorId and ActorPath.

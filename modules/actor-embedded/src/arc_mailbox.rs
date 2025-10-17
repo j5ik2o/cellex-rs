@@ -10,12 +10,14 @@ use core::task::{Context, Poll};
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 use embassy_sync::signal::Signal;
 
-use cellex_actor_core_rs::MetricsSinkShared;
-use cellex_actor_core_rs::ThreadSafe;
-use cellex_actor_core_rs::{
-  Mailbox, MailboxOptions, MailboxPair, MailboxRuntime, MailboxSignal, QueueMailbox, QueueMailboxProducer,
-  QueueMailboxRecv,
-};
+use cellex_actor_core_rs::api::mailbox::mailbox_options::MailboxOptions;
+use cellex_actor_core_rs::api::mailbox::mailbox_runtime::MailboxRuntime;
+use cellex_actor_core_rs::api::mailbox::mailbox_signal::MailboxSignal;
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
+use cellex_actor_core_rs::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
+use cellex_actor_core_rs::api::mailbox::thread_safe::ThreadSafe;
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
+use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
 use cellex_utils_embedded_rs::queue::mpsc::ArcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::{ArcShared, Element, QueueError, QueueSize};
 

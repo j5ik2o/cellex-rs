@@ -1,7 +1,7 @@
 use crate::api::mailbox::mailbox_signal::MailboxSignal;
 use crate::internal::metrics::MetricsEvent;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueHandle;
+use crate::internal::scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw};
 
 /// Sending handle that shares queue ownership with [`QueueMailbox`].

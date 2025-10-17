@@ -3,7 +3,7 @@ use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::mailbox::thread_safe::ThreadSafe;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MessageEnvelope;
-use crate::internal::message::internal_message_sender::InternalMessageSender;
+use crate::internal::message::InternalMessageSender;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
 

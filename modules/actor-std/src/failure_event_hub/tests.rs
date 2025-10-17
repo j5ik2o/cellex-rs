@@ -1,7 +1,8 @@
 use super::*;
-use cellex_actor_core_rs::{
-  ActorFailure, ActorId, ActorPath, FailureEvent, FailureEventListener, FailureInfo, FailureMetadata,
-};
+use cellex_actor_core_rs::api::actor::failure::ActorFailure;
+use cellex_actor_core_rs::api::identity::{ActorId, ActorPath};
+use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
+use cellex_actor_core_rs::api::supervision::failure::{FailureEvent, FailureInfo, FailureMetadata};
 use std::sync::Arc as StdArc;
 use std::sync::Mutex as StdMutex;
 

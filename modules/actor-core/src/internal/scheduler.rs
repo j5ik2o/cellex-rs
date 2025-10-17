@@ -1,16 +1,32 @@
-pub mod actor_scheduler;
-pub mod child_naming;
+mod actor_scheduler;
+mod child_naming;
 #[cfg(any(test, feature = "test-support"))]
-pub mod immediate_scheduler;
-pub mod noop_receive_timeout_driver;
-pub(crate) mod noop_receive_timeout_scheduler;
-pub mod noop_receive_timeout_scheduler_factory;
-pub mod ready_queue_scheduler;
-pub mod receive_timeout;
-pub mod receive_timeout_scheduler;
-pub mod receive_timeout_scheduler_factory;
-pub mod scheduler_builder;
-pub mod scheduler_spawn_context;
-pub mod spawn_error;
+mod immediate_scheduler;
+mod noop_receive_timeout_driver;
+mod noop_receive_timeout_scheduler;
+mod noop_receive_timeout_scheduler_factory;
+mod ready_queue_scheduler;
+mod receive_timeout;
+mod receive_timeout_scheduler;
+mod receive_timeout_scheduler_factory;
+mod scheduler_builder;
+mod scheduler_spawn_context;
+mod spawn_error;
 #[cfg(test)]
 mod tests;
+
+pub use actor_scheduler::*;
+pub use child_naming::*;
+pub use noop_receive_timeout_driver::*;
+pub use noop_receive_timeout_scheduler::*;
+pub use noop_receive_timeout_scheduler_factory::*;
+pub use ready_queue_scheduler::*;
+pub use receive_timeout::*;
+pub use receive_timeout_scheduler::*;
+pub use receive_timeout_scheduler_factory::*;
+pub use scheduler_builder::*;
+pub use scheduler_builder::*;
+pub use scheduler_spawn_context::*;
+pub use scheduler_spawn_context::*;
+pub use spawn_error::*;
+pub use spawn_error::*;

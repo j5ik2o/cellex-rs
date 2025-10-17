@@ -16,7 +16,7 @@ use crate::api::messaging::DynMessage;
 use crate::api::messaging::MessageEnvelope;
 use crate::api::messaging::MessageSender;
 use crate::internal::message::discard_metadata;
-use crate::internal::message::internal_message_sender::InternalMessageSender;
+use crate::internal::message::InternalMessageSender;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
