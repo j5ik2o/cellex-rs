@@ -3,7 +3,7 @@ use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::runtime_state::GenericActorRuntimeState;
-use crate::internal::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
+use crate::internal::scheduler::NoopReceiveTimeoutDriver;
 use crate::internal::scheduler::SchedulerBuilder;
 use crate::MailboxRuntime;
 use crate::ReceiveTimeoutDriverShared;

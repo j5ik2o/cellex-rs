@@ -1,11 +1,8 @@
 #![cfg_attr(not(feature = "std"), allow(unused_imports))]
-
-use alloc::string::String;
-use alloc::vec::Vec;
 mod common;
 mod failure_snapshot;
 mod failure_telemetry;
-mod noop_failure_felemetry;
+mod noop_failure_telemetry;
 mod telemetry_observation_config;
 mod telemetry_tag;
 #[cfg(test)]
@@ -15,6 +12,6 @@ mod tracing_failure_telemetry;
 pub use common::*;
 pub use failure_snapshot::*;
 pub use failure_telemetry::*;
-pub use noop_failure_felemetry::*;
+pub use noop_failure_telemetry::*;
 pub use telemetry_observation_config::*;
 pub use tracing_failure_telemetry::*;

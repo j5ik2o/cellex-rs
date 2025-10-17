@@ -1,4 +1,3 @@
-use super::noop_failure_felemetry::noop_failure_telemetry;
 use super::telemetry_tag::TelemetryTag;
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
 use super::tracing_failure_telemetry::tracing_failure_telemetry;
@@ -18,7 +17,7 @@ pub fn default_failure_telemetry() -> FailureTelemetryShared {
 
   #[cfg(not(all(feature = "std", feature = "unwind-supervision")))]
   {
-    return noop_failure_telemetry();
+    return super::noop_failure_telemetry::noop_failure_telemetry();
   }
 }
 

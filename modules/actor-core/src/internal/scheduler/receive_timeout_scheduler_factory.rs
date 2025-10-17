@@ -1,0 +1,27 @@
+use alloc::boxed::Box;
+
+use crate::internal::scheduler::receive_timeout::SchedulerFactoryBound;
+use crate::{MailboxRuntime, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler};
+use cellex_utils_core_rs::Element;
+
+/// Factory for creating schedulers.
+///
+/// Receives a priority mailbox and SystemMessage conversion function when creating actors,
+/// and assembles a runtime-specific `ReceiveTimeoutScheduler`.
+/// By configuring the system through `ActorSystemConfig::with_receive_timeout_factory` or
+/// `ActorSystemConfig::set_receive_timeout_factory` before constructing it,
+/// all actors can handle timeouts with the same policy.
+pub trait ReceiveTimeoutSchedulerFactory<M, R>: SchedulerFactoryBound
+where
+  M: Element + 'static,
+  R: MailboxRuntime + Clone + 'static,
+  R::Queue<PriorityEnvelope<M>>: Clone,
+  R::Signal: Clone,
+  R::Producer<PriorityEnvelope<M>>: Clone, {
+  /// Creates an actor-specific scheduler by receiving a priority mailbox and SystemMessage conversion function.
+  fn create(
+    &self,
+    sender: R::Producer<PriorityEnvelope<M>>,
+    map_system: MapSystemShared<M>,
+  ) -> Box<dyn ReceiveTimeoutScheduler>;
+}

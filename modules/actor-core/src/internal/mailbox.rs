@@ -1,5 +1,4 @@
-pub mod builder;
-pub mod queue_mailbox;
+pub mod priority_mailbox_builder;
 pub mod spawner;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
@@ -16,5 +15,5 @@ pub use crate::api::mailbox::PriorityChannel;
 pub use crate::api::mailbox::PriorityEnvelope;
 #[allow(unused_imports)]
 pub use crate::MailboxOptions;
-pub use builder::PriorityMailboxBuilder;
+pub use priority_mailbox_builder::PriorityMailboxBuilder;
 pub use spawner::PriorityMailboxSpawnerHandle;

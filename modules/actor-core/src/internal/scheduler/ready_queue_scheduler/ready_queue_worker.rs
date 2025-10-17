@@ -9,7 +9,7 @@ use crate::{MailboxRuntime, ShutdownToken};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use super::context::ReadyQueueContext;
+use super::ready_queue_context::ReadyQueueContext;
 
 /// Worker interface exposing ReadyQueue operations for driver-level scheduling.
 pub trait ReadyQueueWorker<M, R>

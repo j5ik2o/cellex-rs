@@ -1,13 +1,13 @@
 #![allow(missing_docs)]
 
 mod common;
-mod context;
-mod hook;
-mod notifier;
-mod scheduler;
-mod state;
-pub mod worker;
+mod ready_event_hook;
+mod ready_notifier;
+mod ready_queue_context;
+mod ready_queue_scheduler;
+mod ready_queue_state;
+pub mod ready_queue_worker;
 
-pub use hook::ReadyQueueHandle;
-pub use scheduler::ReadyQueueScheduler;
-pub use worker::{drive_ready_queue_worker, ReadyQueueWorker};
+pub use ready_event_hook::ReadyQueueHandle;
+pub use ready_queue_scheduler::ReadyQueueScheduler;
+pub use ready_queue_worker::{drive_ready_queue_worker, ReadyQueueWorker};

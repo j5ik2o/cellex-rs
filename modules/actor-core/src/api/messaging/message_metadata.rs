@@ -1,5 +1,5 @@
-use crate::api::messaging::message_sender::MessageSender;
-use crate::{InternalMessageMetadata, MetadataStorageMode, ThreadSafe};
+use crate::api::messaging::{MessageSender, MetadataStorageMode};
+use crate::{InternalMessageMetadata, ThreadSafe};
 use cellex_utils_core_rs::Element;
 
 /// Typed metadata for the external API.

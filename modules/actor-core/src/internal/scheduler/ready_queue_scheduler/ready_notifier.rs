@@ -4,8 +4,8 @@ use spin::Mutex;
 
 use cellex_utils_core_rs::sync::ArcShared;
 
-use super::hook::ReadyEventHook;
-use super::state::ReadyQueueState;
+use super::ready_event_hook::ReadyEventHook;
+use super::ready_queue_state::ReadyQueueState;
 
 pub(super) struct ReadyNotifier {
   state: ArcShared<Mutex<ReadyQueueState>>,

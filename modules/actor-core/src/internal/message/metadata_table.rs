@@ -1,7 +1,6 @@
 use alloc::vec::Vec;
 
-use crate::api::messaging::metadata_storage::MetadataStorageRecord;
-use crate::api::messaging::{MessageMetadata, MetadataStorageMode};
+use crate::api::messaging::{MessageMetadata, MetadataStorageMode, MetadataStorageRecord};
 
 #[cfg(not(target_has_atomic = "ptr"))]
 use core::cell::RefCell;

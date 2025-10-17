@@ -1,4 +1,5 @@
-use crate::{discard_metadata, store_metadata, MessageMetadata, MetadataKey, MetadataStorageMode};
+use crate::api::messaging::MetadataStorageMode;
+use crate::{discard_metadata, store_metadata, MessageMetadata, MetadataKey};
 use core::mem::{forget, ManuallyDrop};
 
 /// Wrapper that holds a user message and metadata.

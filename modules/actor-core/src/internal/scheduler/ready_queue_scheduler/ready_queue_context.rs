@@ -19,7 +19,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 
 use super::super::actor_scheduler::SchedulerSpawnContext;
 use super::common::ReadyQueueSchedulerCore;
-use super::state::ReadyQueueState;
+use super::ready_queue_state::ReadyQueueState;
 use crate::internal::actor::ActorCell;
 use crate::SpawnError;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};

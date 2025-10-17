@@ -147,10 +147,10 @@ mod receive_timeout_injection {
   use super::TestRuntime;
   use super::*;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
-  use crate::internal::scheduler::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::{
     ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, GenericActorRuntime, MapSystemShared, PriorityEnvelope,
-    ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
+    ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, ReceiveTimeoutScheduler,
+    ReceiveTimeoutSchedulerFactory,
   };
   use alloc::boxed::Box;
   use core::time::Duration;

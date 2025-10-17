@@ -20,11 +20,11 @@ use cellex_utils_core_rs::{Element, QueueError};
 
 use super::super::actor_scheduler::{ActorScheduler, SchedulerSpawnContext};
 use super::common::ReadyQueueSchedulerCore;
-use super::context::ReadyQueueContext;
-use super::hook::{ReadyEventHook, ReadyQueueHandle};
-use super::notifier::ReadyNotifier;
-use super::state::ReadyQueueState;
-use super::worker::ReadyQueueWorker;
+use super::ready_event_hook::{ReadyEventHook, ReadyQueueHandle};
+use super::ready_notifier::ReadyNotifier;
+use super::ready_queue_context::ReadyQueueContext;
+use super::ready_queue_state::ReadyQueueState;
+use super::ready_queue_worker::ReadyQueueWorker;
 use crate::SpawnError;
 use crate::{MapSystemShared, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
@@ -73,7 +73,7 @@ where
   Strat: GuardianStrategy<M, R>,
 {
   pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<M, R>> {
-    use super::worker::ReadyQueueWorkerImpl;
+    use super::ready_queue_worker::ReadyQueueWorkerImpl;
     let shared = ArcShared::new(ReadyQueueWorkerImpl::<M, R, Strat>::new(self.context.clone()));
     shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<M, R>)
   }
