@@ -1,3 +1,4 @@
+use crate::api::failure_telemetry::FailureTelemetryShared;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener};
@@ -6,7 +7,6 @@ use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::telemetry::default_failure_telemetry_shared;
 use crate::api::supervision::telemetry::FailureSnapshot;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
 use cellex_utils_core_rs::Element;
 use core::marker::PhantomData;
 #[cfg(feature = "std")]

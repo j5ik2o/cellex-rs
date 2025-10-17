@@ -1,4 +1,4 @@
-use crate::shared::receive_timeout::ReceiveTimeoutScheduler;
+use crate::api::receive_timeout::ReceiveTimeoutScheduler;
 
 /// `ReceiveTimeoutScheduler` implementation that performs no scheduling.
 #[derive(Default)]

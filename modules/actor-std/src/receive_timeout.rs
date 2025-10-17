@@ -6,11 +6,11 @@
 use core::time::Duration;
 
 use crate::TokioMailboxRuntime;
+use cellex_actor_core_rs::api::actor_system::map_system::MapSystemShared;
 use cellex_actor_core_rs::api::mailbox::MailboxFactory;
 use cellex_actor_core_rs::api::mailbox::{PriorityEnvelope, SystemMessage};
 use cellex_actor_core_rs::api::messaging::DynMessage;
-use cellex_actor_core_rs::shared::map_system::MapSystemShared;
-use cellex_actor_core_rs::shared::receive_timeout::{
+use cellex_actor_core_rs::api::receive_timeout::{
   ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
   ReceiveTimeoutSchedulerFactoryShared,
 };

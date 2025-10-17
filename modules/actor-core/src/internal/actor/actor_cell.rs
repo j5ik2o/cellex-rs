@@ -28,8 +28,8 @@ use crate::internal::scheduler::ReadyQueueHandle;
 use crate::internal::scheduler::SpawnError;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared};
+use crate::api::actor_system::map_system::MapSystemShared;
+use crate::api::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared};
 
 pub(crate) struct ActorCell<M, R, Strat>
 where

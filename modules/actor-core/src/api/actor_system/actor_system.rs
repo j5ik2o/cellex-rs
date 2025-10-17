@@ -14,13 +14,13 @@ use crate::api::extensions::ExtensionId;
 use crate::api::extensions::Extensions;
 use crate::api::extensions::SerializerRegistryExtension;
 use crate::api::failure_event_stream::FailureEventStream;
+use crate::api::failure_telemetry::TelemetryContext;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::supervision::telemetry::default_failure_telemetry_shared;
 use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::scheduler::ReadyQueueWorker;
-use crate::shared::failure_telemetry::TelemetryContext;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 

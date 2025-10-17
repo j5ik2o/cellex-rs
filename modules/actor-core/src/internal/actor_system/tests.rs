@@ -15,7 +15,7 @@ use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
-use crate::shared::map_system::MapSystemShared;
+use crate::api::actor_system::map_system::MapSystemShared;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;

@@ -2,6 +2,8 @@ mod actor_system;
 mod actor_system_builder;
 mod actor_system_config;
 mod actor_system_runner;
+/// System message mapping functionality
+pub mod map_system;
 
 pub use crate::api::actor::Spawn;
 pub use crate::api::actor::Timer;

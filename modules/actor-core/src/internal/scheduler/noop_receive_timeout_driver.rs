@@ -1,9 +1,9 @@
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryProvider;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use crate::internal::scheduler::noop_receive_timeout_scheduler_factory::NoopReceiveTimeoutSchedulerFactory;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProvider;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Driver that always provides [`NoopReceiveTimeoutSchedulerFactory`].
 #[derive(Debug, Default, Clone)]

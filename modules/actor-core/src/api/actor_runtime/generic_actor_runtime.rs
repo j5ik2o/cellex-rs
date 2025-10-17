@@ -3,13 +3,13 @@ use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::metrics::MetricsSinkShared;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::runtime_state::GenericActorRuntimeState;
 use crate::internal::scheduler::{NoopReceiveTimeoutSchedulerFactoryProvider, SchedulerBuilder};
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 

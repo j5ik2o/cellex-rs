@@ -9,12 +9,16 @@ pub mod actor_system;
 pub mod extensions;
 /// Failure event stream for telemetry and monitoring.
 pub mod failure_event_stream;
+/// Shared failure telemetry infrastructure
+pub mod failure_telemetry;
 /// Mailbox implementations and message queueing.
 pub mod mailbox;
 /// Message envelope and metadata handling.
 pub mod messaging;
 /// Internal metrics collection and observers wired to scheduler components.
 pub mod metrics;
+/// Receive timeout handling
+pub mod receive_timeout;
 /// Supervision strategies and failure handling.
 pub mod supervision;
 #[cfg(any(test, feature = "test-support"))]

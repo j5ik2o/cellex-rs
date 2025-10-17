@@ -15,12 +15,12 @@ use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::api::metrics::MetricsSinkShared;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::scheduler::SchedulerBuilder;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Helper alias mapping an actor runtime to its mailbox runtime.
 pub type MailboxOf<R> = <R as ActorRuntime>::MailboxFactory;

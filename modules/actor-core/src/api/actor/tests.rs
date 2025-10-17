@@ -12,6 +12,7 @@ use crate::api::actor::signal::Signal;
 use crate::api::actor::ActorId;
 use crate::api::actor_runtime::GenericActorRuntime;
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
+use crate::api::actor_system::map_system::MapSystemShared;
 use crate::api::actor_system::{ActorSystem, ActorSystemConfig};
 use crate::api::extensions::{
   next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension,
@@ -30,7 +31,6 @@ use crate::internal::guardian::AlwaysRestart;
 use crate::internal::message::take_metadata;
 use crate::internal::message::InternalMessageSender;
 use crate::internal::scheduler::SpawnError;
-use crate::shared::map_system::MapSystemShared;
 use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
@@ -160,17 +160,17 @@ mod receive_timeout_injection {
   use super::TestRuntime;
   use super::*;
   use crate::api::actor_runtime::ActorRuntime;
+  use crate::api::actor_system::map_system::MapSystemShared;
   use crate::api::actor_system::ActorSystem;
   use crate::api::actor_system::ActorSystemConfig;
   use crate::api::mailbox::PriorityEnvelope;
   use crate::api::messaging::DynMessage;
-  use crate::api::test_support::TestMailboxRuntime;
-  use crate::shared::map_system::MapSystemShared;
-  use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
-  use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-  use crate::shared::receive_timeout::{
+  use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
+  use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
+  use crate::api::receive_timeout::{
     ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
   };
+  use crate::api::test_support::TestMailboxRuntime;
   use alloc::boxed::Box;
   use core::time::Duration;
   use futures::executor::block_on;
@@ -1102,6 +1102,7 @@ mod metrics_injection {
   use crate::api::actor::actor_ref::PriorityActorRef;
   use crate::api::actor_system::ActorSystem;
   use crate::api::actor_system::ActorSystemConfig;
+  use crate::api::failure_telemetry::FailureTelemetryShared;
   use crate::api::mailbox::MailboxFactory;
   use crate::api::messaging::DynMessage;
   use crate::api::metrics::MetricsEvent;
@@ -1111,7 +1112,6 @@ mod metrics_injection {
   use crate::api::supervision::telemetry::TelemetryObservationConfig;
   use crate::api::test_support::TestMailboxRuntime;
   use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
-  use crate::shared::failure_telemetry::FailureTelemetryShared;
   use alloc::boxed::Box;
   use core::marker::PhantomData;
   use std::sync::{Arc, Mutex};
@@ -1167,7 +1167,7 @@ mod metrics_injection {
 
     fn set_receive_timeout_factory(
       &mut self,
-      _factory: Option<crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<M, R>>,
+      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<M, R>>,
     ) {
     }
 

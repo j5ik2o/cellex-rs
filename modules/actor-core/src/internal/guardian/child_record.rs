@@ -1,8 +1,8 @@
 use crate::api::actor::actor_ref::PriorityActorRef;
 use crate::api::actor::ActorId;
 use crate::api::actor::ActorPath;
+use crate::api::actor_system::map_system::MapSystemShared;
 use crate::api::mailbox::MailboxFactory;
-use crate::shared::map_system::MapSystemShared;
 use alloc::string::String;
 use cellex_utils_core_rs::Element;
 

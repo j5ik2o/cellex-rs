@@ -1,8 +1,8 @@
 use super::telemetry_tag::TelemetryTag;
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
 use super::tracing_failure_telemetry::tracing_failure_telemetry;
+use crate::api::failure_telemetry::FailureTelemetryShared;
 use crate::api::supervision::failure::FailureMetadata;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
 use alloc::borrow::Cow;
 use alloc::vec::Vec;
 

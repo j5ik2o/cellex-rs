@@ -2,12 +2,12 @@ use super::{Behavior, BehaviorDirective, Signal, SignalFn, SupervisorStrategyCon
 use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::actor::context::Context;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::actor_system::map_system::MapSystemShared;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::messaging::DynMessage;
 use crate::api::messaging::MessageEnvelope;
 use crate::api::messaging::MetadataStorageMode;
-use crate::shared::map_system::MapSystemShared;
 use alloc::boxed::Box;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;

@@ -12,7 +12,7 @@ use crate::internal::scheduler::ChildNaming;
 use cellex_utils_core_rs::Element;
 
 use super::ActorHandlerFn;
-use crate::shared::map_system::MapSystemShared;
+use crate::api::actor_system::map_system::MapSystemShared;
 
 /// Information required when spawning child actors.
 pub struct ChildSpawnSpec<M, R>

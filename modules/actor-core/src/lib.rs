@@ -84,9 +84,6 @@ use core::time::Duration;
 pub mod api;
 /// Internal implementation details
 pub mod internal;
-/// Shared utilities and types
-pub mod shared;
-
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.
 #[cfg(target_has_atomic = "ptr")]
 pub trait RuntimeBound: Send + Sync {}

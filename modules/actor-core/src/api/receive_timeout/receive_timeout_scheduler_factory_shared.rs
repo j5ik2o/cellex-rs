@@ -1,6 +1,6 @@
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactory;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactory;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 

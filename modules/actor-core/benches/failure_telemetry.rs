@@ -1,8 +1,8 @@
 use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
 use cellex_actor_core_rs::api::actor::{ActorId, ActorPath};
+use cellex_actor_core_rs::api::failure_telemetry::FailureTelemetryShared;
 use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
 use cellex_actor_core_rs::api::supervision::telemetry::{FailureSnapshot, FailureTelemetry, NoopFailureTelemetry};
-use cellex_actor_core_rs::shared::failure_telemetry::FailureTelemetryShared;
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
 

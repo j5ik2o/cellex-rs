@@ -1,5 +1,7 @@
 use super::{CustomEscalationSink, ParentGuardianSink};
 use crate::api::actor::actor_ref::PriorityActorRef;
+use crate::api::actor_system::map_system::MapSystemShared;
+use crate::api::failure_telemetry::FailureTelemetryShared;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::escalation::EscalationSink;
@@ -8,8 +10,6 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::escalation::RootEscalationSink;
 use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
-use crate::shared::map_system::MapSystemShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Composes multiple sinks and applies them in order.

@@ -20,9 +20,9 @@ use crate::internal::scheduler::ChildNaming;
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use super::ChildSpawnSpec;
+use crate::api::actor_system::map_system::MapSystemShared;
+use crate::api::receive_timeout::ReceiveTimeoutScheduler;
 use crate::internal::actor::InternalProps;
-use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutScheduler;
 use core::cell::RefCell;
 use core::time::Duration;
 

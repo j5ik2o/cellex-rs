@@ -4,10 +4,13 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use crate::api::actor::actor_ref::PriorityActorRef;
+use crate::api::actor_system::map_system::MapSystemShared;
 use crate::api::extensions::Extensions;
+use crate::api::failure_telemetry::FailureTelemetryShared;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::metrics::MetricsSinkShared;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use crate::api::supervision::escalation::FailureEventHandler;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureInfo;
@@ -18,9 +21,6 @@ use crate::internal::scheduler::actor_scheduler::ActorScheduler;
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
 use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::internal::scheduler::SpawnError;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
-use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.

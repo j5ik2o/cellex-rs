@@ -1,6 +1,6 @@
+use crate::api::failure_telemetry::FailureTelemetryShared;
 use crate::api::supervision::telemetry::failure_snapshot::FailureSnapshot;
 use crate::api::supervision::telemetry::failure_telemetry::FailureTelemetry;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
 
 #[cfg(feature = "std")]
 /// Telemetry implementation that emits tracing events.

@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
 
+use crate::api::actor_system::map_system::MapSystemShared;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
+use crate::api::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
 use crate::internal::scheduler::noop_receive_timeout_scheduler::NoopReceiveTimeoutScheduler;
-use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
 use cellex_utils_core_rs::Element;
 
 /// Factory that returns [`NoopReceiveTimeoutScheduler`].
