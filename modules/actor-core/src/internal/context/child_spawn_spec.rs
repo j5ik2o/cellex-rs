@@ -1,13 +1,13 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::{ActorId, ActorPath, ChildNaming, Extensions, MailboxRuntime, Supervisor};
 use cellex_utils_core_rs::Element;
 
 use super::ActorHandlerFn;
-use crate::MapSystemShared;
+use crate::shared::map_system::MapSystemShared;
 
 /// Information required when spawning child actors.
 pub struct ChildSpawnSpec<M, R>

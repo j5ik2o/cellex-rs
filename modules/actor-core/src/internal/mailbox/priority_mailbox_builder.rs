@@ -1,4 +1,4 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer, MailboxRuntime, MailboxSignal};
 use cellex_utils_core_rs::Element;
 

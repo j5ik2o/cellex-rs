@@ -1,14 +1,14 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
-use crate::api::mailbox::PriorityEnvelope;
-use crate::FailureInfo;
-use crate::MailboxRuntime;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::failure::FailureInfo;
 use cellex_utils_core_rs::{Element, QueueError};
 
 type FailureHandler<M> = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static;
 
-use crate::EscalationSink;
+use crate::api::supervision::escalation::EscalationSink;
 
 /// Sink based on custom handler.
 pub(crate) struct CustomEscalationSink<M, R>

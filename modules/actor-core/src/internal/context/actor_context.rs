@@ -3,23 +3,23 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
-use crate::api::actor::PriorityActorRef;
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::actor::actor_ref::PriorityActorRef;
+use crate::api::extensions::Extension;
+use crate::api::extensions::ExtensionId;
+use crate::api::extensions::Extensions;
+use crate::api::identity::ActorId;
+use crate::api::identity::ActorPath;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::ActorId;
-use crate::ActorPath;
-use crate::ChildNaming;
-use crate::Extension;
-use crate::ExtensionId;
-use crate::Extensions;
-use crate::Supervisor;
+use crate::internal::scheduler::child_naming::ChildNaming;
 use crate::{ActorFailure, MailboxOptions, MailboxProducer, MailboxRuntime};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use super::ChildSpawnSpec;
-use crate::internal::actor_system::InternalProps;
+use crate::internal::actor::InternalProps;
 use crate::internal::scheduler::ReceiveTimeoutScheduler;
-use crate::MapSystemShared;
+use crate::shared::map_system::MapSystemShared;
 use core::cell::RefCell;
 use core::time::Duration;
 

@@ -1,7 +1,7 @@
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod tests;
 
-use crate::FailureEventListener;
+use crate::api::supervision::escalation::FailureEventListener;
 
 /// Stream abstraction for distributing FailureEvent externally.
 ///

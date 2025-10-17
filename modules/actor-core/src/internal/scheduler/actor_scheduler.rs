@@ -6,9 +6,9 @@ use alloc::vec::Vec;
 use async_trait::async_trait;
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::actor::InternalActorRef;
-use crate::TelemetryObservationConfig;
 use crate::{
   FailureEventHandler, FailureEventListener, FailureInfo, FailureTelemetryShared, MailboxRuntime, MapSystemShared,
   MetricsSinkShared, ReceiveTimeoutFactoryShared, Supervisor,

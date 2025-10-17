@@ -1,7 +1,7 @@
 use super::{Behavior, SupervisorStrategyConfig};
 use crate::api::actor::behavior::supervisor_strategy::SupervisorStrategy;
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{DynMessage, MetadataStorageMode};
 use cellex_utils_core_rs::Element;
 

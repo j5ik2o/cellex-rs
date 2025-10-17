@@ -1,5 +1,5 @@
-use crate::api::actor::PriorityActorRef;
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::actor::actor_ref::PriorityActorRef;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{DynMessage, MailboxConcurrency, MailboxRuntime, RuntimeBound, ThreadSafe};
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;

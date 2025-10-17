@@ -2,7 +2,7 @@
 
 use alloc::boxed::Box;
 
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::guardian::GuardianStrategy;
 #[cfg(any(test, feature = "test-support"))]
 use crate::internal::scheduler::ImmediateScheduler;

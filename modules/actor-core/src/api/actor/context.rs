@@ -1,9 +1,10 @@
 use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
 use crate::api::actor::{ActorFailure, ActorRef, Props};
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::messages::SystemMessage;
 use crate::api::messaging::{MessageEnvelope, MessageMetadata, MessageSender};
-use crate::api::supervision::FailureInfo;
+use crate::api::supervision::failure::FailureInfo;
 use crate::internal::context::ActorContext;
 use crate::{
   ActorId, ActorPath, DynMessage, Extension, ExtensionId, Extensions, MailboxRuntime, MetadataStorageMode,
@@ -44,7 +45,7 @@ where
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode, {
   pub(super) inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<R>, dyn Supervisor<DynMessage>>,
-  pub(super) metadata: Option<crate::MessageMetadata<MailboxConcurrencyOf<R>>>,
+  pub(super) metadata: Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<R>>>,
   pub(super) extensions: Extensions,
   pub(super) _marker: PhantomData<U>,
 }

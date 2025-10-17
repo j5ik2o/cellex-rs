@@ -1,6 +1,6 @@
 use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
+use crate::api::messaging::MessageMetadata;
 use crate::api::messaging::{MetadataStorageMode, MetadataStorageRecord};
-use crate::MessageMetadata;
 
 /// Single-threaded mailbox mode without additional synchronization requirements.
 #[derive(Debug, Clone, Copy, Default)]

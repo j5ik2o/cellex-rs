@@ -1,4 +1,4 @@
-use crate::FailureTelemetry;
+use crate::api::supervision::telemetry::FailureTelemetry;
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 use cellex_utils_core_rs::Shared;
 

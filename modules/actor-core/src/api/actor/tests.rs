@@ -7,16 +7,17 @@ use super::Signal;
 use super::*;
 use super::{ask_with_timeout, AskError};
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::api::extensions::next_extension_id;
+use crate::api::identity::ActorId;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::messages::SystemMessage;
+use crate::api::messaging::DynMessage;
+use crate::internal::guardian::AlwaysRestart;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
+use crate::internal::message::internal_message_sender::InternalMessageSender;
 use crate::internal::message::take_metadata;
-use crate::internal::scheduler::SpawnError;
-use crate::next_extension_id;
-use crate::ActorId;
-use crate::AlwaysRestart;
-use crate::DynMessage;
-use crate::InternalMessageSender;
-use crate::MapSystemShared;
+use crate::internal::scheduler::spawn_error::SpawnError;
+use crate::shared::map_system::MapSystemShared;
 use crate::{serializer_extension_id, SerializerRegistryExtension};
 use crate::{Extension, ExtensionId};
 use crate::{FailureEvent, FailureEventListener};
@@ -1143,11 +1144,23 @@ mod metrics_injection {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
-    fn set_receive_timeout_factory(&mut self, _factory: Option<crate::ReceiveTimeoutFactoryShared<M, R>>) {}
+    fn set_receive_timeout_factory(
+      &mut self,
+      _factory: Option<crate::shared::receive_timeout::ReceiveTimeoutFactoryShared<M, R>>,
+    ) {
+    }
 
-    fn set_root_event_listener(&mut self, _listener: Option<crate::FailureEventListener>) {}
+    fn set_root_event_listener(
+      &mut self,
+      _listener: Option<crate::api::supervision::escalation::FailureEventListener>,
+    ) {
+    }
 
-    fn set_root_escalation_handler(&mut self, _handler: Option<crate::FailureEventHandler>) {}
+    fn set_root_escalation_handler(
+      &mut self,
+      _handler: Option<crate::api::supervision::escalation::FailureEventHandler>,
+    ) {
+    }
 
     fn set_root_failure_telemetry(&mut self, _telemetry: FailureTelemetryShared) {}
 
@@ -1162,11 +1175,14 @@ mod metrics_injection {
 
     fn on_escalation(
       &mut self,
-      _handler: Box<dyn FnMut(&crate::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+      _handler: Box<
+        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>>
+          + 'static,
+      >,
     ) {
     }
 
-    fn take_escalations(&mut self) -> Vec<crate::FailureInfo> {
+    fn take_escalations(&mut self) -> Vec<crate::api::supervision::failure::FailureInfo> {
       Vec::new()
     }
 

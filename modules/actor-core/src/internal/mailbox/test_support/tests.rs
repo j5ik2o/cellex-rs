@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used)]
 
 use super::*;
-use crate::Mailbox;
-use crate::MailboxRuntime;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::Mailbox;
 use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};

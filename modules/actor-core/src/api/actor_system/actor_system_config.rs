@@ -1,4 +1,4 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{
   ActorRuntime, DynMessage, Extension, Extensions, FailureEventListener, FailureTelemetryBuilderShared,
   FailureTelemetryShared, MailboxOf, MailboxQueueOf, MailboxSignalOf, MetricsSinkShared, ReceiveTimeoutFactoryShared,

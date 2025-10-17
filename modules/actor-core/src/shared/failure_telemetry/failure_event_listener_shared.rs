@@ -1,4 +1,4 @@
-use crate::FailureEvent;
+use crate::api::supervision::failure::FailureEvent;
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 
 #[cfg(target_has_atomic = "ptr")]

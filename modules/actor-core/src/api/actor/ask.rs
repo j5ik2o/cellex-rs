@@ -11,7 +11,7 @@ pub(crate) use shared::{AskShared, DispatchFn, DropHookFn};
 /// Result alias used by `ask` helpers.
 pub type AskResult<T> = Result<T, AskError>;
 
-use crate::api::mailbox::MailboxConcurrency;
+use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
 use crate::internal::message::discard_metadata;
 use crate::{DynMessage, InternalMessageSender, MessageEnvelope, MessageSender};
 use cellex_utils_core_rs::sync::ArcShared;

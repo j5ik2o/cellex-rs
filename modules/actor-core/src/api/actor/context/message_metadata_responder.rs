@@ -1,7 +1,7 @@
-use super::Context;
+use super::context::Context;
 use crate::api::actor::ask::{AskError, AskResult};
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::messaging::{MessageEnvelope, MessageMetadata};
 use crate::{DynMessage, MailboxOf, MailboxRuntime, MetadataStorageMode, RuntimeBound};
 use cellex_utils_core_rs::Element;

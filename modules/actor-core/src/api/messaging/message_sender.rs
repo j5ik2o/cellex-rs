@@ -1,4 +1,4 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{DynMessage, InternalMessageSender, MailboxConcurrency, MessageEnvelope, ThreadSafe};
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;

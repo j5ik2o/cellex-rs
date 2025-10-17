@@ -4,17 +4,17 @@
 #![allow(clippy::disallowed_types)]
 
 use super::*;
-use crate::api::mailbox::SystemMessage;
+use crate::api::mailbox::mailbox_options::MailboxOptions;
+use crate::api::mailbox::messages::SystemMessage;
+use crate::api::messaging::DynMessage;
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
-use crate::DynMessage;
 use crate::GenericActorRuntime;
-use crate::MailboxOptions;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
-use crate::MapSystemShared;
+use crate::shared::map_system::MapSystemShared;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;

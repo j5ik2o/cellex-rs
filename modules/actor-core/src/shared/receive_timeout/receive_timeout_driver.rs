@@ -1,4 +1,4 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{DynMessage, MailboxRuntime};
 
 use super::receive_timeout_driver_bound::ReceiveTimeoutDriverBound;

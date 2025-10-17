@@ -6,26 +6,26 @@ use core::cell::RefCell;
 use core::cmp::Reverse;
 use core::marker::PhantomData;
 
-use crate::api::actor::PriorityActorRef;
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::actor::actor_ref::PriorityActorRef;
+use crate::api::extensions::Extensions;
+use crate::api::identity::ActorId;
+use crate::api::identity::ActorPath;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::messages::SystemMessage;
+use crate::api::messaging::DynMessage;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::Supervisor;
 use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec};
 use crate::internal::guardian::{Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::internal::scheduler::ReadyQueueHandle;
-use crate::ActorId;
-use crate::ActorPath;
-use crate::DynMessage;
-use crate::Extensions;
-use crate::FailureInfo;
-use crate::MailboxRuntime;
-use crate::SpawnError;
-use crate::Supervisor;
-use crate::SystemMessage;
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueHandle;
+use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::{ActorFailure, Mailbox, MailboxHandle, MailboxProducer};
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::ReceiveTimeoutScheduler;
+use crate::internal::scheduler::receive_timeout_scheduler::ReceiveTimeoutScheduler;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 
 pub(crate) struct ActorCell<M, R, Strat>

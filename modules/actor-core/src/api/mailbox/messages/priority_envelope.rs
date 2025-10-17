@@ -1,5 +1,5 @@
 use crate::api::mailbox::messages::system_message::SystemMessage;
-use crate::PriorityChannel;
+use crate::api::mailbox::queue_mailbox::PriorityChannel;
 use cellex_utils_core_rs::{Element, PriorityMessage, DEFAULT_PRIORITY};
 
 /// Envelope type that stores priority and channel information for messages.

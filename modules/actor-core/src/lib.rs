@@ -79,60 +79,9 @@ extern crate alloc;
 use cellex_utils_core_rs::QueueError;
 use core::time::Duration;
 
-mod api;
-mod internal;
-mod shared;
-
-pub use api::actor::{
-  ActorFailure, ActorRef, Behavior, BehaviorFailure, Behaviors, Context, DefaultBehaviorFailure, Props, RootContext,
-  ShutdownToken,
-};
-pub use api::actor_runtime::{
-  ActorRuntime, GenericActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf,
-};
-pub use api::actor_system::{ActorSystem, ActorSystemConfig, ActorSystemRunner, Spawn, Timer};
-#[cfg(feature = "alloc")]
-pub use api::extensions::{next_extension_id, Extension, ExtensionId, Extensions};
-#[cfg(feature = "alloc")]
-pub use api::extensions::{serializer_extension_id, SerializerRegistryExtension};
-pub use api::failure_event_stream::FailureEventStream;
-pub use api::identity::{ActorId, ActorPath};
-pub use api::mailbox::{
-  Mailbox, MailboxConcurrency, MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer, MailboxRuntime,
-  MailboxSignal, PriorityChannel, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv, SingleThread,
-  SystemMessage, ThreadSafe,
-};
-pub use api::messaging::DynMessage as RuntimeMessage;
-pub use api::messaging::{DynMessage, MetadataStorageMode};
-// Re-export for internal use
-pub(crate) use api::messaging::{MessageEnvelope, MessageMetadata, MessageSender};
-pub use api::supervision::{
-  default_failure_telemetry, EscalationSink, EscalationStage, FailureEvent, FailureEventHandler, FailureEventListener,
-  FailureInfo, FailureMetadata, FailureSnapshot, FailureTelemetry, NoopFailureTelemetry, NoopSupervisor,
-  RootEscalationSink, Supervisor, SupervisorDirective, TelemetryObservationConfig,
-};
-pub use api::*;
-pub use cellex_utils_core_rs::sync::ArcShared;
-pub use internal::actor::InternalActorRef;
-pub use internal::context::{ActorHandlerFn, ChildSpawnSpec};
-pub use internal::guardian::{AlwaysRestart, GuardianStrategy};
-pub use internal::mailbox::PriorityMailboxSpawnerHandle;
-pub use internal::message::internal_message_metadata::InternalMessageMetadata;
-pub use internal::message::internal_message_sender::InternalMessageSender;
-pub use internal::message::{discard_metadata, store_metadata, take_metadata, MetadataKey};
-
-pub use internal::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared, NoopMetricsSink};
-#[cfg(any(test, feature = "test-support"))]
-pub use internal::scheduler::ImmediateScheduler;
-pub use internal::scheduler::{
-  drive_ready_queue_worker, ActorScheduler, ChildNaming, NoopReceiveTimeoutDriver, NoopReceiveTimeoutSchedulerFactory,
-  ReadyQueueHandle, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
-  SchedulerBuilder, SchedulerSpawnContext, SpawnError,
-};
-pub use shared::{
-  FailureEventHandlerShared, FailureEventListenerShared, FailureTelemetryBuilderShared, FailureTelemetryShared,
-  MapSystemShared, ReceiveTimeoutDriver, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared, TelemetryContext,
-};
+pub mod api;
+pub mod internal;
+pub mod shared;
 
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.
 #[cfg(target_has_atomic = "ptr")]
@@ -150,11 +99,11 @@ impl<T> RuntimeBound for T {}
 
 /// Function type alias for converting system messages to message type.
 #[cfg(target_has_atomic = "ptr")]
-pub type MapSystemFn<M> = dyn Fn(SystemMessage) -> M + Send + Sync;
+pub type MapSystemFn<M> = dyn Fn(api::mailbox::messages::SystemMessage) -> M + Send + Sync;
 
 /// Function type alias for converting system messages on non-atomic targets.
 #[cfg(not(target_has_atomic = "ptr"))]
-pub type MapSystemFn<M> = dyn Fn(SystemMessage) -> M;
+pub type MapSystemFn<M> = dyn Fn(api::mailbox::messages::SystemMessage) -> M;
 
 /// Minimal actor loop implementation.
 ///
@@ -167,8 +116,8 @@ pub type MapSystemFn<M> = dyn Fn(SystemMessage) -> M;
 /// * `handler` - Handler function to process messages
 pub async fn actor_loop<M, MB, T, F>(mailbox: &MB, timer: &T, mut handler: F)
 where
-  MB: Mailbox<M>,
-  T: Timer,
+  MB: api::mailbox::Mailbox<M>,
+  T: api::actor_system::Timer,
   F: FnMut(M), {
   loop {
     match mailbox.recv().await {

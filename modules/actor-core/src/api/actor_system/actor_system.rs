@@ -6,11 +6,11 @@ use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::extensions::serializer_extension_id;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
-use crate::internal::scheduler::ReadyQueueWorker;
-use crate::serializer_extension_id;
-use crate::AlwaysRestart;
+use crate::internal::guardian::AlwaysRestart;
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
 use crate::{
   default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventStream, SerializerRegistryExtension,
   TelemetryContext,

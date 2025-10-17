@@ -1,4 +1,4 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{ActorRuntime, ActorSystem, ActorSystemConfig, DynMessage, MailboxQueueOf, MailboxSignalOf};
 use cellex_utils_core_rs::Element;
 use core::marker::PhantomData;

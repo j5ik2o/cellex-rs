@@ -19,6 +19,11 @@ members = [
   "lints/module-wiring-lint"
 ]
 
+[workspace.metadata.dylint]
+libraries = [
+  { path = "lints/module-wiring-lint" }
+]
+
 [workspace.dependencies]
 alloc-cortex-m = "0.4"
 async-trait = { version = "0.1.89", default-features = false }

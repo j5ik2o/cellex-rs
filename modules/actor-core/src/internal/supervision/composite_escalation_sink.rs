@@ -1,8 +1,8 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::supervision::failure::FailureInfo;
 use crate::internal::actor::InternalActorRef;
-use crate::FailureInfo;
-use crate::MailboxRuntime;
-use crate::MapSystemShared;
+use crate::shared::map_system::MapSystemShared;
 use crate::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink};
 use crate::{FailureTelemetryShared, TelemetryObservationConfig};
 use cellex_utils_core_rs::{Element, QueueError};

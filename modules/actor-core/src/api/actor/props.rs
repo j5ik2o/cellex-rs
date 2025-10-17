@@ -1,9 +1,10 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::internal::actor_system::InternalProps;
+use crate::api::mailbox::mailbox_options::MailboxOptions;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::messages::SystemMessage;
+use crate::internal::actor::InternalProps;
 use crate::internal::context::ActorContext;
 use crate::internal::message::take_metadata;
-use crate::MailboxOptions;
 use crate::{DynMessage, MetadataStorageMode};
 use crate::{MailboxRuntime, Supervisor};
 use cellex_utils_core_rs::sync::ArcShared;
@@ -11,7 +12,7 @@ use cellex_utils_core_rs::Element;
 
 use super::{ActorAdapter, ActorFailure, Behavior, Context};
 use crate::api::actor::behavior::SupervisorStrategyConfig;
-use crate::MessageEnvelope;
+use crate::api::messaging::MessageEnvelope;
 use core::marker::PhantomData;
 use spin::Mutex;
 

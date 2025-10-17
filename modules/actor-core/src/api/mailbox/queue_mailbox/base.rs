@@ -1,11 +1,11 @@
 use super::recv::QueueMailboxRecv;
 use crate::api::mailbox::mailbox_handle::MailboxHandle;
+use crate::api::mailbox::mailbox_producer::MailboxProducer;
 use crate::api::mailbox::mailbox_signal::MailboxSignal;
 use crate::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
 use crate::api::mailbox::Mailbox;
 use crate::internal::metrics::{MetricsEvent, MetricsSinkShared};
-use crate::internal::scheduler::ReadyQueueHandle;
-use crate::MailboxProducer;
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 
 /// Mailbox implementation backed by a generic queue and notification signal.

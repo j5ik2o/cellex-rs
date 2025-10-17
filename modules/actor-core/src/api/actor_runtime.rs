@@ -11,11 +11,11 @@ pub use generic_actor_runtime::GenericActorRuntime;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::messaging::DynMessage;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::internal::scheduler::SchedulerBuilder;
-use crate::DynMessage;
+use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
 use crate::{
   FailureEventHandler, FailureEventListener, MailboxRuntime, ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared,
 };

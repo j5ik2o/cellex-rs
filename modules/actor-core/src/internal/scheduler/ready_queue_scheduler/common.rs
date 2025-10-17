@@ -10,12 +10,12 @@ use futures::future::select_all;
 use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::identity::ActorPath;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::supervision::CompositeEscalationSink;
-use crate::ActorPath;
 use crate::{ActorId, SchedulerSpawnContext};
 use crate::{
   EscalationSink, Extensions, FailureInfo, FailureTelemetryShared, Supervisor, SystemMessage,
@@ -26,7 +26,7 @@ use crate::{MailboxRuntime, MailboxSignal};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use crate::internal::actor::ActorCell;
-use crate::SpawnError;
+use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
 /// Simple scheduler implementation assuming priority mailboxes.
@@ -236,11 +236,17 @@ where
     self.escalation_sink.set_parent_guardian(control_ref, map_system);
   }
 
-  pub fn set_root_escalation_handler(&mut self, handler: Option<crate::FailureEventHandler>) {
+  pub fn set_root_escalation_handler(
+    &mut self,
+    handler: Option<crate::api::supervision::escalation::FailureEventHandler>,
+  ) {
     self.escalation_sink.set_root_handler(handler);
   }
 
-  pub fn set_root_event_listener(&mut self, listener: Option<crate::FailureEventListener>) {
+  pub fn set_root_event_listener(
+    &mut self,
+    listener: Option<crate::api::supervision::escalation::FailureEventListener>,
+  ) {
     self.escalation_sink.set_root_listener(listener);
   }
 

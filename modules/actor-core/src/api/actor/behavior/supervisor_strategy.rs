@@ -1,4 +1,4 @@
-use crate::SupervisorDirective;
+use crate::api::supervision::supervisor::SupervisorDirective;
 
 /// Types of supervisor strategies.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

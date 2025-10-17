@@ -1,5 +1,7 @@
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::{MailboxProducer, MailboxRuntime, RuntimeBound};
+use crate::api::mailbox::mailbox_producer::MailboxProducer;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::{PriorityEnvelope, SystemMessage};
+use crate::RuntimeBound;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Minimal handle that delivers envelopes into an actor's mailbox.

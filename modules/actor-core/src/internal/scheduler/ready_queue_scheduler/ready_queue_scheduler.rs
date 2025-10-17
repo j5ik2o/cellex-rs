@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use async_trait::async_trait;
 use spin::Mutex;
 
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::{
@@ -26,7 +26,7 @@ use super::ready_queue_context::ReadyQueueContext;
 use super::ready_queue_state::ReadyQueueState;
 use super::ready_queue_worker::ReadyQueueWorker;
 use crate::internal::scheduler::ready_queue_scheduler::ready_queue_worker_impl::ReadyQueueWorkerImpl;
-use crate::SpawnError;
+use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::{MapSystemShared, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 
 pub struct ReadyQueueScheduler<M, R, Strat = AlwaysRestart>

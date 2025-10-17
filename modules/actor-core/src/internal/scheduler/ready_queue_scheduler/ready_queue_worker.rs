@@ -2,7 +2,7 @@
 
 use futures::future::{select, Either, LocalBoxFuture};
 
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{MailboxRuntime, ShutdownToken};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};

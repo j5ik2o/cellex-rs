@@ -1,5 +1,5 @@
 use crate::api::supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener};
-use crate::FailureSnapshot;
+use crate::api::supervision::failure::FailureSnapshot;
 use crate::{
   default_failure_telemetry, FailureEvent, FailureInfo, FailureTelemetryShared, MailboxRuntime, PriorityEnvelope,
   TelemetryObservationConfig,

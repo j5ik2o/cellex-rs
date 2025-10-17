@@ -1,4 +1,4 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::{
   ActorRuntime, ActorSystem, AlwaysRestart, DynMessage, MailboxOf, MailboxQueueOf, MailboxSignalOf, ReadyQueueWorker,
   ShutdownToken,

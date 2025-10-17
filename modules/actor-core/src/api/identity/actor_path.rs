@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::fmt;
 
-use crate::ActorId;
+use crate::api::identity::ActorId;
 
 /// Hierarchical path of an actor.
 ///

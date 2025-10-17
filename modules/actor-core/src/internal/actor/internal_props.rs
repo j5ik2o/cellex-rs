@@ -1,4 +1,4 @@
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::context::{ActorContext, ActorHandlerFn};
 use crate::{ActorFailure, MailboxOptions, MailboxRuntime, MapSystemShared, Supervisor};
 use alloc::boxed::Box;

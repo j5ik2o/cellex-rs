@@ -1,6 +1,6 @@
 use super::FailureEventStream;
-use crate::FailureEvent;
-use crate::FailureEventListener;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::failure::FailureEvent;
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;

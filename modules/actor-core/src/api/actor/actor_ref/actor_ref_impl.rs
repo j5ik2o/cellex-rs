@@ -1,13 +1,14 @@
 use super::priority_actor_ref::PriorityActorRef;
+use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::{DynMessage, MailboxRuntime, MetadataStorageMode, RuntimeBound};
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::{PriorityEnvelope, SystemMessage};
+use crate::api::messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode};
+use crate::internal::message::internal_message_sender::InternalMessageSender;
+use crate::RuntimeBound;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::future::Future;
 use core::marker::PhantomData;
-
-use super::super::{ask::create_ask_handles, ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
-use crate::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
 
 /// Typed actor reference.
 ///

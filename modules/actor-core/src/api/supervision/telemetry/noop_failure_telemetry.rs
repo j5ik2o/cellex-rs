@@ -1,6 +1,6 @@
 use crate::api::supervision::telemetry::failure_snapshot::FailureSnapshot;
 use crate::api::supervision::telemetry::failure_telemetry::FailureTelemetry;
-use crate::FailureTelemetryShared;
+use crate::shared::failure_telemetry::FailureTelemetryShared;
 use spin::Once;
 
 /// Telemetry implementation that performs no side effects.

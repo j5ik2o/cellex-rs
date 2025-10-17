@@ -1,5 +1,5 @@
+use crate::api::extensions::Extensions;
 use crate::internal::metrics::MetricsSinkShared;
-use crate::Extensions;
 
 /// Context provided to telemetry builders.
 pub struct TelemetryContext {

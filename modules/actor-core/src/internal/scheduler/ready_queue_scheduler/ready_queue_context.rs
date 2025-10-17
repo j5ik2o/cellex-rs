@@ -6,7 +6,7 @@ use spin::Mutex;
 
 use futures::future::LocalBoxFuture;
 
-use crate::api::mailbox::PriorityEnvelope;
+use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
 use crate::{
@@ -20,7 +20,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 use super::common::ReadyQueueSchedulerCore;
 use super::ready_queue_state::ReadyQueueState;
 use crate::internal::actor::ActorCell;
-use crate::SpawnError;
+use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 
 pub(crate) struct ReadyQueueContext<M, R, Strat>
@@ -119,7 +119,7 @@ where
     self.core.set_receive_timeout_factory(factory)
   }
 
-  pub(super) fn set_metrics_sink(&mut self, sink: Option<crate::MetricsSinkShared>) {
+  pub(super) fn set_metrics_sink(&mut self, sink: Option<crate::internal::metrics::MetricsSinkShared>) {
     self.core.set_metrics_sink(sink)
   }
 

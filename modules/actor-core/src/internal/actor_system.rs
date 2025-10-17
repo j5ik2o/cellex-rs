@@ -4,7 +4,6 @@ mod internal_root_context;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use super::actor::InternalProps;
 pub(crate) use internal_actor_system::InternalActorSystem;
 pub(crate) use internal_actor_system_config::InternalActorSystemConfig;
 pub(crate) use internal_root_context::InternalRootContext;

@@ -1,6 +1,6 @@
+use crate::api::mailbox::mailbox_signal::MailboxSignal;
 use crate::internal::mailbox::test_support::test_signal_state::TestSignalState;
 use crate::internal::mailbox::test_support::test_signal_wait::TestSignalWait;
-use crate::MailboxSignal;
 use cellex_utils_core_rs::ArcShared;
 use core::cell::RefCell;
 use core::marker::PhantomData;

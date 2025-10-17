@@ -1,34 +1,21 @@
 //! Public mailbox abstractions shared across the crate.
 
-use crate::{MetricsSinkShared, ReadyQueueHandle};
+use crate::internal::metrics::MetricsSinkShared;
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{QueueError, QueueSize};
 use core::future::Future;
 
-mod mailbox_concurrency;
-mod mailbox_handle;
-mod mailbox_options;
-mod mailbox_producer;
-/// Mailbox runtime traits and abstractions for message queue implementations.
-mod mailbox_runtime;
-mod mailbox_signal;
-mod messages;
-/// Queue-based mailbox implementation.
-mod queue_mailbox;
-mod queue_mailbox_producer;
-mod single_thread;
-mod thread_safe;
-
-pub use mailbox_concurrency::*;
-pub use mailbox_handle::MailboxHandle;
-pub use mailbox_options::*;
-pub use mailbox_producer::*;
-pub use mailbox_runtime::*;
-pub use mailbox_signal::*;
-pub use messages::*;
-pub use queue_mailbox::*;
-pub use queue_mailbox_producer::*;
-pub use single_thread::*;
-pub use thread_safe::ThreadSafe;
+pub mod mailbox_concurrency;
+pub mod mailbox_handle;
+pub mod mailbox_options;
+pub mod mailbox_producer;
+pub mod mailbox_runtime;
+pub mod mailbox_signal;
+pub mod messages;
+pub mod queue_mailbox;
+pub mod queue_mailbox_producer;
+pub mod single_thread;
+pub mod thread_safe;
 
 /// Type alias for mailbox and producer pair.
 ///

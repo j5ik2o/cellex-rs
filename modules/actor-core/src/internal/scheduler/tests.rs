@@ -4,24 +4,25 @@
 #![allow(clippy::disallowed_types)]
 use super::ReadyQueueScheduler;
 use super::*;
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::api::actor::failure::BehaviorFailure;
+use crate::api::actor::shutdown_token::ShutdownToken;
+use crate::api::extensions::Extensions;
+use crate::api::identity::ActorId;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::mailbox::messages::SystemMessage;
+use crate::api::supervision::escalation::FailureEventHandler;
+use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::supervision::failure::FailureInfo;
+use crate::api::supervision::supervisor::NoopSupervisor;
+#[cfg(feature = "std")]
+use crate::api::supervision::supervisor::SupervisorDirective;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::context::ActorContext;
+use crate::internal::context::ActorHandlerFn;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
+use crate::internal::scheduler::child_naming::ChildNaming;
 use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::ActorHandlerFn;
-use crate::ActorId;
-use crate::BehaviorFailure;
-use crate::ChildNaming;
-use crate::Extensions;
-use crate::FailureEventHandler;
-use crate::FailureEventListener;
-use crate::FailureInfo;
-use crate::NoopSupervisor;
-use crate::ShutdownToken;
-#[cfg(feature = "std")]
-use crate::SupervisorDirective;
 use crate::{DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared};
 use crate::{MailboxOptions, MapSystemShared, Supervisor};
 use alloc::boxed::Box;
@@ -638,7 +639,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 
   let envelope = parent_mailbox.queue().poll().unwrap().unwrap();
   let (msg, _, channel) = envelope.into_parts_with_channel();
-  assert_eq!(channel, crate::PriorityChannel::Control);
+  assert_eq!(channel, crate::api::mailbox::queue_mailbox::PriorityChannel::Control);
   match msg {
     Message::System(SystemMessage::Escalate(info)) => {
       assert_eq!(info.actor, ActorId(0));
@@ -877,7 +878,7 @@ fn scheduler_requeues_failed_custom_escalation() {
 #[test]
 fn scheduler_root_event_listener_broadcasts() {
   use crate::api::failure_event_stream::tests::TestFailureEventStream;
-  use crate::FailureEventStream;
+  use crate::api::failure_event_stream::FailureEventStream;
   use std::sync::{Arc as StdArc, Mutex};
 
   let mailbox_runtime = TestMailboxRuntime::unbounded();
@@ -889,7 +890,7 @@ fn scheduler_root_event_listener_broadcasts() {
   let received_clone = received.clone();
 
   let _subscription = hub.subscribe(FailureEventListener::new(move |event| match event {
-    crate::FailureEvent::RootEscalated(info) => {
+    crate::api::supervision::failure::FailureEvent::RootEscalated(info) => {
       received_clone.lock().unwrap().push(info.clone());
     }
   }));

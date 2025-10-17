@@ -1,8 +1,8 @@
 use super::AdapterFn;
-use crate::api::actor::ActorRef;
+use crate::api::actor::actor_ref::ActorRef;
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
-use crate::DynMessage;
+use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::api::messaging::DynMessage;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
