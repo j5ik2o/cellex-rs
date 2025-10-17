@@ -24,7 +24,7 @@ pub use mailbox_options::*;
 pub use mailbox_producer::*;
 pub use mailbox_runtime::*;
 pub use mailbox_signal::*;
-pub use messages::{PriorityChannel, PriorityEnvelope, SystemMessage};
+pub use messages::*;
 pub use queue_mailbox::*;
 pub use queue_mailbox_producer::*;
 pub use single_thread::*;

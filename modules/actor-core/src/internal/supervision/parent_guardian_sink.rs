@@ -1,10 +1,11 @@
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::mailbox::traits::MailboxProducer;
 use crate::EscalationSink;
 use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
+use crate::SystemMessage;
 use cellex_utils_core_rs::Element;
 
 /// Sink that forwards `SystemMessage::Escalate` to parent Guardian.

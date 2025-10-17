@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::api::actor::PriorityActorRef;
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec};
 use crate::internal::guardian::{Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
@@ -23,6 +23,7 @@ use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::SpawnError;
 use crate::Supervisor;
+use crate::SystemMessage;
 use crate::{ActorFailure, Mailbox, MailboxHandle, MailboxProducer};
 use cellex_utils_core_rs::{Element, QueueError};
 

@@ -10,7 +10,7 @@ use futures::future::select_all;
 use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::traits::{Mailbox, MailboxProducer};
@@ -18,7 +18,10 @@ use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::supervision::CompositeEscalationSink;
 use crate::ActorId;
 use crate::ActorPath;
-use crate::{EscalationSink, Extensions, FailureInfo, FailureTelemetryShared, Supervisor, TelemetryObservationConfig};
+use crate::{
+  EscalationSink, Extensions, FailureInfo, FailureTelemetryShared, Supervisor, SystemMessage,
+  TelemetryObservationConfig,
+};
 use crate::{MailboxRuntime, MailboxSignal};
 use cellex_utils_core_rs::{Element, QueueError};
 

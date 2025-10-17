@@ -13,7 +13,7 @@ pub use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxO
 #[allow(unused_imports)]
 pub use crate::api::mailbox::PriorityChannel;
 #[allow(unused_imports)]
-pub use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+pub use crate::api::mailbox::PriorityEnvelope;
 #[allow(unused_imports)]
 pub use crate::MailboxOptions;
 pub use builder::PriorityMailboxBuilder;

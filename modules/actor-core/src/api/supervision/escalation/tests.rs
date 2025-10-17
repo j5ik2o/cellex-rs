@@ -1,4 +1,3 @@
-use super::*;
 use crate::api::supervision::escalation::escalation_sink::EscalationSink;
 use crate::api::supervision::escalation::root_escalation_sink::RootEscalationSink;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;

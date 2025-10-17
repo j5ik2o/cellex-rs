@@ -1,5 +1,5 @@
 use super::{ChildRecord, GuardianStrategy};
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
+use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::actor::InternalActorRef;
 use crate::ActorId;
 use crate::ActorPath;
@@ -7,6 +7,7 @@ use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
 use crate::SupervisorDirective;
+use crate::SystemMessage;
 use crate::{ActorFailure, ChildNaming, MailboxProducer, SpawnError};
 use alloc::collections::BTreeMap;
 use alloc::format;
