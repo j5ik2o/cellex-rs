@@ -4,11 +4,9 @@ use core::marker::PhantomData;
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 
-use cellex_actor_core_rs::api::mailbox::mailbox_options::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
-use cellex_actor_core_rs::api::mailbox::Mailbox;
+use cellex_actor_core_rs::api::mailbox::{
+  Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv,
+};
 use cellex_actor_core_rs::internal::metrics::MetricsSinkShared;
 use cellex_utils_embedded_rs::queue::priority::ArcPriorityQueue;
 use cellex_utils_embedded_rs::queue::ring::ArcRingQueue;
@@ -116,11 +114,11 @@ where
   RM: RawMutex,
 {
   fn len(&self) -> QueueSize {
-    self.len()
+    ArcPriorityQueues::len(self)
   }
 
   fn capacity(&self) -> QueueSize {
-    self.capacity()
+    ArcPriorityQueues::capacity(self)
   }
 }
 
@@ -144,7 +142,7 @@ where
   }
 
   fn clean_up_mut(&mut self) {
-    self.clean_up();
+    ArcPriorityQueues::clean_up(self);
   }
 }
 
@@ -154,15 +152,15 @@ where
   RM: RawMutex,
 {
   fn offer(&self, envelope: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
-    self.offer(envelope)
+    ArcPriorityQueues::offer(self, envelope)
   }
 
   fn poll(&self) -> Result<Option<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {
-    self.poll()
+    ArcPriorityQueues::poll(self)
   }
 
   fn clean_up(&self) {
-    self.clean_up();
+    ArcPriorityQueues::clean_up(self);
   }
 }
 
