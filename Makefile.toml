@@ -46,6 +46,12 @@ workspace = false
 command = "rust-script"
 args = ["scripts/check_reexport_hierarchy.rs"]
 
+[tasks.check-module-wiring]
+description = "Verify parent modules re-export leaf types without leaking pub mod"
+workspace = false
+command = "rust-script"
+args = ["scripts/check_module_wiring.rs"]
+
 [tasks.coverage-grcov]
 description = "Generate code coverage report using grcov"
 workspace = false
