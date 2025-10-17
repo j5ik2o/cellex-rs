@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use alloc::boxed::Box;
 
 use crate::api::extensions::Extensions;
@@ -13,12 +11,14 @@ use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, SharedBound};
 
+/// Type alias for boxed scheduler instances returned by builders.
 pub type SchedulerHandle<M, R> = Box<dyn ActorScheduler<M, R>>;
 #[cfg(target_has_atomic = "ptr")]
 type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + Send + Sync + 'static;
 #[cfg(not(target_has_atomic = "ptr"))]
 type FactoryFn<M, R> = dyn Fn(R, Extensions) -> SchedulerHandle<M, R> + 'static;
 
+/// Factory wrapper used to construct scheduler instances with consistent runtime configuration.
 #[derive(Clone)]
 pub struct SchedulerBuilder<M, R>
 where
@@ -39,10 +39,12 @@ where
   #[cfg(any(test, feature = "test-support"))]
   #[allow(dead_code)]
   #[must_use]
+  /// Creates a builder that produces the immediate scheduler used in tests.
   pub fn immediate() -> Self {
     Self::new(|mailbox_runtime, extensions| Box::new(ImmediateScheduler::new(mailbox_runtime, extensions)))
   }
 
+  /// Creates a builder from a factory closure producing scheduler handles.
   pub fn new<F>(factory: F) -> Self
   where
     F: Fn(R, Extensions) -> SchedulerHandle<M, R> + SharedBound + 'static, {
@@ -52,6 +54,7 @@ where
     }
   }
 
+  /// Builds a scheduler using the stored factory and provided runtime components.
   pub fn build(&self, mailbox_runtime: R, extensions: Extensions) -> SchedulerHandle<M, R> {
     self.factory.with_ref(|factory| (factory)(mailbox_runtime, extensions))
   }
@@ -61,11 +64,13 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
+  /// Returns a builder configured to create ready-queue-based schedulers.
   pub fn ready_queue() -> Self {
     Self::new(|mailbox_runtime, extensions| Box::new(ReadyQueueScheduler::new(mailbox_runtime, extensions)))
   }
 
   #[allow(dead_code)]
+  /// Returns a builder that wires a custom guardian strategy into the ready-queue scheduler.
   pub fn with_strategy<Strat>(self, strategy: Strat) -> Self
   where
     Strat: GuardianStrategy<M, R> + Clone + Send + Sync, {

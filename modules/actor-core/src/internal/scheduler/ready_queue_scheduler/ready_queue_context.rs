@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use spin::Mutex;

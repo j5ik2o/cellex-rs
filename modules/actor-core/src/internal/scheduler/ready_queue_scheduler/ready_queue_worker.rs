@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use futures::future::{select, Either, LocalBoxFuture};
 
 use crate::api::actor::shutdown_token::ShutdownToken;

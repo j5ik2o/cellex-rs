@@ -1,6 +1,4 @@
 // allow:multi-types
-#![allow(missing_docs)]
-
 use cellex_utils_core_rs::sync::ArcShared;
 
 /// Hook invoked by mailboxes when new messages arrive.

@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use spin::Mutex;
 
 use cellex_utils_core_rs::sync::ArcShared;
