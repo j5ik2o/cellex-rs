@@ -2,10 +2,12 @@ use cellex_utils_core_rs::{ArcShared, MpscBuffer, MpscHandle, RingBufferBackend,
 use core::cell::RefCell;
 use core::fmt;
 
+/// Shared handle around the ring-buffer backend used to simulate mailbox queues in tests.
 pub struct SharedBackendHandle<T>(ArcShared<RingBufferBackend<RefCell<MpscBuffer<T>>>>);
 
 impl<T> SharedBackendHandle<T> {
-  pub(crate) fn new(capacity: Option<usize>) -> Self {
+  /// Creates a new handle with an optional custom queue capacity.
+  pub fn new(capacity: Option<usize>) -> Self {
     let buffer = RefCell::new(MpscBuffer::new(capacity));
     let backend = RingBufferBackend::new(buffer);
     Self(ArcShared::new(backend))

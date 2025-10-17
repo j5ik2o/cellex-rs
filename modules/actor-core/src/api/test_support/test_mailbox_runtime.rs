@@ -4,25 +4,29 @@ use crate::api::mailbox::MailboxPair;
 use crate::api::mailbox::QueueMailbox;
 use crate::api::mailbox::QueueMailboxProducer;
 use crate::api::mailbox::ThreadSafe;
-use crate::internal::mailbox::test_support::common::TestQueue;
-use crate::internal::mailbox::test_support::shared_backend_handle::SharedBackendHandle;
-use crate::internal::mailbox::test_support::test_signal::TestSignal;
+use crate::api::test_support::common::TestQueue;
+use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
+use crate::api::test_support::test_signal::TestSignal;
 use cellex_utils_core_rs::{Element, MpscQueue, QueueSize};
 
 #[derive(Clone, Debug, Default)]
+/// Minimal mailbox runtime used by unit tests to build queue-backed mailboxes.
 pub struct TestMailboxRuntime {
   capacity: Option<usize>,
 }
 
 impl TestMailboxRuntime {
+  /// Creates a runtime with an optional global capacity shared by all queues.
   pub const fn new(capacity: Option<usize>) -> Self {
     Self { capacity }
   }
 
+  /// Creates a runtime that enforces the same capacity for every mailbox queue.
   pub const fn with_capacity_per_queue(capacity: usize) -> Self {
     Self::new(Some(capacity))
   }
 
+  /// Creates an unbounded runtime that lets queue options decide the capacity.
   pub fn unbounded() -> Self {
     Self::default()
   }

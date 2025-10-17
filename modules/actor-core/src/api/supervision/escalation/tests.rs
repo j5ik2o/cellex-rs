@@ -10,7 +10,7 @@ use crate::api::supervision::failure::FailureInfo;
 use crate::api::supervision::telemetry::FailureSnapshot;
 use crate::api::supervision::telemetry::FailureTelemetry;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::mailbox::test_support::TestMailboxRuntime;
+use crate::api::test_support::TestMailboxRuntime;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
 use std::sync::{Arc, Mutex};
 

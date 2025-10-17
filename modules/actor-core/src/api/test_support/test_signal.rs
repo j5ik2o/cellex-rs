@@ -1,13 +1,21 @@
 use crate::api::mailbox::MailboxSignal;
-use crate::internal::mailbox::test_support::test_signal_state::TestSignalState;
-use crate::internal::mailbox::test_support::test_signal_wait::TestSignalWait;
+use crate::api::test_support::test_signal_state::TestSignalState;
+use crate::api::test_support::test_signal_wait::TestSignalWait;
 use cellex_utils_core_rs::ArcShared;
 use core::cell::RefCell;
 use core::marker::PhantomData;
 
 #[derive(Clone)]
+/// Lightweight signal implementation for driving mailbox readiness in tests.
 pub struct TestSignal {
   pub(crate) state: ArcShared<RefCell<TestSignalState>>,
+}
+
+impl TestSignal {
+  /// Creates a signal with a fresh backing state.
+  pub fn new() -> Self {
+    Self::default()
+  }
 }
 
 impl Default for TestSignal {

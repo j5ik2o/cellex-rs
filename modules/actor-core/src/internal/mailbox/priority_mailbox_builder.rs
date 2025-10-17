@@ -9,9 +9,9 @@ use cellex_utils_core_rs::Element;
 
 /// Builder abstraction specialised for priority mailboxes.
 ///
-/// このトレイトは優先度付きメールボックスを生成する責務を `MailboxRuntime`
+/// このトレイトは優先度付きメールボックスを生成する責務を `MailboxFactory`
 /// から切り出し、スケジューラ層が具象ファクトリ型へ直接依存しないようにする。
-pub trait PriorityMailboxBuilder<M>: Clone
+pub(crate) trait PriorityMailboxBuilder<M>: Clone
 where
   M: Element, {
   /// Mailbox が利用するシグナル型。

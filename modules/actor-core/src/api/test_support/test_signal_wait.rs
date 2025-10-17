@@ -1,12 +1,23 @@
-use crate::internal::mailbox::test_support::test_signal::TestSignal;
+use crate::api::test_support::test_signal::TestSignal;
 use core::future::Future;
 use core::marker::PhantomData;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
+/// Future returned by `TestSignal` that resolves once a notification arrives.
 pub struct TestSignalWait<'a> {
   pub(crate) signal: TestSignal,
   pub(crate) _marker: PhantomData<&'a ()>,
+}
+
+impl<'a> TestSignalWait<'a> {
+  /// Creates a wait future from the given signal.
+  pub fn new(signal: TestSignal) -> Self {
+    Self {
+      signal,
+      _marker: PhantomData,
+    }
+  }
 }
 
 impl<'a> Future for TestSignalWait<'a> {

@@ -13,7 +13,7 @@ use crate::api::mailbox::PriorityChannel;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::internal::mailbox::test_support::TestMailboxRuntime;
+use crate::api::test_support::TestMailboxRuntime;
 use crate::internal::scheduler::ChildNaming;
 use crate::internal::scheduler::SpawnError;
 use crate::shared::map_system::MapSystemShared;

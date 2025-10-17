@@ -17,3 +17,5 @@ pub mod messaging;
 pub mod metrics;
 /// Supervision strategies and failure handling.
 pub mod supervision;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;

@@ -25,10 +25,10 @@ use crate::api::supervision::supervisor::NoopSupervisor;
 use crate::api::supervision::supervisor::Supervisor;
 #[cfg(feature = "std")]
 use crate::api::supervision::supervisor::SupervisorDirective;
+use crate::api::test_support::TestMailboxRuntime;
 use crate::internal::context::ActorContext;
 use crate::internal::context::ActorHandlerFn;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::scheduler::actor_scheduler::ActorScheduler;
 use crate::internal::scheduler::child_naming::ChildNaming;
 use crate::internal::scheduler::ready_queue_scheduler::drive_ready_queue_worker;

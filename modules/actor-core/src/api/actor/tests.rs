@@ -25,8 +25,8 @@ use crate::api::messaging::MessageMetadata;
 use crate::api::messaging::MessageSender;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureEvent;
+use crate::api::test_support::TestMailboxRuntime;
 use crate::internal::guardian::AlwaysRestart;
-use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::message::take_metadata;
 use crate::internal::message::InternalMessageSender;
 use crate::internal::scheduler::SpawnError;
@@ -96,7 +96,7 @@ mod ready_queue_worker_configuration {
   }
 
   use super::*;
-  use crate::internal::mailbox::test_support::TestMailboxRuntime;
+  use crate::api::test_support::TestMailboxRuntime;
 
   type TestRuntime = GenericActorRuntime<TestMailboxRuntime>;
 
@@ -140,7 +140,7 @@ mod ready_queue_worker_configuration {
 
 mod builder_api {
   use super::*;
-  use crate::internal::mailbox::test_support::TestMailboxRuntime;
+  use crate::api::test_support::TestMailboxRuntime;
 
   #[test]
   fn actor_system_builder_applies_ready_queue_override() {
@@ -164,7 +164,7 @@ mod receive_timeout_injection {
   use crate::api::actor_system::ActorSystemConfig;
   use crate::api::mailbox::PriorityEnvelope;
   use crate::api::messaging::DynMessage;
-  use crate::internal::mailbox::test_support::TestMailboxRuntime;
+  use crate::api::test_support::TestMailboxRuntime;
   use crate::shared::map_system::MapSystemShared;
   use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
   use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
@@ -1109,7 +1109,7 @@ mod metrics_injection {
   use crate::api::metrics::MetricsSinkShared;
   use crate::api::supervision::supervisor::Supervisor;
   use crate::api::supervision::telemetry::TelemetryObservationConfig;
-  use crate::internal::mailbox::test_support::TestMailboxRuntime;
+  use crate::api::test_support::TestMailboxRuntime;
   use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::shared::failure_telemetry::FailureTelemetryShared;
   use alloc::boxed::Box;
