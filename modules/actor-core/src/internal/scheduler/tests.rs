@@ -2,7 +2,7 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
-use super::ReadyQueueScheduler;
+use super::ready_queue_scheduler::ReadyQueueScheduler;
 use super::*;
 use crate::api::actor::failure::BehaviorFailure;
 use crate::api::actor::shutdown_token::ShutdownToken;
@@ -10,6 +10,7 @@ use crate::api::extensions::Extensions;
 use crate::api::identity::ActorId;
 use crate::api::mailbox::mailbox_options::MailboxOptions;
 use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
+use crate::api::mailbox::messages::PriorityChannel;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::mailbox::messages::SystemMessage;
 use crate::api::messaging::DynMessage;
@@ -29,7 +30,11 @@ use crate::internal::metrics::MetricsEvent;
 use crate::internal::metrics::MetricsSink;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::child_naming::ChildNaming;
+use crate::internal::scheduler::ready_queue_scheduler::drive_ready_queue_worker;
+use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
+use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
 use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
+use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::shared::map_system::MapSystemShared;
 use alloc::boxed::Box;
 use alloc::rc::Rc;
@@ -173,7 +178,7 @@ fn scheduler_handle_trait_object_dispatches() {
   use futures::executor::block_on;
 
   let mailbox_runtime = TestMailboxRuntime::unbounded();
-  let mut scheduler = super::SchedulerBuilder::ready_queue().build(mailbox_runtime.clone(), Extensions::new());
+  let mut scheduler = SchedulerBuilder::ready_queue().build(mailbox_runtime.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
@@ -204,7 +209,7 @@ fn immediate_scheduler_builder_dispatches() {
   use futures::executor::block_on;
 
   let mailbox_runtime = TestMailboxRuntime::unbounded();
-  let mut scheduler = super::SchedulerBuilder::immediate().build(mailbox_runtime.clone(), Extensions::new());
+  let mut scheduler = SchedulerBuilder::immediate().build(mailbox_runtime.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
@@ -645,7 +650,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 
   let envelope = parent_mailbox.queue().poll().unwrap().unwrap();
   let (msg, _, channel) = envelope.into_parts_with_channel();
-  assert_eq!(channel, crate::api::mailbox::queue_mailbox::PriorityChannel::Control);
+  assert_eq!(channel, PriorityChannel::Control);
   match msg {
     Message::System(SystemMessage::Escalate(info)) => {
       assert_eq!(info.actor, ActorId(0));

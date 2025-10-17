@@ -6,6 +6,8 @@ use cellex_serialization_core_rs::{
 };
 #[cfg(feature = "std")]
 use cellex_serialization_json_rs::{shared_json_serializer, JsonTypeKey, SERDE_JSON_SERIALIZER_ID};
+#[cfg(feature = "postcard")]
+use cellex_serialization_postcard_rs::{shared_postcard_serializer, PostcardTypeKey, POSTCARD_SERIALIZER_ID};
 #[cfg(feature = "std")]
 use cellex_serialization_prost_rs::{shared_prost_serializer, ProstTypeKey, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::ArcShared;
