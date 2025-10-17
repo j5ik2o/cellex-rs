@@ -1,11 +1,8 @@
-use super::{AdapterFn, Context};
-use crate::api::actor::ask::{AskError, AskResult};
+use super::AdapterFn;
 use crate::api::actor::ActorRef;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
+use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::{MessageEnvelope, MessageMetadata};
-use crate::MailboxRuntime;
-use crate::{DynMessage, MetadataStorageMode, RuntimeBound};
+use crate::DynMessage;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -50,34 +47,5 @@ where
   #[must_use]
   pub fn target(&self) -> &ActorRef<U, R> {
     &self.target
-  }
-}
-
-pub trait MessageMetadataResponder<R>
-where
-  R: ActorRuntime,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static, {
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
-  where
-    Resp: Element,
-    U: Element;
-}
-
-impl<R> MessageMetadataResponder<R> for MessageMetadata<MailboxConcurrencyOf<R>>
-where
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-  MailboxSignalOf<R>: Clone + RuntimeBound + 'static,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
-{
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
-  where
-    Resp: Element,
-    U: Element, {
-    let dispatcher = self.dispatcher_for::<Resp>().ok_or(AskError::MissingResponder)?;
-    let dispatch_metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_sender(ctx.self_dispatcher());
-    let envelope = MessageEnvelope::user_with_metadata(message, dispatch_metadata);
-    dispatcher.dispatch_envelope(envelope).map_err(AskError::from)
   }
 }

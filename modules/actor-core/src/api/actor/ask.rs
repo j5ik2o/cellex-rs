@@ -1,11 +1,11 @@
+mod ask_error;
 mod ask_future;
 mod ask_timeout_future;
-mod error;
 mod shared;
 
+pub use ask_error::AskError;
 pub use ask_future::AskFuture;
 pub use ask_timeout_future::AskTimeoutFuture;
-pub use error::AskError;
 
 /// Result alias used by `ask` helpers.
 pub type AskResult<T> = Result<T, AskError>;

@@ -1,20 +1,6 @@
+use super::context_log_level::ContextLogLevel;
 use crate::{ActorId, ActorPath};
 use alloc::string::String;
-
-/// Context log level.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ContextLogLevel {
-  /// Trace level
-  Trace,
-  /// Debug level
-  Debug,
-  /// Info level
-  Info,
-  /// Warn level
-  Warn,
-  /// Error level
-  Error,
-}
 
 /// Structure that manages actor log output.
 #[derive(Clone)]
