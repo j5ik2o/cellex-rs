@@ -1,11 +1,13 @@
+use crate::api::actor::PriorityActorRef;
 use crate::api::mailbox::PriorityEnvelope;
-use crate::{DynMessage, InternalActorRef, MailboxConcurrency, MailboxRuntime, RuntimeBound, ThreadSafe};
+use crate::{DynMessage, MailboxConcurrency, MailboxRuntime, RuntimeBound, ThreadSafe};
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
 use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
 use core::marker::PhantomData;
+
 #[cfg(target_has_atomic = "ptr")]
 type DropHookFn = dyn Fn() + Send + Sync;
 
@@ -43,7 +45,7 @@ where
   ///
   /// # Arguments
   /// * `actor_ref` - Actor reference to send to
-  pub(crate) fn from_factory_ref<R>(actor_ref: InternalActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_factory_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
   where
     R: MailboxRuntime<Concurrency = C> + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
@@ -121,7 +123,7 @@ where
 impl InternalMessageSender {
   /// Thread-safe helper retained for existing call sites.
   #[allow(dead_code)]
-  pub(crate) fn from_internal_ref<R>(actor_ref: InternalActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_internal_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
   where
     R: MailboxRuntime + Clone + 'static,
     R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,

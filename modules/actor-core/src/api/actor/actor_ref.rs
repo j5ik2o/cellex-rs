@@ -1,6 +1,5 @@
 use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::internal::context::InternalActorRef;
 use crate::{DynMessage, MailboxRuntime, MetadataStorageMode, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
 use core::future::Future;
@@ -8,6 +7,9 @@ use core::marker::PhantomData;
 
 use super::{ask::create_ask_handles, ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 use crate::api::{InternalMessageSender, MessageEnvelope, MessageMetadata, MessageSender};
+pub use priority_actor_ref::PriorityActorRef;
+
+mod priority_actor_ref;
 
 /// Typed actor reference.
 ///
@@ -22,7 +24,7 @@ where
   MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<R>: Clone,
   MailboxConcurrencyOf<R>: MetadataStorageMode, {
-  inner: InternalActorRef<DynMessage, MailboxOf<R>>,
+  inner: PriorityActorRef<DynMessage, MailboxOf<R>>,
   _marker: PhantomData<U>,
 }
 
@@ -39,7 +41,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Internal actor reference
-  pub(crate) const fn new(inner: InternalActorRef<DynMessage, MailboxOf<R>>) -> Self {
+  pub(crate) const fn new(inner: PriorityActorRef<DynMessage, MailboxOf<R>>) -> Self {
     Self {
       inner,
       _marker: PhantomData,

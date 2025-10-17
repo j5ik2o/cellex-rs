@@ -6,8 +6,10 @@ use alloc::vec::Vec;
 
 use async_trait::async_trait;
 
+use super::ready_queue_scheduler::ReadyQueueWorker;
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::context::{ActorHandlerFn, InternalActorRef};
+use crate::internal::actor::InternalActorRef;
+use crate::internal::context::ActorHandlerFn;
 use crate::MailboxOptions;
 use crate::TelemetryObservationConfig;
 use crate::{
@@ -16,8 +18,6 @@ use crate::{
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
-
-use super::ready_queue_scheduler::ReadyQueueWorker;
 
 /// Naming strategy applied when spawning a child actor.
 #[derive(Clone, Debug, PartialEq, Eq)]

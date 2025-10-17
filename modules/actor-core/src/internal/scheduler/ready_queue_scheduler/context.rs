@@ -7,7 +7,7 @@ use spin::Mutex;
 use futures::future::LocalBoxFuture;
 
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
 use crate::MailboxRuntime;
 use crate::{
@@ -18,9 +18,9 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::super::actor_scheduler::SchedulerSpawnContext;
-use super::core::ReadyQueueSchedulerCore;
+use super::common::ReadyQueueSchedulerCore;
 use super::state::ReadyQueueState;
-use crate::internal::actor::actor_cell::ActorCell;
+use crate::internal::actor::ActorCell;
 use crate::SpawnError;
 use crate::{MapSystemShared, ReceiveTimeoutFactoryShared};
 

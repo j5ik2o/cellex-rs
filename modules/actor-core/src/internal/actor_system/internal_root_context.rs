@@ -1,16 +1,15 @@
 use alloc::boxed::Box;
 
+use super::{InternalActorSystem, InternalProps};
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::GuardianStrategy;
 use crate::internal::mailbox::traits::MailboxRuntime;
 use crate::internal::scheduler::{ChildNaming, SchedulerSpawnContext, SpawnError};
 use crate::{Extensions, NoopSupervisor, Supervisor};
 use cellex_utils_core_rs::sync::Shared;
 use cellex_utils_core_rs::{Element, QueueError};
-
-use super::{InternalActorSystem, InternalProps};
 
 pub(crate) struct InternalRootContext<'a, M, R, Strat>
 where

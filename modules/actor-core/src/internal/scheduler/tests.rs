@@ -5,7 +5,8 @@
 use super::ReadyQueueScheduler;
 use super::*;
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::internal::context::{ActorContext, InternalActorRef};
+use crate::internal::actor::InternalActorRef;
+use crate::internal::context::ActorContext;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::scheduler::SchedulerSpawnContext;
@@ -14,23 +15,22 @@ use crate::ActorId;
 use crate::BehaviorFailure;
 use crate::ChildNaming;
 use crate::Extensions;
+use crate::FailureEventHandler;
+use crate::FailureEventListener;
 use crate::FailureInfo;
 use crate::NoopSupervisor;
 use crate::ShutdownToken;
-use crate::SpawnError;
 #[cfg(feature = "std")]
 use crate::SupervisorDirective;
 use crate::{DynMessage, MailboxRuntime, MetricsEvent, MetricsSink, MetricsSinkShared};
-use crate::{FailureEventHandler, FailureEventListener, MailboxOptions, MapSystemShared, Supervisor};
+use crate::{MailboxOptions, MapSystemShared, Supervisor};
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::vec;
 use alloc::vec::Vec;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
-#[cfg(feature = "std")]
-use core::cell::Cell;
-use core::cell::RefCell;
+use core::cell::{Cell, RefCell};
 #[cfg(feature = "std")]
 use futures::executor::block_on;
 #[cfg(feature = "std")]
@@ -40,9 +40,9 @@ use futures::future::{poll_fn, FutureExt};
 #[cfg(feature = "std")]
 use futures::task::LocalSpawnExt;
 #[cfg(feature = "std")]
-use std::sync::{Arc, Mutex};
+use std::collections::VecDeque;
 #[cfg(feature = "std")]
-use std::{collections::VecDeque, sync::MutexGuard};
+use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "std")]
 fn handler_from_fn<M, R, F>(mut f: F) -> Box<ActorHandlerFn<M, R>>

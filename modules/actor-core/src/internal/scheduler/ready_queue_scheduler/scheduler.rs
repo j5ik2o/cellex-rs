@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use spin::Mutex;
 
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::MailboxRuntime;
 use crate::{
@@ -19,8 +19,8 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::super::actor_scheduler::{ActorScheduler, SchedulerSpawnContext};
+use super::common::ReadyQueueSchedulerCore;
 use super::context::ReadyQueueContext;
-use super::core::ReadyQueueSchedulerCore;
 use super::hook::{ReadyEventHook, ReadyQueueHandle};
 use super::notifier::ReadyNotifier;
 use super::state::ReadyQueueState;

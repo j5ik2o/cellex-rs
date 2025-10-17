@@ -5,11 +5,10 @@ use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::runtime_state::GenericActorRuntimeState;
 use crate::internal::scheduler::receive_timeout::NoopReceiveTimeoutDriver;
 use crate::internal::scheduler::SchedulerBuilder;
-use crate::DynMessage;
 use crate::MailboxRuntime;
 use crate::ReceiveTimeoutDriverShared;
 use crate::ReceiveTimeoutFactoryShared;
-use crate::{FailureEventHandler, FailureEventListener};
+use crate::{DynMessage, FailureEventHandler, FailureEventListener};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 

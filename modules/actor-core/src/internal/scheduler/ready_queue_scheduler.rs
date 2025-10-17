@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
+mod common;
 mod context;
-mod core;
 mod hook;
 mod notifier;
 mod scheduler;

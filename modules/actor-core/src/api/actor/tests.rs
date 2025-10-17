@@ -1080,6 +1080,7 @@ fn ask_future_cancelled_on_drop() {
 
 mod metrics_injection {
   use super::*;
+  use crate::internal::actor::InternalActorRef;
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
   use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use crate::{
@@ -1135,7 +1136,7 @@ mod metrics_injection {
       &mut self,
       _supervisor: Box<dyn Supervisor<M>>,
       _context: SchedulerSpawnContext<M, R>,
-    ) -> Result<crate::internal::context::InternalActorRef<M, R>, SpawnError<M>> {
+    ) -> Result<InternalActorRef<M, R>, SpawnError<M>> {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
@@ -1154,12 +1155,7 @@ mod metrics_injection {
       *slot = sink.map(|shared| shared.with_ref(|inner| inner as *const _ as *const () as usize));
     }
 
-    fn set_parent_guardian(
-      &mut self,
-      _control_ref: crate::internal::context::InternalActorRef<M, R>,
-      _map_system: MapSystemShared<M>,
-    ) {
-    }
+    fn set_parent_guardian(&mut self, _control_ref: InternalActorRef<M, R>, _map_system: MapSystemShared<M>) {}
 
     fn on_escalation(
       &mut self,

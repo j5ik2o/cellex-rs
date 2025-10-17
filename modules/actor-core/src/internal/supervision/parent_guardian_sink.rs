@@ -1,5 +1,5 @@
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::internal::mailbox::traits::MailboxProducer;
 use crate::EscalationSink;
 use crate::FailureInfo;

@@ -8,8 +8,8 @@ use core::num::NonZeroUsize;
 use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
 use crate::api::guardian::AlwaysRestart;
 use crate::api::mailbox::PriorityEnvelope;
+use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::internal::scheduler::ReadyQueueWorker;
-use crate::internal::system::{InternalActorSystem, InternalActorSystemConfig};
 use crate::serializer_extension_id;
 use crate::{
   default_failure_telemetry, Extension, ExtensionId, Extensions, FailureEventStream, SerializerRegistryExtension,

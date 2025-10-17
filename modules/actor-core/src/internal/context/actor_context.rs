@@ -3,6 +3,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
+use crate::api::actor::PriorityActorRef;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::ActorId;
@@ -15,13 +16,12 @@ use crate::Supervisor;
 use crate::{ActorFailure, MailboxOptions, MailboxProducer, MailboxRuntime};
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
+use super::ChildSpawnSpec;
+use crate::internal::actor_system::InternalProps;
 use crate::internal::scheduler::ReceiveTimeoutScheduler;
+use crate::MapSystemShared;
 use core::cell::RefCell;
 use core::time::Duration;
-
-use super::{ChildSpawnSpec, InternalActorRef};
-use crate::internal::system::InternalProps;
-use crate::MapSystemShared;
 
 /// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
 pub type ActorHandlerFn<M, R> =
@@ -135,12 +135,12 @@ where
     }
   }
 
-  pub(crate) fn self_ref(&self) -> InternalActorRef<M, R>
+  pub(crate) fn self_ref(&self) -> PriorityActorRef<M, R>
   where
     R::Queue<PriorityEnvelope<M>>: Clone,
     R::Signal: Clone,
     R::Producer<PriorityEnvelope<M>>: Clone, {
-    InternalActorRef::new(self.sender.clone())
+    PriorityActorRef::new(self.sender.clone())
   }
 
   #[allow(dead_code)]
@@ -150,9 +150,9 @@ where
     options: MailboxOptions,
     map_system: MapSystemShared<M>,
     handler: Box<ActorHandlerFn<M, R>>,
-  ) -> InternalActorRef<M, R> {
+  ) -> PriorityActorRef<M, R> {
     let (mailbox, sender) = self.mailbox_spawner.spawn_mailbox(options);
-    let actor_ref = InternalActorRef::new(sender.clone());
+    let actor_ref = PriorityActorRef::new(sender.clone());
     let watchers = vec![self.actor_id];
     self.pending_spawns.push(ChildSpawnSpec {
       mailbox,
@@ -174,7 +174,7 @@ where
     supervisor: S,
     options: MailboxOptions,
     handler: F,
-  ) -> InternalActorRef<M, R>
+  ) -> PriorityActorRef<M, R>
   where
     F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
     S: Supervisor<M> + 'static, {
@@ -194,7 +194,7 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     props: InternalProps<M, R>,
-  ) -> InternalActorRef<M, R>
+  ) -> PriorityActorRef<M, R>
   where
     R: MailboxRuntime + Clone + 'static, {
     let InternalProps {
@@ -206,7 +206,7 @@ where
   }
 
   #[allow(dead_code)]
-  pub(crate) fn spawn_control_child<F, S>(&mut self, supervisor: S, handler: F) -> InternalActorRef<M, R>
+  pub(crate) fn spawn_control_child<F, S>(&mut self, supervisor: S, handler: F) -> PriorityActorRef<M, R>
   where
     F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
     S: Supervisor<M> + 'static, {

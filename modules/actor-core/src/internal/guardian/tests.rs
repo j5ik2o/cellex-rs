@@ -4,7 +4,7 @@
 
 use super::*;
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::mailbox::PriorityChannel;
 use crate::ActorId;

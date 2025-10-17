@@ -11,7 +11,7 @@ use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
 use crate::internal::mailbox::traits::{Mailbox, MailboxProducer};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
@@ -23,7 +23,7 @@ use crate::{MailboxRuntime, MailboxSignal};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::super::actor_scheduler::SchedulerSpawnContext;
-use crate::internal::actor::actor_cell::ActorCell;
+use crate::internal::actor::ActorCell;
 use crate::SpawnError;
 use crate::{MapSystemShared, MetricsEvent, MetricsSinkShared, ReceiveTimeoutFactoryShared};
 

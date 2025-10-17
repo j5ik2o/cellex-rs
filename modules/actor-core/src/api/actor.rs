@@ -23,6 +23,7 @@ pub use crate::api::mailbox::MailboxRuntime;
 pub use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
 pub use crate::DynMessage as RuntimeMessage;
 pub use actor_ref::ActorRef;
+pub use actor_ref::PriorityActorRef;
 pub use ask::{ask_with_timeout, AskError, AskFuture, AskResult, AskTimeoutFuture};
 pub use behavior::{ActorAdapter, Behavior, BehaviorDirective, Behaviors, SupervisorStrategy};
 pub use context::{Context, ContextLogLevel, ContextLogger, MessageAdapterRef, SetupContext};

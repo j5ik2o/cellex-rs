@@ -1,5 +1,5 @@
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::FailureInfo;
 use crate::MailboxRuntime;
 use crate::MapSystemShared;
@@ -32,7 +32,7 @@ where
     Self {
       parent_guardian: None,
       custom: None,
-      root: Some(RootEscalationSink::default()),
+      root: Some(RootEscalationSink::<M, R>::new()),
     }
   }
 
@@ -50,7 +50,7 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_event_handler(handler);
     } else {
-      let mut sink = RootEscalationSink::default();
+      let mut sink = RootEscalationSink::<M, R>::new();
       sink.set_event_handler(handler);
       self.root = Some(sink);
     }
@@ -60,7 +60,7 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_event_listener(listener);
     } else if let Some(listener) = listener {
-      let mut sink = RootEscalationSink::default();
+      let mut sink = RootEscalationSink::<M, R>::new();
       sink.set_event_listener(Some(listener));
       self.root = Some(sink);
     }
@@ -70,7 +70,7 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_telemetry(telemetry);
     } else {
-      let mut sink = RootEscalationSink::default();
+      let mut sink = RootEscalationSink::<M, R>::new();
       sink.set_telemetry(telemetry);
       self.root = Some(sink);
     }
@@ -80,7 +80,7 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_observation_config(config);
     } else {
-      let mut sink = RootEscalationSink::default();
+      let mut sink = RootEscalationSink::<M, R>::new();
       sink.set_observation_config(config);
       self.root = Some(sink);
     }

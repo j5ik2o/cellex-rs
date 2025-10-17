@@ -1,0 +1,28 @@
+use crate::api::supervision::telemetry::failure_snapshot::FailureSnapshot;
+use crate::api::supervision::telemetry::failure_telemetry::FailureTelemetry;
+use crate::FailureTelemetryShared;
+use spin::Once;
+
+/// Telemetry implementation that performs no side effects.
+#[derive(Default, Clone, Copy)]
+pub struct NoopFailureTelemetry;
+
+impl FailureTelemetry for NoopFailureTelemetry {
+  fn on_failure(&self, _snapshot: &FailureSnapshot) {}
+}
+
+/// Returns a shared handle to the no-op telemetry implementation.
+pub fn noop_failure_telemetry() -> FailureTelemetryShared {
+  #[cfg(target_has_atomic = "ptr")]
+  {
+    static INSTANCE: Once<FailureTelemetryShared> = Once::new();
+    INSTANCE
+      .call_once(|| FailureTelemetryShared::new(NoopFailureTelemetry))
+      .clone()
+  }
+
+  #[cfg(not(target_has_atomic = "ptr"))]
+  {
+    FailureTelemetryShared::new(NoopFailureTelemetry)
+  }
+}

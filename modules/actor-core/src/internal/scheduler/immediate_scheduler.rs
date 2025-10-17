@@ -3,7 +3,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
 use crate::internal::scheduler::actor_scheduler::{ActorScheduler, SchedulerSpawnContext, SpawnError};
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueScheduler;

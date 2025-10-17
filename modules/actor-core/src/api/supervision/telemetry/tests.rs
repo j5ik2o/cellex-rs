@@ -3,6 +3,7 @@
 use super::*;
 
 use crate::api::supervision::failure::{EscalationStage, FailureMetadata};
+use crate::api::supervision::telemetry::tracing_failure_telemetry::TracingFailureTelemetry;
 use crate::{ActorFailure, ActorId, ActorPath, FailureInfo};
 use std::io::Write;
 use std::sync::{Arc, Mutex};

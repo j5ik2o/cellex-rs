@@ -1,10 +1,14 @@
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::MailboxProducer;
-use crate::{MailboxRuntime, RuntimeBound};
+use crate::{MailboxProducer, MailboxRuntime, RuntimeBound};
 use cellex_utils_core_rs::{Element, QueueError};
 
-/// Actor reference. Wraps QueueMailboxProducer and provides message sending API.
-pub struct InternalActorRef<M, R>
+/// Minimal handle that delivers envelopes into an actor's mailbox.
+///
+/// Unlike [`ActorRef`](ActorRef) this type operates on the
+/// raw mailbox types and is primarily used by runtime internals. It lives in
+/// the `api` layer so that other public types (such as [`ActorRef`]) can hold
+/// it without depending on `internal` modules.
+pub struct PriorityActorRef<M, R>
 where
   M: Element,
   R: MailboxRuntime,
@@ -13,7 +17,7 @@ where
   sender: R::Producer<PriorityEnvelope<M>>,
 }
 
-unsafe impl<M, R> Send for InternalActorRef<M, R>
+unsafe impl<M, R> Send for PriorityActorRef<M, R>
 where
   M: Element,
   R: MailboxRuntime,
@@ -22,7 +26,7 @@ where
 {
 }
 
-unsafe impl<M, R> Sync for InternalActorRef<M, R>
+unsafe impl<M, R> Sync for PriorityActorRef<M, R>
 where
   M: Element,
   R: MailboxRuntime,
@@ -31,7 +35,7 @@ where
 {
 }
 
-impl<M, R> Clone for InternalActorRef<M, R>
+impl<M, R> Clone for PriorityActorRef<M, R>
 where
   M: Element,
   R: MailboxRuntime,
@@ -46,7 +50,7 @@ where
   }
 }
 
-impl<M, R> InternalActorRef<M, R>
+impl<M, R> PriorityActorRef<M, R>
 where
   M: Element,
   R: MailboxRuntime,
@@ -54,18 +58,18 @@ where
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<M>>: Clone,
 {
-  /// Creates a new internal actor reference backed by the provided producer.
+  /// Wraps a mailbox producer handle.
+  #[must_use]
   pub fn new(sender: R::Producer<PriorityEnvelope<M>>) -> Self {
     Self { sender }
   }
 
-  /// Sends a message with the specified priority to the underlying mailbox.
+  /// Sends a message with the specified priority to the mailbox.
   pub fn try_send_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.sender.try_send(PriorityEnvelope::new(message, priority))
   }
 
-  #[allow(dead_code)]
-  /// Sends a control message with the specified priority to the underlying mailbox.
+  /// Sends a control-channel message with the specified priority.
   pub fn try_send_control_with_priority(
     &self,
     message: M,
@@ -74,25 +78,24 @@ where
     self.sender.try_send(PriorityEnvelope::control(message, priority))
   }
 
-  #[allow(dead_code)]
-  /// Sends a pre-built priority envelope to the underlying mailbox.
+  /// Sends a pre-built priority envelope.
   pub fn try_send_envelope(&self, envelope: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.sender.try_send(envelope)
   }
 
-  /// Returns the raw producer handle used by the actor reference.
+  /// Returns the raw producer handle kept by the reference.
+  #[must_use]
   pub fn sender(&self) -> &R::Producer<PriorityEnvelope<M>> {
     &self.sender
   }
 }
 
-impl<R> InternalActorRef<SystemMessage, R>
+impl<R> PriorityActorRef<SystemMessage, R>
 where
   R: MailboxRuntime,
   R::Producer<PriorityEnvelope<SystemMessage>>: Clone,
 {
-  #[allow(dead_code)]
-  /// Sends a system message through the actor reference.
+  /// Sends a system message via the reference.
   pub fn try_send_system(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<SystemMessage>>> {
     self.sender.try_send(PriorityEnvelope::from_system(message))
   }

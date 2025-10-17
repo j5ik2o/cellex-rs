@@ -1,4 +1,4 @@
-use crate::internal::context::InternalActorRef;
+use crate::internal::actor::InternalActorRef;
 use crate::ActorId;
 use crate::ActorPath;
 use crate::MailboxRuntime;

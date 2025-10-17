@@ -24,7 +24,7 @@
    - `DynMessage`（`Box<dyn Any + Send + Sync>`）の扱いを分岐可能にし、embedded 構成では `Send + Sync` を要求しない別型を検討。
 
 4. **Mailbox / Runtime レイヤ調整**
-   - `MailboxRuntime` トレイトや `InternalActorRef` などで要求している `Clone + Send + Sync` を条件付きに書き換え。
+   - `MailboxRuntime` トレイトや `PriorityActorRef` などで要求している `Clone + Send + Sync` を条件付きに書き換え。
    - `embedded_rc` でのみ有効化されるテスト／例の境界条件を更新。
 
 5. **ビルド・テストマトリクス整備**
@@ -57,7 +57,7 @@
 - [ ] MailboxConcurrency マーカーと ThreadSafe/SingleThread 仕組みを導入する。
 - [ ] 各 MailboxRuntime が所属モードを宣言し、関連境界を更新する。
 - [ ] `MailboxRuntime` の associated type にプラットフォーム別境界 (`RuntimeBound`) を導入。
-- [ ] `ActorCell` / `ReadyQueueScheduler` / `InternalActorRef` が保持する queue/signal 型のトレイト境界を `RuntimeBound` に更新。
+- [ ] `ActorCell` / `ReadyQueueScheduler` / `PriorityActorRef` が保持する queue/signal 型のトレイト境界を `RuntimeBound` に更新。
 - [ ] `ReceiveTimeoutSchedulerFactory` が要求する `Send + Sync` を条件付きに整理（std→`Send + Sync`, embedded→none）。
 
 ### Scope C: DynMessage と Any 境界

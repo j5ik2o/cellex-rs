@@ -8,8 +8,9 @@ use core::marker::PhantomData;
 #[cfg(feature = "unwind-supervision")]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+use crate::api::actor::PriorityActorRef;
 use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec, InternalActorRef};
+use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec};
 use crate::internal::guardian::{Guardian, GuardianStrategy};
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
@@ -308,7 +309,7 @@ where
       child_naming,
     } = spec;
 
-    let control_ref = InternalActorRef::new(sender.clone());
+    let control_ref = PriorityActorRef::new(sender.clone());
     let primary_watcher = watchers.first().copied();
     let (actor_id, actor_path) = guardian.register_child_with_naming(
       control_ref,
