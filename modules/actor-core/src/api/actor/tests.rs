@@ -3,15 +3,21 @@
 
 use super::ask::create_ask_handles;
 use super::behavior::{SupervisorStrategy, SupervisorStrategyConfig};
-use super::Signal;
 use super::*;
-use super::{ask_with_timeout, AskError};
+use crate::api::actor::actor_ref::ActorRef;
+use crate::api::actor::ask::{ask_with_timeout, AskError};
+use crate::api::actor::behavior::{Behavior, Behaviors};
+use crate::api::actor::context::{Context, MessageAdapterRef};
+use crate::api::actor::props::Props;
+use crate::api::actor::signal::Signal;
+use crate::api::actor_runtime::GenericActorRuntime;
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
-use crate::api::extensions::next_extension_id;
-use crate::api::extensions::Extension;
-use crate::api::extensions::ExtensionId;
-use crate::api::extensions::SerializerRegistryExtension;
+use crate::api::actor_system::{ActorSystem, ActorSystemConfig};
+use crate::api::extensions::{
+  next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension,
+};
 use crate::api::identity::ActorId;
+use crate::api::mailbox::mailbox_runtime::MailboxRuntime;
 use crate::api::mailbox::messages::PriorityEnvelope;
 use crate::api::mailbox::messages::SystemMessage;
 use crate::api::messaging::DynMessage;
@@ -20,12 +26,15 @@ use crate::api::messaging::MessageMetadata;
 use crate::api::messaging::MessageSender;
 use crate::api::supervision::escalation::FailureEventListener;
 use crate::api::supervision::failure::FailureEvent;
+use crate::api::supervision::telemetry::FailureSnapshot;
 use crate::internal::guardian::AlwaysRestart;
 use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::message::internal_message_sender::InternalMessageSender;
 use crate::internal::message::take_metadata;
+use crate::internal::scheduler::actor_scheduler::ActorScheduler;
+use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
+use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
 use crate::internal::scheduler::spawn_error::SpawnError;
-use crate::serializer_extension_id;
 use crate::shared::map_system::MapSystemShared;
 use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
@@ -167,7 +176,6 @@ mod receive_timeout_injection {
   use crate::shared::receive_timeout::ReceiveTimeoutDriver;
   use crate::shared::receive_timeout::ReceiveTimeoutDriverShared;
   use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
-  use crate::GenericActorRuntime;
   use alloc::boxed::Box;
   use core::time::Duration;
   use futures::executor::block_on;
@@ -1107,9 +1115,10 @@ mod metrics_injection {
   use crate::internal::metrics::MetricsEvent;
   use crate::internal::metrics::MetricsSink;
   use crate::internal::metrics::MetricsSinkShared;
-  use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
+  use crate::internal::scheduler::actor_scheduler::ActorScheduler;
+  use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
+  use crate::internal::scheduler::scheduler_spawn_context::SchedulerSpawnContext;
   use crate::shared::failure_telemetry::FailureTelemetryShared;
-  use crate::GenericActorRuntime;
   use alloc::boxed::Box;
   use core::marker::PhantomData;
   use std::sync::{Arc, Mutex};

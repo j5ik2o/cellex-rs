@@ -29,6 +29,7 @@ use crate::internal::mailbox::test_support::TestMailboxRuntime;
 use crate::internal::metrics::MetricsEvent;
 use crate::internal::metrics::MetricsSink;
 use crate::internal::metrics::MetricsSinkShared;
+use crate::internal::scheduler::actor_scheduler::ActorScheduler;
 use crate::internal::scheduler::child_naming::ChildNaming;
 use crate::internal::scheduler::ready_queue_scheduler::drive_ready_queue_worker;
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;

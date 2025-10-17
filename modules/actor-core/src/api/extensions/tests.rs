@@ -7,6 +7,8 @@ use alloc::string::String;
 use cellex_serialization_core_rs::{impl_type_key, TypeKey};
 #[cfg(feature = "std")]
 use cellex_serialization_json_rs::{JsonTypeKey, SERDE_JSON_SERIALIZER_ID};
+#[cfg(feature = "postcard")]
+use cellex_serialization_postcard_rs::{PostcardTypeKey, POSTCARD_SERIALIZER_ID};
 #[cfg(feature = "std")]
 use cellex_serialization_prost_rs::{ProstTypeKey, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::sync::ArcShared;
