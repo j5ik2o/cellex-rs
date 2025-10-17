@@ -1,4 +1,4 @@
-use crate::{next_extension_id, Extension, ExtensionId};
+use super::extension::{next_extension_id, Extension, ExtensionId};
 use alloc::string::String;
 use cellex_serialization_core_rs::{
   BindingError, InMemorySerializerRegistry, RegistryError, SerializationRouter, Serializer, SerializerId,
