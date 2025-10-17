@@ -6,6 +6,7 @@ use crate::{DynMessage, MetadataStorageMode};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
+use super::signal::Signal;
 use super::{ActorFailure, Context};
 
 mod actor_adapter;
@@ -35,13 +36,6 @@ pub(super) type SignalFn<U, R> =
   dyn for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static;
 pub(super) type SetupFn<U, R> =
   dyn for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static;
-
-/// Actor lifecycle signals.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Signal {
-  /// Signal sent after actor stops
-  PostStop,
-}
 
 /// Typed Behavior representation. Equivalent to Akka/Pekko Typed's `Behavior`.
 pub enum Behavior<U, R>

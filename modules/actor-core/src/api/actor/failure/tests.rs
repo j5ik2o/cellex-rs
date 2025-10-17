@@ -1,6 +1,8 @@
 use super::*;
 
 use alloc::boxed::Box;
+use alloc::string::String;
+use core::fmt;
 
 #[derive(Debug)]
 struct SampleError;

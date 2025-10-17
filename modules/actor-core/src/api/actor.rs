@@ -11,6 +11,7 @@ mod failure;
 mod props;
 mod root_context;
 mod shutdown_token;
+mod signal;
 #[cfg(test)]
 mod tests;
 
@@ -31,6 +32,7 @@ pub use failure::{ActorFailure, BehaviorFailure, DefaultBehaviorFailure};
 pub use props::Props;
 pub use root_context::RootContext;
 pub use shutdown_token::ShutdownToken;
+pub use signal::Signal;
 
 #[doc(hidden)]
 mod __actor_doc_refs {

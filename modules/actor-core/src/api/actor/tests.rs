@@ -2,7 +2,8 @@
 #![allow(deprecated)]
 
 use super::ask::create_ask_handles;
-use super::behavior::{Signal, SupervisorStrategy, SupervisorStrategyConfig};
+use super::behavior::{SupervisorStrategy, SupervisorStrategyConfig};
+use super::Signal;
 use super::*;
 use super::{ask_with_timeout, AskError};
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
