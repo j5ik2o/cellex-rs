@@ -9,9 +9,11 @@ use crate::TokioMailboxRuntime;
 use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
 use cellex_actor_core_rs::api::mailbox::{PriorityEnvelope, SystemMessage};
 use cellex_actor_core_rs::api::messaging::DynMessage;
-use cellex_actor_core_rs::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
 use cellex_actor_core_rs::shared::map_system::MapSystemShared;
-use cellex_actor_core_rs::shared::receive_timeout::{ReceiveTimeoutDriver, ReceiveTimeoutFactoryShared};
+use cellex_actor_core_rs::shared::receive_timeout::{
+  ReceiveTimeoutFactoryProvider, ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory,
+  ReceiveTimeoutSchedulerFactoryShared,
+};
 use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
 use futures::future::poll_fn;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -126,9 +128,9 @@ impl TokioReceiveTimeoutDriver {
   }
 }
 
-impl ReceiveTimeoutDriver<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, TokioMailboxRuntime> {
-    ReceiveTimeoutFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new())
+impl ReceiveTimeoutFactoryProvider<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
+  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, TokioMailboxRuntime> {
+    ReceiveTimeoutSchedulerFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new())
   }
 }
 

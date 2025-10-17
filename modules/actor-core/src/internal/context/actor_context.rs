@@ -21,8 +21,8 @@ use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use super::ChildSpawnSpec;
 use crate::internal::actor::InternalProps;
-use crate::internal::scheduler::ReceiveTimeoutScheduler;
 use crate::shared::map_system::MapSystemShared;
+use crate::shared::receive_timeout::ReceiveTimeoutScheduler;
 use core::cell::RefCell;
 use core::time::Duration;
 

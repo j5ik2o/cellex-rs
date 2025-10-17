@@ -167,9 +167,9 @@ mod receive_timeout_injection {
   use crate::internal::mailbox::test_support::TestMailboxRuntime;
   use crate::internal::scheduler::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory};
   use crate::shared::map_system::MapSystemShared;
-  use crate::shared::receive_timeout::ReceiveTimeoutDriver;
-  use crate::shared::receive_timeout::ReceiveTimeoutDriverShared;
-  use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+  use crate::shared::receive_timeout::ReceiveTimeoutFactoryProvider;
+  use crate::shared::receive_timeout::ReceiveTimeoutFactoryProviderShared;
+  use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
   use alloc::boxed::Box;
   use core::time::Duration;
   use futures::executor::block_on;
@@ -223,10 +223,10 @@ mod receive_timeout_injection {
     }
   }
 
-  impl ReceiveTimeoutDriver<TestMailboxRuntime> for CountingDriver {
-    fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, TestMailboxRuntime> {
+  impl ReceiveTimeoutFactoryProvider<TestMailboxRuntime> for CountingDriver {
+    fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, TestMailboxRuntime> {
       self.driver_calls.fetch_add(1, Ordering::SeqCst);
-      ReceiveTimeoutFactoryShared::new(CountingFactory::new(self.factory_calls.clone()))
+      ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(self.factory_calls.clone()))
     }
   }
 
@@ -246,7 +246,7 @@ mod receive_timeout_injection {
 
     let actor_runtime: TestRuntime =
       GenericActorRuntime::new(mailbox_runtime.clone()).with_receive_timeout_driver(Some(
-        ReceiveTimeoutDriverShared::new(CountingDriver::new(driver_calls.clone(), factory_calls.clone())),
+        ReceiveTimeoutFactoryProviderShared::new(CountingDriver::new(driver_calls.clone(), factory_calls.clone())),
       ));
 
     let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default();
@@ -266,11 +266,11 @@ mod receive_timeout_injection {
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_runtime.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(CountingDriver::new(
+      .with_receive_timeout_driver(Some(ReceiveTimeoutFactoryProviderShared::new(CountingDriver::new(
         driver_calls.clone(),
         driver_factory_calls.clone(),
       ))))
-      .with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(CountingFactory::new(
+      .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
 
@@ -293,16 +293,16 @@ mod receive_timeout_injection {
     let config_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_runtime.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(CountingDriver::new(
+      .with_receive_timeout_driver(Some(ReceiveTimeoutFactoryProviderShared::new(CountingDriver::new(
         driver_calls.clone(),
         driver_factory_calls.clone(),
       ))))
-      .with_receive_timeout_factory(ReceiveTimeoutFactoryShared::new(CountingFactory::new(
+      .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
 
     let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default().with_receive_timeout_factory(Some(
-      ReceiveTimeoutFactoryShared::new(CountingFactory::new(config_factory_calls.clone())),
+      ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(config_factory_calls.clone())),
     ));
 
     let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
@@ -1166,7 +1166,7 @@ mod metrics_injection {
 
     fn set_receive_timeout_factory(
       &mut self,
-      _factory: Option<crate::shared::receive_timeout::ReceiveTimeoutFactoryShared<M, R>>,
+      _factory: Option<crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<M, R>>,
     ) {
     }
 

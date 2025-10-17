@@ -17,7 +17,7 @@ use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::internal::scheduler::SpawnError;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
 use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
@@ -38,7 +38,7 @@ where
   ) -> Result<InternalActorRef<M, R>, SpawnError<M>>;
 
   /// Installs a factory used to create receive-timeout drivers for child actors.
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>);
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>);
 
   /// Registers a metrics sink that records scheduler queue statistics.
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>);

@@ -1,4 +1,4 @@
-use crate::internal::scheduler::receive_timeout::SchedulerBound;
+use crate::internal::scheduler::SchedulerBound;
 use core::time::Duration;
 
 /// Scheduler abstraction for managing actor `ReceiveTimeout`.

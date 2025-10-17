@@ -1,15 +1,15 @@
 use crate::api::mailbox::MailboxRuntime;
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::scheduler::ReceiveTimeoutSchedulerFactory;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactory;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::Element;
 
 /// Shared wrapper around a `ReceiveTimeoutSchedulerFactory` implementation.
-pub struct ReceiveTimeoutFactoryShared<M, R> {
+pub struct ReceiveTimeoutSchedulerFactoryShared<M, R> {
   inner: ArcShared<dyn ReceiveTimeoutSchedulerFactory<M, R>>,
 }
 
-impl<M, R> ReceiveTimeoutFactoryShared<M, R>
+impl<M, R> ReceiveTimeoutSchedulerFactoryShared<M, R>
 where
   M: Element + 'static,
   R: MailboxRuntime + Clone + 'static,
@@ -45,7 +45,7 @@ where
   }
 }
 
-impl<M, R> Clone for ReceiveTimeoutFactoryShared<M, R> {
+impl<M, R> Clone for ReceiveTimeoutSchedulerFactoryShared<M, R> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
@@ -53,7 +53,7 @@ impl<M, R> Clone for ReceiveTimeoutFactoryShared<M, R> {
   }
 }
 
-impl<M, R> core::ops::Deref for ReceiveTimeoutFactoryShared<M, R> {
+impl<M, R> core::ops::Deref for ReceiveTimeoutSchedulerFactoryShared<M, R> {
   type Target = dyn ReceiveTimeoutSchedulerFactory<M, R>;
 
   fn deref(&self) -> &Self::Target {

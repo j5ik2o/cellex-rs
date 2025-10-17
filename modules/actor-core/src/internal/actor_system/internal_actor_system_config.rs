@@ -9,7 +9,7 @@ use crate::api::supervision::telemetry::default_failure_telemetry;
 use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::Element;
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
@@ -25,7 +25,7 @@ where
   /// Escalation handler invoked when failures bubble to the root guardian.
   pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
-  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, MailboxOf<R>>>,
+  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MailboxOf<R>>>,
   /// Metrics sink shared across the actor runtime.
   pub(crate) metrics_sink: Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.

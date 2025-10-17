@@ -17,7 +17,9 @@ use cellex_actor_core_rs::internal::scheduler::{
 };
 use cellex_actor_core_rs::shared::failure_telemetry::FailureTelemetryShared;
 use cellex_actor_core_rs::shared::map_system::MapSystemShared;
-use cellex_actor_core_rs::shared::receive_timeout::{ReceiveTimeoutDriverShared, ReceiveTimeoutFactoryShared};
+use cellex_actor_core_rs::shared::receive_timeout::{
+  ReceiveTimeoutFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
+};
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 use tokio::task::yield_now;
@@ -77,7 +79,7 @@ where
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
     self.inner.set_receive_timeout_factory(factory);
   }
 
@@ -159,6 +161,8 @@ impl TokioActorRuntimeExt for GenericActorRuntime<TokioMailboxRuntime> {
   fn with_tokio_scheduler(self) -> GenericActorRuntime<TokioMailboxRuntime> {
     self
       .with_scheduler_builder(tokio_scheduler_builder())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutDriverShared::new(TokioReceiveTimeoutDriver::new())))
+      .with_receive_timeout_driver(Some(ReceiveTimeoutFactoryProviderShared::new(
+        TokioReceiveTimeoutDriver::new(),
+      )))
   }
 }

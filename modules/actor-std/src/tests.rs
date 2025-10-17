@@ -11,7 +11,7 @@ use cellex_actor_core_rs::api::mailbox::SystemMessage;
 use cellex_actor_core_rs::api::supervision::supervisor::NoopSupervisor;
 use cellex_actor_core_rs::internal::scheduler::{ChildNaming, SchedulerSpawnContext};
 use cellex_actor_core_rs::shared::map_system::MapSystemShared;
-use cellex_actor_core_rs::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use cellex_actor_core_rs::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_std_rs::{ArcStateCell, StateCell};
 use core::time::Duration;
@@ -83,7 +83,7 @@ async fn run_typed_actor_system_handles_user_messages() {
 async fn run_receive_timeout_triggers() {
   let mailbox_runtime = TokioMailboxRuntime;
   let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
-  config.set_receive_timeout_factory(Some(ReceiveTimeoutFactoryShared::new(
+  config.set_receive_timeout_factory(Some(ReceiveTimeoutSchedulerFactoryShared::new(
     TokioReceiveTimeoutSchedulerFactory::new(),
   )));
   let mut system: ActorSystem<u32, _> =

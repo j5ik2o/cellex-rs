@@ -20,7 +20,7 @@ use crate::internal::scheduler::SchedulerSpawnContext;
 use crate::internal::scheduler::SpawnError;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
 use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.
@@ -80,7 +80,7 @@ where
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
     self.inner.set_receive_timeout_factory(factory);
   }
 

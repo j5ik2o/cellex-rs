@@ -2,21 +2,21 @@ use crate::api::mailbox::MailboxRuntime;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::messaging::DynMessage;
 use crate::internal::scheduler::noop_receive_timeout_scheduler_factory::NoopReceiveTimeoutSchedulerFactory;
-use crate::shared::receive_timeout::ReceiveTimeoutDriver;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryProvider;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Driver that always provides [`NoopReceiveTimeoutSchedulerFactory`].
 #[derive(Debug, Default, Clone)]
 pub struct NoopReceiveTimeoutDriver;
 
-impl<R> ReceiveTimeoutDriver<R> for NoopReceiveTimeoutDriver
+impl<R> ReceiveTimeoutFactoryProvider<R> for NoopReceiveTimeoutDriver
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<DynMessage>>: Clone,
   R::Signal: Clone,
   R::Producer<PriorityEnvelope<DynMessage>>: Clone,
 {
-  fn build_factory(&self) -> ReceiveTimeoutFactoryShared<DynMessage, R> {
-    ReceiveTimeoutFactoryShared::new(NoopReceiveTimeoutSchedulerFactory)
+  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, R> {
+    ReceiveTimeoutSchedulerFactoryShared::new(NoopReceiveTimeoutSchedulerFactory)
   }
 }

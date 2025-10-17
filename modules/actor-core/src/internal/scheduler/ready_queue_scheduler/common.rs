@@ -34,7 +34,7 @@ use crate::internal::metrics::MetricsEvent;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub(crate) struct ReadyQueueSchedulerCore<M, R, Strat = AlwaysRestart>
@@ -46,7 +46,7 @@ where
   actors: Vec<ActorCell<M, R, Strat>>,
   escalations: Vec<FailureInfo>,
   escalation_sink: CompositeEscalationSink<M, R>,
-  receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>,
   metrics_sink: Option<MetricsSinkShared>,
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
@@ -219,7 +219,7 @@ where
     self.drain_ready_cycle()
   }
 
-  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
     self.receive_timeout_factory = factory.clone();
     for actor in &mut self.actors {
       actor.configure_receive_timeout_factory(factory.clone());

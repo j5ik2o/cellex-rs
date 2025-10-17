@@ -23,7 +23,7 @@ use super::ready_queue_state::ReadyQueueState;
 use crate::internal::actor::ActorCell;
 use crate::internal::scheduler::spawn_error::SpawnError;
 use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 pub(crate) struct ReadyQueueContext<M, R, Strat>
 where
@@ -117,7 +117,7 @@ where
     self.core.take_escalations()
   }
 
-  pub(super) fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+  pub(super) fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
     self.core.set_receive_timeout_factory(factory)
   }
 

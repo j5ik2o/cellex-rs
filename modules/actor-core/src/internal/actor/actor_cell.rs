@@ -28,9 +28,8 @@ use crate::internal::scheduler::ReadyQueueHandle;
 use crate::internal::scheduler::SpawnError;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::internal::scheduler::ReceiveTimeoutScheduler;
 use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared};
 
 pub(crate) struct ActorCell<M, R, Strat>
 where
@@ -50,7 +49,7 @@ where
   handler: Box<ActorHandlerFn<M, R>>,
   _strategy: PhantomData<Strat>,
   stopped: bool,
-  receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>,
   receive_timeout_scheduler: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
 }
@@ -73,7 +72,7 @@ where
     sender: R::Producer<PriorityEnvelope<M>>,
     supervisor: Box<dyn Supervisor<M>>,
     handler: Box<ActorHandlerFn<M, R>>,
-    receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+    receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>,
     extensions: Extensions,
   ) -> Self {
     let mut cell = Self {
@@ -120,7 +119,7 @@ where
 
   pub(in crate::internal) fn configure_receive_timeout_factory(
     &mut self,
-    factory: Option<ReceiveTimeoutFactoryShared<M, R>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>,
   ) {
     if let Some(cell) = self.receive_timeout_scheduler.as_ref() {
       cell.borrow_mut().cancel();

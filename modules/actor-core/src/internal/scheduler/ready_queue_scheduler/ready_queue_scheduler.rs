@@ -31,7 +31,7 @@ use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorkerImpl;
 use crate::internal::scheduler::SpawnError;
 use crate::shared::map_system::MapSystemShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.
 pub struct ReadyQueueScheduler<M, R, Strat = AlwaysRestart>
@@ -123,7 +123,7 @@ where
   }
 
   /// Configures the receive-timeout factory shared by all scheduled actors.
-  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
     let mut ctx = self.context.lock();
     ctx.set_receive_timeout_factory(factory);
   }
@@ -258,7 +258,7 @@ where
     ReadyQueueScheduler::spawn_actor(self, supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
     ReadyQueueScheduler::set_receive_timeout_factory(self, factory)
   }
 

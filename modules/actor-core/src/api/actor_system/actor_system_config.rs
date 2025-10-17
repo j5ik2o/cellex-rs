@@ -11,7 +11,7 @@ use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::shared::failure_telemetry::FailureTelemetryBuilderShared;
 use crate::shared::failure_telemetry::FailureTelemetryShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 use cellex_utils_core_rs::ArcShared;
 use core::num::NonZeroUsize;
 
@@ -24,7 +24,7 @@ where
   /// Listener invoked when failures bubble up to the root guardian.
   failure_event_listener: Option<FailureEventListener>,
   /// Receive-timeout scheduler factory used by all actors spawned in the system.
-  receive_timeout_factory: Option<ReceiveTimeoutFactoryShared<DynMessage, MailboxOf<R>>>,
+  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>>,
   /// Metrics sink shared across the actor runtime.
   metrics_sink: Option<MetricsSinkShared>,
   /// Telemetry invoked when failures reach the root guardian.
@@ -74,7 +74,7 @@ where
   /// Sets the receive-timeout factory.
   pub fn with_receive_timeout_factory(
     mut self,
-    factory: Option<ReceiveTimeoutFactoryShared<DynMessage, MailboxOf<R>>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>>,
   ) -> Self {
     self.receive_timeout_factory = factory;
     self
@@ -125,7 +125,7 @@ where
   /// Mutable setter for the receive-timeout factory.
   pub fn set_receive_timeout_factory(
     &mut self,
-    factory: Option<ReceiveTimeoutFactoryShared<DynMessage, MailboxOf<R>>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>>,
   ) {
     self.receive_timeout_factory = factory;
   }
@@ -159,7 +159,9 @@ where
     self.failure_event_listener.clone()
   }
 
-  pub(crate) fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, MailboxOf<R>>> {
+  pub(crate) fn receive_timeout_factory(
+    &self,
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>> {
     self.receive_timeout_factory.clone()
   }
 

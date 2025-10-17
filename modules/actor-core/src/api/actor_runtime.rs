@@ -19,8 +19,8 @@ use crate::api::supervision::escalation::FailureEventListener;
 use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
 use crate::internal::metrics::MetricsSinkShared;
 use crate::internal::scheduler::SchedulerBuilder;
-use crate::shared::receive_timeout::ReceiveTimeoutDriverShared;
-use crate::shared::receive_timeout::ReceiveTimeoutFactoryShared;
+use crate::shared::receive_timeout::ReceiveTimeoutFactoryProviderShared;
+use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Helper alias mapping an actor runtime to its mailbox runtime.
 pub type MailboxOf<R> = <R as ActorRuntime>::Mailbox;
@@ -59,26 +59,30 @@ pub trait ActorRuntime: Clone {
   fn mailbox_runtime_shared(&self) -> ArcShared<Self::Mailbox>;
 
   /// Returns the receive-timeout factory configured for this runtime.
-  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, MailboxOf<Self>>>;
+  fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
 
   /// Returns the receive-timeout driver configured for this runtime.
-  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutDriverShared<Self::Mailbox>>;
+  fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutFactoryProviderShared<Self::Mailbox>>;
 
   /// Overrides the receive-timeout factory using the base mailbox runtime type.
-  fn with_receive_timeout_factory(self, factory: ReceiveTimeoutFactoryShared<DynMessage, MailboxOf<Self>>) -> Self
+  fn with_receive_timeout_factory(
+    self,
+    factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>,
+  ) -> Self
   where
     Self: Sized;
 
   /// Overrides the receive-timeout driver.
-  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutDriverShared<Self::Mailbox>>) -> Self
+  fn with_receive_timeout_driver(self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::Mailbox>>) -> Self
   where
     Self: Sized;
 
   /// Mutably overrides the receive-timeout driver.
-  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutDriverShared<Self::Mailbox>>);
+  fn set_receive_timeout_driver(&mut self, driver: Option<ReceiveTimeoutFactoryProviderShared<Self::Mailbox>>);
 
   /// Returns a factory constructed from the configured receive-timeout driver, if any.
-  fn receive_timeout_driver_factory(&self) -> Option<ReceiveTimeoutFactoryShared<DynMessage, MailboxOf<Self>>>;
+  fn receive_timeout_driver_factory(&self)
+    -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
 
   /// Returns the root failure event listener configured for the runtime.
   fn root_event_listener(&self) -> Option<FailureEventListener>;

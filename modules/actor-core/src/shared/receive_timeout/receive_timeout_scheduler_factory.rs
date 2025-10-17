@@ -2,9 +2,9 @@ use alloc::boxed::Box;
 
 use crate::api::mailbox::MailboxRuntime;
 use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::scheduler::receive_timeout::SchedulerFactoryBound;
-use crate::internal::scheduler::receive_timeout_scheduler::ReceiveTimeoutScheduler;
+use crate::internal::scheduler::SchedulerFactoryBound;
 use crate::shared::map_system::MapSystemShared;
+use crate::shared::receive_timeout::ReceiveTimeoutScheduler;
 use cellex_utils_core_rs::Element;
 
 /// Factory for creating schedulers.
