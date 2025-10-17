@@ -1,4 +1,4 @@
-use crate::api::identity::ActorId;
+use crate::api::actor::ActorId;
 use crate::api::supervision::failure::FailureInfo;
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 

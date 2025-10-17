@@ -8,9 +8,9 @@ use futures::future::select_all;
 use futures::future::LocalBoxFuture;
 use futures::FutureExt;
 
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 use crate::api::extensions::Extensions;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
 use crate::api::mailbox::Mailbox;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::MailboxProducer;

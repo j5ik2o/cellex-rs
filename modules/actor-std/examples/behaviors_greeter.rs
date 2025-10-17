@@ -4,7 +4,7 @@
 //! `Behaviors::receive` でメッセージごとの遷移を定義しています。
 
 use cellex_actor_core_rs::api::actor::behavior::Behaviors;
-use cellex_actor_core_rs::api::actor::props::Props;
+use cellex_actor_core_rs::api::actor::Props;
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
 use cellex_actor_std_rs::TokioMailboxRuntime;

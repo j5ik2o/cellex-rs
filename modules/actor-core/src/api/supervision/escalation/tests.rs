@@ -1,6 +1,6 @@
 use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 use crate::api::supervision::escalation::escalation_sink::EscalationSink;
 use crate::api::supervision::escalation::root_escalation_sink::RootEscalationSink;
 use crate::api::supervision::failure::FailureInfo;

@@ -9,13 +9,13 @@ use crate::api::actor::behavior::{Behavior, Behaviors};
 use crate::api::actor::context::{Context, MessageAdapterRef};
 use crate::api::actor::props::Props;
 use crate::api::actor::signal::Signal;
+use crate::api::actor::ActorId;
 use crate::api::actor_runtime::GenericActorRuntime;
 use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
 use crate::api::actor_system::{ActorSystem, ActorSystemConfig};
 use crate::api::extensions::{
   next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension,
 };
-use crate::api::identity::ActorId;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;

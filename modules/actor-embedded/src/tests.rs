@@ -3,7 +3,7 @@ extern crate std;
 use super::LocalMailboxRuntime;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use cellex_actor_core_rs::api::actor::props::Props;
+use cellex_actor_core_rs::api::actor::Props;
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
 use core::cell::RefCell;

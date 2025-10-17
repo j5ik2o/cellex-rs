@@ -5,8 +5,8 @@
 use super::*;
 use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityChannel;
 use crate::api::mailbox::PriorityEnvelope;

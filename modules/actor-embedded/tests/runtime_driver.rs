@@ -8,11 +8,11 @@ use core::cell::RefCell;
 use std::sync::Arc;
 
 use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
-use cellex_actor_core_rs::api::actor::props::Props;
+use cellex_actor_core_rs::api::actor::Props;
+use cellex_actor_core_rs::api::actor::{ActorId, ActorPath};
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::actor_system::ActorSystem;
 use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
-use cellex_actor_core_rs::api::identity::{ActorId, ActorPath};
 use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
 use cellex_actor_core_rs::api::supervision::failure::{FailureEvent, FailureInfo, FailureMetadata};
 use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, LocalMailboxRuntime};

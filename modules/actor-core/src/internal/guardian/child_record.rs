@@ -1,5 +1,5 @@
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 use crate::api::mailbox::MailboxFactory;
 use crate::internal::actor::InternalActorRef;
 use crate::shared::map_system::MapSystemShared;

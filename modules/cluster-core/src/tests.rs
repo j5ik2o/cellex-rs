@@ -1,8 +1,8 @@
 use super::ClusterFailureBridge;
 use cellex_actor_core_rs::api::{
   actor::actor_failure::ActorFailure,
+  actor::{ActorId, ActorPath},
   failure_event_stream::FailureEventStream,
-  identity::{ActorId, ActorPath},
   supervision::{
     escalation::FailureEventListener,
     failure::{FailureEvent, FailureInfo},

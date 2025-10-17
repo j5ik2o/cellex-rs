@@ -1,9 +1,9 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 use crate::api::extensions::Extensions;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::supervision::supervisor::Supervisor;

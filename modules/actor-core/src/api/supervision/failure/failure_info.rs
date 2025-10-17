@@ -5,8 +5,8 @@ use alloc::borrow::Cow;
 
 use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 
 use super::{EscalationStage, FailureMetadata};
 

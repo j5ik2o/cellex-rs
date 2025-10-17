@@ -1,6 +1,6 @@
 //! ReadyQueue ワーカを 4 本起動し、Tokio 上でメッセージを並列処理するサンプル。
 
-use cellex_actor_core_rs::api::actor::props::Props;
+use cellex_actor_core_rs::api::actor::Props;
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
 use cellex_actor_std_rs::{TokioMailboxRuntime, TokioSystemHandle};

@@ -1,6 +1,6 @@
 use super::context_log_level::ContextLogLevel;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
+use crate::api::actor::actor_id::ActorId;
+use crate::api::actor::actor_path::ActorPath;
 use alloc::string::String;
 
 /// Structure that manages actor log output.

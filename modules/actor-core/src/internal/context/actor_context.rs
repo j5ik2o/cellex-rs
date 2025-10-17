@@ -5,11 +5,11 @@ use core::marker::PhantomData;
 
 use crate::api::actor::actor_failure::ActorFailure;
 use crate::api::actor::actor_ref::PriorityActorRef;
+use crate::api::actor::ActorId;
+use crate::api::actor::ActorPath;
 use crate::api::extensions::Extension;
 use crate::api::extensions::ExtensionId;
 use crate::api::extensions::Extensions;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::MailboxOptions;
 use crate::api::mailbox::MailboxProducer;

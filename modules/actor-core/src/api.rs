@@ -9,8 +9,6 @@ pub mod actor_system;
 pub mod extensions;
 /// Failure event stream for telemetry and monitoring.
 pub mod failure_event_stream;
-/// Actor identity types including ActorId and ActorPath.
-pub mod identity;
 /// Mailbox implementations and message queueing.
 pub mod mailbox;
 /// Message envelope and metadata handling.

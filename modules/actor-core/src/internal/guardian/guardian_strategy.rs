@@ -1,5 +1,5 @@
 use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::identity::ActorId;
+use crate::api::actor::ActorId;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::supervision::supervisor::SupervisorDirective;
 use cellex_utils_core_rs::Element;

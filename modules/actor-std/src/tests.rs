@@ -1,11 +1,11 @@
 use super::*;
 use cellex_actor_core_rs::actor_loop;
 use cellex_actor_core_rs::api::actor::context::Context;
-use cellex_actor_core_rs::api::actor::props::Props;
+use cellex_actor_core_rs::api::actor::ActorId;
+use cellex_actor_core_rs::api::actor::Props;
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig, Spawn};
 use cellex_actor_core_rs::api::extensions::Extensions;
-use cellex_actor_core_rs::api::identity::ActorId;
 use cellex_actor_core_rs::api::mailbox::MailboxOptions;
 use cellex_actor_core_rs::api::mailbox::SystemMessage;
 use cellex_actor_core_rs::api::supervision::supervisor::NoopSupervisor;

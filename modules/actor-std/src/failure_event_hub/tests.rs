@@ -1,6 +1,6 @@
 use super::*;
 use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
-use cellex_actor_core_rs::api::identity::{ActorId, ActorPath};
+use cellex_actor_core_rs::api::actor::{ActorId, ActorPath};
 use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
 use cellex_actor_core_rs::api::supervision::failure::{FailureEvent, FailureInfo, FailureMetadata};
 use std::sync::Arc as StdArc;

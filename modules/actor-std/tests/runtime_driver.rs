@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use cellex_actor_core_rs::api::actor::props::Props;
+use cellex_actor_core_rs::api::actor::Props;
 use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
 use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
 use cellex_actor_std_rs::{tokio_actor_runtime, FailureEventHub, TokioActorRuntime, TokioSystemHandle};

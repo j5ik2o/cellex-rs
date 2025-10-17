@@ -6,8 +6,6 @@ use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, M
 use crate::api::extensions::Extension;
 use crate::api::extensions::ExtensionId;
 use crate::api::extensions::Extensions;
-use crate::api::identity::ActorId;
-use crate::api::identity::ActorPath;
 use crate::api::mailbox::MailboxFactory;
 use crate::api::mailbox::PriorityEnvelope;
 use crate::api::mailbox::SystemMessage;
@@ -30,6 +28,8 @@ mod context_logger;
 mod message_adapter_ref;
 mod message_metadata_responder;
 
+use crate::api::actor::actor_id::ActorId;
+use crate::api::actor::actor_path::ActorPath;
 pub use context_log_level::ContextLogLevel;
 pub use context_logger::ContextLogger;
 pub use message_adapter_ref::MessageAdapterRef;
