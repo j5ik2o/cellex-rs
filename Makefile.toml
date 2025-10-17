@@ -151,7 +151,7 @@ script = '''
 use anyhow::{anyhow, Context, Result};
 use glob::glob;
 use regex::Regex;
-use std::{collections::{BTreeMap, HashSet}, env, fs, path::{Path, PathBuf}};
+use std::{collections::{BTreeMap, HashMap, HashSet}, env, fs, path::{Path, PathBuf}};
 use toml::Value;
 use walkdir::WalkDir;
 
@@ -295,7 +295,26 @@ fn collect_top_level_types(src: &str) -> Result<TypeCollection> {
 
 fn main() -> Result<()> {
     let root = PathBuf::from(".");
-    let dirs = collect_source_dirs(&root)?;
+    let mut dirs = collect_source_dirs(&root)?;
+
+    let filters = parse_filters();
+    let mut label_cache: HashMap<PathBuf, Vec<String>> = HashMap::new();
+    if !filters.is_empty() {
+        let joined = filters.join(", ");
+        dirs.retain(|dir| {
+            filters
+                .iter()
+                .any(|filter| matches_filter(dir, filter, &root, &mut label_cache))
+        });
+        if dirs.is_empty() {
+            return Err(anyhow!(
+                "指定されたフィルターに一致するモジュールがありません: {}",
+                joined
+            ));
+        }
+        println!("[INFO] フィルターを適用: {joined}");
+    }
+
     if dirs.is_empty() {
         println!("[WARN] no source dirs detected from workspace; nothing to check");
         return Ok(());
@@ -438,6 +457,92 @@ fn main() -> Result<()> {
         }
         Err(anyhow!("violations found"))
     }
+}
+
+fn parse_filters() -> Vec<String> {
+    env::var("CARGO_MAKE_TASK_ARGS")
+        .ok()
+        .map(|args| {
+            args
+                .split(|c: char| c.is_whitespace() || c == ';')
+                .filter(|s| {
+                    let trimmed = s.trim();
+                    !trimmed.is_empty() && trimmed != "--"
+                })
+                .map(|s| s.trim().to_string())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn matches_filter(
+    dir: &Path,
+    filter: &str,
+    root: &Path,
+    cache: &mut HashMap<PathBuf, Vec<String>>,
+) -> bool {
+    let normalized = filter.trim().trim_matches('/');
+    if normalized.is_empty() {
+        return false;
+    }
+
+    let labels = cache
+        .entry(dir.to_path_buf())
+        .or_insert_with(|| collect_labels(dir, root));
+
+    labels.iter().any(|label| {
+        let label_norm = label.trim_matches('/');
+        label_norm == normalized
+            || label_norm.ends_with(&format!("/{normalized}"))
+            || label_norm.contains(normalized)
+    })
+}
+
+fn collect_labels(dir: &Path, root: &Path) -> Vec<String> {
+    fn push_unique(buf: &mut Vec<String>, value: String) {
+        if !value.is_empty() && !buf.iter().any(|existing| existing == &value) {
+            buf.push(value);
+        }
+    }
+
+    let mut labels: Vec<String> = Vec::new();
+
+    if let Ok(rel_dir) = dir.strip_prefix(root) {
+        let rel_str = rel_dir.to_string_lossy().replace('\\', "/");
+        push_unique(&mut labels, rel_str.clone());
+        if let Some(stripped) = rel_str.strip_suffix("/src") {
+            push_unique(&mut labels, stripped.to_string());
+        }
+    }
+
+    if let Some(parent) = dir.parent() {
+        if let Some(name) = parent.file_name().and_then(|s| s.to_str()) {
+            push_unique(&mut labels, name.to_string());
+        }
+
+        if let Ok(rel_parent) = parent.strip_prefix(root) {
+            let rel_parent_str = rel_parent.to_string_lossy().replace('\\', "/");
+            push_unique(&mut labels, rel_parent_str.clone());
+            if let Some(stripped) = rel_parent_str.strip_suffix("/src") {
+                push_unique(&mut labels, stripped.to_string());
+            }
+        }
+
+        let cargo_path = parent.join("Cargo.toml");
+        if cargo_path.exists() {
+            if let Ok(doc) = read_toml(&cargo_path) {
+                if let Some(pkg) = doc
+                    .get("package")
+                    .and_then(|pkg| pkg.get("name"))
+                    .and_then(|name| name.as_str())
+                {
+                    push_unique(&mut labels, pkg.to_string());
+                }
+            }
+        }
+    }
+
+    labels
 }
 
 fn format_suggestion(path: &Path, item: &TypeInfo) -> String {
