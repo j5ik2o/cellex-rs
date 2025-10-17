@@ -20,10 +20,13 @@ mod supervisor_strategy;
 mod supervisor_strategy_config;
 
 pub use actor_adapter::ActorAdapter;
-use behavior_directive::BehaviorDirective;
-use behavior_state::BehaviorState;
+pub(crate) use behavior_directive::BehaviorDirective;
+pub(crate) use behavior_state::BehaviorState;
 #[allow(unused_imports)]
 pub use behaviors::Behaviors;
+pub(crate) use dyn_supervisor::DynSupervisor;
+pub(crate) use fixed_directive_supervisor::FixedDirectiveSupervisor;
+pub(crate) use supervise_builder::SuperviseBuilder;
 #[allow(unused_imports)]
 pub use supervisor_strategy::SupervisorStrategy;
 pub use supervisor_strategy_config::SupervisorStrategyConfig;

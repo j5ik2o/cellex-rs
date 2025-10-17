@@ -1,5 +1,5 @@
-pub mod priority_mailbox_builder;
-pub mod spawner;
+mod priority_mailbox_builder;
+mod spawner;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
 #[cfg(test)]

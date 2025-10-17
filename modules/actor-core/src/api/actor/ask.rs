@@ -6,11 +6,10 @@ mod shared;
 pub use ask_error::AskError;
 pub use ask_future::AskFuture;
 pub use ask_timeout_future::AskTimeoutFuture;
+pub(crate) use shared::{AskShared, DispatchFn, DropHookFn};
 
 /// Result alias used by `ask` helpers.
 pub type AskResult<T> = Result<T, AskError>;
-
-use shared::{AskShared, DispatchFn, DropHookFn};
 
 use crate::api::mailbox::MailboxConcurrency;
 use crate::api::{MessageEnvelope, MessageSender};

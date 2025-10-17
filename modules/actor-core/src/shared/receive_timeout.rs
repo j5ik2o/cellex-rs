@@ -4,5 +4,6 @@ mod receive_timeout_driver_shared;
 mod receive_timeout_factory_shared;
 
 pub use receive_timeout_driver::ReceiveTimeoutDriver;
+pub(crate) use receive_timeout_driver_bound::ReceiveTimeoutDriverBound;
 pub use receive_timeout_driver_shared::ReceiveTimeoutDriverShared;
 pub use receive_timeout_factory_shared::ReceiveTimeoutFactoryShared;
