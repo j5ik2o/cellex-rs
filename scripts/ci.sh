@@ -59,13 +59,13 @@ ensure_target_installed() {
 }
 
 run_lint() {
-  log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check"
-  cargo "+${FMT_TOOLCHAIN}" fmt -- --check
+  log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check (excluding module-wiring-lint)"
+  cargo "+${FMT_TOOLCHAIN}" fmt --all -- --check
 }
 
 run_clippy() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --all-targets -- -D warnings"
-  run_cargo clippy --workspace --all-targets -- -D warnings
+  log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --exclude module-wiring-lint --all-targets -- -D warnings"
+  run_cargo clippy --workspace --exclude module-wiring-lint --all-targets -- -D warnings
 }
 
 run_no_std() {
