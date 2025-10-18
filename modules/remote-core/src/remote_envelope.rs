@@ -33,6 +33,11 @@ impl<M> RemoteEnvelope<M> {
   pub fn into_parts(self) -> (M, i8, PriorityChannel) {
     (self.message, self.priority, self.channel)
   }
+
+  /// Alias for [`into_parts`] to emphasize channel preservation.
+  pub fn into_parts_with_channel(self) -> (M, i8, PriorityChannel) {
+    self.into_parts()
+  }
 }
 
 impl<M> From<PriorityEnvelope<M>> for RemoteEnvelope<M> {

@@ -11,9 +11,13 @@ use cellex_actor_core_rs::api::{
   },
 };
 use cellex_actor_std_rs::FailureEventHub;
+use cellex_serialization_json_rs::SerdeJsonSerializer;
 
 use super::{placeholder_metadata, RemoteFailureNotifier};
-use crate::remote_envelope::RemoteEnvelope;
+use crate::{
+  codec::{control_remote_envelope, envelope_from_frame, frame_from_serialized_envelope, RemotePayloadFrame},
+  remote_envelope::RemoteEnvelope,
+};
 
 #[test]
 fn remote_failure_notifier_new_creates_instance() {
@@ -190,5 +194,57 @@ fn remote_envelope_roundtrip_preserves_user_message_envelope() {
       assert!(metadata.is_none());
     },
     | MessageEnvelope::System(_) => panic!("expected user envelope"),
+  }
+}
+
+#[test]
+fn frame_roundtrip_preserves_channel_and_priority_for_system_message() {
+  let priority = SystemMessage::Restart.priority();
+  let message_envelope = MessageEnvelope::System(SystemMessage::Restart);
+  let envelope = RemoteEnvelope::new(message_envelope, priority, PriorityChannel::Control);
+  let frame = frame_from_serialized_envelope(envelope.clone()).expect("frame encoding");
+
+  assert_eq!(frame.priority, priority);
+  assert_eq!(frame.channel, PriorityChannel::Control);
+  match &frame.payload {
+    | RemotePayloadFrame::System(message) => assert!(matches!(message, SystemMessage::Restart)),
+    | _ => panic!("expected system payload"),
+  }
+
+  let decoded = envelope_from_frame(frame);
+  let (decoded_message, decoded_priority, decoded_channel) = decoded.into_parts_with_channel();
+  assert_eq!(decoded_priority, priority);
+  assert_eq!(decoded_channel, PriorityChannel::Control);
+  assert!(matches!(decoded_message, MessageEnvelope::System(SystemMessage::Restart)));
+}
+
+#[test]
+fn frame_roundtrip_preserves_serialized_user_payload() {
+  let serializer = SerdeJsonSerializer::new();
+  let serialized = serializer.serialize_value(Some("String"), &"hello".to_string()).expect("serialize payload");
+
+  let envelope = control_remote_envelope(serialized.clone(), 9);
+  let frame = frame_from_serialized_envelope(envelope).expect("frame encoding");
+
+  assert_eq!(frame.priority, 9);
+  assert_eq!(frame.channel, PriorityChannel::Control);
+
+  let RemotePayloadFrame::User { serialized: frame_payload } = &frame.payload else {
+    panic!("expected user payload");
+  };
+  assert_eq!(frame_payload.serializer_id, serialized.serializer_id);
+  assert_eq!(frame_payload.payload, serialized.payload);
+
+  let decoded = envelope_from_frame(frame);
+  let (decoded_envelope, priority, channel) = decoded.into_parts_with_channel();
+  assert_eq!(priority, 9);
+  assert_eq!(channel, PriorityChannel::Control);
+  match decoded_envelope {
+    | MessageEnvelope::User(user) => {
+      let (payload, metadata) = user.into_parts::<ThreadSafe>();
+      assert!(metadata.is_none());
+      assert_eq!(payload.payload, serialized.payload);
+    },
+    | MessageEnvelope::System(_) => panic!("expected user payload"),
   }
 }

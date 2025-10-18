@@ -56,6 +56,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+/// Encoding helpers bridging remote envelopes and the serialization layer.
+pub mod codec;
 /// Transport-layer envelope utilities.
 pub mod remote_envelope;
 
