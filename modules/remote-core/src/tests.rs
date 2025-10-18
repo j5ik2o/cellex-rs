@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use cellex_actor_core_rs::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
   failure_event_stream::FailureEventStream,
-  mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage},
+  mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage, ThreadSafe},
+  messaging::MessageEnvelope,
   supervision::{
     escalation::FailureEventListener,
     failure::{FailureEvent, FailureInfo},
@@ -164,4 +165,30 @@ fn remote_envelope_roundtrip_preserves_user_priority() {
   assert_eq!(message, "ping");
   assert_eq!(priority, 7);
   assert_eq!(channel, PriorityChannel::Control);
+}
+
+#[test]
+fn remote_envelope_roundtrip_preserves_user_message_envelope() {
+  let message_envelope = MessageEnvelope::user("hello".to_string());
+  let priority_envelope = PriorityEnvelope::with_channel(message_envelope, 5, PriorityChannel::Control);
+
+  let remote_envelope: RemoteEnvelope<MessageEnvelope<String>> = RemoteEnvelope::from(priority_envelope);
+
+  assert_eq!(remote_envelope.priority(), 5);
+  assert_eq!(remote_envelope.channel(), PriorityChannel::Control);
+
+  let restored: PriorityEnvelope<MessageEnvelope<String>> = remote_envelope.into();
+  let (restored_envelope, priority, channel) = restored.into_parts_with_channel();
+
+  assert_eq!(priority, 5);
+  assert_eq!(channel, PriorityChannel::Control);
+
+  match restored_envelope {
+    | MessageEnvelope::User(user) => {
+      let (message, metadata) = user.into_parts::<ThreadSafe>();
+      assert_eq!(message, "hello");
+      assert!(metadata.is_none());
+    },
+    | MessageEnvelope::System(_) => panic!("expected user envelope"),
+  }
 }
