@@ -97,14 +97,29 @@ impl<T, M> ProcessRegistry<T, M> {
   }
 
   /// Resolves the PID and, if not found, records a dead letter entry.
-  pub fn resolve_or_dead_letter(&self, pid: &Pid, message: M, reason: DeadLetterReason) -> Option<ArcShared<T>>
-  where
-    M: Clone, {
+  pub fn resolve_or_dead_letter(&self, pid: &Pid, message: M, reason: DeadLetterReason) -> Option<ArcShared<T>> {
+    self.resolve_or_dead_letter_with_remote(pid, message, reason, DeadLetterReason::NetworkUnreachable)
+  }
+
+  /// Resolves the PID and publishes dead letters for unresolved or remote targets.
+  pub fn resolve_or_dead_letter_with_remote(
+    &self,
+    pid: &Pid,
+    message: M,
+    unresolved_reason: DeadLetterReason,
+    remote_reason: DeadLetterReason,
+  ) -> Option<ArcShared<T>> {
     match self.resolve_pid(pid) {
-      | ProcessResolution::Local(handle) => Some(handle),
-      | ProcessResolution::Remote => None,
+      | ProcessResolution::Local(handle) => {
+        let _ = message;
+        Some(handle)
+      },
+      | ProcessResolution::Remote => {
+        self.publish_dead_letter(DeadLetter::new(pid.clone(), message, remote_reason));
+        None
+      },
       | ProcessResolution::Unresolved => {
-        self.publish_dead_letter(DeadLetter::new(pid.clone(), message, reason));
+        self.publish_dead_letter(DeadLetter::new(pid.clone(), message, unresolved_reason));
         None
       },
     }
@@ -132,6 +147,8 @@ impl<T, M> Default for ProcessRegistry<T, M> {
 mod tests {
   use alloc::sync::Arc;
   use core::sync::atomic::{AtomicBool, Ordering};
+
+  use spin::Mutex;
 
   use super::*;
   use crate::api::{
@@ -181,5 +198,29 @@ mod tests {
     let result = registry.resolve_or_dead_letter(&pid, 5, DeadLetterReason::UnregisteredPid);
     assert!(result.is_none());
     assert!(observed.load(Ordering::SeqCst));
+  }
+
+  #[test]
+  fn publishes_dead_letter_when_remote() {
+    let registry: ProcessRegistry<u32, i32> =
+      ProcessRegistry::new(SystemId::new("sys"), Some(NodeId::new("node1", Some(2552))));
+    let pid = Pid::new(SystemId::new("sys"), sample_path()).with_node(NodeId::new("node2", Some(2552)));
+
+    let observed = Arc::new(Mutex::new(None));
+    let observed_clone = Arc::clone(&observed);
+    let listener = ArcShared::new(move |letter: &DeadLetter<i32>| {
+      observed_clone.lock().replace(letter.reason.clone());
+    })
+    .into_dyn(|f| f as &DeadLetterListener<i32>);
+    registry.subscribe_dead_letters(listener);
+
+    let result = registry.resolve_or_dead_letter_with_remote(
+      &pid,
+      5,
+      DeadLetterReason::UnregisteredPid,
+      DeadLetterReason::NetworkUnreachable,
+    );
+    assert!(result.is_none());
+    assert!(matches!(observed.lock().as_ref(), Some(DeadLetterReason::NetworkUnreachable)));
   }
 }

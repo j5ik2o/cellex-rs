@@ -131,7 +131,14 @@ where
         |registry: &ProcessRegistry<
           PriorityActorRef<DynMessage, MailboxOf<AR>>,
           ArcShared<PriorityEnvelope<DynMessage>>,
-        >| { registry.resolve_or_dead_letter(pid, envelope_shared.clone(), unresolved_reason) },
+        >| {
+          registry.resolve_or_dead_letter_with_remote(
+            pid,
+            envelope_shared.clone(),
+            unresolved_reason,
+            DeadLetterReason::NetworkUnreachable,
+          )
+        },
       );
       let Some(handle) = resolution else {
         return Err(QueueError::Disconnected);

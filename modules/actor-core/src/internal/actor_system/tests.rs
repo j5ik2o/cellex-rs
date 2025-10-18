@@ -14,13 +14,14 @@ use spin::RwLock;
 use super::*;
 use crate::{
   api::{
+    actor::ActorPath,
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_system::map_system::MapSystemShared,
     mailbox::{MailboxOptions, PriorityEnvelope, SystemMessage},
     messaging::{DynMessage, MessageEnvelope, MessageMetadata},
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
-      pid::Pid,
+      pid::{NodeId, Pid, SystemId},
       process_registry::{ProcessRegistry, ProcessResolution},
     },
     test_support::TestMailboxFactory,
@@ -267,4 +268,41 @@ fn actor_ref_emits_dead_letter_on_unregistered_pid() {
 
   let reasons = observed_reasons.read();
   assert_eq!(reasons.as_slice(), &[DeadLetterReason::UnregisteredPid]);
+}
+
+#[test]
+fn actor_ref_records_network_unreachable_for_remote_pid() {
+  type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
+
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory);
+  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+
+  let process_registry = system.process_registry();
+  let observed = ArcShared::new(RwLock::new(Vec::<DeadLetterReason>::new()));
+  let observed_clone = observed.clone();
+  let listener = ArcShared::new(move |letter: &DeadLetter<ArcShared<PriorityEnvelope<DynMessage>>>| {
+    observed_clone.write().push(letter.reason.clone());
+  })
+  .into_dyn(|f| f as &DeadLetterListener<ArcShared<PriorityEnvelope<DynMessage>>>);
+  process_registry.with_ref(|registry| registry.subscribe_dead_letters(listener));
+
+  let mut root = system.root_context();
+  let map_system =
+    MapSystemShared::new(|sys: SystemMessage| DynMessage::new(MessageEnvelope::<u32>::System(sys.clone())));
+  let actor_ref_raw = root
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system, |_ctx, _msg: DynMessage| Ok(())))
+    .expect("spawn actor");
+  let pid_slot = ArcShared::new(RwLock::new(None));
+  let typed_ref: crate::api::actor::actor_ref::ActorRef<u32, TestRuntime> =
+    crate::api::actor::actor_ref::ActorRef::new(actor_ref_raw, pid_slot, Some(process_registry.clone()));
+
+  let remote_pid = Pid::new(SystemId::new("remote"), ActorPath::new()).with_node(NodeId::new("node2", Some(2552)));
+  typed_ref.set_pid(remote_pid);
+
+  let send_result = typed_ref.tell(42);
+  assert!(matches!(send_result, Err(QueueError::Disconnected)));
+
+  let reasons = observed.read();
+  assert!(reasons.contains(&DeadLetterReason::NetworkUnreachable));
 }
