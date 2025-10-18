@@ -131,7 +131,7 @@ where
 
     let handler = move |ctx: &mut ActorContext<'_, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
                         message: DynMessage|
-                        -> Result<(), ActorFailure> {
+          -> Result<(), ActorFailure> {
       let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
         panic!("unexpected message type delivered to typed handler");
       };

@@ -139,7 +139,11 @@ where
 
   /// Issues `ask` with specified sender actor reference (internal API).
   #[allow(dead_code)]
-  pub(crate) fn request_future_from<Resp, S>(&self, message: U, sender: &ActorRef<S, AR>) -> AskResult<AskFuture<Resp>>
+  pub(crate) fn request_future_from<Resp, S>(
+    &self,
+    message: U,
+    sender: &ActorRef<S, AR>,
+  ) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element,
     S: Element,
