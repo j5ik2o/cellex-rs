@@ -5,7 +5,7 @@
 - Supervisor は `&dyn BehaviorFailure` を受け取る形へ刷新されている。
 
 ## 優先タスク
-1. Remote / Cluster 層で `ActorFailure` と `BehaviorFailure` を透過させ、分散環境でのエラー伝搬を確認する。
+1. Remote / Cluster 層で `ActorFailure` と `BehaviorFailure` を透過させ、分散環境でのエラー伝搬を確認する。（済）
 2. DSL ドキュメントにエラー設計と `?` 利用例を追記する。
 3. `BehaviorFailure` のダウンキャスト例とカスタム実装のベストプラクティスをサンプルとして提供する。
 

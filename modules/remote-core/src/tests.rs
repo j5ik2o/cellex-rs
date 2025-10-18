@@ -1,7 +1,14 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  any::Any,
+  borrow::Cow,
+  sync::{Arc, Mutex},
+};
 
 use cellex_actor_core_rs::api::{
-  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  actor::{
+    actor_failure::{ActorFailure, BehaviorFailure},
+    ActorId, ActorPath,
+  },
   failure_event_stream::FailureEventStream,
   mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage, ThreadSafe},
   messaging::MessageEnvelope,
@@ -119,6 +126,51 @@ fn remote_failure_notifier_emit_calls_hub_and_handler() {
   let FailureEvent::RootEscalated(received_info) = &events[0];
   assert_eq!(received_info.actor, info.actor);
   assert_eq!(received_info.description(), info.description());
+}
+
+#[derive(Debug)]
+struct SampleBehaviorFailure(&'static str);
+
+impl BehaviorFailure for SampleBehaviorFailure {
+  fn as_any(&self) -> &dyn Any {
+    self
+  }
+
+  fn description(&self) -> Cow<'_, str> {
+    Cow::Borrowed(self.0)
+  }
+}
+
+#[test]
+fn remote_failure_notifier_preserves_behavior_failure() {
+  let hub = FailureEventHub::new();
+  let mut notifier = RemoteFailureNotifier::new(hub.clone());
+
+  let captured: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+  let captured_clone = Arc::clone(&captured);
+  let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
+    let FailureEvent::RootEscalated(info) = event;
+    if let Some(failure) = info.behavior_failure().as_any().downcast_ref::<SampleBehaviorFailure>() {
+      captured_clone.lock().unwrap().replace(failure.0.to_owned());
+    }
+  }));
+
+  let handler_called = Arc::new(Mutex::new(false));
+  let handler_called_clone = Arc::clone(&handler_called);
+  notifier.set_handler(FailureEventListener::new(move |event: FailureEvent| {
+    let FailureEvent::RootEscalated(info) = event;
+    if info.behavior_failure().as_any().is::<SampleBehaviorFailure>() {
+      *handler_called_clone.lock().unwrap() = true;
+    }
+  }));
+
+  let failure = ActorFailure::new(SampleBehaviorFailure("remote boom"));
+  let info = FailureInfo::new(ActorId(99), ActorPath::new(), failure);
+  notifier.emit(info);
+
+  assert!(*handler_called.lock().unwrap(), "handler should receive SampleBehaviorFailure");
+  let recorded = captured.lock().unwrap().clone().expect("captured failure");
+  assert_eq!(recorded, "remote boom");
 }
 
 #[test]
