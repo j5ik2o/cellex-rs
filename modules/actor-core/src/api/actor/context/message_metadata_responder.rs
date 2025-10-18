@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, Shared};
+use cellex_utils_core_rs::{Element, QueueError, Shared};
 
 use super::Context;
 use crate::{
@@ -73,14 +73,38 @@ where
   match registry.with_ref(|registry| registry.resolve_pid(&pid)) {
     | ProcessResolution::Local(handle) => {
       let dyn_message = DynMessage::new(envelope);
-      let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
-      let send_result = handle.with_ref(|actor_ref| actor_ref.clone()).try_send_envelope(priority_envelope);
+      let send_result = handle
+        .with_ref(|actor_ref| actor_ref.clone())
+        .try_send_envelope(PriorityEnvelope::with_default_priority(dyn_message));
       match send_result {
         | Ok(()) => Ok(()),
-        | Err(err) => Err(AskError::from(err)),
+        | Err(QueueError::Full(envelope)) | Err(QueueError::OfferError(envelope)) => {
+          registry.with_ref(|registry| {
+            registry.publish_dead_letter(DeadLetter::new(pid.clone(), envelope, DeadLetterReason::DeliveryRejected));
+          });
+          Err(AskError::SendFailed(QueueError::Disconnected))
+        },
+        | Err(QueueError::Closed(envelope)) => {
+          registry.with_ref(|registry| {
+            registry.publish_dead_letter(DeadLetter::new(pid.clone(), envelope, DeadLetterReason::Terminated));
+          });
+          Err(AskError::SendFailed(QueueError::Disconnected))
+        },
+        | Err(QueueError::Disconnected) => Err(AskError::SendFailed(QueueError::Disconnected)),
       }
     },
-    | ProcessResolution::Remote => Err(AskError::MissingResponder),
+    | ProcessResolution::Remote => {
+      let dyn_message = DynMessage::new(envelope);
+      let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
+      registry.with_ref(|registry| {
+        registry.publish_dead_letter(DeadLetter::new(
+          pid.clone(),
+          priority_envelope,
+          DeadLetterReason::NetworkUnreachable,
+        ));
+      });
+      Err(AskError::MissingResponder)
+    },
     | ProcessResolution::Unresolved => {
       let dyn_message = DynMessage::new(envelope);
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
