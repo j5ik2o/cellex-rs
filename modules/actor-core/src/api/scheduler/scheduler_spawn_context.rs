@@ -4,9 +4,9 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use crate::{
   api::{
+    actor::ChildNaming,
     actor_system::map_system::MapSystemShared,
     mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
-    scheduler::child_naming::ChildNaming,
   },
   internal::context::ActorHandlerFn,
 };

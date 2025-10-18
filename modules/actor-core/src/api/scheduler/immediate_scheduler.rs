@@ -6,16 +6,14 @@ use cellex_utils_core_rs::{Element, QueueError};
 
 use crate::{
   api::{
-    actor::actor_ref::PriorityActorRef,
+    actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure_telemetry::FailureTelemetryShared,
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::{
-      actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, SchedulerSpawnContext, SpawnError,
-    },
+    scheduler::{actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, SchedulerSpawnContext},
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,

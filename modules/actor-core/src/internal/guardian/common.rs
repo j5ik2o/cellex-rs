@@ -4,10 +4,9 @@ use cellex_utils_core_rs::{Element, QueueError};
 
 use super::{ChildRecord, GuardianStrategy};
 use crate::api::{
-  actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath},
+  actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming, SpawnError},
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
-  scheduler::{ChildNaming, SpawnError},
   supervision::{failure::FailureInfo, supervisor::SupervisorDirective},
 };
 

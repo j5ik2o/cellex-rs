@@ -5,11 +5,10 @@ use cellex_utils_core_rs::Element;
 use super::ActorHandlerFn;
 use crate::{
   api::{
-    actor::{ActorId, ActorPath},
+    actor::{ActorId, ActorPath, ChildNaming},
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    scheduler::ChildNaming,
     supervision::supervisor::Supervisor,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,

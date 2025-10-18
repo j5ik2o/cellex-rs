@@ -9,14 +9,14 @@ use futures::{
 
 use crate::{
   api::{
-    actor::{actor_ref::PriorityActorRef, ActorId, ActorPath},
+    actor::{actor_ref::PriorityActorRef, ActorId, ActorPath, SpawnError},
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure_telemetry::FailureTelemetryShared,
     mailbox::{Mailbox, MailboxFactory, MailboxProducer, MailboxSignal, PriorityEnvelope, SystemMessage},
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::{spawn_error::SpawnError, SchedulerSpawnContext},
+    scheduler::SchedulerSpawnContext,
     supervision::{
       escalation::EscalationSink, failure::FailureInfo, supervisor::Supervisor, telemetry::TelemetryObservationConfig,
     },

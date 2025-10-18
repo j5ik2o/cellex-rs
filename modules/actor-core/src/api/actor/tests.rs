@@ -92,7 +92,7 @@ mod ready_queue_worker_configuration {
   }
 
   use super::*;
-  use crate::api::test_support::TestMailboxFactory;
+  use crate::api::{actor::SpawnError, test_support::TestMailboxFactory};
 
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
@@ -322,7 +322,7 @@ use core::{
 use cellex_utils_core_rs::sync::ArcShared;
 use futures::{executor::block_on, future};
 
-use crate::api::{mailbox::ThreadSafe, scheduler::SpawnError};
+use crate::api::mailbox::ThreadSafe;
 
 #[derive(Debug)]
 struct CounterExtension {
@@ -1048,7 +1048,7 @@ mod metrics_injection {
 
   use super::*;
   use crate::api::{
-    actor::actor_ref::PriorityActorRef,
+    actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_system::{ActorSystem, ActorSystemConfig},
     failure_telemetry::FailureTelemetryShared,
     mailbox::MailboxFactory,

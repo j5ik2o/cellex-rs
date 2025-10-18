@@ -24,7 +24,10 @@ use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 use crate::api::supervision::supervisor::SupervisorDirective;
 use crate::{
   api::{
-    actor::{actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, shutdown_token::ShutdownToken, ActorId},
+    actor::{
+      actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, shutdown_token::ShutdownToken, ActorId, ChildNaming,
+      SpawnError,
+    },
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
@@ -32,10 +35,9 @@ use crate::{
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     scheduler::{
       actor_scheduler::ActorScheduler,
-      child_naming::ChildNaming,
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
       scheduler_builder::SchedulerBuilder,
-      SchedulerSpawnContext, SpawnError,
+      SchedulerSpawnContext,
     },
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},

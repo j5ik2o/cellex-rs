@@ -6,12 +6,11 @@ use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 use super::ChildSpawnSpec;
 use crate::{
   api::{
-    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath},
+    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming},
     actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
     receive_timeout::ReceiveTimeoutScheduler,
-    scheduler::ChildNaming,
     supervision::supervisor::Supervisor,
   },
   internal::{actor::InternalProps, mailbox::PriorityMailboxSpawnerHandle},

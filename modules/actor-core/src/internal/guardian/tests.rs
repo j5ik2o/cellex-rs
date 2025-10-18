@@ -16,11 +16,10 @@ use crate::api::{
   actor::{
     actor_failure::{ActorFailure, BehaviorFailure},
     actor_ref::PriorityActorRef,
-    ActorId, ActorPath,
+    ActorId, ActorPath, ChildNaming, SpawnError,
   },
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, PriorityChannel, PriorityEnvelope, SystemMessage},
-  scheduler::{ChildNaming, SpawnError},
   supervision::supervisor::SupervisorDirective,
   test_support::TestMailboxFactory,
 };

@@ -1,6 +1,7 @@
 use core::fmt::Debug;
 
-/// Fundamental constraints for elements that can be stored in collections such as queues and stacks.
+/// Fundamental constraints for elements that can be stored in collections such as queues and
+/// stacks.
 ///
 ///
 ///

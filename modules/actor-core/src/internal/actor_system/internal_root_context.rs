@@ -5,11 +5,11 @@ use cellex_utils_core_rs::{sync::Shared, Element, QueueError};
 use super::InternalActorSystem;
 use crate::{
   api::{
-    actor::actor_ref::PriorityActorRef,
+    actor::{actor_ref::PriorityActorRef, ChildNaming, SpawnError},
     actor_runtime::{ActorRuntime, MailboxOf},
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    scheduler::{ChildNaming, SchedulerSpawnContext, SpawnError},
+    scheduler::SchedulerSpawnContext,
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::{actor::InternalProps, guardian::GuardianStrategy},

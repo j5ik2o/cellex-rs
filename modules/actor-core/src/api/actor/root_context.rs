@@ -6,12 +6,11 @@ use cellex_utils_core_rs::{Element, QueueError};
 use super::ask::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 use crate::{
   api::{
-    actor::{actor_ref::ActorRef, props::Props},
+    actor::{actor_ref::ActorRef, props::Props, ChildNaming, SpawnError},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::PriorityEnvelope,
     messaging::{DynMessage, MetadataStorageMode},
-    scheduler::{ChildNaming, SpawnError},
   },
   internal::actor_system::InternalRootContext,
 };

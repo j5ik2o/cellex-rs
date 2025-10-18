@@ -5,13 +5,13 @@ use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
 use crate::api::{
-  actor::actor_ref::PriorityActorRef,
+  actor::{actor_ref::PriorityActorRef, SpawnError},
   actor_system::map_system::MapSystemShared,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  scheduler::{SchedulerSpawnContext, SpawnError},
+  scheduler::SchedulerSpawnContext,
   supervision::{
     escalation::{FailureEventHandler, FailureEventListener},
     failure::FailureInfo,

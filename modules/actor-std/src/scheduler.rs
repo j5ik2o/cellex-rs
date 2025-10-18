@@ -2,7 +2,7 @@ use std::{boxed::Box, vec::Vec};
 
 use cellex_actor_core_rs::{
   api::{
-    actor::actor_ref::PriorityActorRef,
+    actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_runtime::GenericActorRuntime,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
@@ -10,9 +10,7 @@ use cellex_actor_core_rs::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    scheduler::{
-      ActorScheduler, ReadyQueueScheduler, ReadyQueueWorker, SchedulerBuilder, SchedulerSpawnContext, SpawnError,
-    },
+    scheduler::{ActorScheduler, ReadyQueueScheduler, ReadyQueueWorker, SchedulerBuilder, SchedulerSpawnContext},
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,

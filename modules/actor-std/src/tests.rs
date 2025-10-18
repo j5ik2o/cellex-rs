@@ -4,13 +4,13 @@ use std::sync::{Arc, Mutex};
 use cellex_actor_core_rs::{
   actor_loop,
   api::{
-    actor::{context::Context, ActorId, Props},
+    actor::{context::Context, ActorId, ChildNaming, Props},
     actor_runtime::GenericActorRuntime,
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::{ChildNaming, SchedulerSpawnContext},
+    scheduler::SchedulerSpawnContext,
     supervision::supervisor::NoopSupervisor,
   },
 };

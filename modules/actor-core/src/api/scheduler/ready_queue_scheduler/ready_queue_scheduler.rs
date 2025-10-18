@@ -16,14 +16,14 @@ use super::{
 };
 use crate::{
   api::{
-    actor::actor_ref::PriorityActorRef,
+    actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure_telemetry::FailureTelemetryShared,
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, SchedulerSpawnContext, SpawnError},
+    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, SchedulerSpawnContext},
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
