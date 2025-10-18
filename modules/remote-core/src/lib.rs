@@ -56,6 +56,9 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+/// Transport-layer envelope utilities.
+pub mod remote_envelope;
+
 use cellex_actor_core_rs::api::{
   failure_event_stream::FailureEventStream,
   supervision::{

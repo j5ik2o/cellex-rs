@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use cellex_actor_core_rs::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
   failure_event_stream::FailureEventStream,
+  mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage},
   supervision::{
     escalation::FailureEventListener,
     failure::{FailureEvent, FailureInfo},
@@ -11,6 +12,7 @@ use cellex_actor_core_rs::api::{
 use cellex_actor_std_rs::FailureEventHub;
 
 use super::{placeholder_metadata, RemoteFailureNotifier};
+use crate::remote_envelope::RemoteEnvelope;
 
 #[test]
 fn remote_failure_notifier_new_creates_instance() {
@@ -123,4 +125,43 @@ fn placeholder_metadata_creates_metadata_with_endpoint() {
   assert!(metadata.component.is_none());
   assert!(metadata.transport.is_none());
   assert!(metadata.tags.is_empty());
+}
+
+#[test]
+fn remote_envelope_roundtrip_preserves_control_channel() {
+  let system_msg = SystemMessage::Stop;
+  let expected_priority = system_msg.priority();
+  let priority_envelope = PriorityEnvelope::from_system(system_msg.clone());
+
+  let remote_envelope: RemoteEnvelope<SystemMessage> = RemoteEnvelope::from(priority_envelope);
+
+  assert_eq!(remote_envelope.priority(), expected_priority);
+  assert_eq!(remote_envelope.channel(), PriorityChannel::Control);
+
+  let restored: PriorityEnvelope<SystemMessage> = remote_envelope.into();
+  assert_eq!(restored.channel(), PriorityChannel::Control);
+  assert_eq!(restored.priority(), expected_priority);
+  let (restored_message, priority, channel) = restored.into_parts_with_channel();
+  assert_eq!(restored_message, system_msg);
+  assert_eq!(priority, expected_priority);
+  assert_eq!(channel, PriorityChannel::Control);
+}
+
+#[test]
+fn remote_envelope_roundtrip_preserves_user_priority() {
+  let priority_envelope = PriorityEnvelope::control("ping".to_string(), 7);
+
+  let remote_envelope: RemoteEnvelope<String> = RemoteEnvelope::from(priority_envelope);
+
+  assert_eq!(remote_envelope.priority(), 7);
+  assert_eq!(remote_envelope.channel(), PriorityChannel::Control);
+  assert_eq!(remote_envelope.message(), "ping");
+
+  let restored: PriorityEnvelope<String> = remote_envelope.into();
+  assert_eq!(restored.channel(), PriorityChannel::Control);
+  assert_eq!(restored.priority(), 7);
+  let (message, priority, channel) = restored.into_parts_with_channel();
+  assert_eq!(message, "ping");
+  assert_eq!(priority, 7);
+  assert_eq!(channel, PriorityChannel::Control);
 }

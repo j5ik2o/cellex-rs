@@ -5,5 +5,15 @@
 2. ユーザーメッセージ側から Control チャネルを選択する公式 API を検討する。
 3. Remote / Cluster 経路で Control チャネル情報が保持されることを確認する統合テストを用意する。
 
+## 設計方針（2025-10-18 更新）
+- **インターフェース整合**: Remote/Cluster 向けの転送フォーマット（仮称 `RemoteEnvelope`）に `priority: i8` と `channel: PriorityChannel` を必須フィールドとして定義し、`PriorityEnvelope` へ往復できることを保証する。
+- **protoactor-go との比較**: Go 実装では `remote/endpoint_manager` が `SystemMessage` を送る際に `Header("Proto.Control", true)` を付与して Mailbox に届ける。これと同様に、Rust 版でも Control チャネル情報はシリアライズ対象に含め、Mailbox まで透過させる。
+- **Akka/Pekko との比較**: Akka/Pekko の `Envelope` は `system` フラグと優先度をワイヤフォーマットに載せ、受信後に `PriorityMailbox` へ復元する。Rust 版でも `PriorityChannel::Control` の維持をワイヤ仕様に取り込む。
+- **ローカルストア連携**: D8 で導入したローカルメタデータ方式を尊重し、優先度・チャネルは Envelope 固有フィールドとして保持しつつ、既存メタ情報は `MessageEnvelope` のローカルストアに格納する。
+- **統合テスト計画**:
+  1. Remote 経路の擬似実装を用意し、`PriorityEnvelope::from_system` から生成した制御メッセージをシリアライズ→デシリアライズして `PriorityChannel::Control` と優先度が一致することを確認する（`protoactor-go` の `remoting/remote_deliveries_test` 相当を参考）。
+  2. Cluster 側では `ClusterFailureBridge` と `RemoteFailureNotifier` を組み合わせ、`fan_out` 時に Control チャネルが維持されるかをテストする（Akka の `SystemMessageDeliverySpec` の検証粒度に倣う）。
+- **CI 反映**: 上記テストは `remote-core` / `cluster-core` の `std` feature 下で実行できるようにし、`scripts/ci.sh all` に含める。
+
 ## 参考
 - 旧メモは `docs/design/archive/2025-10-07-priority-channel-table.md` を参照。
