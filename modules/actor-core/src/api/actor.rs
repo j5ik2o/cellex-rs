@@ -37,8 +37,11 @@ pub use spawn::Spawn;
 pub use spawn_error::SpawnError;
 pub use timer::Timer;
 
-use crate::api::{actor::actor_failure::ActorFailure, supervision::supervisor::Supervisor};
+use crate::api::actor::actor_failure::ActorFailure;
 
 /// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
-pub type ActorHandlerFn<M, MF> =
-  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) -> Result<(), ActorFailure> + 'static;
+pub type TypedActorHandlerFn<U, AR> = dyn for<'r, 'ctx> FnMut(&mut crate::api::actor::context::Context<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure>
+  + 'static;
+
+pub(crate) type ActorHandlerFn<M, MF> =
+  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, MF>, M) -> Result<(), ActorFailure> + 'static;

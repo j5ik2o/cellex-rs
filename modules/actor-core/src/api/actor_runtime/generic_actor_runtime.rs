@@ -184,24 +184,21 @@ where
 
   /// Overrides the scheduler builder with a concrete value.
   #[must_use]
-  pub fn with_scheduler_builder(mut self, builder: ActorSchedulerHandleBuilder<DynMessage, MF>) -> Self {
+  pub fn with_scheduler_builder(mut self, builder: ActorSchedulerHandleBuilder<MF>) -> Self {
     self.core.set_scheduler_builder(ArcShared::new(builder));
     self
   }
 
   /// Overrides the scheduler builder using a shared handle.
   #[must_use]
-  pub fn with_scheduler_builder_shared(
-    mut self,
-    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>>,
-  ) -> Self {
+  pub fn with_scheduler_builder_shared(mut self, builder: ArcShared<ActorSchedulerHandleBuilder<MF>>) -> Self {
     self.core.set_scheduler_builder(builder);
     self
   }
 
   /// Returns the scheduler builder currently configured for the bundle.
   #[must_use]
-  pub fn scheduler_builder(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>> {
+  pub fn scheduler_builder(&self) -> ArcShared<ActorSchedulerHandleBuilder<MF>> {
     self.core.scheduler_builder()
   }
 }
@@ -288,18 +285,18 @@ where
     GenericActorRuntime::priority_mailbox_spawner(self)
   }
 
-  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>) -> Self {
+  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self {
     GenericActorRuntime::with_scheduler_builder(self, builder)
   }
 
   fn with_scheduler_builder_shared(
     self,
-    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>,
+    builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>,
   ) -> Self {
     GenericActorRuntime::with_scheduler_builder_shared(self, builder)
   }
 
-  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>> {
+  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
 }

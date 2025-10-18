@@ -1,3 +1,4 @@
+#![cfg(feature = "std")]
 #![allow(deprecated, unused_imports)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
@@ -42,7 +43,7 @@ enum Message {
 fn actor_system_spawns_and_processes_messages() {
   let mailbox_factory = TestMailboxFactory::unbounded();
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
-  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+  let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
   let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
@@ -80,7 +81,7 @@ fn process_registry_registers_and_deregisters_actor() {
 
   let mailbox_factory = TestMailboxFactory::unbounded();
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
-  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+  let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
   let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
   let captured: Rc<RefCell<Option<Pid>>> = Rc::new(RefCell::new(None));
@@ -133,7 +134,7 @@ fn responder_pid_allows_response_delivery() {
 
   let mailbox_factory = TestMailboxFactory::unbounded();
   let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory);
-  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+  let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
   let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
   let probe_pid: Rc<RefCell<Option<Pid>>> = Rc::new(RefCell::new(None));
@@ -220,7 +221,7 @@ fn actor_ref_emits_dead_letter_on_unregistered_pid() {
 
   let mailbox_factory = TestMailboxFactory::unbounded();
   let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory);
-  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+  let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
   let process_registry = system.process_registry();
   let observed_reasons = ArcShared::new(RwLock::new(Vec::<DeadLetterReason>::new()));
@@ -277,7 +278,7 @@ fn actor_ref_records_network_unreachable_for_remote_pid() {
 
   let mailbox_factory = TestMailboxFactory::unbounded();
   let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory);
-  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+  let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
   let process_registry = system.process_registry();
   let observed = ArcShared::new(RwLock::new(Vec::<DeadLetterReason>::new()));

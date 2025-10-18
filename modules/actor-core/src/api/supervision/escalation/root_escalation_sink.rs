@@ -2,11 +2,10 @@ use core::marker::PhantomData;
 #[cfg(feature = "std")]
 use std::time::Instant;
 
-use cellex_utils_core_rs::Element;
-
 use crate::api::{
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
   supervision::{
     escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener},
     failure::{FailureEvent, FailureInfo},
@@ -17,24 +16,22 @@ use crate::api::{
 ///
 /// Handles failures at the root level of the actor system.
 /// Ultimately processes failures that cannot be escalated further.
-pub struct RootEscalationSink<M, MF>
+pub struct RootEscalationSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
   event_handler:  Option<FailureEventHandler>,
   event_listener: Option<FailureEventListener>,
   telemetry:      FailureTelemetryShared,
   observation:    TelemetryObservationConfig,
-  _marker:        PhantomData<(M, MF)>,
+  _marker:        PhantomData<MF>,
 }
 
-impl<M, MF> RootEscalationSink<M, MF>
+impl<MF> RootEscalationSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   /// Creates a new `RootEscalationSink`.
@@ -89,11 +86,10 @@ where
   }
 }
 
-impl<M, MF> Default for RootEscalationSink<M, MF>
+impl<MF> Default for RootEscalationSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   fn default() -> Self {
@@ -101,11 +97,10 @@ where
   }
 }
 
-impl<M, MF> EscalationSink<M, MF> for RootEscalationSink<M, MF>
+impl<MF> EscalationSink<DynMessage, MF> for RootEscalationSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   /// Processes failure information at root level.

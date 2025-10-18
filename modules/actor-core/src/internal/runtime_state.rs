@@ -17,7 +17,7 @@ where
   MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
   mailbox_factory:   ArcShared<MF>,
-  scheduler_builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>>,
+  scheduler_builder: ArcShared<ActorSchedulerHandleBuilder<MF>>,
 }
 
 impl<MF> GenericActorRuntimeState<MF>
@@ -34,7 +34,7 @@ where
   pub(crate) fn new(mailbox_factory: MF) -> Self {
     Self {
       mailbox_factory:   ArcShared::new(mailbox_factory),
-      scheduler_builder: ArcShared::new(ActorSchedulerHandleBuilder::<DynMessage, MF>::ready_queue()),
+      scheduler_builder: ArcShared::new(ActorSchedulerHandleBuilder::<MF>::ready_queue()),
     }
   }
 
@@ -60,12 +60,12 @@ where
 
   /// Returns a shared handle to the scheduler builder.
   #[must_use]
-  pub(crate) fn scheduler_builder(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>> {
+  pub(crate) fn scheduler_builder(&self) -> ArcShared<ActorSchedulerHandleBuilder<MF>> {
     self.scheduler_builder.clone()
   }
 
   /// Sets the scheduler builder for this runtime state.
-  pub(crate) fn set_scheduler_builder(&mut self, builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>>) {
+  pub(crate) fn set_scheduler_builder(&mut self, builder: ArcShared<ActorSchedulerHandleBuilder<MF>>) {
     self.scheduler_builder = builder;
   }
 }

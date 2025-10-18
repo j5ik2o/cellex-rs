@@ -182,7 +182,7 @@ where
 }
 
 fn spawn_worker_task<AR>(
-  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>,
+  worker: ArcShared<dyn ReadyQueueWorker<MailboxOf<AR>>>,
   shutdown: ShutdownToken,
 ) -> JoinHandle<Result<(), QueueError<PriorityEnvelope<DynMessage>>>>
 where
@@ -193,7 +193,7 @@ where
 }
 
 async fn ready_queue_worker_loop<AR>(
-  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>,
+  worker: ArcShared<dyn ReadyQueueWorker<MailboxOf<AR>>>,
   shutdown: ShutdownToken,
 ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
 where

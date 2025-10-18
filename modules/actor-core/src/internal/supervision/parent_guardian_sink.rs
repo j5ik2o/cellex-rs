@@ -1,40 +1,39 @@
-use cellex_utils_core_rs::Element;
-
 use crate::api::{
   actor::actor_ref::PriorityActorRef,
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  messaging::DynMessage,
   supervision::{escalation::EscalationSink, failure::FailureInfo},
 };
 
 /// Sink that forwards `SystemMessage::Escalate` to parent Guardian.
-pub(crate) struct ParentGuardianSink<M, MF>
+pub(crate) struct ParentGuardianSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
-  control_ref: PriorityActorRef<M, MF>,
-  map_system:  MapSystemShared<M>,
+  control_ref: PriorityActorRef<DynMessage, MF>,
+  map_system:  MapSystemShared<DynMessage>,
 }
 
-impl<M, MF> ParentGuardianSink<M, MF>
+impl<MF> ParentGuardianSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
-  pub(crate) const fn new(control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) -> Self {
+  pub(crate) const fn new(
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
+  ) -> Self {
     Self { control_ref, map_system }
   }
 }
 
-impl<M, MF> EscalationSink<M, MF> for ParentGuardianSink<M, MF>
+impl<MF> EscalationSink<DynMessage, MF> for ParentGuardianSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   fn handle(&mut self, info: FailureInfo, already_handled: bool) -> Result<(), FailureInfo> {

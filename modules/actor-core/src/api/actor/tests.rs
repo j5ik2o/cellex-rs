@@ -1089,44 +1089,41 @@ mod metrics_injection {
     }
   }
 
-  struct RecordingScheduler<M, MF> {
+  struct RecordingScheduler<MF> {
     metrics: Arc<Mutex<Option<usize>>>,
-    _marker: PhantomData<(M, MF)>,
+    _marker: PhantomData<MF>,
   }
 
-  impl<M, MF> RecordingScheduler<M, MF> {
+  impl<MF> RecordingScheduler<MF> {
     fn new(metrics: Arc<Mutex<Option<usize>>>) -> Self {
       Self { metrics, _marker: PhantomData }
     }
   }
 
-  fn make_scheduler_builder(
-    metrics: Arc<Mutex<Option<usize>>>,
-  ) -> ActorSchedulerHandleBuilder<DynMessage, TestMailboxFactory> {
+  fn make_scheduler_builder(metrics: Arc<Mutex<Option<usize>>>) -> ActorSchedulerHandleBuilder<TestMailboxFactory> {
     ActorSchedulerHandleBuilder::new(move |_runtime, _extensions| {
-      Box::new(RecordingScheduler::<DynMessage, TestMailboxFactory>::new(metrics.clone()))
+      Box::new(RecordingScheduler::<TestMailboxFactory>::new(metrics.clone()))
     })
   }
 
   #[async_trait::async_trait(?Send)]
-  impl<M, MF> ActorScheduler<M, MF> for RecordingScheduler<M, MF>
+  impl<MF> ActorScheduler<MF> for RecordingScheduler<MF>
   where
-    M: Element,
     MF: MailboxFactory + Clone + 'static,
-    MF::Queue<PriorityEnvelope<M>>: Clone,
+    MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
     MF::Signal: Clone,
   {
     fn spawn_actor(
       &mut self,
-      _supervisor: Box<dyn Supervisor<M>>,
-      _context: ActorSchedulerSpawnContext<M, MF>,
-    ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
+      _supervisor: Box<dyn Supervisor<DynMessage>>,
+      _context: ActorSchedulerSpawnContext<MF>,
+    ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
     fn set_receive_timeout_scheduler_factory_shared(
       &mut self,
-      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
     ) {
     }
 
@@ -1151,12 +1148,17 @@ mod metrics_injection {
       *slot = sink.map(|shared| shared.with_ref(|inner| inner as *const _ as *const () as usize));
     }
 
-    fn set_parent_guardian(&mut self, _control_ref: PriorityActorRef<M, MF>, _map_system: MapSystemShared<M>) {}
+    fn set_parent_guardian(
+      &mut self,
+      _control_ref: PriorityActorRef<DynMessage, MF>,
+      _map_system: MapSystemShared<DynMessage>,
+    ) {
+    }
 
     fn on_escalation(
       &mut self,
       _handler: Box<
-        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>>
+        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
           + 'static,
       >,
     ) {
@@ -1170,11 +1172,11 @@ mod metrics_injection {
       0
     }
 
-    fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+    fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
       Ok(false)
     }
 
-    async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+    async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
       Ok(())
     }
   }

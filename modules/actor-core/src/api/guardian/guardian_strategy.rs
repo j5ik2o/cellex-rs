@@ -1,5 +1,3 @@
-use cellex_utils_core_rs::Element;
-
 use crate::api::{
   actor::{actor_failure::BehaviorFailure, ActorId},
   mailbox::MailboxFactory,
@@ -12,11 +10,9 @@ use crate::api::{
 /// Determines how the parent actor (guardian) handles child actor failures.
 ///
 /// # Type Parameters
-/// - `M`: Message type processed by the mailbox
 /// - `MF`: Factory type that generates mailboxes
-pub trait GuardianStrategy<M, MF>: Send + 'static
+pub trait GuardianStrategy<MF>: Send + 'static
 where
-  M: Element,
   MF: MailboxFactory, {
   /// Determines the handling policy when an actor fails.
   ///

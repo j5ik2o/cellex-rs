@@ -1,51 +1,49 @@
 use alloc::{collections::BTreeMap, format, string::String};
 
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::QueueError;
 
 use super::{ChildRecord, GuardianStrategy};
 use crate::api::{
   actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming, SpawnError},
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  messaging::DynMessage,
   supervision::{failure::FailureInfo, supervisor::SupervisorDirective},
 };
 
-type ChildRoute<M, MF> = (PriorityActorRef<M, MF>, MapSystemShared<M>);
+type ChildRoute<MF> = (PriorityActorRef<DynMessage, MF>, MapSystemShared<DynMessage>);
 
 /// Guardian: Supervises child actors and sends SystemMessages.
-pub(crate) struct Guardian<M, MF, Strat>
+pub(crate) struct Guardian<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory,
-  Strat: GuardianStrategy<M, MF>, {
+  Strat: GuardianStrategy<MF>, {
   next_id:             usize,
-  pub(crate) children: BTreeMap<ActorId, ChildRecord<M, MF>>,
+  pub(crate) children: BTreeMap<ActorId, ChildRecord<MF>>,
   names:               BTreeMap<String, ActorId>,
   strategy:            Strat,
-  _marker:             core::marker::PhantomData<M>,
 }
 
 #[allow(dead_code)]
-impl<M, MF, Strat> Guardian<M, MF, Strat>
+impl<MF, Strat> Guardian<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   pub fn new(strategy: Strat) -> Self {
-    Self { next_id: 0, children: BTreeMap::new(), names: BTreeMap::new(), strategy, _marker: core::marker::PhantomData }
+    Self { next_id: 0, children: BTreeMap::new(), names: BTreeMap::new(), strategy }
   }
 
   pub fn register_child_with_naming(
     &mut self,
-    control_ref: PriorityActorRef<M, MF>,
-    map_system: MapSystemShared<M>,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
     watcher: Option<ActorId>,
     parent_path: &ActorPath,
     naming: ChildNaming,
-  ) -> Result<(ActorId, ActorPath), SpawnError<M>> {
+  ) -> Result<(ActorId, ActorPath), SpawnError<DynMessage>> {
     let assigned_name = match naming {
       | ChildNaming::Auto => None,
       | ChildNaming::WithPrefix(prefix) => Some(self.generate_prefixed_name(&prefix)),
@@ -81,7 +79,7 @@ where
     Ok((id, path))
   }
 
-  pub fn remove_child(&mut self, id: ActorId) -> Option<PriorityActorRef<M, MF>> {
+  pub fn remove_child(&mut self, id: ActorId) -> Option<PriorityActorRef<DynMessage, MF>> {
     self.children.remove(&id).map(|record| {
       if let Some(name) = record.name.as_ref() {
         self.names.remove(name);
@@ -96,7 +94,7 @@ where
     })
   }
 
-  pub fn child_ref(&self, id: ActorId) -> Option<&PriorityActorRef<M, MF>> {
+  pub fn child_ref(&self, id: ActorId) -> Option<&PriorityActorRef<DynMessage, MF>> {
     self.children.get(&id).map(|record| &record.control_ref)
   }
 
@@ -104,7 +102,7 @@ where
     &mut self,
     actor: ActorId,
     failure: ActorFailure,
-  ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<DynMessage>>> {
     let path = match self.children.get(&actor) {
       | Some(record) => record.path.clone(),
       | None => ActorPath::new().push_child(actor),
@@ -114,7 +112,7 @@ where
     self.handle_directive(actor, failure, directive)
   }
 
-  pub fn stop_child(&mut self, actor: ActorId) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  pub fn stop_child(&mut self, actor: ActorId) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     if let Some(record) = self.children.get(&actor) {
       let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (&*record.map_system)(sys));
       record.control_ref.sender().try_send(envelope)
@@ -126,7 +124,7 @@ where
   pub fn escalate_failure(
     &mut self,
     failure: FailureInfo,
-  ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<DynMessage>>> {
     let actor = failure.actor;
     let directive = self.strategy.decide(actor, failure.behavior_failure());
     self.handle_directive(actor, failure, directive)
@@ -134,11 +132,11 @@ where
 
   pub fn register_child(
     &mut self,
-    control_ref: PriorityActorRef<M, MF>,
-    map_system: MapSystemShared<M>,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
     watcher: Option<ActorId>,
     parent_path: &ActorPath,
-  ) -> Result<(ActorId, ActorPath), QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<(ActorId, ActorPath), QueueError<PriorityEnvelope<DynMessage>>> {
     match self.register_child_with_naming(control_ref, map_system, watcher, parent_path, ChildNaming::Auto) {
       | Ok(result) => Ok(result),
       | Err(SpawnError::Queue(err)) => Err(err),
@@ -148,7 +146,7 @@ where
     }
   }
 
-  pub fn child_route(&self, actor: ActorId) -> Option<ChildRoute<M, MF>> {
+  pub fn child_route(&self, actor: ActorId) -> Option<ChildRoute<MF>> {
     self.children.get(&actor).map(|record| (record.control_ref.clone(), record.map_system.clone()))
   }
 
@@ -168,7 +166,7 @@ where
     actor: ActorId,
     failure: FailureInfo,
     directive: SupervisorDirective,
-  ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<M>>> {
+  ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<DynMessage>>> {
     match directive {
       | SupervisorDirective::Resume => Ok(None),
       | SupervisorDirective::Stop => {

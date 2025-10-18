@@ -1,47 +1,45 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::QueueError;
 
 use crate::api::{
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
   supervision::failure::FailureInfo,
 };
 
-type FailureHandler<M> = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static;
+type FailureHandler = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static;
 
 use crate::api::supervision::escalation::EscalationSink;
 
 /// Sink based on custom handler.
-pub(crate) struct CustomEscalationSink<M, MF>
+pub(crate) struct CustomEscalationSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
-  handler: Box<FailureHandler<M>>,
+  handler: Box<FailureHandler>,
   _marker: PhantomData<MF>,
 }
 
-impl<M, MF> CustomEscalationSink<M, MF>
+impl<MF> CustomEscalationSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   pub(crate) fn new<F>(handler: F) -> Self
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static, {
     Self { handler: Box::new(handler), _marker: PhantomData }
   }
 }
 
-impl<M, MF> EscalationSink<M, MF> for CustomEscalationSink<M, MF>
+impl<MF> EscalationSink<DynMessage, MF> for CustomEscalationSink<MF>
 where
-  M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   fn handle(&mut self, info: FailureInfo, _already_handled: bool) -> Result<(), FailureInfo> {

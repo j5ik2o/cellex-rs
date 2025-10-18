@@ -20,7 +20,7 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
     messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
     process::{pid::Pid, process_registry::ProcessRegistry},
-    supervision::{failure::FailureInfo, supervisor::Supervisor},
+    supervision::failure::FailureInfo,
   },
   RuntimeBound,
 };
@@ -54,7 +54,7 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
-  pub(super) inner:      &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
+  pub(super) inner:      &'r mut ActorContext<'ctx, MailboxOf<AR>>,
   pub(super) metadata:   Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<AR>>>,
   pub(super) extensions: Extensions,
   pub(super) _marker:    PhantomData<U>,
@@ -72,7 +72,7 @@ where
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>) -> Self {
+  pub(crate) fn new(inner: &'r mut ActorContext<'ctx, MailboxOf<AR>>) -> Self {
     let extensions = inner.extensions();
     Self { inner, metadata: None, extensions, _marker: PhantomData }
   }
@@ -120,7 +120,7 @@ where
   }
 
   pub(crate) fn with_metadata(
-    inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
+    inner: &'r mut ActorContext<'ctx, MailboxOf<AR>>,
     metadata: MessageMetadata<MailboxConcurrencyOf<AR>>,
   ) -> Self {
     let extensions = inner.extensions();
@@ -159,6 +159,12 @@ where
     self.inner.watchers()
   }
 
+  /// Returns the current processing priority if the actor is executing within a priority context.
+  #[must_use]
+  pub fn current_priority(&self) -> Option<i8> {
+    self.inner.current_priority()
+  }
+
   /// Gets the PID representing this actor.
   #[must_use]
   pub fn self_pid(&self) -> &Pid {
@@ -191,7 +197,7 @@ where
   }
 
   /// Gets a mutable reference to the internal context.
-  pub fn inner(&mut self) -> &mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>> {
+  pub fn inner(&mut self) -> &mut ActorContext<'ctx, MailboxOf<AR>> {
     self.inner
   }
 }

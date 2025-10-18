@@ -21,7 +21,7 @@ where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
+  Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>, {
   pub(crate) system:                   ActorSystem<U, AR, Strat>,
   pub(crate) ready_queue_worker_count: NonZeroUsize,
   pub(crate) _marker:                  PhantomData<U>,
@@ -33,7 +33,7 @@ where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
+  Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>,
 {
   /// Gets the number of ReadyQueue workers to spawn when driving the system.
   #[must_use]
@@ -55,7 +55,7 @@ where
 
   /// Returns a ReadyQueue worker handle if supported by the underlying scheduler.
   #[must_use]
-  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>> {
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MailboxOf<AR>>>> {
     self.system.ready_queue_worker()
   }
 

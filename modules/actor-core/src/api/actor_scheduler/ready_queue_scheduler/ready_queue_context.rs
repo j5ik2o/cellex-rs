@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
@@ -13,6 +13,7 @@ use crate::{
     failure_telemetry::FailureTelemetryShared,
     guardian::GuardianStrategy,
     mailbox::{MailboxFactory, PriorityEnvelope},
+    messaging::DynMessage,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{
@@ -25,26 +26,24 @@ use crate::{
   internal::actor::ActorCell,
 };
 
-pub(crate) struct ReadyQueueContext<M, MF, Strat>
+pub(crate) struct ReadyQueueContext<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>, {
-  pub(crate) core:  ReadyQueueSchedulerCore<M, MF, Strat>,
+  Strat: GuardianStrategy<MF>, {
+  pub(crate) core:  ReadyQueueSchedulerCore<MF, Strat>,
   pub(crate) state: ArcShared<Mutex<ReadyQueueState>>,
 }
 
-impl<M, MF, Strat> ReadyQueueContext<M, MF, Strat>
+impl<MF, Strat> ReadyQueueContext<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   pub(crate) fn actor_count(&self) -> usize {
     self.core.actor_count()
   }
 
-  pub(crate) fn actor_mut(&mut self, index: usize) -> Option<&mut ActorCell<M, MF, Strat>> {
+  pub(crate) fn actor_mut(&mut self, index: usize) -> Option<&mut ActorCell<MF, Strat>> {
     self.core.actor_mut(index)
   }
 
@@ -54,9 +53,9 @@ where
 
   pub(crate) fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: ActorSchedulerSpawnContext<M, MF>,
-  ) -> Result<(PriorityActorRef<M, MF>, usize), SpawnError<M>> {
+    supervisor: Box<dyn Supervisor<DynMessage>>,
+    context: ActorSchedulerSpawnContext<MF>,
+  ) -> Result<(PriorityActorRef<DynMessage, MF>, usize), SpawnError<DynMessage>> {
     let actor_ref = self.core.spawn_actor(supervisor, context)?;
     let index = self.core.actor_count().saturating_sub(1);
     Ok((actor_ref, index))
@@ -80,11 +79,14 @@ where
     state.mark_idle(index, has_pending);
   }
 
-  pub(crate) fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+  pub(crate) fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
     self.core.drain_ready()
   }
 
-  pub(crate) fn process_actor_pending(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+  pub(crate) fn process_actor_pending(
+    &mut self,
+    index: usize,
+  ) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
     self.core.process_actor_pending(index)
   }
 
@@ -92,7 +94,7 @@ where
     self.core.wait_for_any_signal_future()
   }
 
-  pub(crate) fn process_ready_once(&mut self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>> {
+  pub(crate) fn process_ready_once(&mut self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>> {
     if let Some(index) = self.dequeue_ready() {
       let processed = self.core.process_actor_pending(index)?;
       let has_pending = self.actor_has_pending(index);
@@ -109,7 +111,7 @@ where
 
   pub(crate) fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static, {
     self.core.on_escalation(handler)
   }
 
@@ -119,7 +121,7 @@ where
 
   pub(crate) fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
   ) {
     self.core.set_receive_timeout_scheduler_factory_shared_opt(factory)
   }
@@ -128,7 +130,11 @@ where
     self.core.set_metrics_sink(sink)
   }
 
-  pub(crate) fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
+  pub(crate) fn set_parent_guardian(
+    &mut self,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
+  ) {
     self.core.set_parent_guardian(control_ref, map_system)
   }
 

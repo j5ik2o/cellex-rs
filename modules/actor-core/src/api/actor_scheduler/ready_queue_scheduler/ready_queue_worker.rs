@@ -1,20 +1,20 @@
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use futures::future::{select, Either, LocalBoxFuture};
 
 use crate::api::{
   actor::shutdown_token::ShutdownToken,
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
 };
 
 /// Worker interface exposing ReadyQueue operations for driver-level scheduling.
-pub trait ReadyQueueWorker<M, MF>
+pub trait ReadyQueueWorker<MF>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
   /// Processes one ready actor (if any). Returns `Some(true)` if progress was made.
-  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>>;
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>>;
 
   /// Returns a future that resolves when any actor becomes ready.
   fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>>;
@@ -27,16 +27,15 @@ where
 /// * `shutdown` - Shutdown signal token
 /// * `yield_now` - Closure to yield execution
 /// * `wait_for_shutdown` - Closure to wait for shutdown signal
-pub async fn drive_ready_queue_worker<M, MF, Y, YF, S, SF>(
-  worker: ArcShared<dyn ReadyQueueWorker<M, MF>>,
+pub async fn drive_ready_queue_worker<MF, Y, YF, S, SF>(
+  worker: ArcShared<dyn ReadyQueueWorker<MF>>,
   shutdown: ShutdownToken,
   mut yield_now: Y,
   mut wait_for_shutdown: S,
-) -> Result<(), QueueError<PriorityEnvelope<M>>>
+) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
   Y: FnMut() -> YF,
   YF: core::future::Future<Output = ()>,

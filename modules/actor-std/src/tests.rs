@@ -10,6 +10,7 @@ use cellex_actor_core_rs::{
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope},
     process::{
       pid::{Pid, SystemId},
       process_registry::ProcessRegistry,
@@ -154,10 +155,13 @@ async fn tokio_scheduler_builder_dispatches() {
   let context = ActorSchedulerSpawnContext {
     mailbox_factory: mailbox_factory.clone(),
     mailbox_factory_shared: mailbox_factory_shared,
-    map_system: MapSystemShared::new(Message::System),
+    map_system: MapSystemShared::new(|sys| DynMessage::new(MessageEnvelope::<Message>::System(sys))),
     mailbox_options: MailboxOptions::default(),
-    handler: Box::new(move |_, msg: Message| {
-      log_clone.lock().unwrap().push(msg);
+    handler: Box::new(move |_, msg: DynMessage| {
+      let envelope = msg.downcast::<MessageEnvelope<Message>>().expect("unexpected message type");
+      if let MessageEnvelope::System(system) = envelope {
+        log_clone.lock().unwrap().push(Message::System(system));
+      }
       Ok(())
     }),
     child_naming: ChildNaming::Auto,

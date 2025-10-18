@@ -2,7 +2,7 @@ use alloc::{boxed::Box, vec::Vec};
 use core::convert::Infallible;
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use spin::Mutex;
 
 use super::{
@@ -22,6 +22,7 @@ use crate::api::{
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
@@ -33,19 +34,17 @@ use crate::api::{
 };
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.
-pub struct ReadyQueueScheduler<M, MF, Strat = AlwaysRestart>
+pub struct ReadyQueueScheduler<MF, Strat = AlwaysRestart>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>, {
-  context: ArcShared<Mutex<ReadyQueueContext<M, MF, Strat>>>,
+  Strat: GuardianStrategy<MF>, {
+  context: ArcShared<Mutex<ReadyQueueContext<MF, Strat>>>,
   state:   ArcShared<Mutex<ReadyQueueState>>,
 }
 
 #[allow(dead_code)]
-impl<M, MF> ReadyQueueScheduler<M, MF, AlwaysRestart>
+impl<MF> ReadyQueueScheduler<MF, AlwaysRestart>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
 {
   /// Creates a scheduler that uses the `AlwaysRestart` guardian strategy.
@@ -58,9 +57,9 @@ where
     mailbox_factory: MF,
     strategy: Strat,
     extensions: Extensions,
-  ) -> ReadyQueueScheduler<M, MF, Strat>
+  ) -> ReadyQueueScheduler<MF, Strat>
   where
-    Strat: GuardianStrategy<M, MF>, {
+    Strat: GuardianStrategy<MF>, {
     let state = ArcShared::new(Mutex::new(ReadyQueueState::new()));
     let context = ReadyQueueContext {
       core:  ReadyQueueSchedulerCore::with_strategy(mailbox_factory, strategy, extensions),
@@ -70,16 +69,15 @@ where
   }
 }
 
-impl<M, MF, Strat> ReadyQueueScheduler<M, MF, Strat>
+impl<MF, Strat> ReadyQueueScheduler<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   /// Returns a handle that exposes ready-queue controls for cooperative workers.
-  pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<M, MF>> {
-    let shared = ArcShared::new(ReadyQueueWorkerImpl::<M, MF, Strat>::new(self.context.clone()));
-    shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<M, MF>)
+  pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<MF>> {
+    let shared = ArcShared::new(ReadyQueueWorkerImpl::<MF, Strat>::new(self.context.clone()));
+    shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<MF>)
   }
 
   fn make_ready_handle(&self, index: usize) -> ReadyQueueHandle {
@@ -98,9 +96,9 @@ where
   /// Spawns an actor and registers its mailbox with the ready queue.
   pub fn spawn_actor_internal(
     &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: ActorSchedulerSpawnContext<M, MF>,
-  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
+    supervisor: Box<dyn Supervisor<DynMessage>>,
+    context: ActorSchedulerSpawnContext<MF>,
+  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
     let (actor_ref, index) = {
       let mut ctx = self.context.lock();
       ctx.spawn_actor(supervisor, context)?
@@ -121,7 +119,7 @@ where
   /// Configures the receive-timeout factory shared by all scheduled actors.
   pub fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
   ) {
     let mut ctx = self.context.lock();
     ctx.set_receive_timeout_scheduler_factory_shared(factory);
@@ -146,7 +144,11 @@ where
   }
 
   /// Wires the parent guardian controls needed for supervising newly spawned actors.
-  pub fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
+  pub fn set_parent_guardian(
+    &mut self,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
+  ) {
     let mut ctx = self.context.lock();
     ctx.set_parent_guardian(control_ref, map_system);
   }
@@ -166,7 +168,7 @@ where
   /// Attaches a callback to react to escalation events raised by child actors.
   pub fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static, {
     let mut ctx = self.context.lock();
     ctx.on_escalation(handler);
   }
@@ -184,13 +186,13 @@ where
   }
 
   /// Processes queued ready actors and reports whether more work remains.
-  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
     let mut ctx = self.context.lock();
     ctx.drain_ready()
   }
 
   /// Drives the scheduler loop until the provided predicate returns `false`.
-  pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     F: FnMut() -> bool, {
     while should_continue() {
@@ -200,14 +202,14 @@ where
   }
 
   /// Continuously dispatches work until an error causes the loop to terminate.
-  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
+  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
     loop {
       self.dispatch_next().await?;
     }
   }
 
   /// Dispatches the next ready actor, waiting for mailbox signals when queues are empty.
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     loop {
       {
         let mut ctx = self.context.lock();
@@ -243,23 +245,22 @@ where
 }
 
 #[async_trait(?Send)]
-impl<M, MF, Strat> ActorScheduler<M, MF> for ReadyQueueScheduler<M, MF, Strat>
+impl<MF, Strat> ActorScheduler<MF> for ReadyQueueScheduler<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: ActorSchedulerSpawnContext<M, MF>,
-  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
+    supervisor: Box<dyn Supervisor<DynMessage>>,
+    context: ActorSchedulerSpawnContext<MF>,
+  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
     ReadyQueueScheduler::spawn_actor_internal(self, supervisor, context)
   }
 
   fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
   ) {
     ReadyQueueScheduler::set_receive_timeout_scheduler_factory_shared(self, factory)
   }
@@ -276,7 +277,11 @@ where
     ReadyQueueScheduler::set_metrics_sink(self, sink)
   }
 
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(
+    &mut self,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
+  ) {
     ReadyQueueScheduler::set_parent_guardian(self, control_ref, map_system)
   }
 
@@ -290,7 +295,7 @@ where
 
   fn on_escalation(
     &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static>,
   ) {
     ReadyQueueScheduler::on_escalation(self, handler)
   }
@@ -303,15 +308,15 @@ where
     ReadyQueueScheduler::actor_count(self)
   }
 
-  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
     ReadyQueueScheduler::drain_ready(self)
   }
 
-  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     ReadyQueueScheduler::dispatch_next(self).await
   }
 
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MF>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MF>>> {
     Some(self.worker_handle())
   }
 }

@@ -10,13 +10,12 @@ use super::{
 };
 use crate::{
   api::{
-    actor::{actor_context::ActorContext, behavior::SupervisorStrategyConfig},
+    actor::behavior::SupervisorStrategyConfig,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope, SystemMessage},
-    messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
-    supervision::supervisor::Supervisor,
+    messaging::{DynMessage, MetadataStorageMode},
   },
-  internal::actor::InternalProps,
+  internal::actor::{internal_props_from_adapter, InternalProps},
 };
 
 /// Properties that hold configuration for actor spawning.
@@ -30,7 +29,7 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
-  inner:      InternalProps<DynMessage, MailboxOf<AR>>,
+  inner:      InternalProps<MailboxOf<AR>>,
   _marker:    PhantomData<U>,
   supervisor: SupervisorStrategyConfig,
 }
@@ -124,33 +123,11 @@ where
     S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
     let behavior_factory =
       ArcShared::new(behavior_factory).into_dyn(|factory| factory as &(dyn Fn() -> Behavior<U, AR> + 'static));
-    let mut adapter = ActorAdapter::new(behavior_factory.clone(), system_handler);
+    let adapter = ActorAdapter::new(behavior_factory.clone(), system_handler);
     let map_system = ActorAdapter::<U, AR>::create_map_system();
     let supervisor = adapter.supervisor_config();
 
-    let handler = move |ctx: &mut ActorContext<'_, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
-                        message: DynMessage|
-          -> Result<(), ActorFailure> {
-      let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
-        panic!("unexpected message type delivered to typed handler");
-      };
-      match envelope {
-        | MessageEnvelope::User(user) => {
-          let (message, metadata) = user.into_parts::<MailboxConcurrencyOf<AR>>();
-          let metadata = metadata.unwrap_or_default();
-          let mut typed_ctx = Context::with_metadata(ctx, metadata);
-          adapter.handle_user(&mut typed_ctx, message)?;
-          Ok(())
-        },
-        | MessageEnvelope::System(message) => {
-          let mut typed_ctx = Context::new(ctx);
-          adapter.handle_system(&mut typed_ctx, message)?;
-          Ok(())
-        },
-      }
-    };
-
-    let inner = InternalProps::new(options, map_system, handler);
+    let inner = internal_props_from_adapter(options, map_system, adapter);
     Self { inner, _marker: PhantomData, supervisor }
   }
 
@@ -165,7 +142,7 @@ where
   ///
   /// # Returns
   /// Tuple of `(InternalProps, SupervisorStrategyConfig)`
-  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, MailboxOf<AR>>, SupervisorStrategyConfig) {
+  pub(crate) fn into_parts(self) -> (InternalProps<MailboxOf<AR>>, SupervisorStrategyConfig) {
     (self.inner, self.supervisor)
   }
 }
