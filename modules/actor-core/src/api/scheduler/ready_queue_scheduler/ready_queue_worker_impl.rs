@@ -4,9 +4,13 @@ use spin::Mutex;
 
 use super::ready_queue_context::ReadyQueueContext;
 use crate::{
-  api::mailbox::{MailboxFactory, PriorityEnvelope},
-  internal::{guardian::GuardianStrategy, scheduler::ready_queue_scheduler::ReadyQueueWorker},
+  api::{
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    scheduler::ready_queue_scheduler::ReadyQueueWorker,
+  },
+  internal::guardian::GuardianStrategy,
 };
+
 pub(crate) struct ReadyQueueWorkerImpl<M, MF, Strat>
 where
   M: Element,

@@ -7,11 +7,11 @@ pub(crate) struct ReadyQueueState {
 }
 
 impl ReadyQueueState {
-  pub(super) fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self { queue: VecDeque::new(), queued: Vec::new(), running: Vec::new() }
   }
 
-  pub(super) fn ensure_capacity(&mut self, len: usize) {
+  pub(crate) fn ensure_capacity(&mut self, len: usize) {
     if self.queued.len() < len {
       self.queued.resize(len, false);
     }
@@ -20,7 +20,7 @@ impl ReadyQueueState {
     }
   }
 
-  pub(super) fn enqueue_if_idle(&mut self, index: usize) -> bool {
+  pub(crate) fn enqueue_if_idle(&mut self, index: usize) -> bool {
     self.ensure_capacity(index + 1);
     if self.running[index] || self.queued[index] {
       return false;
@@ -30,7 +30,7 @@ impl ReadyQueueState {
     true
   }
 
-  pub(super) fn mark_running(&mut self, index: usize) {
+  pub(crate) fn mark_running(&mut self, index: usize) {
     self.ensure_capacity(index + 1);
     self.running[index] = true;
     if index < self.queued.len() {
@@ -38,7 +38,7 @@ impl ReadyQueueState {
     }
   }
 
-  pub(super) fn mark_idle(&mut self, index: usize, has_pending: bool) {
+  pub(crate) fn mark_idle(&mut self, index: usize, has_pending: bool) {
     self.ensure_capacity(index + 1);
     self.running[index] = false;
     if has_pending {

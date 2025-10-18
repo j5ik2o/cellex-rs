@@ -10,6 +10,9 @@ use cellex_actor_core_rs::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
+    scheduler::{
+      ActorScheduler, ReadyQueueScheduler, ReadyQueueWorker, SchedulerBuilder, SchedulerSpawnContext, SpawnError,
+    },
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -17,12 +20,7 @@ use cellex_actor_core_rs::{
       telemetry::TelemetryObservationConfig,
     },
   },
-  internal::{
-    guardian::{AlwaysRestart, GuardianStrategy},
-    scheduler::{
-      ActorScheduler, ReadyQueueScheduler, ReadyQueueWorker, SchedulerBuilder, SchedulerSpawnContext, SpawnError,
-    },
-  },
+  internal::guardian::{AlwaysRestart, GuardianStrategy},
 };
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use tokio::task::yield_now;

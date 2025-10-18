@@ -16,6 +16,7 @@ use crate::{
     mailbox::{Mailbox, MailboxFactory, MailboxProducer, MailboxSignal, PriorityEnvelope, SystemMessage},
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    scheduler::{spawn_error::SpawnError, SchedulerSpawnContext},
     supervision::{
       escalation::EscalationSink, failure::FailureInfo, supervisor::Supervisor, telemetry::TelemetryObservationConfig,
     },
@@ -24,7 +25,6 @@ use crate::{
     actor::ActorCell,
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
     mailbox::PriorityMailboxSpawnerHandle,
-    scheduler::{spawn_error::SpawnError, SchedulerSpawnContext},
     supervision::CompositeEscalationSink,
   },
 };
@@ -35,7 +35,7 @@ where
   M: Element,
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, MF>, {
-  pub(super) guardian:     Guardian<M, MF, Strat>,
+  pub(crate) guardian:     Guardian<M, MF, Strat>,
   actors:                  Vec<ActorCell<M, MF, Strat>>,
   escalations:             Vec<FailureInfo>,
   escalation_sink:         CompositeEscalationSink<M, MF>,
@@ -276,7 +276,7 @@ where
     Ok(handled)
   }
 
-  pub(super) fn wait_for_any_signal_future(&self) -> Option<LocalBoxFuture<'static, usize>> {
+  pub(crate) fn wait_for_any_signal_future(&self) -> Option<LocalBoxFuture<'static, usize>> {
     if self.actors.is_empty() {
       return None;
     }

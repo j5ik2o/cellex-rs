@@ -1,14 +1,12 @@
 use core::{convert::Infallible, marker::PhantomData, num::NonZeroUsize};
 
-use cellex_actor_core_rs::{
-  api::{
-    actor::shutdown_token::ShutdownToken,
-    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    actor_system::ActorSystemRunner,
-    mailbox::PriorityEnvelope,
-    messaging::DynMessage,
-  },
-  internal::scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+use cellex_actor_core_rs::api::{
+  actor::shutdown_token::ShutdownToken,
+  actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+  actor_system::ActorSystemRunner,
+  mailbox::PriorityEnvelope,
+  messaging::DynMessage,
+  scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
 };
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use futures::future::select_all;

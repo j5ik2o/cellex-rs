@@ -12,19 +12,17 @@ use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 use spin::Mutex;
 
 use super::*;
-use crate::{
-  api::{
-    actor::{
-      actor_failure::{ActorFailure, BehaviorFailure},
-      actor_ref::PriorityActorRef,
-      ActorId, ActorPath,
-    },
-    actor_system::map_system::MapSystemShared,
-    mailbox::{MailboxFactory, PriorityChannel, PriorityEnvelope, SystemMessage},
-    supervision::supervisor::SupervisorDirective,
-    test_support::TestMailboxFactory,
+use crate::api::{
+  actor::{
+    actor_failure::{ActorFailure, BehaviorFailure},
+    actor_ref::PriorityActorRef,
+    ActorId, ActorPath,
   },
-  internal::scheduler::{ChildNaming, SpawnError},
+  actor_system::map_system::MapSystemShared,
+  mailbox::{MailboxFactory, PriorityChannel, PriorityEnvelope, SystemMessage},
+  scheduler::{ChildNaming, SpawnError},
+  supervision::supervisor::SupervisorDirective,
+  test_support::TestMailboxFactory,
 };
 
 #[test]

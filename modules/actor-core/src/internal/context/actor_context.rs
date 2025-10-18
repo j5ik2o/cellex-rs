@@ -11,9 +11,10 @@ use crate::{
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
     receive_timeout::ReceiveTimeoutScheduler,
+    scheduler::ChildNaming,
     supervision::supervisor::Supervisor,
   },
-  internal::{actor::InternalProps, mailbox::PriorityMailboxSpawnerHandle, scheduler::ChildNaming},
+  internal::{actor::InternalProps, mailbox::PriorityMailboxSpawnerHandle},
 };
 
 /// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.

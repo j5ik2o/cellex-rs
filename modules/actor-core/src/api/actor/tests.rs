@@ -49,7 +49,6 @@ use crate::{
   internal::{
     guardian::AlwaysRestart,
     message::{take_metadata, InternalMessageSender},
-    scheduler::SpawnError,
   },
 };
 
@@ -323,7 +322,7 @@ use core::{
 use cellex_utils_core_rs::sync::ArcShared;
 use futures::{executor::block_on, future};
 
-use crate::api::mailbox::ThreadSafe;
+use crate::api::{mailbox::ThreadSafe, scheduler::SpawnError};
 
 #[derive(Debug)]
 struct CounterExtension {
@@ -1048,18 +1047,16 @@ mod metrics_injection {
   use std::sync::{Arc, Mutex};
 
   use super::*;
-  use crate::{
-    api::{
-      actor::actor_ref::PriorityActorRef,
-      actor_system::{ActorSystem, ActorSystemConfig},
-      failure_telemetry::FailureTelemetryShared,
-      mailbox::MailboxFactory,
-      messaging::DynMessage,
-      metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-      supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
-      test_support::TestMailboxFactory,
-    },
-    internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext},
+  use crate::api::{
+    actor::actor_ref::PriorityActorRef,
+    actor_system::{ActorSystem, ActorSystemConfig},
+    failure_telemetry::FailureTelemetryShared,
+    mailbox::MailboxFactory,
+    messaging::DynMessage,
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext},
+    supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
+    test_support::TestMailboxFactory,
   };
 
   #[derive(Clone)]

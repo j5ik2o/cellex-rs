@@ -11,11 +11,9 @@ use crate::{
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::PriorityEnvelope,
     messaging::{DynMessage, MetadataStorageMode},
-  },
-  internal::{
-    actor_system::InternalRootContext,
     scheduler::{ChildNaming, SpawnError},
   },
+  internal::actor_system::InternalRootContext,
 };
 
 /// Context for operating root actors.

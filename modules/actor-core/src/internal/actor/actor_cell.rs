@@ -12,13 +12,13 @@ use crate::{
     messaging::DynMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
+    scheduler::{ReadyQueueHandle, SpawnError},
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
   internal::{
     context::{ActorContext, ActorHandlerFn, ChildSpawnSpec},
     guardian::{Guardian, GuardianStrategy},
     mailbox::PriorityMailboxSpawnerHandle,
-    scheduler::{ReadyQueueHandle, SpawnError},
   },
 };
 
@@ -108,10 +108,7 @@ where
     MailboxProducer::set_scheduler_hook(&mut self.sender, hook);
   }
 
-  pub(in crate::internal) fn configure_receive_timeout_factory(
-    &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
-  ) {
+  pub fn configure_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
     if let Some(cell) = self.receive_timeout_scheduler.as_ref() {
       cell.borrow_mut().cancel();
     }

@@ -9,9 +9,10 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
+    scheduler::ChildNaming,
     supervision::supervisor::Supervisor,
   },
-  internal::{mailbox::PriorityMailboxSpawnerHandle, scheduler::ChildNaming},
+  internal::mailbox::PriorityMailboxSpawnerHandle,
 };
 
 /// Information required when spawning child actors.

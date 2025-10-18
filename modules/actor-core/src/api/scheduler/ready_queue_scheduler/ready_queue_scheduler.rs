@@ -23,6 +23,7 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, SchedulerSpawnContext, SpawnError},
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -30,10 +31,7 @@ use crate::{
       telemetry::TelemetryObservationConfig,
     },
   },
-  internal::{
-    guardian::{AlwaysRestart, GuardianStrategy},
-    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, SchedulerSpawnContext, SpawnError},
-  },
+  internal::guardian::{AlwaysRestart, GuardianStrategy},
 };
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.

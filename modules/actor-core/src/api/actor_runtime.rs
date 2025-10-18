@@ -15,9 +15,10 @@ use crate::{
     messaging::DynMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
+    scheduler::SchedulerBuilder,
     supervision::escalation::{FailureEventHandler, FailureEventListener},
   },
-  internal::{mailbox::PriorityMailboxSpawnerHandle, scheduler::SchedulerBuilder},
+  internal::mailbox::PriorityMailboxSpawnerHandle,
 };
 
 /// Helper alias mapping an actor runtime to its use

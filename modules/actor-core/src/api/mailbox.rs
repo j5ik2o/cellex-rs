@@ -4,7 +4,7 @@ use core::future::Future;
 
 use cellex_utils_core_rs::{QueueError, QueueSize};
 
-use crate::{api::metrics::MetricsSinkShared, internal::scheduler::ReadyQueueHandle};
+use crate::api::metrics::MetricsSinkShared;
 
 /// Mailbox concurrency modes
 mod mailbox_concurrency;
@@ -39,6 +39,8 @@ pub use queue_mailbox::*;
 pub use queue_mailbox_producer::*;
 pub use single_thread::*;
 pub use thread_safe::*;
+
+use crate::api::scheduler::ReadyQueueHandle;
 
 /// Type alias for mailbox and producer pair.
 ///

@@ -3,14 +3,12 @@ use alloc::{collections::BTreeMap, format, string::String};
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::{ChildRecord, GuardianStrategy};
-use crate::{
-  api::{
-    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath},
-    actor_system::map_system::MapSystemShared,
-    mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
-    supervision::{failure::FailureInfo, supervisor::SupervisorDirective},
-  },
-  internal::scheduler::{ChildNaming, SpawnError},
+use crate::api::{
+  actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath},
+  actor_system::map_system::MapSystemShared,
+  mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  scheduler::{ChildNaming, SpawnError},
+  supervision::{failure::FailureInfo, supervisor::SupervisorDirective},
 };
 
 type ChildRoute<M, MF> = (PriorityActorRef<M, MF>, MapSystemShared<M>);

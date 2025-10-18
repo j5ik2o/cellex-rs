@@ -170,7 +170,7 @@ Noop 実装を通常実装のデフォルト実装として統合:
 
 ```rust
 // Before: 3つの独立ファイル
-// noop_receive_timeout_driver.rs
+// noop_receive_timeout_scheduler_factory_provider
 pub struct NoopReceiveTimeoutDriver;
 
 // receive_timeout_driver.rs

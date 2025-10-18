@@ -13,6 +13,9 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    scheduler::{
+      actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, SchedulerSpawnContext, SpawnError,
+    },
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -20,12 +23,7 @@ use crate::{
       telemetry::TelemetryObservationConfig,
     },
   },
-  internal::{
-    guardian::{AlwaysRestart, GuardianStrategy},
-    scheduler::{
-      actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, SchedulerSpawnContext, SpawnError,
-    },
-  },
+  internal::guardian::{AlwaysRestart, GuardianStrategy},
 };
 
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.

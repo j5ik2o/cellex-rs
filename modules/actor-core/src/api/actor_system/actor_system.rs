@@ -15,12 +15,12 @@ use crate::{
     failure_telemetry::TelemetryContext,
     mailbox::PriorityEnvelope,
     messaging::DynMessage,
+    scheduler::ReadyQueueWorker,
     supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::{
     actor_system::{InternalActorSystem, InternalActorSystemConfig},
     guardian::AlwaysRestart,
-    scheduler::ReadyQueueWorker,
   },
 };
 

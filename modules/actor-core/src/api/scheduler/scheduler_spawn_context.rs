@@ -6,8 +6,9 @@ use crate::{
   api::{
     actor_system::map_system::MapSystemShared,
     mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
+    scheduler::child_naming::ChildNaming,
   },
-  internal::{context::ActorHandlerFn, scheduler::child_naming::ChildNaming},
+  internal::context::ActorHandlerFn,
 };
 
 /// Parameters supplied to schedulers when spawning a new actor.

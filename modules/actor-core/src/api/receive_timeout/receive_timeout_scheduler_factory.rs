@@ -2,13 +2,11 @@ use alloc::boxed::Box;
 
 use cellex_utils_core_rs::Element;
 
-use crate::{
-  api::{
-    actor_system::map_system::MapSystemShared,
-    mailbox::{MailboxFactory, PriorityEnvelope},
-    receive_timeout::ReceiveTimeoutScheduler,
-  },
-  internal::scheduler::SchedulerFactoryBound,
+use crate::api::{
+  actor_system::map_system::MapSystemShared,
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  receive_timeout::ReceiveTimeoutScheduler,
+  scheduler::SchedulerFactoryBound,
 };
 
 /// Factory for creating schedulers.

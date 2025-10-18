@@ -9,13 +9,10 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxOf},
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
+    scheduler::{ChildNaming, SchedulerSpawnContext, SpawnError},
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
-  internal::{
-    actor::InternalProps,
-    guardian::GuardianStrategy,
-    scheduler::{ChildNaming, SchedulerSpawnContext, SpawnError},
-  },
+  internal::{actor::InternalProps, guardian::GuardianStrategy},
 };
 
 pub(crate) struct InternalRootContext<'a, M, AR, Strat>

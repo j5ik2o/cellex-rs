@@ -7,13 +7,10 @@ use crate::{
     messaging::DynMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
+    scheduler::{NoopReceiveTimeoutSchedulerFactoryProvider, SchedulerBuilder},
     supervision::escalation::{FailureEventHandler, FailureEventListener},
   },
-  internal::{
-    mailbox::PriorityMailboxSpawnerHandle,
-    runtime_state::GenericActorRuntimeState,
-    scheduler::{NoopReceiveTimeoutSchedulerFactoryProvider, SchedulerBuilder},
-  },
+  internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
 };
 
 /// Helper alias mapping a runtime bundle back to its use

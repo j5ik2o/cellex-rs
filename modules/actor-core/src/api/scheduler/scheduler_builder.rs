@@ -6,16 +6,14 @@ use cellex_utils_core_rs::{
 };
 
 #[cfg(any(test, feature = "test-support"))]
-use crate::internal::scheduler::immediate_scheduler::ImmediateScheduler;
+use crate::api::scheduler::immediate_scheduler::ImmediateScheduler;
 use crate::{
   api::{
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-  },
-  internal::{
-    guardian::GuardianStrategy,
     scheduler::{actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler},
   },
+  internal::guardian::GuardianStrategy,
 };
 
 /// Type alias for boxed scheduler instances returned by builders.

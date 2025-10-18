@@ -8,6 +8,4 @@ pub(crate) mod mailbox;
 /// Internal message metadata storage and dispatch primitives.
 pub mod message;
 pub(crate) mod runtime_state;
-/// Internal schedulers coordinating actor execution and supervision.
-pub mod scheduler;
 pub(crate) mod supervision;

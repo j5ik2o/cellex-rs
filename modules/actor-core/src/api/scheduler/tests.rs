@@ -30,6 +30,13 @@ use crate::{
     mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
     messaging::DynMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    scheduler::{
+      actor_scheduler::ActorScheduler,
+      child_naming::ChildNaming,
+      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+      scheduler_builder::SchedulerBuilder,
+      SchedulerSpawnContext, SpawnError,
+    },
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -40,13 +47,6 @@ use crate::{
   internal::{
     context::{ActorContext, ActorHandlerFn},
     guardian::{AlwaysRestart, GuardianStrategy},
-    scheduler::{
-      actor_scheduler::ActorScheduler,
-      child_naming::ChildNaming,
-      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-      scheduler_builder::SchedulerBuilder,
-      SchedulerSpawnContext, SpawnError,
-    },
   },
 };
 

@@ -9,8 +9,9 @@ use crate::{
     actor_system::ActorSystem,
     mailbox::PriorityEnvelope,
     messaging::DynMessage,
+    scheduler::ReadyQueueWorker,
   },
-  internal::{guardian::AlwaysRestart, scheduler::ReadyQueueWorker},
+  internal::guardian::AlwaysRestart,
 };
 
 /// Execution runner for the actor system.

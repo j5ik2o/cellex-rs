@@ -10,9 +10,9 @@ use cellex_actor_core_rs::{
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    scheduler::{ChildNaming, SchedulerSpawnContext},
     supervision::supervisor::NoopSupervisor,
   },
-  internal::scheduler::{ChildNaming, SchedulerSpawnContext},
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_std_rs::{ArcStateCell, StateCell};
