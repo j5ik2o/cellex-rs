@@ -6,7 +6,7 @@ use crate::api::{
   actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
   actor_system::{ActorSystem, ActorSystemConfig},
   mailbox::PriorityEnvelope,
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// Builder that constructs an [`ActorSystem`] by applying configuration overrides on top of a
@@ -15,7 +15,7 @@ pub struct ActorSystemBuilder<U, AR>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   actor_runtime: AR,
   config:        ActorSystemConfig<AR>,
@@ -26,7 +26,7 @@ impl<U, AR> ActorSystemBuilder<U, AR>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
 {
   /// Creates a new builder with default configuration.

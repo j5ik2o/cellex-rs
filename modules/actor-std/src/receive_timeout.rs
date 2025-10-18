@@ -8,7 +8,7 @@ use core::time::Duration;
 use cellex_actor_core_rs::api::{
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   receive_timeout::{
     ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
     ReceiveTimeoutSchedulerFactoryShared,
@@ -23,8 +23,8 @@ use tokio::{
 
 use crate::TokioMailboxRuntime;
 
-/// Producer for sending `PriorityEnvelope<DynMessage>` to Tokio mailbox.
-type TokioSender = <TokioMailboxRuntime as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>;
+/// Producer for sending `PriorityEnvelope<AnyMessage>` to Tokio mailbox.
+type TokioSender = <TokioMailboxRuntime as MailboxFactory>::Producer<PriorityEnvelope<AnyMessage>>;
 
 #[derive(Debug)]
 enum Command {
@@ -59,7 +59,7 @@ pub struct TokioReceiveTimeoutScheduler {
 impl TokioReceiveTimeoutScheduler {
   fn spawn_task(
     sender: TokioSender,
-    map_system: MapSystemShared<DynMessage>,
+    map_system: MapSystemShared<AnyMessage>,
   ) -> (UnboundedSender<Command>, JoinHandle<()>) {
     let (tx, rx) = unbounded_channel();
     let handle = tokio::spawn(run_scheduler(rx, sender, map_system));
@@ -110,8 +110,8 @@ impl Default for TokioReceiveTimeoutSchedulerFactory {
   }
 }
 
-impl ReceiveTimeoutSchedulerFactory<DynMessage, TokioMailboxRuntime> for TokioReceiveTimeoutSchedulerFactory {
-  fn create(&self, sender: TokioSender, map_system: MapSystemShared<DynMessage>) -> Box<dyn ReceiveTimeoutScheduler> {
+impl ReceiveTimeoutSchedulerFactory<AnyMessage, TokioMailboxRuntime> for TokioReceiveTimeoutSchedulerFactory {
+  fn create(&self, sender: TokioSender, map_system: MapSystemShared<AnyMessage>) -> Box<dyn ReceiveTimeoutScheduler> {
     let (tx, handle) = TokioReceiveTimeoutScheduler::spawn_task(sender, map_system);
     Box::new(TokioReceiveTimeoutScheduler { tx, handle })
   }
@@ -130,7 +130,7 @@ impl TokioReceiveTimeoutDriver {
 }
 
 impl ReceiveTimeoutSchedulerFactoryProvider<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
-  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, TokioMailboxRuntime> {
+  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, TokioMailboxRuntime> {
     ReceiveTimeoutSchedulerFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new())
   }
 }
@@ -142,7 +142,7 @@ async fn wait_for_expired(timer: &mut TokioDeadlineTimer<()>) -> DeadlineTimerEx
 async fn run_scheduler(
   mut commands: UnboundedReceiver<Command>,
   sender: TokioSender,
-  map_system: MapSystemShared<DynMessage>,
+  map_system: MapSystemShared<AnyMessage>,
 ) {
   let mut timer = TokioDeadlineTimer::new();
   let mut state = TimerState::new();

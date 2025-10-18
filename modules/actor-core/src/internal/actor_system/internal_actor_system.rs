@@ -14,7 +14,7 @@ use crate::{
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{MailboxFactory, PriorityEnvelope},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     process::{
       pid::{NodeId, SystemId},
@@ -28,7 +28,7 @@ pub(crate) struct InternalActorSystem<AR, Strat = AlwaysRestart>
 where
   AR: ActorRuntime + Clone + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<MailboxOf<AR>>, {
   pub(super) scheduler: ActorSchedulerHandle<MailboxOf<AR>>,
@@ -39,7 +39,7 @@ where
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
   pub(super) process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>,
+    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
   #[allow(dead_code)]
   pub(super) system_id: SystemId,
   #[allow(dead_code)]
@@ -52,7 +52,7 @@ impl<AR> InternalActorSystem<AR, AlwaysRestart>
 where
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
 {
   pub fn new(actor_runtime: AR) -> Self {
@@ -70,15 +70,15 @@ where
     config: InternalActorSystemConfig<AR>,
   ) -> Self {
     let InternalActorSystemConfig {
-      root_event_listener,
-      root_escalation_handler,
-      receive_timeout_factory,
-      metrics_sink,
-      root_failure_telemetry,
+      root_event_listener_opt: root_event_listener,
+      root_escalation_handler_opt: root_escalation_handler,
+      receive_timeout_scheduler_factory_shared_opt,
+      metrics_sink_opt: metrics_sink,
+      root_failure_telemetry_shared: root_failure_telemetry,
       root_observation_config,
       extensions,
       system_id,
-      node_id,
+      node_id_opt: node_id,
     } = config;
     let actor_runtime_shared = ArcShared::new(actor_runtime);
     let mailbox_factory_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_factory_shared());
@@ -88,7 +88,7 @@ where
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_root_failure_telemetry(root_failure_telemetry);
     scheduler.set_root_observation_config(root_observation_config);
-    scheduler.set_receive_timeout_scheduler_factory_shared(receive_timeout_factory);
+    scheduler.set_receive_timeout_scheduler_factory_shared(receive_timeout_scheduler_factory_shared_opt);
     scheduler.set_metrics_sink(metrics_sink.clone());
     let process_registry = ArcShared::new(ProcessRegistry::new(system_id.clone(), node_id.clone()));
     Self {
@@ -109,7 +109,7 @@ impl<AR, Strat> InternalActorSystem<AR, Strat>
 where
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<MailboxOf<AR>>,
 {
@@ -118,27 +118,27 @@ where
     InternalRootContext { system: self }
   }
 
-  pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
     self.run_until_impl(should_continue).await
   }
 
-  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       self.scheduler.dispatch_next().await?;
     }
   }
 
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.scheduler.dispatch_next().await
   }
 
-  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.scheduler.drain_ready()
   }
 
-  pub fn run_until_idle<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  pub fn run_until_idle<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
     while should_continue() {
@@ -167,7 +167,7 @@ where
   #[must_use]
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
   {
     self.process_registry.clone()
   }
@@ -187,7 +187,7 @@ where
   async fn run_until_impl<F>(
     &mut self,
     mut should_continue: F,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
     while should_continue() {

@@ -6,7 +6,7 @@ use super::{
 };
 use crate::api::{
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// Shared wrapper around a [`ReceiveTimeoutSchedulerFactoryProvider`] implementation.
@@ -17,9 +17,9 @@ pub struct ReceiveTimeoutSchedulerFactoryProviderShared<MF> {
 impl<MF> ReceiveTimeoutSchedulerFactoryProviderShared<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
-  MF::Producer<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Producer<PriorityEnvelope<AnyMessage>>: Clone,
 {
   /// Creates a new shared driver from a concrete driver value.
   #[must_use]
@@ -50,7 +50,7 @@ where
 
   /// Builds a factory by delegating to the underlying driver.
   #[must_use]
-  pub fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF> {
+  pub fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF> {
     self.inner.with_ref(|driver| driver.build_factory())
   }
 }

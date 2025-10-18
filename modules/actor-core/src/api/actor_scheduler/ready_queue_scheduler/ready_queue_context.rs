@@ -13,7 +13,7 @@ use crate::{
     failure_telemetry::FailureTelemetryShared,
     guardian::GuardianStrategy,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{
@@ -53,9 +53,9 @@ where
 
   pub(crate) fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     context: ActorSchedulerSpawnContext<MF>,
-  ) -> Result<(PriorityActorRef<DynMessage, MF>, usize), SpawnError<DynMessage>> {
+  ) -> Result<(PriorityActorRef<AnyMessage, MF>, usize), SpawnError<AnyMessage>> {
     let actor_ref = self.core.spawn_actor(supervisor, context)?;
     let index = self.core.actor_count().saturating_sub(1);
     Ok((actor_ref, index))
@@ -79,14 +79,14 @@ where
     state.mark_idle(index, has_pending);
   }
 
-  pub(crate) fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub(crate) fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.core.drain_ready()
   }
 
   pub(crate) fn process_actor_pending(
     &mut self,
     index: usize,
-  ) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.core.process_actor_pending(index)
   }
 
@@ -94,7 +94,7 @@ where
     self.core.wait_for_any_signal_future()
   }
 
-  pub(crate) fn process_ready_once(&mut self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub(crate) fn process_ready_once(&mut self) -> Result<Option<bool>, QueueError<PriorityEnvelope<AnyMessage>>> {
     if let Some(index) = self.dequeue_ready() {
       let processed = self.core.process_actor_pending(index)?;
       let has_pending = self.actor_has_pending(index);
@@ -111,7 +111,7 @@ where
 
   pub(crate) fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static, {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static, {
     self.core.on_escalation(handler)
   }
 
@@ -121,7 +121,7 @@ where
 
   pub(crate) fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
     self.core.set_receive_timeout_scheduler_factory_shared_opt(factory)
   }
@@ -132,8 +132,8 @@ where
 
   pub(crate) fn set_parent_guardian(
     &mut self,
-    control_ref: PriorityActorRef<DynMessage, MF>,
-    map_system: MapSystemShared<DynMessage>,
+    control_ref: PriorityActorRef<AnyMessage, MF>,
+    map_system: MapSystemShared<AnyMessage>,
   ) {
     self.core.set_parent_guardian(control_ref, map_system)
   }

@@ -1,12 +1,14 @@
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
 
-use super::Context;
 use crate::{
   api::{
-    actor::ask::{AskError, AskResult},
+    actor::{
+      actor_context::ActorContext,
+      ask::{AskError, AskResult},
+    },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     mailbox::{MailboxFactory, PriorityEnvelope},
-    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
+    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
       process_registry::ProcessResolution,
@@ -21,7 +23,7 @@ where
   AR: ActorRuntime,
   MailboxOf<AR>: MailboxFactory + Clone + 'static, {
   /// Sends a response message back to the original sender.
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut ActorContext<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element;
@@ -31,11 +33,11 @@ impl<AR> MessageMetadataResponder<AR> for MessageMetadata<MailboxConcurrencyOf<A
 where
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
   MailboxSignalOf<AR>: Clone + RuntimeBound + 'static,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut ActorContext<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element, {
@@ -57,7 +59,7 @@ where
 }
 
 fn respond_via_pid<'r, 'ctx, Resp, U, AR>(
-  ctx: &mut Context<'r, 'ctx, U, AR>,
+  ctx: &mut ActorContext<'r, 'ctx, U, AR>,
   pid: crate::api::process::pid::Pid,
   envelope: MessageEnvelope<Resp>,
 ) -> AskResult<()>
@@ -66,13 +68,13 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   let registry = ctx.process_registry();
   match registry.with_ref(|registry| registry.resolve_pid(&pid)) {
     | ProcessResolution::Local(handle) => {
-      let dyn_message = DynMessage::new(envelope);
+      let dyn_message = AnyMessage::new(envelope);
       let send_result = handle
         .with_ref(|actor_ref| actor_ref.clone())
         .try_send_envelope(PriorityEnvelope::with_default_priority(dyn_message));
@@ -102,7 +104,7 @@ where
       }
     },
     | ProcessResolution::Remote => {
-      let dyn_message = DynMessage::new(envelope);
+      let dyn_message = AnyMessage::new(envelope);
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
       let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {
@@ -116,7 +118,7 @@ where
       Err(AskError::MissingResponder)
     },
     | ProcessResolution::Unresolved => {
-      let dyn_message = DynMessage::new(envelope);
+      let dyn_message = AnyMessage::new(envelope);
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
       let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {

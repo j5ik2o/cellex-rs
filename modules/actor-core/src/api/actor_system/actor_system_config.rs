@@ -7,7 +7,7 @@ use crate::api::{
   extensions::{Extension, Extensions},
   failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared},
   mailbox::PriorityEnvelope,
-  messaging::DynMessage,
+  messaging::AnyMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
@@ -18,12 +18,12 @@ use crate::api::{
 pub struct ActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   /// Listener invoked when failures bubble up to the root guardian.
   failure_event_listener_opt: Option<FailureEventListener>,
   /// Receive-timeout scheduler factory used by all actors spawned in the system.
-  receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
+  receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<AR>>>,
   /// Metrics sink shared across the actor runtime.
   metrics_sink_shared_opt: Option<MetricsSinkShared>,
   /// Telemetry invoked when failures reach the root guardian.
@@ -45,7 +45,7 @@ where
 impl<AR> Default for ActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
 {
   fn default() -> Self {
@@ -67,7 +67,7 @@ where
 impl<AR> ActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
 {
   /// Sets the failure event listener.
@@ -79,7 +79,7 @@ where
   /// Sets the receive-timeout factory.
   pub fn with_receive_timeout_scheduler_factory_shared_opt(
     mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<AR>>>,
   ) -> Self {
     self.receive_timeout_scheduler_factory_shared_opt = factory;
     self
@@ -150,7 +150,7 @@ where
   /// Mutable setter for the receive-timeout factory.
   pub fn set_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<AR>>>,
   ) {
     self.receive_timeout_scheduler_factory_shared_opt = factory;
   }
@@ -196,7 +196,7 @@ where
 
   pub(crate) fn receive_timeout_scheduler_factory_shared_opt(
     &self,
-  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>> {
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<AR>>> {
     self.receive_timeout_scheduler_factory_shared_opt.clone()
   }
 

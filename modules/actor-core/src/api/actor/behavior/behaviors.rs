@@ -2,10 +2,10 @@ use cellex_utils_core_rs::Element;
 
 use super::{Behavior, BehaviorDirective};
 use crate::api::{
-  actor::{actor_failure::ActorFailure, behavior::supervise_builder::SuperviseBuilder, context::Context},
+  actor::{actor_context::ActorContext, actor_failure::ActorFailure, behavior::supervise_builder::SuperviseBuilder},
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::PriorityEnvelope,
-  messaging::{DynMessage, MetadataStorageMode},
+  messaging::{AnyMessage, MetadataStorageMode},
 };
 
 /// Behavior DSL builder.
@@ -18,12 +18,11 @@ impl Behaviors {
   where
     U: Element,
     AR: ActorRuntime + 'static,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone,
     MailboxConcurrencyOf<AR>: MetadataStorageMode,
-    F:
-      for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure> + 'static,
-  {
+    F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure>
+      + 'static, {
     Behavior::receive(handler)
   }
 
@@ -33,7 +32,7 @@ impl Behaviors {
   where
     U: Element,
     AR: ActorRuntime + 'static,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone, {
     BehaviorDirective::Same
   }
@@ -44,7 +43,7 @@ impl Behaviors {
   where
     U: Element,
     AR: ActorRuntime + 'static,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone,
     MailboxConcurrencyOf<AR>: MetadataStorageMode,
     F: FnMut(U) -> Result<BehaviorDirective<U, AR>, ActorFailure> + 'static, {
@@ -57,7 +56,7 @@ impl Behaviors {
   where
     U: Element,
     AR: ActorRuntime + 'static,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone, {
     BehaviorDirective::Become(behavior)
   }
@@ -68,7 +67,7 @@ impl Behaviors {
   where
     U: Element,
     AR: ActorRuntime + 'static,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone, {
     BehaviorDirective::Become(Behavior::stopped())
   }
@@ -79,7 +78,7 @@ impl Behaviors {
   where
     U: Element,
     AR: ActorRuntime + 'static,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone, {
     SuperviseBuilder { behavior }
   }
@@ -89,10 +88,10 @@ impl Behaviors {
   where
     U: Element,
     AR: ActorRuntime + 'static,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone,
     MailboxConcurrencyOf<AR>: MetadataStorageMode,
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
+    F: for<'r, 'ctx> Fn(&mut ActorContext<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
     Behavior::setup(init)
   }
 }

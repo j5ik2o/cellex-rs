@@ -2,7 +2,7 @@ use core::fmt;
 
 use cellex_utils_core_rs::QueueError;
 
-use crate::api::{mailbox::PriorityEnvelope, messaging::DynMessage};
+use crate::api::{mailbox::PriorityEnvelope, messaging::AnyMessage};
 
 /// Errors that can occur during `ask` processing.
 #[derive(Debug)]
@@ -10,7 +10,7 @@ pub enum AskError {
   /// Responder not found
   MissingResponder,
   /// Message send failed
-  SendFailed(QueueError<PriorityEnvelope<DynMessage>>),
+  SendFailed(QueueError<PriorityEnvelope<AnyMessage>>),
   /// Responder was dropped before responding
   ResponderDropped,
   /// Response await was cancelled
@@ -31,8 +31,8 @@ impl fmt::Display for AskError {
   }
 }
 
-impl From<QueueError<PriorityEnvelope<DynMessage>>> for AskError {
-  fn from(value: QueueError<PriorityEnvelope<DynMessage>>) -> Self {
+impl From<QueueError<PriorityEnvelope<AnyMessage>>> for AskError {
+  fn from(value: QueueError<PriorityEnvelope<AnyMessage>>) -> Self {
     AskError::SendFailed(value)
   }
 }

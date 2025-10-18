@@ -16,7 +16,7 @@ use crate::{
     failure_telemetry::FailureTelemetryShared,
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
     mailbox::{Mailbox, MailboxFactory, MailboxProducer, MailboxSignal, PriorityEnvelope, SystemMessage},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{
@@ -31,14 +31,14 @@ pub(crate) struct ReadyQueueSchedulerCore<MF, Strat = AlwaysRestart>
 where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<MF>, {
-  pub(crate) guardian:     Guardian<MF, Strat>,
-  actors:                  Vec<ActorCell<MF, Strat>>,
-  escalations:             Vec<FailureInfo>,
-  escalation_sink:         CompositeEscalationSink<MF>,
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
-  metrics_sink:            Option<MetricsSinkShared>,
-  extensions:              Extensions,
-  _strategy:               PhantomData<Strat>,
+  pub(crate) guardian: Guardian<MF, Strat>,
+  actors: Vec<ActorCell<MF, Strat>>,
+  escalations: Vec<FailureInfo>,
+  escalation_sink: CompositeEscalationSink<MF>,
+  receive_timeout_scheduler_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
+  metrics_sink_opt: Option<MetricsSinkShared>,
+  extensions: Extensions,
+  _strategy: PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
@@ -62,8 +62,8 @@ where
       actors: Vec::new(),
       escalations: Vec::new(),
       escalation_sink: CompositeEscalationSink::default(),
-      receive_timeout_factory: None,
-      metrics_sink: None,
+      receive_timeout_scheduler_shared_opt: None,
+      metrics_sink_opt: None,
       extensions,
       _strategy: PhantomData,
     }
@@ -78,9 +78,9 @@ where
 {
   pub fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     context: ActorSchedulerSpawnContext<MF>,
-  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
+  ) -> Result<PriorityActorRef<AnyMessage, MF>, SpawnError<AnyMessage>> {
     let ActorSchedulerSpawnContext {
       mailbox_factory,
       mailbox_factory_shared,
@@ -92,10 +92,10 @@ where
       actor_pid_slot,
     } = context;
     let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_factory_shared);
-    mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
+    mailbox_spawner.set_metrics_sink(self.metrics_sink_opt.clone());
     let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
-    mailbox.set_metrics_sink(self.metrics_sink.clone());
-    sender.set_metrics_sink(self.metrics_sink.clone());
+    mailbox.set_metrics_sink(self.metrics_sink_opt.clone());
+    sender.set_metrics_sink(self.metrics_sink_opt.clone());
     let actor_sender = sender.clone();
     let control_ref = PriorityActorRef::new(actor_sender.clone());
     let watchers = vec![ActorId::ROOT];
@@ -127,11 +127,11 @@ where
       sender,
       supervisor,
       handler,
-      self.receive_timeout_factory.clone(),
+      self.receive_timeout_scheduler_shared_opt.clone(),
       self.extensions.clone(),
       process_registry,
     );
-    cell.set_metrics_sink(self.metrics_sink.clone());
+    cell.set_metrics_sink(self.metrics_sink_opt.clone());
     self.actors.push(cell);
     self.record_metric(MetricsEvent::ActorRegistered);
     Ok(control_ref)
@@ -140,7 +140,7 @@ where
   /// Legacy sync API. Internally uses the same path as `dispatch_next`,
   /// but `run_until` / `dispatch_next` is recommended for new code.
   #[deprecated(since = "3.1.0", note = "Use dispatch_next / run_until instead")]
-  pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     #[cfg(feature = "std")]
     {
       use core::sync::atomic::{AtomicBool, Ordering};
@@ -157,7 +157,7 @@ where
 
   /// Helper that repeats `dispatch_next` as long as the condition holds.
   /// Allows simple construction of wait loops that can be controlled from the runtime side.
-  pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
     while should_continue() {
@@ -169,13 +169,13 @@ where
   /// Runs the scheduler as a resident async task. Can be used like
   /// `tokio::spawn(async move { scheduler.run_forever().await })`.
   /// Stops on error or task cancellation.
-  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       self.dispatch_next().await?;
     }
   }
 
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       if self.drain_ready_cycle()? {
         return Ok(());
@@ -209,22 +209,22 @@ where
   }
 
   /// Processes one cycle of messages in the Ready queue. Returns true if processing occurred.
-  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.drain_ready_cycle()
   }
 
   pub fn set_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
-    self.receive_timeout_factory = factory.clone();
+    self.receive_timeout_scheduler_shared_opt = factory.clone();
     for actor in &mut self.actors {
-      actor.configure_receive_timeout_factory(factory.clone());
+      actor.configure_receive_timeout_scheduler_factory_shared_opt(factory.clone());
     }
   }
 
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink.clone();
+    self.metrics_sink_opt = sink.clone();
     for actor in &mut self.actors {
       actor.set_metrics_sink(sink.clone());
     }
@@ -232,14 +232,14 @@ where
 
   pub fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static, {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static, {
     self.escalation_sink.set_custom_handler(handler);
   }
 
   pub fn set_parent_guardian(
     &mut self,
-    control_ref: PriorityActorRef<DynMessage, MF>,
-    map_system: MapSystemShared<DynMessage>,
+    control_ref: PriorityActorRef<AnyMessage, MF>,
+    map_system: MapSystemShared<AnyMessage>,
   ) {
     self.escalation_sink.set_parent_guardian(control_ref, map_system);
   }
@@ -266,7 +266,7 @@ where
     self.escalation_sink.set_root_observation_config(config);
   }
 
-  fn handle_escalations(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  fn handle_escalations(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     if self.escalations.is_empty() {
       return Ok(false);
     }
@@ -308,7 +308,7 @@ where
     }))
   }
 
-  fn drain_ready_cycle(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  fn drain_ready_cycle(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut new_children = Vec::new();
     let len = self.actors.len();
     let mut processed_any = false;
@@ -323,7 +323,7 @@ where
     self.finish_cycle(new_children, processed_any)
   }
 
-  async fn process_waiting_actor(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  async fn process_waiting_actor(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     if index >= self.actors.len() {
       return Ok(false);
     }
@@ -338,7 +338,7 @@ where
     self.finish_cycle(new_children, processed_count > 0)
   }
 
-  pub fn process_actor_pending(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn process_actor_pending(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     if index >= self.actors.len() {
       return Ok(false);
     }
@@ -357,7 +357,7 @@ where
     &mut self,
     new_children: Vec<ActorCell<MF, Strat>>,
     processed_any: bool,
-  ) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     if !new_children.is_empty() {
       let added = new_children.len();
       self.actors.extend(new_children);
@@ -411,7 +411,7 @@ where
     if count == 0 {
       return;
     }
-    if let Some(sink) = &self.metrics_sink {
+    if let Some(sink) = &self.metrics_sink_opt {
       sink.with_ref(|sink| {
         for _ in 0..count {
           sink.record(event);

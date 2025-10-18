@@ -9,7 +9,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     process::pid::Pid,
     supervision::supervisor::Supervisor,
   },
@@ -21,19 +21,19 @@ pub(crate) struct ChildSpawnSpec<MF>
 where
   MF: MailboxFactory + Clone, {
   /// Mailbox instance assigned to the child actor.
-  pub mailbox:         MF::Mailbox<PriorityEnvelope<DynMessage>>,
+  pub mailbox:         MF::Mailbox<PriorityEnvelope<AnyMessage>>,
   /// Producer handle used to send messages to the child actor.
-  pub sender:          MF::Producer<PriorityEnvelope<DynMessage>>,
+  pub sender:          MF::Producer<PriorityEnvelope<AnyMessage>>,
   /// Supervisor that governs the child actor lifecycle.
-  pub supervisor:      Box<dyn Supervisor<DynMessage>>,
+  pub supervisor:      Box<dyn Supervisor<AnyMessage>>,
   /// Message handler executed by the child actor.
-  pub handler:         Box<ActorHandlerFn<DynMessage, MF>>,
+  pub handler:         Box<ActorHandlerFn<AnyMessage, MF>>,
   /// Mailbox spawner shared with the child.
-  pub mailbox_spawner: PriorityMailboxSpawnerHandle<DynMessage, MF>,
+  pub mailbox_spawner: PriorityMailboxSpawnerHandle<AnyMessage, MF>,
   /// List of actor IDs watching the child.
   pub watchers:        Vec<ActorId>,
   /// Mapping function from system messages to the actor message type.
-  pub map_system:      MapSystemShared<DynMessage>,
+  pub map_system:      MapSystemShared<AnyMessage>,
   /// Parent actor path for the spawned child.
   pub parent_path:     ActorPath,
   /// Shared extensions available to the child actor.

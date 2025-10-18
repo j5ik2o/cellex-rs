@@ -5,7 +5,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 use crate::{
   api::{
     mailbox::{MailboxConcurrency, PriorityEnvelope, ThreadSafe},
-    messaging::{DynMessage, MessageEnvelope},
+    messaging::{AnyMessage, MessageEnvelope},
   },
   internal::message::InternalMessageSender,
 };
@@ -57,7 +57,7 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
-  pub fn dispatch_user(&self, message: M) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn dispatch_user(&self, message: M) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.dispatch_envelope(MessageEnvelope::user(message))
   }
 
@@ -71,8 +71,8 @@ where
   pub fn dispatch_envelope(
     &self,
     envelope: MessageEnvelope<M>,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    let dyn_message = DynMessage::new(envelope);
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
+    let dyn_message = AnyMessage::new(envelope);
     self.inner.send_default(dyn_message)
   }
 
@@ -88,8 +88,8 @@ where
     &self,
     envelope: MessageEnvelope<M>,
     priority: i8,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    let dyn_message = DynMessage::new(envelope);
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
+    let dyn_message = AnyMessage::new(envelope);
     self.inner.send_with_priority(dyn_message, priority)
   }
 

@@ -1,11 +1,10 @@
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
-use super::AdapterFn;
 use crate::api::{
-  actor::actor_ref::ActorRef,
+  actor::{actor_context::AdapterFn, actor_ref::ActorRef},
   actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
   mailbox::PriorityEnvelope,
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// Reference to a message adapter.
@@ -15,7 +14,7 @@ where
   Ext: Element,
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   target:  ActorRef<U, AR>,
   adapter: ArcShared<AdapterFn<Ext, U>>,
@@ -26,7 +25,7 @@ where
   Ext: Element,
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
 {
   pub(crate) fn new(target: ActorRef<U, AR>, adapter: ArcShared<AdapterFn<Ext, U>>) -> Self {
@@ -34,13 +33,13 @@ where
   }
 
   /// Converts an external message and sends it to the target actor.
-  pub fn tell(&self, message: Ext) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn tell(&self, message: Ext) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let mapped = (self.adapter)(message);
     self.target.tell(mapped)
   }
 
   /// Converts an external message and sends it to the target actor with the specified priority.
-  pub fn tell_with_priority(&self, message: Ext, priority: i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn tell_with_priority(&self, message: Ext, priority: i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let mapped = (self.adapter)(message);
     self.target.tell_with_priority(mapped, priority)
   }

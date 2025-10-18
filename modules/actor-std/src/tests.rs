@@ -4,13 +4,13 @@ use std::sync::{Arc, Mutex};
 use cellex_actor_core_rs::{
   actor_loop,
   api::{
-    actor::{context::Context, ActorId, ChildNaming, Props},
+    actor::{actor_context::ActorContext, ActorId, ChildNaming, Props},
     actor_runtime::GenericActorRuntime,
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
-    messaging::{DynMessage, MessageEnvelope},
+    messaging::{AnyMessage, MessageEnvelope},
     process::{
       pid::{Pid, SystemId},
       process_registry::ProcessRegistry,
@@ -97,7 +97,7 @@ async fn run_receive_timeout_triggers() {
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(
-    move |ctx: &mut Context<'_, '_, u32, TokioActorRuntime>, msg| {
+    move |ctx: &mut ActorContext<'_, '_, u32, TokioActorRuntime>, msg| {
       if msg == 1 {
         ctx.set_receive_timeout(Duration::from_millis(10));
       }
@@ -105,7 +105,7 @@ async fn run_receive_timeout_triggers() {
     },
     Some({
       let timeout_clone = timeout_log.clone();
-      move |_: &mut Context<'_, '_, u32, TokioActorRuntime>, sys: SystemMessage| {
+      move |_: &mut ActorContext<'_, '_, u32, TokioActorRuntime>, sys: SystemMessage| {
         if matches!(sys, SystemMessage::ReceiveTimeout) {
           timeout_clone.lock().unwrap().push(sys);
         }
@@ -155,9 +155,9 @@ async fn tokio_scheduler_builder_dispatches() {
   let context = ActorSchedulerSpawnContext {
     mailbox_factory: mailbox_factory.clone(),
     mailbox_factory_shared: mailbox_factory_shared,
-    map_system: MapSystemShared::new(|sys| DynMessage::new(MessageEnvelope::<Message>::System(sys))),
+    map_system: MapSystemShared::new(|sys| AnyMessage::new(MessageEnvelope::<Message>::System(sys))),
     mailbox_options: MailboxOptions::default(),
-    handler: Box::new(move |_, msg: DynMessage| {
+    handler: Box::new(move |_, msg: AnyMessage| {
       let envelope = msg.downcast::<MessageEnvelope<Message>>().expect("unexpected message type");
       if let MessageEnvelope::System(system) = envelope {
         log_clone.lock().unwrap().push(Message::System(system));
@@ -179,8 +179,8 @@ async fn tokio_scheduler_builder_dispatches() {
 #[test]
 fn tokio_bundle_sets_default_receive_timeout_factory() {
   let bundle: TokioActorRuntime = tokio_actor_runtime();
-  let factory_from_bundle = bundle.receive_timeout_factory();
-  let factory_from_driver = bundle.receive_timeout_driver_factory();
+  let factory_from_bundle = bundle.receive_timeout_scheduler_factory_shared();
+  let factory_from_driver = bundle.receive_timeout_scheduler_factory_provider_shared_opt();
   assert!(
     factory_from_bundle.is_some() || factory_from_driver.is_some(),
     "Tokio バンドルは ReceiveTimeout ドライバまたはファクトリを提供する想定"

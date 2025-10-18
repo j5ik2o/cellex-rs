@@ -30,10 +30,10 @@ use super::{
 use crate::{
   api::{
     actor::{
+      actor_context::{ActorContext, MessageAdapterRef},
       actor_ref::ActorRef,
       ask::{ask_with_timeout, AskError},
       behavior::{Behavior, Behaviors},
-      context::{Context, MessageAdapterRef},
       props::Props,
       signal::Signal,
       ActorId,
@@ -42,7 +42,7 @@ use crate::{
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
     extensions::{next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension},
     mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
-    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender},
+    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender},
     supervision::{escalation::FailureEventListener, failure::FailureEvent},
     test_support::TestMailboxFactory,
   },
@@ -164,7 +164,7 @@ mod receive_timeout_injection {
     actor_runtime::ActorRuntime,
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
     mailbox::PriorityEnvelope,
-    messaging::DynMessage,
+    messaging::AnyMessage,
     receive_timeout::{
       ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
       ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
@@ -193,11 +193,11 @@ mod receive_timeout_injection {
     fn notify_activity(&mut self) {}
   }
 
-  impl ReceiveTimeoutSchedulerFactory<DynMessage, TestMailboxFactory> for CountingFactory {
+  impl ReceiveTimeoutSchedulerFactory<AnyMessage, TestMailboxFactory> for CountingFactory {
     fn create(
       &self,
-      _sender: <TestMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>,
-      _map_system: MapSystemShared<DynMessage>,
+      _sender: <TestMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<AnyMessage>>,
+      _map_system: MapSystemShared<AnyMessage>,
     ) -> Box<dyn ReceiveTimeoutScheduler> {
       self.calls.fetch_add(1, Ordering::SeqCst);
       Box::new(CountingScheduler)
@@ -217,7 +217,7 @@ mod receive_timeout_injection {
   }
 
   impl ReceiveTimeoutSchedulerFactoryProvider<TestMailboxFactory> for CountingDriver {
-    fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, TestMailboxFactory> {
+    fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, TestMailboxFactory> {
       self.driver_calls.fetch_add(1, Ordering::SeqCst);
       ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(self.factory_calls.clone()))
     }
@@ -356,10 +356,10 @@ impl Extension for CounterExtension {
 }
 
 #[cfg(target_has_atomic = "ptr")]
-type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
+type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + Send + Sync;
 
 #[cfg(not(target_has_atomic = "ptr"))]
-type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
+type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>;
 
 #[cfg(target_has_atomic = "ptr")]
 type TestDropHookFn = dyn Fn() + Send + Sync;
@@ -371,7 +371,7 @@ fn noop_sender<M>() -> MessageSender<M, ThreadSafe>
 where
   M: Element, {
   let dispatch_impl: Arc<NoopDispatchFn> =
-    Arc::new(|_message: DynMessage, _priority: i8| -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> { Ok(()) });
+    Arc::new(|_message: AnyMessage, _priority: i8| -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> { Ok(()) });
   let dispatch = ArcShared::from_arc_for_testing_dont_use_production(dispatch_impl);
   let internal = InternalMessageSender::new(dispatch);
   MessageSender::new(internal)
@@ -381,7 +381,7 @@ where
 fn test_supervise_builder_sets_strategy() {
   let props = Props::with_behavior(|| {
     Behaviors::supervise(Behavior::stateless(
-      |_: &mut Context<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, _: u32| Ok(()),
+      |_: &mut ActorContext<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, _: u32| Ok(()),
     ))
     .with_strategy(SupervisorStrategy::Restart)
   });
@@ -483,7 +483,7 @@ fn spawn_actor_with_counter_extension<AR>(
 ) -> (ActorSystem<u32, AR, AlwaysRestart>, ExtensionId, ArcShared<CounterExtension>)
 where
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   let extension = CounterExtension::new();
   let extension_id = extension.extension_id();
@@ -504,7 +504,7 @@ fn actor_context_accesses_registered_extension() {
   assert_eq!(root.extension::<CounterExtension, _, _>(extension_id, |ext| ext.value()), Some(0));
 
   let props = Props::with_behavior(move || {
-    Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, msg: u32| {
+    Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, msg: u32| {
       let _ = msg;
       ctx
         .extension::<CounterExtension, _, _>(extension_id, |ext| {
@@ -559,7 +559,7 @@ fn test_typed_actor_handles_system_stop() {
   let stopped: Rc<RefCell<bool>> = Rc::new(RefCell::new(false));
   let stopped_clone = stopped.clone();
 
-  let system_handler = move |_: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| {
+  let system_handler = move |_: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| {
     if matches!(sys_msg, SystemMessage::Stop) {
       *stopped_clone.borrow_mut() = true;
     }
@@ -624,7 +624,7 @@ fn test_typed_actor_handles_watch_unwatch() {
   let watchers_count: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
   let watchers_count_clone = watchers_count.clone();
 
-  let system_handler = Some(|ctx: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
+  let system_handler = Some(|ctx: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
     | SystemMessage::Watch(watcher) => {
       ctx.register_watcher(watcher);
     },
@@ -639,7 +639,7 @@ fn test_typed_actor_handles_watch_unwatch() {
       let watchers_factory = watchers_count_clone.clone();
       move || {
         let watchers_clone = watchers_factory.clone();
-        Behavior::stateless(move |ctx: &mut Context<'_, '_, u32, _>, _msg: u32| {
+        Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, u32, _>, _msg: u32| {
           *watchers_clone.borrow_mut() = ctx.watchers().len();
           Ok(())
         })
@@ -689,7 +689,7 @@ fn test_typed_actor_stateful_behavior_with_system_message() {
   let failures = Rc::new(RefCell::new(0u32));
 
   let failures_clone = failures.clone();
-  let system_handler = move |_ctx: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| {
+  let system_handler = move |_ctx: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| {
     if matches!(sys_msg, SystemMessage::Suspend) {
       *failures_clone.borrow_mut() += 1;
     }
@@ -700,7 +700,7 @@ fn test_typed_actor_stateful_behavior_with_system_message() {
       let count_factory = count.clone();
       move || {
         let count_clone = count_factory.clone();
-        Behavior::stateless(move |_ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+        Behavior::stateless(move |_ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
           *count_clone.borrow_mut() += msg;
           Ok(())
         })
@@ -741,7 +741,7 @@ fn test_behaviors_receive_self_loop() {
     let log_factory = log.clone();
     move || {
       let log_clone = log_factory.clone();
-      Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+      Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
         log_clone.borrow_mut().push(msg);
         if msg < 2 {
           ctx.self_ref().tell(msg + 1).expect("self tell");
@@ -808,16 +808,18 @@ fn test_parent_spawns_child_with_distinct_message_type() {
     let child_log_factory = child_log_for_parent.clone();
     move || {
       let child_log_parent = child_log_factory.clone();
-      Behaviors::receive(move |ctx: &mut Context<'_, '_, ParentMessage, _>, msg: ParentMessage| {
+      Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, ParentMessage, _>, msg: ParentMessage| {
         let name = msg.0;
         let child_props = Props::with_behavior({
           let child_log_factory = child_log_parent.clone();
           move || {
             let child_log_for_child = child_log_factory.clone();
-            Behaviors::receive(move |_child_ctx: &mut Context<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
-              child_log_for_child.borrow_mut().push(child_msg.text.clone());
-              Ok(Behaviors::same())
-            })
+            Behaviors::receive(
+              move |_child_ctx: &mut ActorContext<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
+                child_log_for_child.borrow_mut().push(child_msg.text.clone());
+                Ok(Behaviors::same())
+              },
+            )
           }
         });
         let child_ref = ctx.spawn_child(child_props);
@@ -852,7 +854,7 @@ fn test_message_adapter_converts_external_message() {
     move || {
       let log_clone = log_factory.clone();
       let adapter_slot_clone = adapter_slot_factory.clone();
-      Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+      Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
         log_clone.borrow_mut().push(msg);
         if adapter_slot_clone.borrow().is_none() {
           let adapter = ctx.message_adapter(|text: String| text.len() as u32);
@@ -893,7 +895,7 @@ fn test_parent_actor_spawns_child() {
     move || {
       let child_log_parent = child_log_factory.clone();
       let child_ref_holder_local = child_ref_holder_factory.clone();
-      Behavior::stateless(move |ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+      Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
         if child_ref_holder_local.borrow().is_none() {
           let child_log_for_child = child_log_parent.clone();
           let child_props = Props::new(move |_, child_msg: u32| {
@@ -1072,7 +1074,7 @@ mod metrics_injection {
     actor_system::{ActorSystem, ActorSystemConfig},
     failure_telemetry::FailureTelemetryShared,
     mailbox::MailboxFactory,
-    messaging::DynMessage,
+    messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
     test_support::TestMailboxFactory,
@@ -1110,20 +1112,20 @@ mod metrics_injection {
   impl<MF> ActorScheduler<MF> for RecordingScheduler<MF>
   where
     MF: MailboxFactory + Clone + 'static,
-    MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
     MF::Signal: Clone,
   {
     fn spawn_actor(
       &mut self,
-      _supervisor: Box<dyn Supervisor<DynMessage>>,
+      _supervisor: Box<dyn Supervisor<AnyMessage>>,
       _context: ActorSchedulerSpawnContext<MF>,
-    ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
+    ) -> Result<PriorityActorRef<AnyMessage, MF>, SpawnError<AnyMessage>> {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
     fn set_receive_timeout_scheduler_factory_shared(
       &mut self,
-      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
     ) {
     }
 
@@ -1150,15 +1152,15 @@ mod metrics_injection {
 
     fn set_parent_guardian(
       &mut self,
-      _control_ref: PriorityActorRef<DynMessage, MF>,
-      _map_system: MapSystemShared<DynMessage>,
+      _control_ref: PriorityActorRef<AnyMessage, MF>,
+      _map_system: MapSystemShared<AnyMessage>,
     ) {
     }
 
     fn on_escalation(
       &mut self,
       _handler: Box<
-        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
           + 'static,
       >,
     ) {
@@ -1172,11 +1174,11 @@ mod metrics_injection {
       0
     }
 
-    fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+    fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
       Ok(false)
     }
 
-    async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+    async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
       Ok(())
     }
   }
@@ -1199,7 +1201,7 @@ mod metrics_injection {
       ActorSystemConfig::default().with_metrics_sink_shared(config_sink);
 
     let _system =
-      ActorSystem::<DynMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
+      ActorSystem::<AnyMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
 
     assert_eq!(*recorded.lock().unwrap(), Some(config_ptr));
   }
@@ -1220,7 +1222,7 @@ mod metrics_injection {
     let config: ActorSystemConfig<GenericActorRuntime<TestMailboxFactory>> = ActorSystemConfig::default();
 
     let _system =
-      ActorSystem::<DynMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
+      ActorSystem::<AnyMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
 
     assert_eq!(*recorded.lock().unwrap(), Some(runtime_ptr));
   }

@@ -1,6 +1,6 @@
 use crate::api::{
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderBound, ReceiveTimeoutSchedulerFactoryShared},
 };
 
@@ -8,10 +8,10 @@ use crate::api::{
 pub trait ReceiveTimeoutSchedulerFactoryProvider<MF>: ReceiveTimeoutSchedulerFactoryProviderBound
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
-  MF::Producer<PriorityEnvelope<DynMessage>>: Clone, {
+  MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
   /// Builds a shared factory bound to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
   /// for the given actor runtime.
-  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>;
+  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>;
 }

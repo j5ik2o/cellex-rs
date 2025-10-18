@@ -11,7 +11,7 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::PriorityEnvelope,
-    messaging::{DynMessage, MetadataStorageMode},
+    messaging::{AnyMessage, MetadataStorageMode},
   },
   internal::actor_system::InternalRootContext,
 };
@@ -24,7 +24,7 @@ pub struct RootContext<'a, U, AR, Strat>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
   Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>, {
@@ -36,7 +36,7 @@ impl<'a, U, AR, Strat> RootContext<'a, U, AR, Strat>
 where
   U: Element,
   AR: ActorRuntime,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
   Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>,
@@ -54,14 +54,15 @@ where
   /// # Errors
   ///
   /// Returns [`SpawnError::Queue`] when the underlying scheduler encounters a queue failure.
-  pub fn spawn(&mut self, props: Props<U, AR>) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
+  pub fn spawn(&mut self, props: Props<U, AR>) -> Result<ActorRef<U, AR>, SpawnError<AnyMessage>>
   where
-    DynMessage: Element, {
-    let (internal_props, supervisor_cfg) = props.into_parts();
+    AnyMessage: Element, {
+    let (internal_props, supervisor_cfg): (crate::internal::actor::InternalProps<MailboxOf<AR>>, _) =
+      props.into_parts();
     let pid_slot = ArcShared::new(RwLock::new(None));
     let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
-      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
+      Box::new(supervisor_cfg.as_supervisor::<AnyMessage>()),
       internal_props,
       ChildNaming::Auto,
       pid_slot.clone(),
@@ -77,14 +78,15 @@ where
   /// # Errors
   ///
   /// Propagates queue failures from the scheduler.
-  pub fn spawn_prefix(&mut self, props: Props<U, AR>, prefix: &str) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
+  pub fn spawn_prefix(&mut self, props: Props<U, AR>, prefix: &str) -> Result<ActorRef<U, AR>, SpawnError<AnyMessage>>
   where
-    DynMessage: Element, {
-    let (internal_props, supervisor_cfg) = props.into_parts();
+    AnyMessage: Element, {
+    let (internal_props, supervisor_cfg): (crate::internal::actor::InternalProps<MailboxOf<AR>>, _) =
+      props.into_parts();
     let pid_slot = ArcShared::new(RwLock::new(None));
     let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
-      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
+      Box::new(supervisor_cfg.as_supervisor::<AnyMessage>()),
       internal_props,
       ChildNaming::WithPrefix(prefix.to_owned()),
       pid_slot.clone(),
@@ -98,14 +100,15 @@ where
   ///
   /// Returns [`SpawnError::NameExists`] if an actor with the same name already exists, or
   /// [`SpawnError::Queue`] if the scheduler reports a queue failure.
-  pub fn spawn_named(&mut self, props: Props<U, AR>, name: &str) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
+  pub fn spawn_named(&mut self, props: Props<U, AR>, name: &str) -> Result<ActorRef<U, AR>, SpawnError<AnyMessage>>
   where
-    DynMessage: Element, {
-    let (internal_props, supervisor_cfg) = props.into_parts();
+    AnyMessage: Element, {
+    let (internal_props, supervisor_cfg): (crate::internal::actor::InternalProps<MailboxOf<AR>>, _) =
+      props.into_parts();
     let pid_slot = ArcShared::new(RwLock::new(None));
     let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
-      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
+      Box::new(supervisor_cfg.as_supervisor::<AnyMessage>()),
       internal_props,
       ChildNaming::Explicit(name.to_owned()),
       pid_slot.clone(),
@@ -166,7 +169,7 @@ where
   ///
   /// Deprecated since version 3.1.0. Use `dispatch_next` or `run_until` instead.
   #[deprecated(since = "3.1.0", note = "Use dispatch_next or run_until instead")]
-  pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     #[allow(deprecated)]
     self.inner.dispatch_all()
   }
@@ -176,7 +179,7 @@ where
   /// # Returns
   ///
   /// `Ok(())` on success, `Err` if a mailbox error occurs
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await
   }
 

@@ -3,7 +3,7 @@ use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use crate::api::{
   actor_scheduler::ActorSchedulerHandleBuilder,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// Internal state container for `GenericActorRuntime`.
@@ -14,7 +14,7 @@ use crate::api::{
 pub(crate) struct GenericActorRuntimeState<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   mailbox_factory:   ArcShared<MF>,
   scheduler_builder: ArcShared<ActorSchedulerHandleBuilder<MF>>,
@@ -23,7 +23,7 @@ where
 impl<MF> GenericActorRuntimeState<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   /// Creates a new runtime state with the given use

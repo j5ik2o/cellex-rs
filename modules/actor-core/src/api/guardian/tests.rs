@@ -20,16 +20,16 @@ use crate::api::{
   },
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, PriorityChannel, PriorityEnvelope, SystemMessage},
-  messaging::{DynMessage, MessageEnvelope},
+  messaging::{AnyMessage, MessageEnvelope},
   supervision::supervisor::SupervisorDirective,
   test_support::TestMailboxFactory,
 };
 
-fn system_mapper() -> MapSystemShared<DynMessage> {
-  MapSystemShared::new(|sys| DynMessage::new(MessageEnvelope::<SystemMessage>::System(sys)))
+fn system_mapper() -> MapSystemShared<AnyMessage> {
+  MapSystemShared::new(|sys| AnyMessage::new(MessageEnvelope::<SystemMessage>::System(sys)))
 }
 
-fn extract_system(message: DynMessage) -> SystemMessage {
+fn extract_system(message: AnyMessage) -> SystemMessage {
   match message.downcast::<MessageEnvelope<SystemMessage>>() {
     | Ok(MessageEnvelope::System(system)) => system,
     | Ok(_) => panic!("unexpected user envelope"),
@@ -39,8 +39,8 @@ fn extract_system(message: DynMessage) -> SystemMessage {
 
 #[test]
 fn guardian_sends_restart_message() {
-  let (mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<DynMessage>>();
-  let ref_control: PriorityActorRef<DynMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
+  let (mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<AnyMessage>>();
+  let ref_control: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
 
   let mut guardian: Guardian<TestMailboxFactory, AlwaysRestart> = Guardian::new(AlwaysRestart);
   let parent_id = ActorId(1);
@@ -72,8 +72,8 @@ fn guardian_sends_stop_message() {
     }
   }
 
-  let (mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<DynMessage>>();
-  let ref_control: PriorityActorRef<DynMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
+  let (mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<AnyMessage>>();
+  let ref_control: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
 
   let mut guardian: Guardian<TestMailboxFactory, AlwaysStop> = Guardian::new(AlwaysStop);
   let parent_id = ActorId(7);
@@ -92,8 +92,8 @@ fn guardian_sends_stop_message() {
 
 #[test]
 fn guardian_emits_unwatch_on_remove() {
-  let (mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<DynMessage>>();
-  let ref_control: PriorityActorRef<DynMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
+  let (mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<AnyMessage>>();
+  let ref_control: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
 
   let mut guardian: Guardian<TestMailboxFactory, AlwaysRestart> = Guardian::new(AlwaysRestart);
   let parent_id = ActorId(3);
@@ -124,8 +124,8 @@ fn guardian_strategy_receives_behavior_failure() {
     }
   }
 
-  let (_, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<DynMessage>>();
-  let ref_control: PriorityActorRef<DynMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
+  let (_, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<AnyMessage>>();
+  let ref_control: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(sender);
 
   let captured = Arc::new(Mutex::new(Vec::new()));
   let mut guardian: Guardian<TestMailboxFactory, CaptureStrategy> = Guardian::new(CaptureStrategy(captured.clone()));
@@ -141,8 +141,8 @@ fn guardian_strategy_receives_behavior_failure() {
 
 #[test]
 fn guardian_rejects_duplicate_names() {
-  let (_mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<DynMessage>>();
-  let ref_control: PriorityActorRef<DynMessage, TestMailboxFactory> = PriorityActorRef::new(sender.clone());
+  let (_mailbox, sender) = TestMailboxFactory::unbounded().build_default_mailbox::<PriorityEnvelope<AnyMessage>>();
+  let ref_control: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(sender.clone());
 
   let mut guardian: Guardian<TestMailboxFactory, AlwaysRestart> = Guardian::new(AlwaysRestart);
   let parent_path = ActorPath::new();

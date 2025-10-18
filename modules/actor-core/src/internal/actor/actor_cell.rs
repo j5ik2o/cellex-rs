@@ -5,22 +5,22 @@ use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared};
 
 use crate::{
   api::{
-    actor::{
-      actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorContext, ActorHandlerFn, ActorId, ActorPath,
-      SpawnError,
-    },
+    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
     actor_scheduler::ReadyQueueHandle,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     guardian::{Guardian, GuardianStrategy},
     mailbox::{Mailbox, MailboxFactory, MailboxHandle, MailboxProducer, PriorityEnvelope, SystemMessage},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
-  internal::{context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
+  internal::{
+    actor_context::{ChildSpawnSpec, InternalActorContext},
+    mailbox::PriorityMailboxSpawnerHandle,
+  },
 };
 
 pub(crate) struct ActorCell<MF, Strat>
@@ -29,23 +29,23 @@ where
   Strat: GuardianStrategy<MF>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
   actor_id: ActorId,
-  map_system: MapSystemShared<DynMessage>,
+  map_system: MapSystemShared<AnyMessage>,
   watchers: Vec<ActorId>,
   actor_path: ActorPath,
   pid: Pid,
   mailbox_factory: MF,
-  mailbox_spawner: PriorityMailboxSpawnerHandle<DynMessage, MF>,
-  mailbox: MF::Mailbox<PriorityEnvelope<DynMessage>>,
-  sender: MF::Producer<PriorityEnvelope<DynMessage>>,
-  supervisor: Box<dyn Supervisor<DynMessage>>,
-  handler: Box<ActorHandlerFn<DynMessage, MF>>,
+  mailbox_spawner: PriorityMailboxSpawnerHandle<AnyMessage, MF>,
+  mailbox: MF::Mailbox<PriorityEnvelope<AnyMessage>>,
+  sender: MF::Producer<PriorityEnvelope<AnyMessage>>,
+  supervisor: Box<dyn Supervisor<AnyMessage>>,
+  handler: Box<ActorHandlerFn<AnyMessage, MF>>,
   _strategy: PhantomData<Strat>,
   stopped: bool,
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
-  receive_timeout_scheduler: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
+  receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
+  receive_timeout_scheduler_opt: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
   process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>>,
+    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
 }
 
 impl<MF, Strat> ActorCell<MF, Strat>
@@ -56,20 +56,20 @@ where
   #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
     actor_id: ActorId,
-    map_system: MapSystemShared<DynMessage>,
+    map_system: MapSystemShared<AnyMessage>,
     watchers: Vec<ActorId>,
     actor_path: ActorPath,
     pid: Pid,
     mailbox_factory: MF,
-    mailbox_spawner: PriorityMailboxSpawnerHandle<DynMessage, MF>,
-    mailbox: MF::Mailbox<PriorityEnvelope<DynMessage>>,
-    sender: MF::Producer<PriorityEnvelope<DynMessage>>,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
-    handler: Box<ActorHandlerFn<DynMessage, MF>>,
-    receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+    mailbox_spawner: PriorityMailboxSpawnerHandle<AnyMessage, MF>,
+    mailbox: MF::Mailbox<PriorityEnvelope<AnyMessage>>,
+    sender: MF::Producer<PriorityEnvelope<AnyMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
+    handler: Box<ActorHandlerFn<AnyMessage, MF>>,
+    receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
     extensions: Extensions,
     process_registry: ArcShared<
-      ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>,
+      ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>,
     >,
   ) -> Self {
     let mut cell = Self {
@@ -86,21 +86,21 @@ where
       handler,
       _strategy: PhantomData,
       stopped: false,
-      receive_timeout_factory: None,
-      receive_timeout_scheduler: None,
+      receive_timeout_scheduler_factory_shared_opt: None,
+      receive_timeout_scheduler_opt: None,
       extensions,
       process_registry,
     };
-    cell.configure_receive_timeout_factory(receive_timeout_factory);
+    cell.configure_receive_timeout_scheduler_factory_shared_opt(receive_timeout_scheduler_factory_shared_opt);
     cell
   }
 
   pub(crate) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>)
   where
     MF: MailboxFactory + Clone + 'static,
-    MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
     MF::Signal: Clone,
-    MF::Producer<PriorityEnvelope<DynMessage>>: Clone, {
+    MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
     Mailbox::set_metrics_sink(&mut self.mailbox, sink.clone());
     MailboxProducer::set_metrics_sink(&mut self.sender, sink.clone());
     self.mailbox_spawner.set_metrics_sink(sink);
@@ -109,25 +109,25 @@ where
   pub(crate) fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>)
   where
     MF: MailboxFactory + Clone + 'static,
-    MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
     MF::Signal: Clone,
-    MF::Producer<PriorityEnvelope<DynMessage>>: Clone, {
+    MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
     Mailbox::set_scheduler_hook(&mut self.mailbox, hook.clone());
     MailboxProducer::set_scheduler_hook(&mut self.sender, hook);
   }
 
-  pub fn configure_receive_timeout_factory(
+  pub fn configure_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
-    if let Some(cell) = self.receive_timeout_scheduler.as_ref() {
+    if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
       cell.borrow_mut().cancel();
     }
-    self.receive_timeout_scheduler = None;
-    self.receive_timeout_factory = factory.clone();
+    self.receive_timeout_scheduler_opt = None;
+    self.receive_timeout_scheduler_factory_shared_opt = factory.clone();
     if let Some(factory_arc) = factory {
       let scheduler = factory_arc.create(self.sender.clone(), self.map_system.clone());
-      self.receive_timeout_scheduler = Some(RefCell::new(scheduler));
+      self.receive_timeout_scheduler_opt = Some(RefCell::new(scheduler));
     }
   }
 
@@ -137,11 +137,11 @@ where
     }
 
     self.stopped = true;
-    if let Some(cell) = self.receive_timeout_scheduler.as_ref() {
+    if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
       cell.borrow_mut().cancel();
     }
-    self.receive_timeout_scheduler = None;
-    self.receive_timeout_factory = None;
+    self.receive_timeout_scheduler_opt = None;
+    self.receive_timeout_scheduler_factory_shared_opt = None;
     self.mailbox.close();
     self.process_registry.with_ref(|registry| registry.deregister(&self.pid));
     let _ = guardian.remove_child(self.actor_id);
@@ -158,24 +158,24 @@ where
 
   fn collect_envelopes(
     &mut self,
-  ) -> Result<Vec<PriorityEnvelope<DynMessage>>, QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<Vec<PriorityEnvelope<AnyMessage>>, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut drained = Vec::new();
     while let Some(envelope) = MailboxHandle::try_dequeue(&self.mailbox)? {
       drained.push(envelope);
     }
     if drained.len() > 1 {
-      drained.sort_by_key(|b: &PriorityEnvelope<DynMessage>| Reverse(b.priority()));
+      drained.sort_by_key(|b: &PriorityEnvelope<AnyMessage>| Reverse(b.priority()));
     }
     Ok(drained)
   }
 
   fn process_envelopes(
     &mut self,
-    envelopes: Vec<PriorityEnvelope<DynMessage>>,
+    envelopes: Vec<PriorityEnvelope<AnyMessage>>,
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<usize, QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<usize, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut processed = 0;
     for envelope in envelopes.into_iter() {
       self.dispatch_envelope(envelope, guardian, new_children, escalations)?;
@@ -189,7 +189,7 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<usize, QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<usize, QueueError<PriorityEnvelope<AnyMessage>>> {
     if self.stopped {
       return Ok(0);
     }
@@ -205,11 +205,11 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<usize, QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<usize, QueueError<PriorityEnvelope<AnyMessage>>> {
     if self.stopped {
       return Ok(0);
     }
-    let first: PriorityEnvelope<DynMessage> = match self.mailbox.recv().await {
+    let first: PriorityEnvelope<AnyMessage> = match self.mailbox.recv().await {
       | Ok(message) => message,
       | Err(QueueError::Disconnected) => return Ok(0),
       | Err(err) => return Err(err),
@@ -232,11 +232,11 @@ where
 
   pub(super) fn dispatch_envelope(
     &mut self,
-    envelope: PriorityEnvelope<DynMessage>,
+    envelope: PriorityEnvelope<AnyMessage>,
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     if self.stopped {
       return Ok(());
     }
@@ -285,13 +285,13 @@ where
 
   fn invoke_handler(
     &mut self,
-    message: DynMessage,
+    message: AnyMessage,
     priority: i8,
     influences_receive_timeout: bool,
     pending_specs: &mut Vec<ChildSpawnSpec<MF>>,
   ) -> Result<(), ActorFailure> {
-    let receive_timeout = self.receive_timeout_scheduler.as_ref();
-    let mut ctx = ActorContext::new(
+    let receive_timeout = self.receive_timeout_scheduler_opt.as_ref();
+    let mut ctx = InternalActorContext::new(
       &self.mailbox_factory,
       self.mailbox_spawner.clone(),
       &self.sender,
@@ -323,7 +323,7 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     match handler_result {
       | Ok(()) => {
         for spec in pending_specs.into_iter() {
@@ -351,7 +351,7 @@ where
     spec: ChildSpawnSpec<MF>,
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
-  ) -> Result<(), SpawnError<DynMessage>> {
+  ) -> Result<(), SpawnError<AnyMessage>> {
     let ChildSpawnSpec {
       mailbox,
       sender,
@@ -394,7 +394,7 @@ where
       sender,
       supervisor,
       handler,
-      self.receive_timeout_factory.clone(),
+      self.receive_timeout_scheduler_factory_shared_opt.clone(),
       extensions,
       self.process_registry.clone(),
     );
