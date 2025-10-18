@@ -31,16 +31,16 @@ where
   }
 }
 
-impl<M, R> PriorityMailboxBuilder<M> for R
+impl<M, MF> PriorityMailboxBuilder<M> for MF
 where
   M: Element,
-  R: MailboxFactory + Clone,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory + Clone,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
-  type Mailbox = R::Mailbox<PriorityEnvelope<M>>;
-  type Producer = R::Producer<PriorityEnvelope<M>>;
-  type Signal = R::Signal;
+  type Mailbox = MF::Mailbox<PriorityEnvelope<M>>;
+  type Producer = MF::Producer<PriorityEnvelope<M>>;
+  type Signal = MF::Signal;
 
   fn build_priority_mailbox(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox, Self::Producer> {
     MailboxFactory::build_mailbox::<PriorityEnvelope<M>>(self, options)

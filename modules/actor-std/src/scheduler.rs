@@ -27,35 +27,35 @@ use tokio::task::yield_now;
 /// Tokio 用スケジューララッパー。
 ///
 /// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`] を内包しつつ、`tokio::task::yield_now` による協調切り替えを行う。
-pub struct TokioScheduler<M, R, Strat = AlwaysRestart>
+pub struct TokioScheduler<M, MF, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  inner: ReadyQueueScheduler<M, R, Strat>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>, {
+  inner: ReadyQueueScheduler<M, MF, Strat>,
 }
 
-impl<M, R> TokioScheduler<M, R, AlwaysRestart>
+impl<M, MF> TokioScheduler<M, MF, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  MF: MailboxFactory + Clone + 'static,
 {
   /// ReadyQueue スケジューラを用いた既定構成を作成する。
-  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_factory: MF, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::new(mailbox_factory, extensions),
     }
   }
 }
 
-impl<M, R, Strat> TokioScheduler<M, R, Strat>
+impl<M, MF, Strat> TokioScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(mailbox_factory: R, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(mailbox_factory: MF, strategy: Strat, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions),
     }
@@ -63,23 +63,23 @@ where
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, R> for TokioScheduler<M, R, Strat>
+impl<M, MF, Strat> ActorScheduler<M, MF> for TokioScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  Strat: GuardianStrategy<M, MF>,
 {
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
+    context: SchedulerSpawnContext<M, MF>,
+  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
     self.inner.set_receive_timeout_factory(factory);
   }
 
@@ -103,7 +103,7 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
@@ -132,20 +132,20 @@ where
     Ok(())
   }
 
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MF>>> {
     Some(self.inner.worker_handle())
   }
 }
 
 /// Tokio 用スケジューラビルダーを生成するユーティリティ。
-pub fn tokio_scheduler_builder<M, R>() -> SchedulerBuilder<M, R>
+pub fn tokio_scheduler_builder<M, MF>() -> SchedulerBuilder<M, MF>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
   SchedulerBuilder::new(|mailbox_factory, extensions| {
-    Box::new(TokioScheduler::<M, R, AlwaysRestart>::new(mailbox_factory, extensions))
+    Box::new(TokioScheduler::<M, MF, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }
 

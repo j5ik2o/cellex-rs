@@ -58,10 +58,10 @@ fn guardian_sends_restart_message() {
 #[test]
 fn guardian_sends_stop_message() {
   struct AlwaysStop;
-  impl<M, R> GuardianStrategy<M, R> for AlwaysStop
+  impl<M, MF> GuardianStrategy<M, MF> for AlwaysStop
   where
     M: Element,
-    R: MailboxFactory,
+    MF: MailboxFactory,
   {
     fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
       SupervisorDirective::Stop
@@ -125,10 +125,10 @@ fn guardian_emits_unwatch_on_remove() {
 fn guardian_strategy_receives_behavior_failure() {
   struct CaptureStrategy(Arc<Mutex<Vec<String>>>);
 
-  impl<M, R> GuardianStrategy<M, R> for CaptureStrategy
+  impl<M, MF> GuardianStrategy<M, MF> for CaptureStrategy
   where
     M: Element,
-    R: MailboxFactory,
+    MF: MailboxFactory,
   {
     fn decide(&mut self, _actor: ActorId, error: &dyn BehaviorFailure) -> SupervisorDirective {
       self.0.lock().push(error.description().into_owned());

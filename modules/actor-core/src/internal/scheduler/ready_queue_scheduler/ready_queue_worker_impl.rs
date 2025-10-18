@@ -9,30 +9,30 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use super::ready_queue_context::ReadyQueueContext;
-pub(crate) struct ReadyQueueWorkerImpl<M, R, Strat>
+pub(crate) struct ReadyQueueWorkerImpl<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>, {
+  context: ArcShared<Mutex<ReadyQueueContext<M, MF, Strat>>>,
 }
 
-impl<M, R, Strat> ReadyQueueWorkerImpl<M, R, Strat>
+impl<M, MF, Strat> ReadyQueueWorkerImpl<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
-  pub(crate) fn new(context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>) -> Self {
+  pub(crate) fn new(context: ArcShared<Mutex<ReadyQueueContext<M, MF, Strat>>>) -> Self {
     Self { context }
   }
 }
 
-impl<M, R, Strat> ReadyQueueWorker<M, R> for ReadyQueueWorkerImpl<M, R, Strat>
+impl<M, MF, Strat> ReadyQueueWorker<M, MF> for ReadyQueueWorkerImpl<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>> {
     let mut ctx = self.context.lock();

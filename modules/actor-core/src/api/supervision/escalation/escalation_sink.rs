@@ -18,12 +18,12 @@ pub type FailureEventListener = FailureEventListenerShared;
 /// Sink for controlling how `FailureInfo` is propagated upward.
 ///
 /// Defines escalation processing for actor failure information.
-pub trait EscalationSink<M, R>
+pub trait EscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
   /// Processes failure information.
   ///
   /// # Arguments

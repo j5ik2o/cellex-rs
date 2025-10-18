@@ -10,40 +10,40 @@ use cellex_utils_core_rs::{Element, QueueError};
 /// raw mailbox types and is primarily used by runtime internals. It lives in
 /// the `api` layer so that other public types (such as [`ActorRef`]) can hold
 /// it without depending on `internal` modules.
-pub struct PriorityActorRef<M, R>
+pub struct PriorityActorRef<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
-  sender: R::Producer<PriorityEnvelope<M>>,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
+  sender: MF::Producer<PriorityEnvelope<M>>,
 }
 
-unsafe impl<M, R> Send for PriorityActorRef<M, R>
+unsafe impl<M, MF> Send for PriorityActorRef<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
-  R::Signal: Clone + RuntimeBound,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
+  MF::Signal: Clone + RuntimeBound,
 {
 }
 
-unsafe impl<M, R> Sync for PriorityActorRef<M, R>
+unsafe impl<M, MF> Sync for PriorityActorRef<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
-  R::Signal: Clone + RuntimeBound,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
+  MF::Signal: Clone + RuntimeBound,
 {
 }
 
-impl<M, R> Clone for PriorityActorRef<M, R>
+impl<M, MF> Clone for PriorityActorRef<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  MF::Producer<PriorityEnvelope<M>>: Clone,
 {
   fn clone(&self) -> Self {
     Self {
@@ -52,17 +52,17 @@ where
   }
 }
 
-impl<M, R> PriorityActorRef<M, R>
+impl<M, MF> PriorityActorRef<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  MF::Producer<PriorityEnvelope<M>>: Clone,
 {
   /// Wraps a mailbox producer handle.
   #[must_use]
-  pub fn new(sender: R::Producer<PriorityEnvelope<M>>) -> Self {
+  pub fn new(sender: MF::Producer<PriorityEnvelope<M>>) -> Self {
     Self { sender }
   }
 
@@ -87,15 +87,15 @@ where
 
   /// Returns the raw producer handle kept by the reference.
   #[must_use]
-  pub fn sender(&self) -> &R::Producer<PriorityEnvelope<M>> {
+  pub fn sender(&self) -> &MF::Producer<PriorityEnvelope<M>> {
     &self.sender
   }
 }
 
-impl<R> PriorityActorRef<SystemMessage, R>
+impl<MF> PriorityActorRef<SystemMessage, MF>
 where
-  R: MailboxFactory,
-  R::Producer<PriorityEnvelope<SystemMessage>>: Clone,
+  MF: MailboxFactory,
+  MF::Producer<PriorityEnvelope<SystemMessage>>: Clone,
 {
   /// Sends a system message via the reference.
   pub fn try_send_system(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<SystemMessage>>> {

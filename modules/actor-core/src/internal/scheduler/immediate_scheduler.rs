@@ -26,37 +26,37 @@ use cellex_utils_core_rs::{Element, QueueError};
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.
 ///
 /// This scheduler simply delegates to [`ReadyQueueScheduler`] but exposes a distinct builder entry point.
-pub struct ImmediateScheduler<M, R, Strat = AlwaysRestart>
+pub struct ImmediateScheduler<M, MF, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  inner: ReadyQueueScheduler<M, R, Strat>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>, {
+  inner: ReadyQueueScheduler<M, MF, Strat>,
 }
 
-impl<M, R> ImmediateScheduler<M, R, AlwaysRestart>
+impl<M, MF> ImmediateScheduler<M, MF, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  MF: MailboxFactory + Clone + 'static,
 {
   /// Creates a new immediate scheduler with the default guardian strategy.
   #[must_use]
-  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_factory: MF, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::new(mailbox_factory, extensions),
     }
   }
 }
 
-impl<M, R, Strat> ImmediateScheduler<M, R, Strat>
+impl<M, MF, Strat> ImmediateScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   /// Creates a new immediate scheduler with a custom guardian strategy.
   #[must_use]
-  pub fn with_strategy(mailbox_factory: R, strategy: Strat, extensions: Extensions) -> Self {
+  pub fn with_strategy(mailbox_factory: MF, strategy: Strat, extensions: Extensions) -> Self {
     Self {
       inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions),
     }
@@ -64,23 +64,23 @@ where
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, R> for ImmediateScheduler<M, R, Strat>
+impl<M, MF, Strat> ActorScheduler<M, MF> for ImmediateScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  Strat: GuardianStrategy<M, MF>,
 {
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
+    context: SchedulerSpawnContext<M, MF>,
+  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
     self.inner.set_receive_timeout_factory(factory);
   }
 
@@ -104,7 +104,7 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 

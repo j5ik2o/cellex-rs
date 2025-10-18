@@ -1127,12 +1127,12 @@ mod metrics_injection {
     }
   }
 
-  struct RecordingScheduler<M, R> {
+  struct RecordingScheduler<M, MF> {
     metrics: Arc<Mutex<Option<usize>>>,
-    _marker: PhantomData<(M, R)>,
+    _marker: PhantomData<(M, MF)>,
   }
 
-  impl<M, R> RecordingScheduler<M, R> {
+  impl<M, MF> RecordingScheduler<M, MF> {
     fn new(metrics: Arc<Mutex<Option<usize>>>) -> Self {
       Self {
         metrics,
@@ -1150,24 +1150,24 @@ mod metrics_injection {
   }
 
   #[async_trait::async_trait(?Send)]
-  impl<M, R> ActorScheduler<M, R> for RecordingScheduler<M, R>
+  impl<M, MF> ActorScheduler<M, MF> for RecordingScheduler<M, MF>
   where
     M: Element,
-    R: MailboxFactory + Clone + 'static,
-    R::Queue<PriorityEnvelope<M>>: Clone,
-    R::Signal: Clone,
+    MF: MailboxFactory + Clone + 'static,
+    MF::Queue<PriorityEnvelope<M>>: Clone,
+    MF::Signal: Clone,
   {
     fn spawn_actor(
       &mut self,
       _supervisor: Box<dyn Supervisor<M>>,
-      _context: SchedulerSpawnContext<M, R>,
-    ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
+      _context: SchedulerSpawnContext<M, MF>,
+    ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
     fn set_receive_timeout_factory(
       &mut self,
-      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<M, R>>,
+      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
     ) {
     }
 
@@ -1192,7 +1192,7 @@ mod metrics_injection {
       *slot = sink.map(|shared| shared.with_ref(|inner| inner as *const _ as *const () as usize));
     }
 
-    fn set_parent_guardian(&mut self, _control_ref: PriorityActorRef<M, R>, _map_system: MapSystemShared<M>) {}
+    fn set_parent_guardian(&mut self, _control_ref: PriorityActorRef<M, MF>, _map_system: MapSystemShared<M>) {}
 
     fn on_escalation(
       &mut self,

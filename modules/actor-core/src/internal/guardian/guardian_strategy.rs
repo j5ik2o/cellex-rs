@@ -11,11 +11,11 @@ use cellex_utils_core_rs::Element;
 ///
 /// # Type Parameters
 /// - `M`: Message type processed by the mailbox
-/// - `R`: Factory type that generates mailboxes
-pub trait GuardianStrategy<M, R>: Send + 'static
+/// - `MF`: Factory type that generates mailboxes
+pub trait GuardianStrategy<M, MF>: Send + 'static
 where
   M: Element,
-  R: MailboxFactory, {
+  MF: MailboxFactory, {
   /// Determines the handling policy when an actor fails.
   ///
   /// # Arguments

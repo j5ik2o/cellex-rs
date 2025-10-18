@@ -7,11 +7,11 @@ use alloc::string::String;
 use cellex_utils_core_rs::Element;
 
 #[allow(dead_code)]
-pub(crate) struct ChildRecord<M, R>
+pub(crate) struct ChildRecord<M, MF>
 where
   M: Element,
-  R: MailboxFactory, {
-  pub(super) control_ref: PriorityActorRef<M, R>,
+  MF: MailboxFactory, {
+  pub(super) control_ref: PriorityActorRef<M, MF>,
   pub(super) map_system: MapSystemShared<M>,
   pub(super) watcher: Option<ActorId>,
   pub(super) path: ActorPath,

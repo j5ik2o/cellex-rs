@@ -15,20 +15,20 @@ use super::ActorHandlerFn;
 use crate::api::actor_system::map_system::MapSystemShared;
 
 /// Information required when spawning child actors.
-pub struct ChildSpawnSpec<M, R>
+pub struct ChildSpawnSpec<M, MF>
 where
   M: Element,
-  R: MailboxFactory + Clone, {
+  MF: MailboxFactory + Clone, {
   /// Mailbox instance assigned to the child actor.
-  pub mailbox: R::Mailbox<PriorityEnvelope<M>>,
+  pub mailbox: MF::Mailbox<PriorityEnvelope<M>>,
   /// Producer handle used to send messages to the child actor.
-  pub sender: R::Producer<PriorityEnvelope<M>>,
+  pub sender: MF::Producer<PriorityEnvelope<M>>,
   /// Supervisor that governs the child actor lifecycle.
   pub supervisor: Box<dyn Supervisor<M>>,
   /// Message handler executed by the child actor.
-  pub handler: Box<ActorHandlerFn<M, R>>,
+  pub handler: Box<ActorHandlerFn<M, MF>>,
   /// Mailbox spawner shared with the child.
-  pub mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
+  pub mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
   /// List of actor IDs watching the child.
   pub watchers: Vec<ActorId>,
   /// Mapping function from system messages to the actor message type.

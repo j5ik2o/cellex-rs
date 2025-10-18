@@ -11,22 +11,22 @@ type FailureHandler<M> = dyn FnMut(&FailureInfo) -> Result<(), QueueError<Priori
 use crate::api::supervision::escalation::EscalationSink;
 
 /// Sink based on custom handler.
-pub(crate) struct CustomEscalationSink<M, R>
+pub(crate) struct CustomEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
   handler: Box<FailureHandler<M>>,
-  _marker: PhantomData<R>,
+  _marker: PhantomData<MF>,
 }
 
-impl<M, R> CustomEscalationSink<M, R>
+impl<M, MF> CustomEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   pub(crate) fn new<F>(handler: F) -> Self
   where
@@ -38,12 +38,12 @@ where
   }
 }
 
-impl<M, R> EscalationSink<M, R> for CustomEscalationSink<M, R>
+impl<M, MF> EscalationSink<M, MF> for CustomEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   fn handle(&mut self, info: FailureInfo, _already_handled: bool) -> Result<(), FailureInfo> {
     if (self.handler)(&info).is_ok() {

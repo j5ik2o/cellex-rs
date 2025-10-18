@@ -17,29 +17,29 @@ use alloc::format;
 use alloc::string::String;
 use cellex_utils_core_rs::{Element, QueueError};
 
-type ChildRoute<M, R> = (PriorityActorRef<M, R>, MapSystemShared<M>);
+type ChildRoute<M, MF> = (PriorityActorRef<M, MF>, MapSystemShared<M>);
 
 /// Guardian: Supervises child actors and sends SystemMessages.
-pub(crate) struct Guardian<M, R, Strat>
+pub(crate) struct Guardian<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory,
-  Strat: GuardianStrategy<M, R>, {
+  MF: MailboxFactory,
+  Strat: GuardianStrategy<M, MF>, {
   next_id: usize,
-  pub(crate) children: BTreeMap<ActorId, ChildRecord<M, R>>,
+  pub(crate) children: BTreeMap<ActorId, ChildRecord<M, MF>>,
   names: BTreeMap<String, ActorId>,
   strategy: Strat,
   _marker: core::marker::PhantomData<M>,
 }
 
 #[allow(dead_code)]
-impl<M, R, Strat> Guardian<M, R, Strat>
+impl<M, MF, Strat> Guardian<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  Strat: GuardianStrategy<M, MF>,
 {
   pub fn new(strategy: Strat) -> Self {
     Self {
@@ -53,7 +53,7 @@ where
 
   pub fn register_child_with_naming(
     &mut self,
-    control_ref: PriorityActorRef<M, R>,
+    control_ref: PriorityActorRef<M, MF>,
     map_system: MapSystemShared<M>,
     watcher: Option<ActorId>,
     parent_path: &ActorPath,
@@ -97,7 +97,7 @@ where
     Ok((id, path))
   }
 
-  pub fn remove_child(&mut self, id: ActorId) -> Option<PriorityActorRef<M, R>> {
+  pub fn remove_child(&mut self, id: ActorId) -> Option<PriorityActorRef<M, MF>> {
     self.children.remove(&id).map(|record| {
       if let Some(name) = record.name.as_ref() {
         self.names.remove(name);
@@ -112,7 +112,7 @@ where
     })
   }
 
-  pub fn child_ref(&self, id: ActorId) -> Option<&PriorityActorRef<M, R>> {
+  pub fn child_ref(&self, id: ActorId) -> Option<&PriorityActorRef<M, MF>> {
     self.children.get(&id).map(|record| &record.control_ref)
   }
 
@@ -150,7 +150,7 @@ where
 
   pub fn register_child(
     &mut self,
-    control_ref: PriorityActorRef<M, R>,
+    control_ref: PriorityActorRef<M, MF>,
     map_system: MapSystemShared<M>,
     watcher: Option<ActorId>,
     parent_path: &ActorPath,
@@ -164,7 +164,7 @@ where
     }
   }
 
-  pub fn child_route(&self, actor: ActorId) -> Option<ChildRoute<M, R>> {
+  pub fn child_route(&self, actor: ActorId) -> Option<ChildRoute<M, MF>> {
     self
       .children
       .get(&actor)

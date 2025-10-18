@@ -7,12 +7,12 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Worker interface exposing ReadyQueue operations for driver-level scheduling.
-pub trait ReadyQueueWorker<M, R>
+pub trait ReadyQueueWorker<M, MF>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
   /// Processes one ready actor (if any). Returns `Some(true)` if progress was made.
   fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>>;
 
@@ -27,17 +27,17 @@ where
 /// * `shutdown` - Shutdown signal token
 /// * `yield_now` - Closure to yield execution
 /// * `wait_for_shutdown` - Closure to wait for shutdown signal
-pub async fn drive_ready_queue_worker<M, R, Y, YF, S, SF>(
-  worker: ArcShared<dyn ReadyQueueWorker<M, R>>,
+pub async fn drive_ready_queue_worker<M, MF, Y, YF, S, SF>(
+  worker: ArcShared<dyn ReadyQueueWorker<M, MF>>,
   shutdown: ShutdownToken,
   mut yield_now: Y,
   mut wait_for_shutdown: S,
 ) -> Result<(), QueueError<PriorityEnvelope<M>>>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
   Y: FnMut() -> YF,
   YF: core::future::Future<Output = ()>,
   S: FnMut() -> SF,

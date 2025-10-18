@@ -58,13 +58,13 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "std")]
-fn handler_from_fn<M, R, F>(mut f: F) -> Box<ActorHandlerFn<M, R>>
+fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<M, MF>>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static, {
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) + 'static, {
   Box::new(move |ctx, message| {
     f(ctx, message);
     Ok(())
@@ -76,10 +76,10 @@ where
 struct AlwaysEscalate;
 
 #[cfg(feature = "std")]
-impl<M, R> GuardianStrategy<M, R> for AlwaysEscalate
+impl<M, MF> GuardianStrategy<M, MF> for AlwaysEscalate
 where
   M: Element,
-  R: MailboxFactory,
+  MF: MailboxFactory,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Escalate
@@ -114,19 +114,19 @@ impl MetricsSink for EventRecordingSink {
 }
 
 #[cfg(feature = "std")]
-fn spawn_with_runtime<M, R>(
-  scheduler: &mut dyn ActorScheduler<M, R>,
-  mailbox_factory: R,
+fn spawn_with_runtime<M, MF>(
+  scheduler: &mut dyn ActorScheduler<M, MF>,
+  mailbox_factory: MF,
   supervisor: Box<dyn Supervisor<M>>,
   options: MailboxOptions,
   map_system: MapSystemShared<M>,
-  handler: Box<ActorHandlerFn<M, R>>,
-) -> Result<PriorityActorRef<M, R>, QueueError<PriorityEnvelope<M>>>
+  handler: Box<ActorHandlerFn<M, MF>>,
+) -> Result<PriorityActorRef<M, MF>, QueueError<PriorityEnvelope<M>>>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
   let context = SchedulerSpawnContext {
     mailbox_factory,

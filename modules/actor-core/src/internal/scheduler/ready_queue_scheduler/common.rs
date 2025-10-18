@@ -36,38 +36,38 @@ use crate::internal::supervision::CompositeEscalationSink;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Simple scheduler implementation assuming priority mailboxes.
-pub(crate) struct ReadyQueueSchedulerCore<M, R, Strat = AlwaysRestart>
+pub(crate) struct ReadyQueueSchedulerCore<M, MF, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  pub(super) guardian: Guardian<M, R, Strat>,
-  actors: Vec<ActorCell<M, R, Strat>>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>, {
+  pub(super) guardian: Guardian<M, MF, Strat>,
+  actors: Vec<ActorCell<M, MF, Strat>>,
   escalations: Vec<FailureInfo>,
-  escalation_sink: CompositeEscalationSink<M, R>,
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>,
+  escalation_sink: CompositeEscalationSink<M, MF>,
+  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
   metrics_sink: Option<MetricsSinkShared>,
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
-impl<M, R> ReadyQueueSchedulerCore<M, R, AlwaysRestart>
+impl<M, MF> ReadyQueueSchedulerCore<M, MF, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  MF: MailboxFactory + Clone + 'static,
 {
-  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_factory: MF, extensions: Extensions) -> Self {
     Self::with_strategy(mailbox_factory, AlwaysRestart, extensions)
   }
 
   pub fn with_strategy<Strat>(
-    _mailbox_factory: R,
+    _mailbox_factory: MF,
     strategy: Strat,
     extensions: Extensions,
-  ) -> ReadyQueueSchedulerCore<M, R, Strat>
+  ) -> ReadyQueueSchedulerCore<M, MF, Strat>
   where
-    Strat: GuardianStrategy<M, R>, {
+    Strat: GuardianStrategy<M, MF>, {
     ReadyQueueSchedulerCore {
       guardian: Guardian::new(strategy),
       actors: Vec::new(),
@@ -82,17 +82,17 @@ where
 }
 
 #[allow(dead_code)]
-impl<M, R, Strat> ReadyQueueSchedulerCore<M, R, Strat>
+impl<M, MF, Strat> ReadyQueueSchedulerCore<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   pub fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
+    context: SchedulerSpawnContext<M, MF>,
+  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     let SchedulerSpawnContext {
       mailbox_factory,
       mailbox_factory_shared,
@@ -197,7 +197,7 @@ where
     self.actors.len()
   }
 
-  pub fn actor_mut(&mut self, index: usize) -> Option<&mut ActorCell<M, R, Strat>> {
+  pub fn actor_mut(&mut self, index: usize) -> Option<&mut ActorCell<M, MF, Strat>> {
     self.actors.get_mut(index)
   }
 
@@ -218,7 +218,7 @@ where
     self.drain_ready_cycle()
   }
 
-  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
+  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
     self.receive_timeout_factory = factory.clone();
     for actor in &mut self.actors {
       actor.configure_receive_timeout_factory(factory.clone());
@@ -238,7 +238,7 @@ where
     self.escalation_sink.set_custom_handler(handler);
   }
 
-  pub fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  pub fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     self.escalation_sink.set_parent_guardian(control_ref, map_system);
   }
 
@@ -354,7 +354,7 @@ where
 
   fn finish_cycle(
     &mut self,
-    new_children: Vec<ActorCell<M, R, Strat>>,
+    new_children: Vec<ActorCell<M, MF, Strat>>,
     processed_any: bool,
   ) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
     if !new_children.is_empty() {

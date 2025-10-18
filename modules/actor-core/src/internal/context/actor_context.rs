@@ -27,20 +27,20 @@ use core::cell::RefCell;
 use core::time::Duration;
 
 /// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
-pub type ActorHandlerFn<M, R> =
-  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) -> Result<(), ActorFailure> + 'static;
+pub type ActorHandlerFn<M, MF> =
+  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) -> Result<(), ActorFailure> + 'static;
 /// Context for actors to operate on themselves and child actors.
-pub struct ActorContext<'a, M, R, Sup>
+pub struct ActorContext<'a, M, MF, Sup>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  MF: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized, {
-  mailbox_factory: &'a R,
-  mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
-  sender: &'a R::Producer<PriorityEnvelope<M>>,
+  mailbox_factory: &'a MF,
+  mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
+  sender: &'a MF::Producer<PriorityEnvelope<M>>,
   supervisor: &'a mut Sup,
   #[allow(dead_code)]
-  pending_spawns: &'a mut Vec<ChildSpawnSpec<M, R>>,
+  pending_spawns: &'a mut Vec<ChildSpawnSpec<M, MF>>,
   #[allow(dead_code)]
   map_system: MapSystemShared<M>,
   actor_path: ActorPath,
@@ -52,19 +52,19 @@ where
   _marker: PhantomData<M>,
 }
 
-impl<'a, M, R, Sup> ActorContext<'a, M, R, Sup>
+impl<'a, M, MF, Sup> ActorContext<'a, M, MF, Sup>
 where
   M: Element,
-  R: MailboxFactory + Clone,
+  MF: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized,
 {
   #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
-    mailbox_factory: &'a R,
-    mailbox_spawner: PriorityMailboxSpawnerHandle<M, R>,
-    sender: &'a R::Producer<PriorityEnvelope<M>>,
+    mailbox_factory: &'a MF,
+    mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
+    sender: &'a MF::Producer<PriorityEnvelope<M>>,
     supervisor: &'a mut Sup,
-    pending_spawns: &'a mut Vec<ChildSpawnSpec<M, R>>,
+    pending_spawns: &'a mut Vec<ChildSpawnSpec<M, MF>>,
     map_system: MapSystemShared<M>,
     actor_path: ActorPath,
     actor_id: ActorId,
@@ -102,11 +102,11 @@ where
     self.extensions.with::<E, _, _>(id, f)
   }
 
-  pub fn mailbox_factory(&self) -> &R {
+  pub fn mailbox_factory(&self) -> &MF {
     self.mailbox_factory
   }
 
-  pub fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<M, R> {
+  pub fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<M, MF> {
     &self.mailbox_spawner
   }
 
@@ -138,11 +138,11 @@ where
     }
   }
 
-  pub(crate) fn self_ref(&self) -> PriorityActorRef<M, R>
+  pub(crate) fn self_ref(&self) -> PriorityActorRef<M, MF>
   where
-    R::Queue<PriorityEnvelope<M>>: Clone,
-    R::Signal: Clone,
-    R::Producer<PriorityEnvelope<M>>: Clone, {
+    MF::Queue<PriorityEnvelope<M>>: Clone,
+    MF::Signal: Clone,
+    MF::Producer<PriorityEnvelope<M>>: Clone, {
     PriorityActorRef::new(self.sender.clone())
   }
 
@@ -152,8 +152,8 @@ where
     supervisor: Box<dyn Supervisor<M>>,
     options: MailboxOptions,
     map_system: MapSystemShared<M>,
-    handler: Box<ActorHandlerFn<M, R>>,
-  ) -> PriorityActorRef<M, R> {
+    handler: Box<ActorHandlerFn<M, MF>>,
+  ) -> PriorityActorRef<M, MF> {
     let (mailbox, sender) = self.mailbox_spawner.spawn_mailbox(options);
     let actor_ref = PriorityActorRef::new(sender.clone());
     let watchers = vec![self.actor_id];
@@ -177,9 +177,9 @@ where
     supervisor: S,
     options: MailboxOptions,
     handler: F,
-  ) -> PriorityActorRef<M, R>
+  ) -> PriorityActorRef<M, MF>
   where
-    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
+    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) + 'static,
     S: Supervisor<M> + 'static, {
     let mut handler = handler;
     self.enqueue_spawn(
@@ -196,10 +196,10 @@ where
   pub(crate) fn spawn_child_from_props(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    props: InternalProps<M, R>,
-  ) -> PriorityActorRef<M, R>
+    props: InternalProps<M, MF>,
+  ) -> PriorityActorRef<M, MF>
   where
-    R: MailboxFactory + Clone + 'static, {
+    MF: MailboxFactory + Clone + 'static, {
     let InternalProps {
       options,
       map_system,
@@ -209,9 +209,9 @@ where
   }
 
   #[allow(dead_code)]
-  pub(crate) fn spawn_control_child<F, S>(&mut self, supervisor: S, handler: F) -> PriorityActorRef<M, R>
+  pub(crate) fn spawn_control_child<F, S>(&mut self, supervisor: S, handler: F) -> PriorityActorRef<M, MF>
   where
-    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, R, dyn Supervisor<M>>, M) + 'static,
+    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) + 'static,
     S: Supervisor<M> + 'static, {
     let options = MailboxOptions::default().with_priority_capacity(QueueSize::limitless());
     self.spawn_child(supervisor, options, handler)

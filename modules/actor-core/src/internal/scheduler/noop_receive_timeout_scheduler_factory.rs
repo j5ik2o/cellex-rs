@@ -11,17 +11,17 @@ use cellex_utils_core_rs::Element;
 #[derive(Debug, Default, Clone)]
 pub struct NoopReceiveTimeoutSchedulerFactory;
 
-impl<M, R> ReceiveTimeoutSchedulerFactory<M, R> for NoopReceiveTimeoutSchedulerFactory
+impl<M, MF> ReceiveTimeoutSchedulerFactory<M, MF> for NoopReceiveTimeoutSchedulerFactory
 where
   M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  MF::Producer<PriorityEnvelope<M>>: Clone,
 {
   fn create(
     &self,
-    _sender: R::Producer<PriorityEnvelope<M>>,
+    _sender: MF::Producer<PriorityEnvelope<M>>,
     _map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler> {
     Box::new(NoopReceiveTimeoutScheduler)

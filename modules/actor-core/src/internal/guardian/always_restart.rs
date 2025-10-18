@@ -20,10 +20,10 @@ use super::guardian_strategy::GuardianStrategy;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AlwaysRestart;
 
-impl<M, R> GuardianStrategy<M, R> for AlwaysRestart
+impl<M, MF> GuardianStrategy<M, MF> for AlwaysRestart
 where
   M: Element,
-  R: MailboxFactory,
+  MF: MailboxFactory,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
     SupervisorDirective::Restart

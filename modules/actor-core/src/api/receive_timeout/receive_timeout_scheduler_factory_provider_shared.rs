@@ -8,54 +8,54 @@ use super::receive_timeout_scheduler_factory_provider::ReceiveTimeoutSchedulerFa
 use super::receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared;
 
 /// Shared wrapper around a [`ReceiveTimeoutSchedulerFactoryProvider`] implementation.
-pub struct ReceiveTimeoutSchedulerFactoryProviderShared<R> {
-  inner: ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<R>>,
+pub struct ReceiveTimeoutSchedulerFactoryProviderShared<MF> {
+  inner: ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<MF>>,
 }
 
-impl<R> ReceiveTimeoutSchedulerFactoryProviderShared<R>
+impl<MF> ReceiveTimeoutSchedulerFactoryProviderShared<MF>
 where
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<DynMessage>>: Clone,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Signal: Clone,
+  MF::Producer<PriorityEnvelope<DynMessage>>: Clone,
 {
   /// Creates a new shared driver from a concrete driver value.
   #[must_use]
   pub fn new<D>(driver: D) -> Self
   where
-    D: ReceiveTimeoutSchedulerFactoryProvider<R> + 'static, {
+    D: ReceiveTimeoutSchedulerFactoryProvider<MF> + 'static, {
     let shared = ArcShared::new(driver);
     Self {
-      inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactoryProvider<R>),
+      inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactoryProvider<MF>),
     }
   }
 
   /// Wraps an existing shared driver.
   #[must_use]
-  pub fn from_shared(inner: ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<R>>) -> Self {
+  pub fn from_shared(inner: ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<MF>>) -> Self {
     Self { inner }
   }
 
   /// Consumes the wrapper and returns the underlying shared handle.
   #[must_use]
-  pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<R>> {
+  pub fn into_shared(self) -> ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<MF>> {
     self.inner
   }
 
   /// Returns the inner shared handle.
   #[must_use]
-  pub fn as_shared(&self) -> &ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<R>> {
+  pub fn as_shared(&self) -> &ArcShared<dyn ReceiveTimeoutSchedulerFactoryProvider<MF>> {
     &self.inner
   }
 
   /// Builds a factory by delegating to the underlying driver.
   #[must_use]
-  pub fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, R> {
+  pub fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF> {
     self.inner.with_ref(|driver| driver.build_factory())
   }
 }
 
-impl<R> Clone for ReceiveTimeoutSchedulerFactoryProviderShared<R> {
+impl<MF> Clone for ReceiveTimeoutSchedulerFactoryProviderShared<MF> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
@@ -63,8 +63,8 @@ impl<R> Clone for ReceiveTimeoutSchedulerFactoryProviderShared<R> {
   }
 }
 
-impl<R> core::ops::Deref for ReceiveTimeoutSchedulerFactoryProviderShared<R> {
-  type Target = dyn ReceiveTimeoutSchedulerFactoryProvider<R>;
+impl<MF> core::ops::Deref for ReceiveTimeoutSchedulerFactoryProviderShared<MF> {
+  type Target = dyn ReceiveTimeoutSchedulerFactoryProvider<MF>;
 
   fn deref(&self) -> &Self::Target {
     &*self.inner

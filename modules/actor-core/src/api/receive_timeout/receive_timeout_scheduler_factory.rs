@@ -14,17 +14,17 @@ use cellex_utils_core_rs::Element;
 /// By configuring the system through `ActorSystemConfig::with_receive_timeout_factory` or
 /// `ActorSystemConfig::set_receive_timeout_factory` before constructing it,
 /// all actors can handle timeouts with the same policy.
-pub trait ReceiveTimeoutSchedulerFactory<M, R>: SchedulerFactoryBound
+pub trait ReceiveTimeoutSchedulerFactory<M, MF>: SchedulerFactoryBound
 where
   M: Element + 'static,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<M>>: Clone, {
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  MF::Producer<PriorityEnvelope<M>>: Clone, {
   /// Creates an actor-specific scheduler by receiving a priority mailbox and SystemMessage conversion function.
   fn create(
     &self,
-    sender: R::Producer<PriorityEnvelope<M>>,
+    sender: MF::Producer<PriorityEnvelope<M>>,
     map_system: MapSystemShared<M>,
   ) -> Box<dyn ReceiveTimeoutScheduler>;
 }

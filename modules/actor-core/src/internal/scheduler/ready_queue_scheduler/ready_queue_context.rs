@@ -24,26 +24,26 @@ use crate::internal::scheduler::SchedulerSpawnContext;
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
-pub(crate) struct ReadyQueueContext<M, R, Strat>
+pub(crate) struct ReadyQueueContext<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  pub(crate) core: ReadyQueueSchedulerCore<M, R, Strat>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>, {
+  pub(crate) core: ReadyQueueSchedulerCore<M, MF, Strat>,
   pub(crate) state: ArcShared<Mutex<ReadyQueueState>>,
 }
 
-impl<M, R, Strat> ReadyQueueContext<M, R, Strat>
+impl<M, MF, Strat> ReadyQueueContext<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   pub(super) fn actor_count(&self) -> usize {
     self.core.actor_count()
   }
 
-  pub(super) fn actor_mut(&mut self, index: usize) -> Option<&mut ActorCell<M, R, Strat>> {
+  pub(super) fn actor_mut(&mut self, index: usize) -> Option<&mut ActorCell<M, MF, Strat>> {
     self.core.actor_mut(index)
   }
 
@@ -54,8 +54,8 @@ where
   pub(super) fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<(PriorityActorRef<M, R>, usize), SpawnError<M>> {
+    context: SchedulerSpawnContext<M, MF>,
+  ) -> Result<(PriorityActorRef<M, MF>, usize), SpawnError<M>> {
     let actor_ref = self.core.spawn_actor(supervisor, context)?;
     let index = self.core.actor_count().saturating_sub(1);
     Ok((actor_ref, index))
@@ -116,7 +116,7 @@ where
     self.core.take_escalations()
   }
 
-  pub(super) fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
+  pub(super) fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
     self.core.set_receive_timeout_factory(factory)
   }
 
@@ -124,7 +124,7 @@ where
     self.core.set_metrics_sink(sink)
   }
 
-  pub(super) fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  pub(super) fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     self.core.set_parent_guardian(control_ref, map_system)
   }
 

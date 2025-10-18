@@ -9,14 +9,14 @@ use crate::internal::scheduler::noop_receive_timeout_scheduler_factory::NoopRece
 #[derive(Debug, Default, Clone)]
 pub struct NoopReceiveTimeoutSchedulerFactoryProvider;
 
-impl<R> ReceiveTimeoutSchedulerFactoryProvider<R> for NoopReceiveTimeoutSchedulerFactoryProvider
+impl<MF> ReceiveTimeoutSchedulerFactoryProvider<MF> for NoopReceiveTimeoutSchedulerFactoryProvider
 where
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
-  R::Producer<PriorityEnvelope<DynMessage>>: Clone,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Signal: Clone,
+  MF::Producer<PriorityEnvelope<DynMessage>>: Clone,
 {
-  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, R> {
+  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF> {
     ReceiveTimeoutSchedulerFactoryShared::new(NoopReceiveTimeoutSchedulerFactory)
   }
 }

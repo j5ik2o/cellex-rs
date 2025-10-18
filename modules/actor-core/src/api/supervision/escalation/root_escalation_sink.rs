@@ -15,25 +15,25 @@ use std::time::Instant;
 ///
 /// Handles failures at the root level of the actor system.
 /// Ultimately processes failures that cannot be escalated further.
-pub struct RootEscalationSink<M, R>
+pub struct RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
   event_handler: Option<FailureEventHandler>,
   event_listener: Option<FailureEventListener>,
   telemetry: FailureTelemetryShared,
   observation: TelemetryObservationConfig,
-  _marker: PhantomData<(M, R)>,
+  _marker: PhantomData<(M, MF)>,
 }
 
-impl<M, R> RootEscalationSink<M, R>
+impl<M, MF> RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   /// Creates a new `RootEscalationSink`.
   ///
@@ -87,24 +87,24 @@ where
   }
 }
 
-impl<M, R> Default for RootEscalationSink<M, R>
+impl<M, MF> Default for RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<M, R> EscalationSink<M, R> for RootEscalationSink<M, R>
+impl<M, MF> EscalationSink<M, MF> for RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   /// Processes failure information at root level.
   ///

@@ -49,11 +49,11 @@ where
   ///
   /// # Arguments
   /// * `actor_ref` - Actor reference to send to
-  pub(crate) fn from_factory_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_factory_ref<MF>(actor_ref: PriorityActorRef<DynMessage, MF>) -> Self
   where
-    R: MailboxFactory<Concurrency = C> + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static, {
+    MF: MailboxFactory<Concurrency = C> + Clone + 'static,
+    MF::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MF::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
     Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(
       move |message, priority| sender.try_send_with_priority(message, priority),
@@ -127,11 +127,11 @@ where
 impl InternalMessageSender {
   /// Thread-safe helper retained for existing call sites.
   #[allow(dead_code)]
-  pub(crate) fn from_internal_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_internal_ref<MF>(actor_ref: PriorityActorRef<DynMessage, MF>) -> Self
   where
-    R: MailboxFactory + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static, {
+    MF: MailboxFactory + Clone + 'static,
+    MF::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MF::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
     Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(
       move |message, priority| sender.try_send_with_priority(message, priority),

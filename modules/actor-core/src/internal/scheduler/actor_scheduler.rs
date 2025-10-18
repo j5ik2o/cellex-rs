@@ -24,21 +24,21 @@ use cellex_utils_core_rs::{Element, QueueError};
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.
 #[allow(dead_code)]
 #[async_trait(?Send)]
-pub trait ActorScheduler<M, R>
+pub trait ActorScheduler<M, MF>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
   /// Spawns a new actor instance and returns its internal reference on success.
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>>;
+    context: SchedulerSpawnContext<M, MF>,
+  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>>;
 
   /// Installs a factory used to create receive-timeout drivers for child actors.
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>);
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>);
 
   /// Registers a metrics sink that records scheduler queue statistics.
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>);
@@ -56,7 +56,7 @@ where
   fn set_root_observation_config(&mut self, config: TelemetryObservationConfig);
 
   /// Wires the parent guardian reference used for supervising spawned actors.
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>);
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>);
 
   /// Registers a callback invoked when escalations occur during execution.
   fn on_escalation(
@@ -77,7 +77,7 @@ where
   async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>>;
 
   /// Returns a shared worker handle if the scheduler supports ReadyQueue-based execution.
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MF>>> {
     let _ = self;
     None
   }

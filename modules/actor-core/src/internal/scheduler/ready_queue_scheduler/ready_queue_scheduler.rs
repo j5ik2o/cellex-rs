@@ -33,34 +33,34 @@ use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.
-pub struct ReadyQueueScheduler<M, R, Strat = AlwaysRestart>
+pub struct ReadyQueueScheduler<M, MF, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  context: ArcShared<Mutex<ReadyQueueContext<M, R, Strat>>>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>, {
+  context: ArcShared<Mutex<ReadyQueueContext<M, MF, Strat>>>,
   state: ArcShared<Mutex<ReadyQueueState>>,
 }
 
 #[allow(dead_code)]
-impl<M, R> ReadyQueueScheduler<M, R, AlwaysRestart>
+impl<M, MF> ReadyQueueScheduler<M, MF, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  MF: MailboxFactory + Clone + 'static,
 {
   /// Creates a scheduler that uses the `AlwaysRestart` guardian strategy.
-  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
+  pub fn new(mailbox_factory: MF, extensions: Extensions) -> Self {
     Self::with_strategy(mailbox_factory, AlwaysRestart, extensions)
   }
 
   /// Creates a scheduler with the provided guardian strategy.
   pub fn with_strategy<Strat>(
-    mailbox_factory: R,
+    mailbox_factory: MF,
     strategy: Strat,
     extensions: Extensions,
-  ) -> ReadyQueueScheduler<M, R, Strat>
+  ) -> ReadyQueueScheduler<M, MF, Strat>
   where
-    Strat: GuardianStrategy<M, R>, {
+    Strat: GuardianStrategy<M, MF>, {
     let state = ArcShared::new(Mutex::new(ReadyQueueState::new()));
     let context = ReadyQueueContext {
       core: ReadyQueueSchedulerCore::with_strategy(mailbox_factory, strategy, extensions),
@@ -73,16 +73,16 @@ where
   }
 }
 
-impl<M, R, Strat> ReadyQueueScheduler<M, R, Strat>
+impl<M, MF, Strat> ReadyQueueScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   /// Returns a handle that exposes ready-queue controls for cooperative workers.
-  pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<M, R>> {
-    let shared = ArcShared::new(ReadyQueueWorkerImpl::<M, R, Strat>::new(self.context.clone()));
-    shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<M, R>)
+  pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<M, MF>> {
+    let shared = ArcShared::new(ReadyQueueWorkerImpl::<M, MF, Strat>::new(self.context.clone()));
+    shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<M, MF>)
   }
 
   fn make_ready_handle(&self, index: usize) -> ReadyQueueHandle {
@@ -99,11 +99,11 @@ where
   }
 
   /// Spawns an actor and registers its mailbox with the ready queue.
-  pub fn spawn_actor(
+  pub fn spawn_actor_internal(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
+    context: SchedulerSpawnContext<M, MF>,
+  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     let (actor_ref, index) = {
       let mut ctx = self.context.lock();
       ctx.spawn_actor(supervisor, context)?
@@ -122,7 +122,7 @@ where
   }
 
   /// Configures the receive-timeout factory shared by all scheduled actors.
-  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
+  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
     let mut ctx = self.context.lock();
     ctx.set_receive_timeout_factory(factory);
   }
@@ -146,7 +146,7 @@ where
   }
 
   /// Wires the parent guardian controls needed for supervising newly spawned actors.
-  pub fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  pub fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     let mut ctx = self.context.lock();
     ctx.set_parent_guardian(control_ref, map_system);
   }
@@ -243,21 +243,21 @@ where
 }
 
 #[async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, R> for ReadyQueueScheduler<M, R, Strat>
+impl<M, MF, Strat> ActorScheduler<M, MF> for ReadyQueueScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
-    ReadyQueueScheduler::spawn_actor(self, supervisor, context)
+    context: SchedulerSpawnContext<M, MF>,
+  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
+    ReadyQueueScheduler::spawn_actor_internal(self, supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
+  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
     ReadyQueueScheduler::set_receive_timeout_factory(self, factory)
   }
 
@@ -273,7 +273,7 @@ where
     ReadyQueueScheduler::set_metrics_sink(self, sink)
   }
 
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(self, control_ref, map_system)
   }
 
@@ -308,7 +308,7 @@ where
     ReadyQueueScheduler::dispatch_next(self).await
   }
 
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MF>>> {
     Some(self.worker_handle())
   }
 }
