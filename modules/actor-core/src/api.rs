@@ -19,6 +19,8 @@ pub mod mailbox;
 pub mod messaging;
 /// Internal metrics collection and observers wired to scheduler components.
 pub mod metrics;
+/// Process registry, PID, and dead letter utilities.
+pub mod process;
 /// Receive timeout handling
 pub mod receive_timeout;
 /// Supervision strategies and failure handling.

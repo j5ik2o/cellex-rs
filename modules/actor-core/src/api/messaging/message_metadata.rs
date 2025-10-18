@@ -4,6 +4,7 @@ use crate::{
   api::{
     mailbox::ThreadSafe,
     messaging::{MessageSender, MetadataStorageMode},
+    process::pid::Pid,
   },
   internal::message::InternalMessageMetadata,
 };
@@ -45,6 +46,18 @@ where
     self
   }
 
+  /// Sets the sender PID and returns self.
+  pub fn with_sender_pid(mut self, sender_pid: Pid) -> Self {
+    self.inner = self.inner.with_sender_pid(Some(sender_pid));
+    self
+  }
+
+  /// Sets the responder PID and returns self.
+  pub fn with_responder_pid(mut self, responder_pid: Pid) -> Self {
+    self.inner = self.inner.with_responder_pid(Some(responder_pid));
+    self
+  }
+
   /// Gets the sender dispatcher of the specified type.
   ///
   /// # Returns
@@ -65,6 +78,16 @@ where
     self.inner.responder_cloned().map(MessageSender::new)
   }
 
+  /// Returns the sender PID if set.
+  pub fn sender_pid(&self) -> Option<&Pid> {
+    self.inner.sender_pid()
+  }
+
+  /// Returns the responder PID if set.
+  pub fn responder_pid(&self) -> Option<&Pid> {
+    self.inner.responder_pid()
+  }
+
   /// Gets the dispatcher of the specified type (prioritizing responder).
   ///
   /// Returns the responder if it exists, otherwise returns the sender.
@@ -82,7 +105,10 @@ where
   /// # Returns
   /// `true` if neither sender nor responder exists, `false` otherwise
   pub fn is_empty(&self) -> bool {
-    self.inner.sender.is_none() && self.inner.responder.is_none()
+    self.inner.sender.is_none()
+      && self.inner.responder.is_none()
+      && self.inner.sender_pid().is_none()
+      && self.inner.responder_pid().is_none()
   }
 }
 

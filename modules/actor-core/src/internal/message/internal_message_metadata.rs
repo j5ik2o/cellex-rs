@@ -1,13 +1,18 @@
 use crate::{
-  api::mailbox::{MailboxConcurrency, ThreadSafe},
+  api::{
+    mailbox::{MailboxConcurrency, ThreadSafe},
+    process::pid::Pid,
+  },
   internal::message::internal_message_sender::InternalMessageSender,
 };
 
 /// Metadata accompanying a message (internal representation).
 #[derive(Debug, Clone)]
 pub struct InternalMessageMetadata<C: MailboxConcurrency = ThreadSafe> {
-  pub(crate) sender:    Option<InternalMessageSender<C>>,
-  pub(crate) responder: Option<InternalMessageSender<C>>,
+  pub(crate) sender:        Option<InternalMessageSender<C>>,
+  pub(crate) responder:     Option<InternalMessageSender<C>>,
+  pub(crate) sender_pid:    Option<Pid>,
+  pub(crate) responder_pid: Option<Pid>,
 }
 
 impl<C> InternalMessageMetadata<C>
@@ -20,7 +25,7 @@ where
   /// * `sender` - Sender's dispatcher (optional)
   /// * `responder` - Responder's dispatcher (optional)
   pub fn new(sender: Option<InternalMessageSender<C>>, responder: Option<InternalMessageSender<C>>) -> Self {
-    Self { sender, responder }
+    Self { sender, responder, sender_pid: None, responder_pid: None }
   }
 
   /// Gets a reference to the sender's dispatcher.
@@ -72,6 +77,28 @@ where
     self.responder = responder;
     self
   }
+
+  /// Sets the sender PID and returns self.
+  pub fn with_sender_pid(mut self, sender_pid: Option<Pid>) -> Self {
+    self.sender_pid = sender_pid;
+    self
+  }
+
+  /// Sets the responder PID and returns self.
+  pub fn with_responder_pid(mut self, responder_pid: Option<Pid>) -> Self {
+    self.responder_pid = responder_pid;
+    self
+  }
+
+  /// Returns a reference to the sender PID if present.
+  pub fn sender_pid(&self) -> Option<&Pid> {
+    self.sender_pid.as_ref()
+  }
+
+  /// Returns a reference to the responder PID if present.
+  pub fn responder_pid(&self) -> Option<&Pid> {
+    self.responder_pid.as_ref()
+  }
 }
 
 impl<C> Default for InternalMessageMetadata<C>
@@ -79,6 +106,6 @@ where
   C: MailboxConcurrency,
 {
   fn default() -> Self {
-    Self { sender: None, responder: None }
+    Self { sender: None, responder: None, sender_pid: None, responder_pid: None }
   }
 }

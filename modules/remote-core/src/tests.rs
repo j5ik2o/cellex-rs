@@ -12,6 +12,7 @@ use cellex_actor_core_rs::api::{
   failure_event_stream::FailureEventStream,
   mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage, ThreadSafe},
   messaging::MessageEnvelope,
+  process::pid::{NodeId, Pid, SystemId},
   supervision::{
     escalation::FailureEventListener,
     failure::{FailureEvent, FailureInfo},
@@ -22,7 +23,10 @@ use cellex_serialization_json_rs::SerdeJsonSerializer;
 
 use super::{placeholder_metadata, RemoteFailureNotifier};
 use crate::{
-  codec::{control_remote_envelope, envelope_from_frame, frame_from_serialized_envelope, RemotePayloadFrame},
+  codec::{
+    control_remote_envelope_with_reply, envelope_from_frame, frame_from_serialized_envelope, RemoteMessageFrame,
+    RemotePayloadFrame,
+  },
   remote_envelope::RemoteEnvelope,
 };
 
@@ -275,11 +279,14 @@ fn frame_roundtrip_preserves_serialized_user_payload() {
   let serializer = SerdeJsonSerializer::new();
   let serialized = serializer.serialize_value(Some("String"), &"hello".to_string()).expect("serialize payload");
 
-  let envelope = control_remote_envelope(serialized.clone(), 9);
+  let reply_to = Some(Pid::new(SystemId::new("sys"), ActorPath::new()).with_node(NodeId::new("remote", Some(2552))));
+
+  let envelope = control_remote_envelope_with_reply(serialized.clone(), 9, reply_to.clone());
   let frame = frame_from_serialized_envelope(envelope).expect("frame encoding");
 
   assert_eq!(frame.priority, 9);
   assert_eq!(frame.channel, PriorityChannel::Control);
+  assert_eq!(frame.reply_to.as_ref().map(ToString::to_string), reply_to.as_ref().map(ToString::to_string));
 
   let RemotePayloadFrame::User { serialized: frame_payload } = &frame.payload else {
     panic!("expected user payload");
@@ -294,9 +301,34 @@ fn frame_roundtrip_preserves_serialized_user_payload() {
   match decoded_envelope {
     | MessageEnvelope::User(user) => {
       let (payload, metadata) = user.into_parts::<ThreadSafe>();
-      assert!(metadata.is_none());
+      let metadata = metadata.expect("metadata expected");
+      assert_eq!(metadata.responder_pid().map(ToString::to_string), reply_to.as_ref().map(ToString::to_string));
       assert_eq!(payload.payload, serialized.payload);
     },
     | MessageEnvelope::System(_) => panic!("expected user payload"),
+  }
+}
+
+#[test]
+fn frame_roundtrip_preserves_reply_to_pid() {
+  let serializer = SerdeJsonSerializer::new();
+  let serialized = serializer.serialize_value(Some("String"), &"ping".to_string()).expect("serialize payload");
+  let reply_to = Pid::new(SystemId::new("sys"), ActorPath::new()).with_node(NodeId::new("node", None));
+
+  let envelope = control_remote_envelope_with_reply(serialized.clone(), 5, Some(reply_to.clone()));
+  let frame = frame_from_serialized_envelope(envelope).expect("frame encoding");
+  assert_eq!(frame.reply_to.as_ref().map(ToString::to_string), Some(reply_to.to_string()));
+
+  let decoded_frame =
+    RemoteMessageFrame::new(frame.priority, frame.channel, frame.payload.clone(), frame.reply_to.clone());
+  let decoded = envelope_from_frame(decoded_frame);
+  let (envelope, _, _) = decoded.into_parts_with_channel();
+  match envelope {
+    | MessageEnvelope::User(user) => {
+      let (_, metadata) = user.into_parts::<ThreadSafe>();
+      let metadata = metadata.expect("metadata expected");
+      assert_eq!(metadata.responder_pid().map(ToString::to_string), Some(reply_to.to_string()));
+    },
+    | MessageEnvelope::System(_) => panic!("expected user envelope"),
   }
 }
