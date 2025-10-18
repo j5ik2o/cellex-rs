@@ -11,6 +11,7 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::map_system::MapSystemShared,
     failure_telemetry::FailureTelemetryShared,
+    guardian::GuardianStrategy,
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
@@ -21,7 +22,7 @@ use crate::{
       telemetry::TelemetryObservationConfig,
     },
   },
-  internal::{actor::ActorCell, guardian::GuardianStrategy},
+  internal::actor::ActorCell,
 };
 
 pub(crate) struct ReadyQueueContext<M, MF, Strat>

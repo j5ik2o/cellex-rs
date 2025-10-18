@@ -27,7 +27,7 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
   pub(crate) inner:   InternalRootContext<'a, DynMessage, AR, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
@@ -39,7 +39,7 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
 {
   /// Spawns a new actor using the specified properties.
   ///

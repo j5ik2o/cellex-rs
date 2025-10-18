@@ -12,6 +12,7 @@ use crate::{
     actor_scheduler::ReadyQueueHandle,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
+    guardian::{Guardian, GuardianStrategy},
     mailbox::{Mailbox, MailboxFactory, MailboxHandle, MailboxProducer, PriorityEnvelope, SystemMessage},
     messaging::DynMessage,
     metrics::MetricsSinkShared,
@@ -19,11 +20,7 @@ use crate::{
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
-  internal::{
-    context::ChildSpawnSpec,
-    guardian::{Guardian, GuardianStrategy},
-    mailbox::PriorityMailboxSpawnerHandle,
-  },
+  internal::{context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
 };
 
 pub(crate) struct ActorCell<M, MF, Strat>

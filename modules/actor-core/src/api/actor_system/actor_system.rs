@@ -14,6 +14,7 @@ use crate::{
     extensions::{serializer_extension_id, Extension, ExtensionId, Extensions, SerializerRegistryExtension},
     failure_event_stream::FailureEventStream,
     failure_telemetry::TelemetryContext,
+    guardian::AlwaysRestart,
     mailbox::PriorityEnvelope,
     messaging::DynMessage,
     process::{
@@ -22,10 +23,7 @@ use crate::{
     },
     supervision::telemetry::default_failure_telemetry_shared,
   },
-  internal::{
-    actor_system::{InternalActorSystem, InternalActorSystemConfig},
-    guardian::AlwaysRestart,
-  },
+  internal::actor_system::{InternalActorSystem, InternalActorSystemConfig},
 };
 
 /// Primary instance of the actor system.
@@ -37,7 +35,7 @@ where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
   inner:                    InternalActorSystem<DynMessage, AR, Strat>,
   pub(crate) shutdown:      ShutdownToken,
   extensions:               Extensions,
@@ -155,7 +153,7 @@ where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
 {
   /// Gets the shutdown token.
   ///

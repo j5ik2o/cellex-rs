@@ -13,6 +13,8 @@ pub mod extensions;
 pub mod failure_event_stream;
 /// Shared failure telemetry infrastructure
 pub mod failure_telemetry;
+/// Guardian supervision tree utilities used for internal actor bootstrapping.
+pub mod guardian;
 /// Mailbox implementations and message queueing.
 pub mod mailbox;
 /// Message envelope and metadata handling.

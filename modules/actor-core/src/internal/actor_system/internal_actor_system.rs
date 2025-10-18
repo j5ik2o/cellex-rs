@@ -12,6 +12,7 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxOf},
     actor_scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
     extensions::Extensions,
+    guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     process::{
@@ -19,10 +20,7 @@ use crate::{
       process_registry::ProcessRegistry,
     },
   },
-  internal::{
-    actor_system::internal_actor_system_config::InternalActorSystemConfig,
-    guardian::{AlwaysRestart, GuardianStrategy},
-  },
+  internal::actor_system::internal_actor_system_config::InternalActorSystemConfig,
 };
 
 pub(crate) struct InternalActorSystem<M, AR, Strat = AlwaysRestart>

@@ -30,7 +30,7 @@ type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<D
 /// Internal dispatcher that abstracts the sending destination. Used for ask responses and similar
 /// purposes.
 #[derive(Clone)]
-pub(crate) struct InternalMessageSender<C: MailboxConcurrency = ThreadSafe> {
+pub struct InternalMessageSender<C: MailboxConcurrency = ThreadSafe> {
   inner:     ArcShared<SendFn>,
   drop_hook: Option<ArcShared<DropHookFn>>,
   _marker:   PhantomData<C>,

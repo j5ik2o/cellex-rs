@@ -32,7 +32,7 @@
   - `spin::Mutex` vs `tokio::Mutex` vs `std::Mutex`
   - ランタイム別の最適化戦略
   - `RuntimeMutex<T>` 抽象化の設計と実装計画
-- **[D21-dead-letter-next-actions.md](./D21-dead-letter-next-actions.md)** - DeadLetter / Process Registry 再設計
+- **[D21-dead-letter-next-actions.md](archive/D21-dead-letter-next-actions.md)** - DeadLetter / Process Registry 再設計
   - ProcessRegistry 再構築と PID 解決戦略
   - DeadLetter メッセージと Control チャネル保持
   - Remote/Cluster 統合テスト計画

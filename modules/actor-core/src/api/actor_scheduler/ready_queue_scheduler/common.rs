@@ -14,6 +14,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure_telemetry::FailureTelemetryShared,
+    guardian::{AlwaysRestart, Guardian, GuardianStrategy},
     mailbox::{Mailbox, MailboxFactory, MailboxProducer, MailboxSignal, PriorityEnvelope, SystemMessage},
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
@@ -21,12 +22,7 @@ use crate::{
       escalation::EscalationSink, failure::FailureInfo, supervisor::Supervisor, telemetry::TelemetryObservationConfig,
     },
   },
-  internal::{
-    actor::ActorCell,
-    guardian::{AlwaysRestart, Guardian, GuardianStrategy},
-    mailbox::PriorityMailboxSpawnerHandle,
-    supervision::CompositeEscalationSink,
-  },
+  internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
 };
 
 /// Simple scheduler implementation assuming priority mailboxes.

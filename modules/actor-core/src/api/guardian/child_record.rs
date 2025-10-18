@@ -13,9 +13,9 @@ pub(crate) struct ChildRecord<M, MF>
 where
   M: Element,
   MF: MailboxFactory, {
-  pub(super) control_ref: PriorityActorRef<M, MF>,
-  pub(super) map_system:  MapSystemShared<M>,
-  pub(super) watcher:     Option<ActorId>,
-  pub(super) path:        ActorPath,
-  pub(super) name:        Option<String>,
+  pub(crate) control_ref: PriorityActorRef<M, MF>,
+  pub(crate) map_system:  MapSystemShared<M>,
+  pub(crate) watcher:     Option<ActorId>,
+  pub(crate) path:        ActorPath,
+  pub(crate) name:        Option<String>,
 }

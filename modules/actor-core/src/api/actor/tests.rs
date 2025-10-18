@@ -46,7 +46,7 @@ use crate::{
     supervision::{escalation::FailureEventListener, failure::FailureEvent},
     test_support::TestMailboxFactory,
   },
-  internal::{guardian::AlwaysRestart, message::InternalMessageSender},
+  internal::message::InternalMessageSender,
 };
 
 type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
@@ -319,7 +319,7 @@ use core::{
 use cellex_utils_core_rs::sync::ArcShared;
 use futures::{executor::block_on, future};
 
-use crate::api::mailbox::ThreadSafe;
+use crate::api::{guardian::AlwaysRestart, mailbox::ThreadSafe};
 
 #[derive(Debug)]
 struct CounterExtension {

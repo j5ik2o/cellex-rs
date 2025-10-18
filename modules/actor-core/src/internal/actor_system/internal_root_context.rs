@@ -13,11 +13,12 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxOf},
     actor_scheduler::ActorSchedulerSpawnContext,
     extensions::Extensions,
+    guardian::GuardianStrategy,
     mailbox::{MailboxFactory, PriorityEnvelope},
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
-  internal::{actor::InternalProps, guardian::GuardianStrategy},
+  internal::actor::InternalProps,
 };
 
 pub(crate) struct InternalRootContext<'a, M, AR, Strat>

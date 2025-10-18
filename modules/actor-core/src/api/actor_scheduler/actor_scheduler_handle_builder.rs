@@ -7,16 +7,14 @@ use cellex_utils_core_rs::{
 
 #[cfg(any(test, feature = "test-support"))]
 use crate::api::actor_scheduler::immediate_scheduler::ImmediateScheduler;
-use crate::{
-  api::{
-    actor_scheduler::{
-      actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
-      ActorSchedulerHandleFactoryFn,
-    },
-    extensions::Extensions,
-    mailbox::{MailboxFactory, PriorityEnvelope},
+use crate::api::{
+  actor_scheduler::{
+    actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
+    ActorSchedulerHandleFactoryFn,
   },
-  internal::guardian::GuardianStrategy,
+  extensions::Extensions,
+  guardian::GuardianStrategy,
+  mailbox::{MailboxFactory, PriorityEnvelope},
 };
 
 /// Factory wrapper used to construct scheduler instances with consistent runtime configuration.

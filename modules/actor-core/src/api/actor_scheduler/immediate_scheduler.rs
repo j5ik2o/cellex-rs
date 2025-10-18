@@ -4,26 +4,24 @@ use alloc::{boxed::Box, vec::Vec};
 
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::{
-  api::{
-    actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::{
-      actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, ActorSchedulerSpawnContext,
-    },
-    actor_system::map_system::MapSystemShared,
-    extensions::Extensions,
-    failure_telemetry::FailureTelemetryShared,
-    mailbox::{MailboxFactory, PriorityEnvelope},
-    metrics::MetricsSinkShared,
-    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{
-      escalation::{FailureEventHandler, FailureEventListener},
-      failure::FailureInfo,
-      supervisor::Supervisor,
-      telemetry::TelemetryObservationConfig,
-    },
+use crate::api::{
+  actor::{actor_ref::PriorityActorRef, SpawnError},
+  actor_scheduler::{
+    actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, ActorSchedulerSpawnContext,
   },
-  internal::guardian::{AlwaysRestart, GuardianStrategy},
+  actor_system::map_system::MapSystemShared,
+  extensions::Extensions,
+  failure_telemetry::FailureTelemetryShared,
+  guardian::{AlwaysRestart, GuardianStrategy},
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  metrics::MetricsSinkShared,
+  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+  supervision::{
+    escalation::{FailureEventHandler, FailureEventListener},
+    failure::FailureInfo,
+    supervisor::Supervisor,
+    telemetry::TelemetryObservationConfig,
+  },
 };
 
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.

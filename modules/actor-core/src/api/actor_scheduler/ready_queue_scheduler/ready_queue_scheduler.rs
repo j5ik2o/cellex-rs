@@ -14,24 +14,22 @@ use super::{
   ready_queue_state::ReadyQueueState,
   ready_queue_worker::ReadyQueueWorker,
 };
-use crate::{
-  api::{
-    actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorSchedulerSpawnContext},
-    actor_system::map_system::MapSystemShared,
-    extensions::Extensions,
-    failure_telemetry::FailureTelemetryShared,
-    mailbox::{MailboxFactory, PriorityEnvelope},
-    metrics::MetricsSinkShared,
-    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{
-      escalation::{FailureEventHandler, FailureEventListener},
-      failure::FailureInfo,
-      supervisor::Supervisor,
-      telemetry::TelemetryObservationConfig,
-    },
+use crate::api::{
+  actor::{actor_ref::PriorityActorRef, SpawnError},
+  actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorSchedulerSpawnContext},
+  actor_system::map_system::MapSystemShared,
+  extensions::Extensions,
+  failure_telemetry::FailureTelemetryShared,
+  guardian::{AlwaysRestart, GuardianStrategy},
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  metrics::MetricsSinkShared,
+  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+  supervision::{
+    escalation::{FailureEventHandler, FailureEventListener},
+    failure::FailureInfo,
+    supervisor::Supervisor,
+    telemetry::TelemetryObservationConfig,
   },
-  internal::guardian::{AlwaysRestart, GuardianStrategy},
 };
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.

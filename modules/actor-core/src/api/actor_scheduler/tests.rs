@@ -25,35 +25,33 @@ use spin::RwLock;
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "std")]
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::{
-  api::{
-    actor::{
-      actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, shutdown_token::ShutdownToken, ActorContext,
-      ActorHandlerFn, ActorId, ChildNaming, SpawnError,
-    },
-    actor_scheduler::{
-      actor_scheduler::ActorScheduler,
-      actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
-      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-      ActorSchedulerSpawnContext,
-    },
-    actor_system::map_system::MapSystemShared,
-    extensions::Extensions,
-    mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
-    messaging::DynMessage,
-    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    process::{
-      pid::{Pid, SystemId},
-      process_registry::ProcessRegistry,
-    },
-    supervision::{
-      escalation::{FailureEventHandler, FailureEventListener},
-      failure::FailureInfo,
-      supervisor::{NoopSupervisor, Supervisor},
-    },
-    test_support::TestMailboxFactory,
+use crate::api::{
+  actor::{
+    actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, shutdown_token::ShutdownToken, ActorContext,
+    ActorHandlerFn, ActorId, ChildNaming, SpawnError,
   },
-  internal::guardian::{AlwaysRestart, GuardianStrategy},
+  actor_scheduler::{
+    actor_scheduler::ActorScheduler,
+    actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
+    ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+    ActorSchedulerSpawnContext,
+  },
+  actor_system::map_system::MapSystemShared,
+  extensions::Extensions,
+  guardian::{AlwaysRestart, GuardianStrategy},
+  mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
+  messaging::DynMessage,
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+  process::{
+    pid::{Pid, SystemId},
+    process_registry::ProcessRegistry,
+  },
+  supervision::{
+    escalation::{FailureEventHandler, FailureEventListener},
+    failure::FailureInfo,
+    supervisor::{NoopSupervisor, Supervisor},
+  },
+  test_support::TestMailboxFactory,
 };
 
 #[cfg(feature = "std")]

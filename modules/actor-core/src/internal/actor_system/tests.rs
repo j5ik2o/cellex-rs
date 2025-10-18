@@ -6,7 +6,7 @@
 use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;
 use spin::RwLock;
@@ -17,16 +17,17 @@ use crate::{
     actor::ActorPath,
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_system::map_system::MapSystemShared,
+    guardian::AlwaysRestart,
     mailbox::{MailboxOptions, PriorityEnvelope, SystemMessage},
     messaging::{DynMessage, MessageEnvelope, MessageMetadata},
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
       pid::{NodeId, Pid, SystemId},
-      process_registry::{ProcessRegistry, ProcessResolution},
+      process_registry::ProcessResolution,
     },
     test_support::TestMailboxFactory,
   },
-  internal::{actor::InternalProps, guardian::AlwaysRestart},
+  internal::actor::InternalProps,
 };
 
 #[cfg(feature = "std")]
