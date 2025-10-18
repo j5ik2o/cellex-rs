@@ -7,9 +7,9 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ChildNaming, SpawnError},
     actor_runtime::{ActorRuntime, MailboxOf},
+    actor_scheduler::ActorSchedulerSpawnContext,
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    actor_scheduler::ActorSchedulerSpawnContext,
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::{actor::InternalProps, guardian::GuardianStrategy},

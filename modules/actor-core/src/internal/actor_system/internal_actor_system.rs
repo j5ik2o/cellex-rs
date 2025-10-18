@@ -9,10 +9,10 @@ use super::InternalRootContext;
 use crate::{
   api::{
     actor_runtime::{ActorRuntime, MailboxOf},
+    actor_scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
-    actor_scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
   },
   internal::{
     actor_system::internal_actor_system_config::InternalActorSystemConfig,

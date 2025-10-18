@@ -1049,12 +1049,12 @@ mod metrics_injection {
   use super::*;
   use crate::api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
+    actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
     actor_system::{ActorSystem, ActorSystemConfig},
     failure_telemetry::FailureTelemetryShared,
     mailbox::MailboxFactory,
     messaging::DynMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
     supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
     test_support::TestMailboxFactory,
   };

@@ -5,8 +5,8 @@ use spin::Mutex;
 use super::ready_queue_context::ReadyQueueContext;
 use crate::{
   api::{
-      mailbox::{MailboxFactory, PriorityEnvelope},
-      actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
+    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
+    mailbox::{MailboxFactory, PriorityEnvelope},
   },
   internal::guardian::GuardianStrategy,
 };

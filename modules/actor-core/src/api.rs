@@ -2,6 +2,8 @@
 pub mod actor;
 /// Actor runtime trait and generic implementations.
 pub mod actor_runtime;
+/// Internal schedulers coordinating actor execution and supervision.
+pub mod actor_scheduler;
 /// Actor system infrastructure and lifecycle management.
 pub mod actor_system;
 #[cfg(feature = "alloc")]
@@ -19,8 +21,6 @@ pub mod messaging;
 pub mod metrics;
 /// Receive timeout handling
 pub mod receive_timeout;
-/// Internal schedulers coordinating actor execution and supervision.
-pub mod actor_scheduler;
 /// Supervision strategies and failure handling.
 pub mod supervision;
 #[cfg(any(test, feature = "test-support"))]

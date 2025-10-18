@@ -6,6 +6,7 @@ use crate::{
   api::{
     actor::{root_context::RootContext, shutdown_token::ShutdownToken},
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_scheduler::ReadyQueueWorker,
     actor_system::{
       actor_system_builder::ActorSystemBuilder, actor_system_config::ActorSystemConfig,
       actor_system_runner::ActorSystemRunner,
@@ -15,7 +16,6 @@ use crate::{
     failure_telemetry::TelemetryContext,
     mailbox::PriorityEnvelope,
     messaging::DynMessage,
-    actor_scheduler::ReadyQueueWorker,
     supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::{

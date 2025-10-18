@@ -3,6 +3,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 use crate::{
   api::{
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_scheduler::ActorSchedulerHandleBuilder,
     mailbox::{MailboxFactory, PriorityEnvelope},
     messaging::DynMessage,
     metrics::MetricsSinkShared,
@@ -10,7 +11,6 @@ use crate::{
       NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
       ReceiveTimeoutSchedulerFactoryShared,
     },
-    actor_scheduler::ActorSchedulerHandleBuilder,
     supervision::escalation::{FailureEventHandler, FailureEventListener},
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},

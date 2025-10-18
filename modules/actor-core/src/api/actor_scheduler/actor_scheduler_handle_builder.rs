@@ -9,12 +9,12 @@ use cellex_utils_core_rs::{
 use crate::api::actor_scheduler::immediate_scheduler::ImmediateScheduler;
 use crate::{
   api::{
-    extensions::Extensions,
-    mailbox::{MailboxFactory, PriorityEnvelope},
     actor_scheduler::{
       actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
       ActorSchedulerHandleFactoryFn,
     },
+    extensions::Extensions,
+    mailbox::{MailboxFactory, PriorityEnvelope},
   },
   internal::guardian::GuardianStrategy,
 };
