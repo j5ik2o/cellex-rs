@@ -179,8 +179,8 @@ async fn tokio_scheduler_builder_dispatches() {
 #[test]
 fn tokio_bundle_sets_default_receive_timeout_factory() {
   let bundle: TokioActorRuntime = tokio_actor_runtime();
-  let factory_from_bundle = bundle.receive_timeout_factory();
-  let factory_from_driver = bundle.receive_timeout_driver_factory();
+  let factory_from_bundle = bundle.receive_timeout_scheduler_factory_shared();
+  let factory_from_driver = bundle.receive_timeout_scheduler_factory_provider_shared_opt();
   assert!(
     factory_from_bundle.is_some() || factory_from_driver.is_some(),
     "Tokio バンドルは ReceiveTimeout ドライバまたはファクトリを提供する想定"

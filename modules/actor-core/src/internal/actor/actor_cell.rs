@@ -5,10 +5,7 @@ use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared};
 
 use crate::{
   api::{
-    actor::{
-      actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, DynActorContext,
-      SpawnError,
-    },
+    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
     actor_scheduler::ReadyQueueHandle,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
@@ -20,7 +17,10 @@ use crate::{
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
-  internal::{context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
+  internal::{
+    actor_context::{ChildSpawnSpec, InternalActorContext},
+    mailbox::PriorityMailboxSpawnerHandle,
+  },
 };
 
 pub(crate) struct ActorCell<MF, Strat>
@@ -41,8 +41,8 @@ where
   handler: Box<ActorHandlerFn<AnyMessage, MF>>,
   _strategy: PhantomData<Strat>,
   stopped: bool,
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
-  receive_timeout_scheduler: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
+  receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
+  receive_timeout_scheduler_opt: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
   process_registry:
     ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
@@ -66,7 +66,7 @@ where
     sender: MF::Producer<PriorityEnvelope<AnyMessage>>,
     supervisor: Box<dyn Supervisor<AnyMessage>>,
     handler: Box<ActorHandlerFn<AnyMessage, MF>>,
-    receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
+    receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
     extensions: Extensions,
     process_registry: ArcShared<
       ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>,
@@ -86,12 +86,12 @@ where
       handler,
       _strategy: PhantomData,
       stopped: false,
-      receive_timeout_factory: None,
-      receive_timeout_scheduler: None,
+      receive_timeout_scheduler_factory_shared_opt: None,
+      receive_timeout_scheduler_opt: None,
       extensions,
       process_registry,
     };
-    cell.configure_receive_timeout_factory(receive_timeout_factory);
+    cell.configure_receive_timeout_scheduler_factory_shared_opt(receive_timeout_scheduler_factory_shared_opt);
     cell
   }
 
@@ -116,18 +116,18 @@ where
     MailboxProducer::set_scheduler_hook(&mut self.sender, hook);
   }
 
-  pub fn configure_receive_timeout_factory(
+  pub fn configure_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
     factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
-    if let Some(cell) = self.receive_timeout_scheduler.as_ref() {
+    if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
       cell.borrow_mut().cancel();
     }
-    self.receive_timeout_scheduler = None;
-    self.receive_timeout_factory = factory.clone();
+    self.receive_timeout_scheduler_opt = None;
+    self.receive_timeout_scheduler_factory_shared_opt = factory.clone();
     if let Some(factory_arc) = factory {
       let scheduler = factory_arc.create(self.sender.clone(), self.map_system.clone());
-      self.receive_timeout_scheduler = Some(RefCell::new(scheduler));
+      self.receive_timeout_scheduler_opt = Some(RefCell::new(scheduler));
     }
   }
 
@@ -137,11 +137,11 @@ where
     }
 
     self.stopped = true;
-    if let Some(cell) = self.receive_timeout_scheduler.as_ref() {
+    if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
       cell.borrow_mut().cancel();
     }
-    self.receive_timeout_scheduler = None;
-    self.receive_timeout_factory = None;
+    self.receive_timeout_scheduler_opt = None;
+    self.receive_timeout_scheduler_factory_shared_opt = None;
     self.mailbox.close();
     self.process_registry.with_ref(|registry| registry.deregister(&self.pid));
     let _ = guardian.remove_child(self.actor_id);
@@ -290,8 +290,8 @@ where
     influences_receive_timeout: bool,
     pending_specs: &mut Vec<ChildSpawnSpec<MF>>,
   ) -> Result<(), ActorFailure> {
-    let receive_timeout = self.receive_timeout_scheduler.as_ref();
-    let mut ctx = DynActorContext::new(
+    let receive_timeout = self.receive_timeout_scheduler_opt.as_ref();
+    let mut ctx = InternalActorContext::new(
       &self.mailbox_factory,
       self.mailbox_spawner.clone(),
       &self.sender,
@@ -394,7 +394,7 @@ where
       sender,
       supervisor,
       handler,
-      self.receive_timeout_factory.clone(),
+      self.receive_timeout_scheduler_factory_shared_opt.clone(),
       extensions,
       self.process_registry.clone(),
     );

@@ -1,9 +1,11 @@
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
 
-use super::ActorContext;
 use crate::{
   api::{
-    actor::ask::{AskError, AskResult},
+    actor::{
+      actor_context::ActorContext,
+      ask::{AskError, AskResult},
+    },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     mailbox::{MailboxFactory, PriorityEnvelope},
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},

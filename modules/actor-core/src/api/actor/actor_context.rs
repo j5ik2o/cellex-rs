@@ -27,17 +27,17 @@ use crate::{
 
 mod context_log_level;
 mod context_logger;
-mod dyn_actor_context;
-mod message_adapter_ref;
-mod message_metadata_responder;
 
 pub use context_log_level::ContextLogLevel;
 pub use context_logger::ContextLogger;
-pub use dyn_actor_context::DynActorContext;
-pub use message_adapter_ref::MessageAdapterRef;
-pub use message_metadata_responder::MessageMetadataResponder;
 
-use crate::api::actor::{actor_id::ActorId, actor_path::ActorPath};
+pub use crate::api::actor::{
+  message_adapter_ref::MessageAdapterRef, message_metadata_responder::MessageMetadataResponder,
+};
+use crate::{
+  api::actor::{actor_id::ActorId, actor_path::ActorPath},
+  internal::actor_context::InternalActorContext,
+};
 
 #[cfg(target_has_atomic = "ptr")]
 pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
@@ -56,8 +56,8 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
-  pub(super) inner:      &'r mut DynActorContext<'ctx, MailboxOf<AR>>,
-  pub(super) metadata:   Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<AR>>>,
+  pub(super) inner:      &'r mut InternalActorContext<'ctx, MailboxOf<AR>>,
+  pub(super) metadata:   Option<MessageMetadata<MailboxConcurrencyOf<AR>>>,
   pub(super) extensions: Extensions,
   pub(super) _marker:    PhantomData<U>,
 }
@@ -74,7 +74,7 @@ where
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  pub(crate) fn new(inner: &'r mut DynActorContext<'ctx, MailboxOf<AR>>) -> Self {
+  pub(crate) fn new(inner: &'r mut InternalActorContext<'ctx, MailboxOf<AR>>) -> Self {
     let extensions = inner.extensions();
     Self { inner, metadata: None, extensions, _marker: PhantomData }
   }
@@ -122,7 +122,7 @@ where
   }
 
   pub(crate) fn with_metadata(
-    inner: &'r mut DynActorContext<'ctx, MailboxOf<AR>>,
+    inner: &'r mut InternalActorContext<'ctx, MailboxOf<AR>>,
     metadata: MessageMetadata<MailboxConcurrencyOf<AR>>,
   ) -> Self {
     let extensions = inner.extensions();
@@ -199,7 +199,7 @@ where
   }
 
   /// Gets a mutable reference to the internal context.
-  pub fn inner(&mut self) -> &mut DynActorContext<'ctx, MailboxOf<AR>> {
+  pub fn inner(&mut self) -> &mut InternalActorContext<'ctx, MailboxOf<AR>> {
     self.inner
   }
 }

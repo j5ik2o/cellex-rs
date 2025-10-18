@@ -30,7 +30,7 @@ use crate::{
   api::{
     actor::{
       actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
-      shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, DynActorContext, Props, SpawnError,
+      shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::{

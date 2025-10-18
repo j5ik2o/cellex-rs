@@ -70,15 +70,15 @@ where
     config: InternalActorSystemConfig<AR>,
   ) -> Self {
     let InternalActorSystemConfig {
-      root_event_listener,
-      root_escalation_handler,
-      receive_timeout_factory,
-      metrics_sink,
-      root_failure_telemetry,
+      root_event_listener_opt: root_event_listener,
+      root_escalation_handler_opt: root_escalation_handler,
+      receive_timeout_scheduler_factory_shared_opt,
+      metrics_sink_opt: metrics_sink,
+      root_failure_telemetry_shared: root_failure_telemetry,
       root_observation_config,
       extensions,
       system_id,
-      node_id,
+      node_id_opt: node_id,
     } = config;
     let actor_runtime_shared = ArcShared::new(actor_runtime);
     let mailbox_factory_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_factory_shared());
@@ -88,7 +88,7 @@ where
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_root_failure_telemetry(root_failure_telemetry);
     scheduler.set_root_observation_config(root_observation_config);
-    scheduler.set_receive_timeout_scheduler_factory_shared(receive_timeout_factory);
+    scheduler.set_receive_timeout_scheduler_factory_shared(receive_timeout_scheduler_factory_shared_opt);
     scheduler.set_metrics_sink(metrics_sink.clone());
     let process_registry = ArcShared::new(ProcessRegistry::new(system_id.clone(), node_id.clone()));
     Self {

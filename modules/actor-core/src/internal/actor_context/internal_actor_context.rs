@@ -17,11 +17,11 @@ use crate::{
     receive_timeout::ReceiveTimeoutScheduler,
     supervision::supervisor::Supervisor,
   },
-  internal::{actor::InternalProps, context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
+  internal::{actor::InternalProps, actor_context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
 };
 
 /// Context for actors to operate on themselves and child actors.
-pub struct DynActorContext<'a, MF>
+pub struct InternalActorContext<'a, MF>
 where
   MF: MailboxFactory + Clone, {
   mailbox_factory:  &'a MF,
@@ -43,7 +43,7 @@ where
   extensions:       Extensions,
 }
 
-impl<'a, MF> DynActorContext<'a, MF>
+impl<'a, MF> InternalActorContext<'a, MF>
 where
   MF: MailboxFactory + Clone,
 {

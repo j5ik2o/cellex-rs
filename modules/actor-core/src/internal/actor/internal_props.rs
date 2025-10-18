@@ -2,12 +2,15 @@ use alloc::boxed::Box;
 
 use cellex_utils_core_rs::Element;
 
-use crate::api::{
-  actor::{actor_context::ActorContext, actor_failure::ActorFailure, ActorHandlerFn, DynActorContext},
-  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-  actor_system::map_system::MapSystemShared,
-  mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
-  messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
+use crate::{
+  api::{
+    actor::{actor_context::ActorContext, actor_failure::ActorFailure, ActorHandlerFn},
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_system::map_system::MapSystemShared,
+    mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
+    messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
+  },
+  internal::actor_context::InternalActorContext,
 };
 
 pub(crate) struct InternalProps<MF>
@@ -29,7 +32,7 @@ where
   pub fn new(
     options: MailboxOptions,
     map_system: MapSystemShared<AnyMessage>,
-    handler: impl for<'ctx> FnMut(&mut DynActorContext<'ctx, MF>, AnyMessage) -> Result<(), ActorFailure> + 'static,
+    handler: impl for<'ctx> FnMut(&mut InternalActorContext<'ctx, MF>, AnyMessage) -> Result<(), ActorFailure> + 'static,
   ) -> Self {
     Self { options, map_system, handler: Box::new(handler) }
   }

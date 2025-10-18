@@ -31,14 +31,14 @@ pub(crate) struct ReadyQueueSchedulerCore<MF, Strat = AlwaysRestart>
 where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<MF>, {
-  pub(crate) guardian:     Guardian<MF, Strat>,
-  actors:                  Vec<ActorCell<MF, Strat>>,
-  escalations:             Vec<FailureInfo>,
-  escalation_sink:         CompositeEscalationSink<MF>,
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
-  metrics_sink:            Option<MetricsSinkShared>,
-  extensions:              Extensions,
-  _strategy:               PhantomData<Strat>,
+  pub(crate) guardian: Guardian<MF, Strat>,
+  actors: Vec<ActorCell<MF, Strat>>,
+  escalations: Vec<FailureInfo>,
+  escalation_sink: CompositeEscalationSink<MF>,
+  receive_timeout_scheduler_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
+  metrics_sink_opt: Option<MetricsSinkShared>,
+  extensions: Extensions,
+  _strategy: PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
@@ -62,8 +62,8 @@ where
       actors: Vec::new(),
       escalations: Vec::new(),
       escalation_sink: CompositeEscalationSink::default(),
-      receive_timeout_factory: None,
-      metrics_sink: None,
+      receive_timeout_scheduler_shared_opt: None,
+      metrics_sink_opt: None,
       extensions,
       _strategy: PhantomData,
     }
@@ -92,10 +92,10 @@ where
       actor_pid_slot,
     } = context;
     let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_factory_shared);
-    mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
+    mailbox_spawner.set_metrics_sink(self.metrics_sink_opt.clone());
     let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
-    mailbox.set_metrics_sink(self.metrics_sink.clone());
-    sender.set_metrics_sink(self.metrics_sink.clone());
+    mailbox.set_metrics_sink(self.metrics_sink_opt.clone());
+    sender.set_metrics_sink(self.metrics_sink_opt.clone());
     let actor_sender = sender.clone();
     let control_ref = PriorityActorRef::new(actor_sender.clone());
     let watchers = vec![ActorId::ROOT];
@@ -127,11 +127,11 @@ where
       sender,
       supervisor,
       handler,
-      self.receive_timeout_factory.clone(),
+      self.receive_timeout_scheduler_shared_opt.clone(),
       self.extensions.clone(),
       process_registry,
     );
-    cell.set_metrics_sink(self.metrics_sink.clone());
+    cell.set_metrics_sink(self.metrics_sink_opt.clone());
     self.actors.push(cell);
     self.record_metric(MetricsEvent::ActorRegistered);
     Ok(control_ref)
@@ -217,14 +217,14 @@ where
     &mut self,
     factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
-    self.receive_timeout_factory = factory.clone();
+    self.receive_timeout_scheduler_shared_opt = factory.clone();
     for actor in &mut self.actors {
-      actor.configure_receive_timeout_factory(factory.clone());
+      actor.configure_receive_timeout_scheduler_factory_shared_opt(factory.clone());
     }
   }
 
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink.clone();
+    self.metrics_sink_opt = sink.clone();
     for actor in &mut self.actors {
       actor.set_metrics_sink(sink.clone());
     }
@@ -411,7 +411,7 @@ where
     if count == 0 {
       return;
     }
-    if let Some(sink) = &self.metrics_sink {
+    if let Some(sink) = &self.metrics_sink_opt {
       sink.with_ref(|sink| {
         for _ in 0..count {
           sink.record(event);

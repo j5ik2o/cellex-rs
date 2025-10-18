@@ -21,6 +21,7 @@ use crate::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
     },
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::actor_system::{InternalActorSystem, InternalActorSystemConfig},
@@ -75,7 +76,7 @@ where
     }
     let extensions = extensions_handle;
 
-    let receive_timeout_factory = config
+    let receive_timeout_scheduler_factory_shared_opt = config
       .receive_timeout_scheduler_factory_shared_opt()
       .or(actor_runtime.receive_timeout_scheduler_factory_shared_opt())
       .or_else(|| {
@@ -105,15 +106,15 @@ where
     }
 
     let settings = InternalActorSystemConfig {
-      root_event_listener,
-      root_escalation_handler: root_handler_from_runtime,
-      receive_timeout_factory,
-      metrics_sink,
-      root_failure_telemetry,
+      root_event_listener_opt: root_event_listener,
+      root_escalation_handler_opt: root_handler_from_runtime,
+      receive_timeout_scheduler_factory_shared_opt: receive_timeout_scheduler_factory_shared_opt,
+      metrics_sink_opt: metrics_sink,
+      root_failure_telemetry_shared: root_failure_telemetry,
       root_observation_config: observation_config,
       extensions: extensions.clone(),
       system_id: system_id.clone(),
-      node_id: node_id.clone(),
+      node_id_opt: node_id.clone(),
     };
 
     let ready_queue_worker_count = config
