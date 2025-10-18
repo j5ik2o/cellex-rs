@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
 use crate::api::{
@@ -10,6 +10,7 @@ use crate::api::{
   actor_system::map_system::MapSystemShared,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
@@ -23,23 +24,22 @@ use crate::api::{
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.
 #[allow(dead_code)]
 #[async_trait(?Send)]
-pub trait ActorScheduler<M, MF>
+pub trait ActorScheduler<MF>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
   /// Spawns a new actor instance and returns its internal reference on success.
   fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: ActorSchedulerSpawnContext<M, MF>,
-  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>>;
+    supervisor: Box<dyn Supervisor<DynMessage>>,
+    context: ActorSchedulerSpawnContext<MF>,
+  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>>;
 
   /// Installs a factory used to create receive-timeout drivers for child actors.
   fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
   );
 
   /// Registers a metrics sink that records scheduler queue statistics.
@@ -58,12 +58,16 @@ where
   fn set_root_observation_config(&mut self, config: TelemetryObservationConfig);
 
   /// Wires the parent guardian reference used for supervising spawned actors.
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>);
+  fn set_parent_guardian(
+    &mut self,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
+  );
 
   /// Registers a callback invoked when escalations occur during execution.
   fn on_escalation(
     &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static>,
   );
 
   /// Drains and returns buffered escalations captured since the last poll.
@@ -73,13 +77,13 @@ where
   fn actor_count(&self) -> usize;
 
   /// Drains ready queues and reports whether additional work remains.
-  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>>;
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>>;
 
   /// Dispatches the next scheduled message, awaiting asynchronous readiness.
-  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>>;
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
 
   /// Returns a shared worker handle if the scheduler supports ReadyQueue-based execution.
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MF>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MF>>> {
     let _ = self;
     None
   }

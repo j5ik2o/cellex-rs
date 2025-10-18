@@ -11,6 +11,7 @@ use cellex_actor_core_rs::api::{
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
   metrics::MetricsSinkShared,
   receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
   supervision::{
@@ -20,24 +21,22 @@ use cellex_actor_core_rs::api::{
     telemetry::TelemetryObservationConfig,
   },
 };
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;
 
 /// Tokio 用スケジューララッパー。
 ///
 /// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`]
 /// を内包しつつ、`tokio::task::yield_now` による協調切り替えを行う。
-pub struct TokioScheduler<M, MF, Strat = AlwaysRestart>
+pub struct TokioScheduler<MF, Strat = AlwaysRestart>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>, {
-  inner: ReadyQueueScheduler<M, MF, Strat>,
+  Strat: GuardianStrategy<MF>, {
+  inner: ReadyQueueScheduler<MF, Strat>,
 }
 
-impl<M, MF> TokioScheduler<M, MF, AlwaysRestart>
+impl<MF> TokioScheduler<MF, AlwaysRestart>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
 {
   /// ReadyQueue スケジューラを用いた既定構成を作成する。
@@ -46,11 +45,10 @@ where
   }
 }
 
-impl<M, MF, Strat> TokioScheduler<M, MF, Strat>
+impl<MF, Strat> TokioScheduler<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
   pub fn with_strategy(mailbox_factory: MF, strategy: Strat, extensions: Extensions) -> Self {
@@ -59,25 +57,24 @@ where
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, MF, Strat> ActorScheduler<M, MF> for TokioScheduler<M, MF, Strat>
+impl<MF, Strat> ActorScheduler<MF> for TokioScheduler<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: ActorSchedulerSpawnContext<M, MF>,
-  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
+    supervisor: Box<dyn Supervisor<DynMessage>>,
+    context: ActorSchedulerSpawnContext<MF>,
+  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
   fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
   ) {
     self.inner.set_receive_timeout_scheduler_factory_shared(factory);
   }
@@ -102,13 +99,17 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(
+    &mut self,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
+  ) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
   fn on_escalation(
     &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static>,
   ) {
     ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
@@ -121,30 +122,29 @@ where
     self.inner.actor_count()
   }
 
-  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
     self.inner.drain_ready()
   }
 
-  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     self.inner.dispatch_next().await?;
     yield_now().await;
     Ok(())
   }
 
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MF>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MF>>> {
     Some(self.inner.worker_handle())
   }
 }
 
 /// Tokio 用スケジューラビルダーを生成するユーティリティ。
-pub fn tokio_scheduler_builder<M, MF>() -> ActorSchedulerHandleBuilder<M, MF>
+pub fn tokio_scheduler_builder<MF>() -> ActorSchedulerHandleBuilder<MF>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
   ActorSchedulerHandleBuilder::new(|mailbox_factory, extensions| {
-    Box::new(TokioScheduler::<M, MF, AlwaysRestart>::new(mailbox_factory, extensions))
+    Box::new(TokioScheduler::<MF, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }
 

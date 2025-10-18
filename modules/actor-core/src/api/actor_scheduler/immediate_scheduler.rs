@@ -2,7 +2,7 @@
 
 use alloc::{boxed::Box, vec::Vec};
 
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::QueueError;
 
 use crate::api::{
   actor::{actor_ref::PriorityActorRef, SpawnError},
@@ -14,6 +14,7 @@ use crate::api::{
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
@@ -28,17 +29,15 @@ use crate::api::{
 ///
 /// This scheduler simply delegates to [`ReadyQueueScheduler`] but exposes a distinct builder entry
 /// point.
-pub struct ImmediateScheduler<M, MF, Strat = AlwaysRestart>
+pub struct ImmediateScheduler<MF, Strat = AlwaysRestart>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>, {
-  inner: ReadyQueueScheduler<M, MF, Strat>,
+  Strat: GuardianStrategy<MF>, {
+  inner: ReadyQueueScheduler<MF, Strat>,
 }
 
-impl<M, MF> ImmediateScheduler<M, MF, AlwaysRestart>
+impl<MF> ImmediateScheduler<MF, AlwaysRestart>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
 {
   /// Creates a new immediate scheduler with the default guardian strategy.
@@ -48,11 +47,10 @@ where
   }
 }
 
-impl<M, MF, Strat> ImmediateScheduler<M, MF, Strat>
+impl<MF, Strat> ImmediateScheduler<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   /// Creates a new immediate scheduler with a custom guardian strategy.
   #[must_use]
@@ -62,25 +60,24 @@ where
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, MF, Strat> ActorScheduler<M, MF> for ImmediateScheduler<M, MF, Strat>
+impl<MF, Strat> ActorScheduler<MF> for ImmediateScheduler<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
   fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<M>>,
-    context: ActorSchedulerSpawnContext<M, MF>,
-  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
+    supervisor: Box<dyn Supervisor<DynMessage>>,
+    context: ActorSchedulerSpawnContext<MF>,
+  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
   fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
   ) {
     self.inner.set_receive_timeout_scheduler_factory_shared(factory);
   }
@@ -105,13 +102,17 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(
+    &mut self,
+    control_ref: PriorityActorRef<DynMessage, MF>,
+    map_system: MapSystemShared<DynMessage>,
+  ) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
   fn on_escalation(
     &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static>,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static>,
   ) {
     ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
@@ -124,11 +125,11 @@ where
     self.inner.actor_count()
   }
 
-  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
     self.inner.drain_ready()
   }
 
-  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     self.inner.dispatch_next().await
   }
 }

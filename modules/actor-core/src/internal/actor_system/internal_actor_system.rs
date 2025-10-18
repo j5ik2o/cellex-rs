@@ -2,7 +2,7 @@ use core::{convert::Infallible, marker::PhantomData};
 
 use cellex_utils_core_rs::{
   sync::{ArcShared, Shared},
-  Element, QueueError,
+  QueueError,
 };
 
 use super::InternalRootContext;
@@ -14,6 +14,7 @@ use crate::{
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{MailboxFactory, PriorityEnvelope},
+    messaging::DynMessage,
     metrics::MetricsSinkShared,
     process::{
       pid::{NodeId, SystemId},
@@ -23,15 +24,14 @@ use crate::{
   internal::actor_system::internal_actor_system_config::InternalActorSystemConfig,
 };
 
-pub(crate) struct InternalActorSystem<M, AR, Strat = AlwaysRestart>
+pub(crate) struct InternalActorSystem<AR, Strat = AlwaysRestart>
 where
-  M: Element + 'static,
   AR: ActorRuntime + Clone + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<AR>>, {
-  pub(super) scheduler: ActorSchedulerHandle<M, MailboxOf<AR>>,
+  Strat: GuardianStrategy<MailboxOf<AR>>, {
+  pub(super) scheduler: ActorSchedulerHandle<MailboxOf<AR>>,
   #[allow(dead_code)]
   pub(super) actor_runtime_shared: ArcShared<AR>,
   pub(super) mailbox_factory_shared: ArcShared<MailboxOf<AR>>,
@@ -39,7 +39,7 @@ where
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
   pub(super) process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, ArcShared<PriorityEnvelope<M>>>>,
+    ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>,
   #[allow(dead_code)]
   pub(super) system_id: SystemId,
   #[allow(dead_code)]
@@ -48,27 +48,26 @@ where
 }
 
 #[allow(dead_code)]
-impl<M, AR> InternalActorSystem<M, AR, AlwaysRestart>
+impl<AR> InternalActorSystem<AR, AlwaysRestart>
 where
-  M: Element,
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
 {
   pub fn new(actor_runtime: AR) -> Self {
     Self::new_with_config(actor_runtime, InternalActorSystemConfig::default())
   }
 
-  pub fn new_with_config(actor_runtime: AR, config: InternalActorSystemConfig<M, AR>) -> Self {
-    let scheduler_builder = ArcShared::new(ActorSchedulerHandleBuilder::<M, MailboxOf<AR>>::ready_queue());
+  pub fn new_with_config(actor_runtime: AR, config: InternalActorSystemConfig<AR>) -> Self {
+    let scheduler_builder = ArcShared::new(ActorSchedulerHandleBuilder::<MailboxOf<AR>>::ready_queue());
     Self::new_with_config_and_builder(actor_runtime, &scheduler_builder, config)
   }
 
   pub fn new_with_config_and_builder(
     actor_runtime: AR,
-    scheduler_builder: &ArcShared<ActorSchedulerHandleBuilder<M, MailboxOf<AR>>>,
-    config: InternalActorSystemConfig<M, AR>,
+    scheduler_builder: &ArcShared<ActorSchedulerHandleBuilder<MailboxOf<AR>>>,
+    config: InternalActorSystemConfig<AR>,
   ) -> Self {
     let InternalActorSystemConfig {
       root_event_listener,
@@ -106,41 +105,40 @@ where
   }
 }
 
-impl<M, AR, Strat> InternalActorSystem<M, AR, Strat>
+impl<AR, Strat> InternalActorSystem<AR, Strat>
 where
-  M: Element,
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<AR>>,
+  Strat: GuardianStrategy<MailboxOf<AR>>,
 {
   #[allow(clippy::missing_const_for_fn)]
-  pub fn root_context(&mut self) -> InternalRootContext<'_, M, AR, Strat> {
+  pub fn root_context(&mut self) -> InternalRootContext<'_, AR, Strat> {
     InternalRootContext { system: self }
   }
 
-  pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     F: FnMut() -> bool, {
     self.run_until_impl(should_continue).await
   }
 
-  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<M>>> {
+  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
     loop {
       self.scheduler.dispatch_next().await?;
     }
   }
 
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<M>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     self.scheduler.dispatch_next().await
   }
 
-  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<M>>> {
+  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
     self.scheduler.drain_ready()
   }
 
-  pub fn run_until_idle<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  pub fn run_until_idle<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     F: FnMut() -> bool, {
     while should_continue() {
@@ -162,14 +160,15 @@ where
   }
 
   #[must_use]
-  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MailboxOf<AR>>>> {
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MailboxOf<AR>>>> {
     self.scheduler.ready_queue_worker()
   }
 
   #[must_use]
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, ArcShared<PriorityEnvelope<M>>>> {
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  {
     self.process_registry.clone()
   }
 
@@ -185,7 +184,10 @@ where
     self.node_id.as_ref()
   }
 
-  async fn run_until_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>
+  async fn run_until_impl<F>(
+    &mut self,
+    mut should_continue: F,
+  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     F: FnMut() -> bool, {
     while should_continue() {

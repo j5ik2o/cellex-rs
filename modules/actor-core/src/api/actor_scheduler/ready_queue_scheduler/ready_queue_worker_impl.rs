@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
@@ -7,34 +7,32 @@ use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
   guardian::GuardianStrategy,
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
 };
 
-pub(crate) struct ReadyQueueWorkerImpl<M, MF, Strat>
+pub(crate) struct ReadyQueueWorkerImpl<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>, {
-  context: ArcShared<Mutex<ReadyQueueContext<M, MF, Strat>>>,
+  Strat: GuardianStrategy<MF>, {
+  context: ArcShared<Mutex<ReadyQueueContext<MF, Strat>>>,
 }
 
-impl<M, MF, Strat> ReadyQueueWorkerImpl<M, MF, Strat>
+impl<MF, Strat> ReadyQueueWorkerImpl<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
-  pub(crate) fn new(context: ArcShared<Mutex<ReadyQueueContext<M, MF, Strat>>>) -> Self {
+  pub(crate) fn new(context: ArcShared<Mutex<ReadyQueueContext<MF, Strat>>>) -> Self {
     Self { context }
   }
 }
 
-impl<M, MF, Strat> ReadyQueueWorker<M, MF> for ReadyQueueWorkerImpl<M, MF, Strat>
+impl<MF, Strat> ReadyQueueWorker<MF> for ReadyQueueWorkerImpl<MF, Strat>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, MF>,
+  Strat: GuardianStrategy<MF>,
 {
-  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<M>>> {
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>> {
     let mut ctx = self.context.lock();
     ctx.process_ready_once()
   }

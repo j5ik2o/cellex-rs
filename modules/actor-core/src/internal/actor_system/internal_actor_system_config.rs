@@ -1,10 +1,9 @@
-use cellex_utils_core_rs::Element;
-
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf},
   extensions::Extensions,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
@@ -15,19 +14,18 @@ use crate::api::{
 };
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
-pub struct InternalActorSystemConfig<M, AR>
+pub struct InternalActorSystemConfig<AR>
 where
-  M: Element,
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
   pub(crate) root_event_listener:     Option<FailureEventListener>,
   /// Escalation handler invoked when failures bubble to the root guardian.
   pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
-  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MailboxOf<AR>>>,
+  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
   /// Metrics sink shared across the actor runtime.
   pub(crate) metrics_sink:            Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
@@ -42,12 +40,11 @@ where
   pub(crate) node_id:                 Option<NodeId>,
 }
 
-impl<M, AR> Default for InternalActorSystemConfig<M, AR>
+impl<AR> Default for InternalActorSystemConfig<AR>
 where
-  M: Element,
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
 {
   fn default() -> Self {

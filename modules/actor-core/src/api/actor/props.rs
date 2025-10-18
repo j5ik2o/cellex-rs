@@ -29,7 +29,7 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
-  inner:      InternalProps<DynMessage, MailboxOf<AR>>,
+  inner:      InternalProps<MailboxOf<AR>>,
   _marker:    PhantomData<U>,
   supervisor: SupervisorStrategyConfig,
 }
@@ -142,7 +142,7 @@ where
   ///
   /// # Returns
   /// Tuple of `(InternalProps, SupervisorStrategyConfig)`
-  pub(crate) fn into_parts(self) -> (InternalProps<DynMessage, MailboxOf<AR>>, SupervisorStrategyConfig) {
+  pub(crate) fn into_parts(self) -> (InternalProps<MailboxOf<AR>>, SupervisorStrategyConfig) {
     (self.inner, self.supervisor)
   }
 }

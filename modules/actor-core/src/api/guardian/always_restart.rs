@@ -1,5 +1,3 @@
-use cellex_utils_core_rs::Element;
-
 use super::guardian_strategy::GuardianStrategy;
 use crate::api::{
   actor::{actor_failure::BehaviorFailure, ActorId},
@@ -21,9 +19,8 @@ use crate::api::{
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AlwaysRestart;
 
-impl<M, MF> GuardianStrategy<M, MF> for AlwaysRestart
+impl<MF> GuardianStrategy<MF> for AlwaysRestart
 where
-  M: Element,
   MF: MailboxFactory,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {

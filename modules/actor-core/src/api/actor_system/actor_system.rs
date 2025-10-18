@@ -35,8 +35,8 @@ where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
-  inner:                    InternalActorSystem<DynMessage, AR, Strat>,
+  Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>, {
+  inner:                    InternalActorSystem<AR, Strat>,
   pub(crate) shutdown:      ShutdownToken,
   extensions:               Extensions,
   ready_queue_worker_count: NonZeroUsize,
@@ -153,7 +153,7 @@ where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
-  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
+  Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>,
 {
   /// Gets the shutdown token.
   ///
@@ -263,7 +263,7 @@ where
 
   /// Returns a ReadyQueue worker handle if supported by the underlying scheduler.
   #[must_use]
-  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>> {
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MailboxOf<AR>>>> {
     self.inner.ready_queue_worker()
   }
 

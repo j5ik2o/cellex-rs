@@ -65,9 +65,8 @@ use crate::{
 struct AlwaysEscalate;
 
 #[cfg(feature = "std")]
-impl<M, MF> GuardianStrategy<M, MF> for AlwaysEscalate
+impl<MF> GuardianStrategy<MF> for AlwaysEscalate
 where
-  M: Element,
   MF: MailboxFactory,
 {
   fn decide(&mut self, _actor: ActorId, _error: &dyn BehaviorFailure) -> SupervisorDirective {
@@ -197,17 +196,17 @@ where
     unreachable!("SchedulerTestRuntime::priority_mailbox_spawner must not be called in tests")
   }
 
-  fn with_scheduler_builder(self, _builder: ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>) -> Self {
+  fn with_scheduler_builder(self, _builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self {
     self
   }
 
-  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>> {
+  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
     unreachable!("SchedulerTestRuntime::scheduler_builder_shared must not be called in tests")
   }
 
   fn with_scheduler_builder_shared(
     self,
-    _builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>,
+    _builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>,
   ) -> Self {
     self
   }
@@ -259,7 +258,7 @@ where
 
 #[cfg(feature = "std")]
 fn spawn_with_runtime<MF>(
-  scheduler: &mut dyn ActorScheduler<DynMessage, MF>,
+  scheduler: &mut dyn ActorScheduler<MF>,
   mailbox_factory: MF,
   supervisor: Box<dyn Supervisor<DynMessage>>,
   options: MailboxOptions,
@@ -273,7 +272,7 @@ where
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
   let process_registry = ArcShared::new(ProcessRegistry::new(SystemId::new("test"), None));
   let pid_slot = ArcShared::new(RwLock::new(None::<Pid>));
-  let context: ActorSchedulerSpawnContext<DynMessage, MF> = ActorSchedulerSpawnContext {
+  let context: ActorSchedulerSpawnContext<MF> = ActorSchedulerSpawnContext {
     mailbox_factory,
     mailbox_factory_shared,
     map_system,
@@ -570,7 +569,7 @@ fn priority_actor_ref_sends_system_messages() {
 #[test]
 fn scheduler_notifies_guardian_and_restarts_on_panic() {
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysRestart> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysRestart> =
     ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
@@ -616,7 +615,7 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
 #[test]
 fn scheduler_run_until_processes_messages() {
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysRestart> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysRestart> =
     ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
@@ -652,7 +651,7 @@ fn scheduler_run_until_processes_messages() {
 #[test]
 fn scheduler_records_escalations() {
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysEscalate> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
     ReadyQueueScheduler::with_strategy(mailbox_factory.clone(), AlwaysEscalate, Extensions::new());
 
   let sink: Rc<RefCell<Vec<FailureInfo>>> = Rc::new(RefCell::new(Vec::new()));
@@ -700,7 +699,7 @@ fn scheduler_records_escalations() {
 #[test]
 fn scheduler_escalation_handler_delivers_to_parent() {
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysEscalate> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
     ReadyQueueScheduler::with_strategy(mailbox_factory.clone(), AlwaysEscalate, Extensions::new());
 
   let (parent_mailbox, parent_sender) = mailbox_factory.build_default_mailbox::<PriorityEnvelope<DynMessage>>();
@@ -747,7 +746,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 #[test]
 fn scheduler_escalation_chain_reaches_root() {
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysEscalate> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
     ReadyQueueScheduler::with_strategy(mailbox_factory.clone(), AlwaysEscalate, Extensions::new());
 
   let collected: Rc<RefCell<Vec<FailureInfo>>> = Rc::new(RefCell::new(Vec::new()));
@@ -849,7 +848,7 @@ fn scheduler_root_escalation_handler_invoked() {
   use std::sync::{Arc as StdArc, Mutex};
 
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysEscalate> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
     ReadyQueueScheduler::with_strategy(mailbox_factory.clone(), AlwaysEscalate, Extensions::new());
 
   let events: StdArc<Mutex<Vec<FailureInfo>>> = StdArc::new(Mutex::new(Vec::new()));
@@ -893,7 +892,7 @@ fn scheduler_root_escalation_handler_invoked() {
 #[test]
 fn scheduler_requeues_failed_custom_escalation() {
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysEscalate> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
     ReadyQueueScheduler::with_strategy(mailbox_factory.clone(), AlwaysEscalate, Extensions::new());
 
   let attempts = Rc::new(Cell::new(0usize));
@@ -952,7 +951,7 @@ fn scheduler_root_event_listener_broadcasts() {
   use crate::api::failure_event_stream::{tests::TestFailureEventStream, FailureEventStream};
 
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler: ReadyQueueScheduler<DynMessage, _, AlwaysEscalate> =
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
     ReadyQueueScheduler::with_strategy(mailbox_factory.clone(), AlwaysEscalate, Extensions::new());
 
   let hub = TestFailureEventStream::default();
@@ -1044,7 +1043,7 @@ fn drive_ready_queue_worker_processes_actions() {
     }
   }
 
-  impl ReadyQueueWorker<DynMessage, TestMailboxFactory> for DummyWorker {
+  impl ReadyQueueWorker<TestMailboxFactory> for DummyWorker {
     fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>> {
       let mut state = self.state.lock().unwrap();
       let (actions, wait_future, finished) = &mut *state;
@@ -1096,8 +1095,7 @@ fn drive_ready_queue_worker_processes_actions() {
   let actions =
     VecDeque::from(vec![WorkerAction::Progress(1), WorkerAction::Wait, WorkerAction::Progress(2), WorkerAction::End]);
   let worker_impl = DummyWorker::new(actions, processed.clone());
-  let worker =
-    ArcShared::new(worker_impl).into_dyn(|inner| inner as &dyn ReadyQueueWorker<DynMessage, TestMailboxFactory>);
+  let worker = ArcShared::new(worker_impl).into_dyn(|inner| inner as &dyn ReadyQueueWorker<TestMailboxFactory>);
 
   let shutdown = ShutdownToken::default();
   let shutdown_for_worker = shutdown.clone();

@@ -8,32 +8,28 @@ use crate::api::{
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
   messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
-  supervision::supervisor::Supervisor,
 };
 
-pub(crate) struct InternalProps<M, MF>
+pub(crate) struct InternalProps<MF>
 where
-  M: Element + 'static,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
   pub options:    MailboxOptions,
-  pub map_system: MapSystemShared<M>,
-  pub handler:    Box<ActorHandlerFn<M, MF>>,
+  pub map_system: MapSystemShared<DynMessage>,
+  pub handler:    Box<ActorHandlerFn<DynMessage, MF>>,
 }
 
-impl<M, MF> InternalProps<M, MF>
+impl<MF> InternalProps<MF>
 where
-  M: Element,
   MF: MailboxFactory + Clone,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   pub fn new(
     options: MailboxOptions,
-    map_system: MapSystemShared<M>,
-    handler: impl for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) -> Result<(), ActorFailure>
-      + 'static,
+    map_system: MapSystemShared<DynMessage>,
+    handler: impl for<'ctx> FnMut(&mut ActorContext<'ctx, MF>, DynMessage) -> Result<(), ActorFailure> + 'static,
   ) -> Self {
     Self { options, map_system, handler: Box::new(handler) }
   }
@@ -43,7 +39,7 @@ pub(crate) fn internal_props_from_adapter<U, AR>(
   options: MailboxOptions,
   map_system: MapSystemShared<DynMessage>,
   mut adapter: crate::api::actor::behavior::ActorAdapter<U, AR>,
-) -> InternalProps<DynMessage, MailboxOf<AR>>
+) -> InternalProps<MailboxOf<AR>>
 where
   U: Element,
   AR: ActorRuntime + 'static,

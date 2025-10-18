@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 
 use cellex_utils_core_rs::{
   sync::{ArcShared, Shared},
-  Element, SharedBound,
+  SharedBound,
 };
 
 #[cfg(any(test, feature = "test-support"))]
@@ -15,24 +15,23 @@ use crate::api::{
   extensions::Extensions,
   guardian::GuardianStrategy,
   mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
 };
 
 /// Factory wrapper used to construct scheduler instances with consistent runtime configuration.
 #[derive(Clone)]
-pub struct ActorSchedulerHandleBuilder<M, MF>
+pub struct ActorSchedulerHandleBuilder<MF>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
-  factory: ArcShared<ActorSchedulerHandleFactoryFn<M, MF>>,
+  factory: ArcShared<ActorSchedulerHandleFactoryFn<MF>>,
 }
 
-impl<M, MF> ActorSchedulerHandleBuilder<M, MF>
+impl<MF> ActorSchedulerHandleBuilder<MF>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
   #[cfg(any(test, feature = "test-support"))]
@@ -46,20 +45,21 @@ where
   /// Creates a builder from a factory closure producing scheduler handles.
   pub fn new<F>(factory: F) -> Self
   where
-    F: Fn(MF, Extensions) -> ActorSchedulerHandle<M, MF> + SharedBound + 'static, {
+    F: Fn(MF, Extensions) -> ActorSchedulerHandle<MF> + SharedBound + 'static, {
     let shared = ArcShared::new(factory);
-    Self { factory: shared.into_dyn(|inner| inner as &ActorSchedulerHandleFactoryFn<M, MF>) }
+    Self { factory: shared.into_dyn(|inner| inner as &ActorSchedulerHandleFactoryFn<MF>) }
   }
 
   /// Builds a scheduler using the stored factory and provided runtime components.
-  pub fn build(&self, mailbox_factory: MF, extensions: Extensions) -> ActorSchedulerHandle<M, MF> {
+  pub fn build(&self, mailbox_factory: MF, extensions: Extensions) -> ActorSchedulerHandle<MF> {
     self.factory.with_ref(|factory| (factory)(mailbox_factory, extensions))
   }
 }
-impl<M, MF> ActorSchedulerHandleBuilder<M, MF>
+impl<MF> ActorSchedulerHandleBuilder<MF>
 where
-  M: Element,
   MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Signal: Clone,
 {
   /// Returns a builder configured to create ready-queue-based schedulers.
   pub fn ready_queue() -> Self {
@@ -70,7 +70,7 @@ where
   /// Returns a builder that wires a custom guardian strategy into the ready-queue scheduler.
   pub fn with_strategy<Strat>(self, strategy: Strat) -> Self
   where
-    Strat: GuardianStrategy<M, MF> + Clone + Send + Sync, {
+    Strat: GuardianStrategy<MF> + Clone + Send + Sync, {
     let _ = self;
     Self::new(move |mailbox_factory, extensions| {
       Box::new(ReadyQueueScheduler::with_strategy(mailbox_factory, strategy.clone(), extensions))

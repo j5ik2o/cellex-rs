@@ -129,18 +129,15 @@ pub trait ActorRuntime: Clone {
     MailboxSignalOf<Self>: Clone;
 
   /// Overrides the scheduler builder used during actor system construction.
-  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>) -> Self
+  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self
   where
     Self: Sized;
 
   /// Returns the scheduler builder configured for this runtime.
-  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>;
+  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>;
 
   /// Overrides the scheduler builder using a shared handle.
-  fn with_scheduler_builder_shared(
-    self,
-    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>,
-  ) -> Self
+  fn with_scheduler_builder_shared(self, builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>) -> Self
   where
     Self: Sized;
 }
