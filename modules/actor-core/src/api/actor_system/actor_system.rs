@@ -1,28 +1,28 @@
-use crate::api::actor_system::actor_system_builder::ActorSystemBuilder;
-use crate::api::actor_system::actor_system_config::ActorSystemConfig;
-use crate::api::actor_system::actor_system_runner::ActorSystemRunner;
-use core::convert::Infallible;
-use core::marker::PhantomData;
-use core::num::NonZeroUsize;
+use core::{convert::Infallible, marker::PhantomData, num::NonZeroUsize};
 
-use crate::api::actor::root_context::RootContext;
-use crate::api::actor::shutdown_token::ShutdownToken;
-use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::extensions::serializer_extension_id;
-use crate::api::extensions::Extension;
-use crate::api::extensions::ExtensionId;
-use crate::api::extensions::Extensions;
-use crate::api::extensions::SerializerRegistryExtension;
-use crate::api::failure_event_stream::FailureEventStream;
-use crate::api::failure_telemetry::TelemetryContext;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::supervision::telemetry::default_failure_telemetry_shared;
-use crate::internal::actor_system::{InternalActorSystem, InternalActorSystemConfig};
-use crate::internal::guardian::AlwaysRestart;
-use crate::internal::scheduler::ReadyQueueWorker;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+
+use crate::{
+  api::{
+    actor::{root_context::RootContext, shutdown_token::ShutdownToken},
+    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_system::{
+      actor_system_builder::ActorSystemBuilder, actor_system_config::ActorSystemConfig,
+      actor_system_runner::ActorSystemRunner,
+    },
+    extensions::{serializer_extension_id, Extension, ExtensionId, Extensions, SerializerRegistryExtension},
+    failure_event_stream::FailureEventStream,
+    failure_telemetry::TelemetryContext,
+    mailbox::PriorityEnvelope,
+    messaging::DynMessage,
+    supervision::telemetry::default_failure_telemetry_shared,
+  },
+  internal::{
+    actor_system::{InternalActorSystem, InternalActorSystemConfig},
+    guardian::AlwaysRestart,
+    scheduler::ReadyQueueWorker,
+  },
+};
 
 /// Primary instance of the actor system.
 ///
@@ -34,11 +34,11 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
-  inner: InternalActorSystem<DynMessage, AR, Strat>,
-  pub(crate) shutdown: ShutdownToken,
-  extensions: Extensions,
+  inner:                    InternalActorSystem<DynMessage, AR, Strat>,
+  pub(crate) shutdown:      ShutdownToken,
+  extensions:               Extensions,
   ready_queue_worker_count: NonZeroUsize,
-  _marker: PhantomData<U>,
+  _marker:                  PhantomData<U>,
 }
 
 impl<U, AR> ActorSystem<U, AR>
@@ -72,9 +72,7 @@ where
       .receive_timeout_scheduler_factory_shared()
       .or(actor_runtime.receive_timeout_scheduler_factory_shared_opt())
       .or_else(|| {
-        actor_runtime
-          .receive_timeout_scheduler_factory_provider_shared_opt()
-          .map(|driver| driver.build_factory())
+        actor_runtime.receive_timeout_scheduler_factory_provider_shared_opt().map(|driver| driver.build_factory())
       });
     let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
     let metrics_sink = config.metrics_sink_shared().or(metrics_from_runtime);
@@ -83,9 +81,7 @@ where
       let ctx = TelemetryContext::new(metrics_sink.clone(), extensions.clone());
       builder.build(&ctx)
     } else {
-      config
-        .failure_telemetry_shared()
-        .unwrap_or_else(default_failure_telemetry_shared)
+      config.failure_telemetry_shared().unwrap_or_else(default_failure_telemetry_shared)
     };
 
     let mut observation_config = config.failure_observation_config().unwrap_or_default();
@@ -167,11 +163,7 @@ where
   #[allow(clippy::missing_const_for_fn)]
   pub fn into_runner(self) -> ActorSystemRunner<U, AR, Strat> {
     let ready_queue_worker_count = self.ready_queue_worker_count;
-    ActorSystemRunner {
-      system: self,
-      ready_queue_worker_count,
-      _marker: PhantomData,
-    }
+    ActorSystemRunner { system: self, ready_queue_worker_count, _marker: PhantomData }
   }
 
   /// Gets the root context.
@@ -181,10 +173,7 @@ where
   /// # Returns
   /// Mutable reference to the root context
   pub fn root_context(&mut self) -> RootContext<'_, U, AR, Strat> {
-    RootContext {
-      inner: self.inner.root_context(),
-      _marker: PhantomData,
-    }
+    RootContext { inner: self.inner.root_context(), _marker: PhantomData }
   }
 
   /// Returns a clone of the shared extension registry.
@@ -223,7 +212,8 @@ where
   /// Executes message dispatching until the specified condition is met.
   ///
   /// # Arguments
-  /// * `should_continue` - Closure that determines continuation condition. Continues execution while it returns `true`
+  /// * `should_continue` - Closure that determines continuation condition. Continues execution
+  ///   while it returns `true`
   ///
   /// # Returns
   /// `Ok(())` on normal completion, `Err` on queue error

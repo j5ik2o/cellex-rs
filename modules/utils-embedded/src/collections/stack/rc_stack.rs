@@ -45,7 +45,7 @@ type RcStackStorage<T> = RcShared<StackStorageBackend<RcShared<RefCell<StackBuff
 /// // Stack with capacity limit
 /// let limited_stack = RcStack::with_capacity(5);
 /// for i in 0..5 {
-///     limited_stack.push(i).unwrap();
+///   limited_stack.push(i).unwrap();
 /// }
 /// // Cannot add 6th element
 /// assert!(limited_stack.push(5).is_err());
@@ -70,9 +70,7 @@ impl<T> RcStack<T> {
   pub fn new() -> Self {
     let storage = RcShared::new(RefCell::new(StackBuffer::new()));
     let backend: RcStackStorage<T> = RcShared::new(StackStorageBackend::new(storage));
-    Self {
-      inner: Stack::new(backend),
-    }
+    Self { inner: Stack::new(backend) }
   }
 
   /// Creates a new stack with the specified capacity limit
@@ -107,7 +105,7 @@ impl<T> RcStack<T> {
   ///
   /// let stack: RcStack<i32> = RcStack::new();
   /// stack.set_capacity(Some(10)); // Limit capacity to 10
-  /// stack.set_capacity(None);     // Remove capacity limit
+  /// stack.set_capacity(None); // Remove capacity limit
   /// ```
   pub fn set_capacity(&self, capacity: Option<usize>) {
     self.inner.set_capacity(capacity);

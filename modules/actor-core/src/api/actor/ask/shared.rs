@@ -1,13 +1,13 @@
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use cellex_utils_core_rs::QueueError;
 use core::cell::UnsafeCell;
+
+use cellex_utils_core_rs::QueueError;
 use portable_atomic::{AtomicU8, Ordering};
+
+use crate::api::{mailbox::PriorityEnvelope, messaging::DynMessage};
 
 #[cfg(not(target_has_atomic = "ptr"))]
 mod local_waker {
-  use core::cell::RefCell;
-  use core::task::Waker;
+  use core::{cell::RefCell, task::Waker};
 
   /// Single-threaded waker used on targets without atomic pointer support.
   #[derive(Default)]
@@ -66,35 +66,24 @@ pub(crate) struct AskShared<Resp> {
 impl<Resp> AskShared<Resp> {
   #[cfg(target_has_atomic = "ptr")]
   pub(crate) const fn new() -> Self {
-    Self {
-      state: AtomicU8::new(STATE_PENDING),
-      value: UnsafeCell::new(None),
-      waker: SharedWaker::new(),
-    }
+    Self { state: AtomicU8::new(STATE_PENDING), value: UnsafeCell::new(None), waker: SharedWaker::new() }
   }
 
   #[cfg(not(target_has_atomic = "ptr"))]
   pub(crate) fn new() -> Self {
-    Self {
-      state: AtomicU8::new(STATE_PENDING),
-      value: UnsafeCell::new(None),
-      waker: SharedWaker::new(),
-    }
+    Self { state: AtomicU8::new(STATE_PENDING), value: UnsafeCell::new(None), waker: SharedWaker::new() }
   }
 
   pub(crate) fn complete(&self, value: Resp) -> bool {
-    match self
-      .state
-      .compare_exchange(STATE_PENDING, STATE_READY, Ordering::AcqRel, Ordering::Acquire)
-    {
-      Ok(_) => {
+    match self.state.compare_exchange(STATE_PENDING, STATE_READY, Ordering::AcqRel, Ordering::Acquire) {
+      | Ok(_) => {
         unsafe {
           *self.value.get() = Some(value);
         }
         self.waker.wake();
         true
-      }
-      Err(_) => false,
+      },
+      | Err(_) => false,
     }
   }
 
@@ -109,15 +98,7 @@ impl<Resp> AskShared<Resp> {
   }
 
   pub(crate) fn responder_dropped(&self) {
-    if self
-      .state
-      .compare_exchange(
-        STATE_PENDING,
-        STATE_RESPONDER_DROPPED,
-        Ordering::AcqRel,
-        Ordering::Acquire,
-      )
-      .is_ok()
+    if self.state.compare_exchange(STATE_PENDING, STATE_RESPONDER_DROPPED, Ordering::AcqRel, Ordering::Acquire).is_ok()
     {
       self.waker.wake();
     }

@@ -1,19 +1,17 @@
-use crate::api::actor_runtime::ActorRuntime;
-use crate::api::actor_runtime::MailboxOf;
-use crate::api::actor_runtime::MailboxQueueOf;
-use crate::api::actor_runtime::MailboxSignalOf;
-use crate::api::extensions::Extension;
-use crate::api::extensions::Extensions;
-use crate::api::failure_telemetry::FailureTelemetryBuilderShared;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use cellex_utils_core_rs::ArcShared;
 use core::num::NonZeroUsize;
+
+use cellex_utils_core_rs::ArcShared;
+
+use crate::api::{
+  actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+  extensions::{Extension, Extensions},
+  failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared},
+  mailbox::PriorityEnvelope,
+  messaging::DynMessage,
+  metrics::MetricsSinkShared,
+  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+  supervision::{escalation::FailureEventListener, telemetry::TelemetryObservationConfig},
+};
 
 /// Configuration options applied when constructing an [`ActorSystem`].
 pub struct ActorSystemConfig<AR>
@@ -22,21 +20,21 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   /// Listener invoked when failures bubble up to the root guardian.
-  failure_event_listener: Option<FailureEventListener>,
+  failure_event_listener:     Option<FailureEventListener>,
   /// Receive-timeout scheduler factory used by all actors spawned in the system.
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
+  receive_timeout_factory:    Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
   /// Metrics sink shared across the actor runtime.
-  metrics_sink: Option<MetricsSinkShared>,
+  metrics_sink:               Option<MetricsSinkShared>,
   /// Telemetry invoked when failures reach the root guardian.
-  failure_telemetry: Option<FailureTelemetryShared>,
+  failure_telemetry:          Option<FailureTelemetryShared>,
   /// Builder used to create telemetry implementations。
-  failure_telemetry_builder: Option<FailureTelemetryBuilderShared>,
+  failure_telemetry_builder:  Option<FailureTelemetryBuilderShared>,
   /// Observation configuration applied to telemetry calls。
   failure_observation_config: Option<TelemetryObservationConfig>,
   /// Extension registry configured for the actor system.
-  extensions: Extensions,
+  extensions:                 Extensions,
   /// Default ReadyQueue worker count supplied by configuration.
-  ready_queue_worker_count: Option<NonZeroUsize>,
+  ready_queue_worker_count:   Option<NonZeroUsize>,
 }
 
 impl<AR> Default for ActorSystemConfig<AR>
@@ -47,14 +45,14 @@ where
 {
   fn default() -> Self {
     Self {
-      failure_event_listener: None,
-      receive_timeout_factory: None,
-      metrics_sink: None,
-      failure_telemetry: None,
-      failure_telemetry_builder: None,
+      failure_event_listener:     None,
+      receive_timeout_factory:    None,
+      metrics_sink:               None,
+      failure_telemetry:          None,
+      failure_telemetry_builder:  None,
       failure_observation_config: None,
-      extensions: Extensions::new(),
-      ready_queue_worker_count: None,
+      extensions:                 Extensions::new(),
+      ready_queue_worker_count:   None,
     }
   }
 }

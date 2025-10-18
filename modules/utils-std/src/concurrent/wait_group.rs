@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod tests;
 
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{
+  atomic::{AtomicUsize, Ordering},
+  Arc,
+};
 
 use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
 use tokio::sync::Notify;
@@ -16,7 +18,7 @@ pub struct TokioWaitGroupBackend {
 }
 
 struct Inner {
-  count: AtomicUsize,
+  count:  AtomicUsize,
   notify: Notify,
 }
 
@@ -27,12 +29,7 @@ impl WaitGroupBackend for TokioWaitGroupBackend {
   }
 
   fn with_count(count: usize) -> Self {
-    Self {
-      inner: Arc::new(Inner {
-        count: AtomicUsize::new(count),
-        notify: Notify::new(),
-      }),
-    }
+    Self { inner: Arc::new(Inner { count: AtomicUsize::new(count), notify: Notify::new() }) }
   }
 
   fn add(&self, n: usize) {

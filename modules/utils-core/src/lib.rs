@@ -51,7 +51,8 @@
 //! Provides fundamental data structures such as mailboxes, synchronization primitives,
 //! and deadline-based processing intended for cross-runtime sharing, with `no_std` support.
 //! By interacting with `actor-core` through this crate, we maintain unidirectional dependencies,
-//! and each runtime only needs to satisfy the abstractions defined here with their own implementations.
+//! and each runtime only needs to satisfy the abstractions defined here with their own
+//! implementations.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -64,7 +65,6 @@ pub mod sync;
 mod timing;
 
 pub use async_trait::async_trait;
-
 pub use collections::{
   Element, MpscBackend, MpscBuffer, MpscHandle, MpscQueue, PriorityMessage, PriorityQueue, QueueBase, QueueError,
   QueueHandle, QueueReader, QueueRw, QueueRwHandle, QueueSize, QueueStorage, QueueWriter, RingBackend, RingBuffer,

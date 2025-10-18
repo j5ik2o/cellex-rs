@@ -1,16 +1,13 @@
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::MailboxPair;
-use crate::api::mailbox::QueueMailbox;
-use crate::api::mailbox::QueueMailboxProducer;
-use crate::api::mailbox::ThreadSafe;
-use crate::api::test_support::common::TestQueue;
-use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
-use crate::api::test_support::test_signal::TestSignal;
 use cellex_utils_core_rs::{Element, MpscQueue, QueueSize};
 
+use crate::api::{
+  mailbox::{MailboxFactory, MailboxOptions, MailboxPair, QueueMailbox, QueueMailboxProducer, ThreadSafe},
+  test_support::{common::TestQueue, shared_backend_handle::SharedBackendHandle, test_signal::TestSignal},
+};
+
 #[derive(Clone, Debug, Default)]
-/// Minimal use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used by unit tests to build queue-backed mailboxes.
+/// Minimal use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used by unit tests to build
+/// queue-backed mailboxes.
 pub struct TestMailboxFactory {
   capacity: Option<usize>,
 }
@@ -33,8 +30,8 @@ impl TestMailboxFactory {
 
   const fn resolve_capacity(&self, options: MailboxOptions) -> Option<usize> {
     match options.capacity {
-      QueueSize::Limitless => self.capacity,
-      QueueSize::Limited(value) => Some(value),
+      | QueueSize::Limitless => self.capacity,
+      | QueueSize::Limited(value) => Some(value),
     }
   }
 }

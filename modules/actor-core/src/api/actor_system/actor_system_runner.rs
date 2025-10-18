@@ -1,17 +1,17 @@
-use crate::api::actor::shutdown_token::ShutdownToken;
-use crate::api::actor_runtime::ActorRuntime;
-use crate::api::actor_runtime::MailboxOf;
-use crate::api::actor_runtime::MailboxQueueOf;
-use crate::api::actor_runtime::MailboxSignalOf;
-use crate::api::actor_system::ActorSystem;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::internal::guardian::AlwaysRestart;
-use crate::internal::scheduler::ReadyQueueWorker;
+use core::{convert::Infallible, marker::PhantomData, num::NonZeroUsize};
+
 use cellex_utils_core_rs::{ArcShared, Element, QueueError};
-use core::convert::Infallible;
-use core::marker::PhantomData;
-use core::num::NonZeroUsize;
+
+use crate::{
+  api::{
+    actor::shutdown_token::ShutdownToken,
+    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_system::ActorSystem,
+    mailbox::PriorityEnvelope,
+    messaging::DynMessage,
+  },
+  internal::{guardian::AlwaysRestart, scheduler::ReadyQueueWorker},
+};
 
 /// Execution runner for the actor system.
 ///
@@ -23,9 +23,9 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
-  pub(crate) system: ActorSystem<U, AR, Strat>,
+  pub(crate) system:                   ActorSystem<U, AR, Strat>,
   pub(crate) ready_queue_worker_count: NonZeroUsize,
-  pub(crate) _marker: PhantomData<U>,
+  pub(crate) _marker:                  PhantomData<U>,
 }
 
 impl<U, AR, Strat> ActorSystemRunner<U, AR, Strat>

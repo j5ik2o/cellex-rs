@@ -1,11 +1,16 @@
 //! ReadyQueue ワーカを 4 本起動し、Tokio 上でメッセージを並列処理するサンプル。
 
-use cellex_actor_core_rs::api::actor::Props;
-use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
-use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
+use std::{
+  num::NonZeroUsize,
+  sync::{Arc, Mutex},
+};
+
+use cellex_actor_core_rs::api::{
+  actor::Props,
+  actor_runtime::GenericActorRuntime,
+  actor_system::{ActorSystem, ActorSystemConfig},
+};
 use cellex_actor_std_rs::{TokioMailboxRuntime, TokioSystemHandle};
-use std::num::NonZeroUsize;
-use std::sync::{Arc, Mutex};
 use tokio::task::LocalSet;
 
 #[tokio::main(flavor = "current_thread")]

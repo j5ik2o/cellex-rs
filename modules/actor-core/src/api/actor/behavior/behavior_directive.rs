@@ -1,12 +1,11 @@
-use crate::api::actor::behavior::Behavior;
-use crate::api::actor_runtime::ActorRuntime;
-use crate::api::actor_runtime::MailboxConcurrencyOf;
-use crate::api::actor_runtime::MailboxQueueOf;
-use crate::api::actor_runtime::MailboxSignalOf;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
 use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  actor::behavior::Behavior,
+  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+  mailbox::PriorityEnvelope,
+  messaging::{DynMessage, MetadataStorageMode},
+};
 
 /// State transition directive after user message processing.
 pub enum BehaviorDirective<U, AR>

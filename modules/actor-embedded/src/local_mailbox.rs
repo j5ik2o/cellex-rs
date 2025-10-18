@@ -2,24 +2,26 @@
 mod tests;
 
 use alloc::rc::Rc;
-use core::cell::RefCell;
-use core::fmt;
-use core::future::Future;
-use core::marker::PhantomData;
-use core::pin::Pin;
-use core::task::{Context, Poll, Waker};
+use core::{
+  cell::RefCell,
+  fmt,
+  future::Future,
+  marker::PhantomData,
+  pin::Pin,
+  task::{Context, Poll, Waker},
+};
 
-use cellex_actor_core_rs::api::mailbox::MailboxFactory;
-use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::MailboxSignal;
-use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
 #[cfg(feature = "embedded_rc")]
 use cellex_actor_core_rs::api::mailbox::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
-use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
-use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
+use cellex_actor_core_rs::api::{
+  mailbox::{
+    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+    QueueMailboxRecv,
+  },
+  metrics::MetricsSinkShared,
+};
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_utils_embedded_rs::ArcLocalMpscUnboundedQueue;
 #[cfg(feature = "embedded_rc")]
@@ -91,9 +93,7 @@ where
   M: Element,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: clone_queue(&self.inner),
-    }
+    Self { inner: clone_queue(&self.inner) }
   }
 }
 
@@ -161,7 +161,7 @@ pub struct LocalSignal {
 #[derive(Debug, Default)]
 struct SignalState {
   notified: bool,
-  waker: Option<Waker>,
+  waker:    Option<Waker>,
 }
 
 impl MailboxSignal for LocalSignal {
@@ -292,9 +292,7 @@ where
   pub fn producer(&self) -> LocalMailboxSender<M>
   where
     LocalSignal: Clone, {
-    LocalMailboxSender {
-      inner: self.inner.producer(),
-    }
+    LocalMailboxSender { inner: self.inner.producer() }
   }
 
   /// Returns a reference to the internal queue mailbox.
@@ -358,9 +356,7 @@ where
   LocalQueue<M>: Clone,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 
@@ -425,9 +421,7 @@ where
   LocalQueue<M>: Clone,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

@@ -1,11 +1,13 @@
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Shared;
+use cellex_utils_core_rs::{sync::ArcShared, Shared};
 
-use super::receive_timeout_scheduler_factory_provider::ReceiveTimeoutSchedulerFactoryProvider;
-use super::receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared;
+use super::{
+  receive_timeout_scheduler_factory_provider::ReceiveTimeoutSchedulerFactoryProvider,
+  receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared,
+};
+use crate::api::{
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  messaging::DynMessage,
+};
 
 /// Shared wrapper around a [`ReceiveTimeoutSchedulerFactoryProvider`] implementation.
 pub struct ReceiveTimeoutSchedulerFactoryProviderShared<MF> {
@@ -25,9 +27,7 @@ where
   where
     D: ReceiveTimeoutSchedulerFactoryProvider<MF> + 'static, {
     let shared = ArcShared::new(driver);
-    Self {
-      inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactoryProvider<MF>),
-    }
+    Self { inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactoryProvider<MF>) }
   }
 
   /// Wraps an existing shared driver.
@@ -57,9 +57,7 @@ where
 
 impl<MF> Clone for ReceiveTimeoutSchedulerFactoryProviderShared<MF> {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

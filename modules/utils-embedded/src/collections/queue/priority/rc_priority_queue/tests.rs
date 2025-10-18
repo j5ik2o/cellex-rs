@@ -1,5 +1,6 @@
-use super::*;
 use cellex_utils_core_rs::{QueueBase, QueueReader, QueueWriter};
+
+use super::*;
 
 #[derive(Debug, Clone)]
 struct Msg(i32, i8);

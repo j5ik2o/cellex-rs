@@ -1,8 +1,10 @@
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::actor::ActorId;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::supervision::supervisor::SupervisorDirective;
 use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  actor::{actor_failure::BehaviorFailure, ActorId},
+  mailbox::MailboxFactory,
+  supervision::supervisor::SupervisorDirective,
+};
 
 /// Supervisor strategy. Corresponds to protoactor-go's Strategy.
 ///

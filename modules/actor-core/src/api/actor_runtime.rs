@@ -6,56 +6,62 @@
 
 mod generic_actor_runtime;
 
+use cellex_utils_core_rs::{sync::ArcShared, Element};
 pub use generic_actor_runtime::GenericActorRuntime;
 
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Element;
+use crate::{
+  api::{
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    messaging::DynMessage,
+    metrics::MetricsSinkShared,
+    receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
+    supervision::escalation::{FailureEventHandler, FailureEventListener},
+  },
+  internal::{mailbox::PriorityMailboxSpawnerHandle, scheduler::SchedulerBuilder},
+};
 
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::SchedulerBuilder;
-
-/// Helper alias mapping an actor runtime to its use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+/// Helper alias mapping an actor runtime to its use
+/// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
 pub type MailboxOf<R> = <R as ActorRuntime>::MailboxFactory;
 
-/// Helper alias mapping an actor runtime to the queue type of its use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+/// Helper alias mapping an actor runtime to the queue type of its use
+/// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
 pub type MailboxQueueOf<R, M> = <MailboxOf<R> as MailboxFactory>::Queue<M>;
 
-/// Helper alias mapping an actor runtime to the signal type of its use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+/// Helper alias mapping an actor runtime to the signal type of its use
+/// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
 pub type MailboxSignalOf<R> = <MailboxOf<R> as MailboxFactory>::Signal;
 
-/// Helper alias mapping an actor runtime to the concurrency marker of its use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+/// Helper alias mapping an actor runtime to the concurrency marker of its use
+/// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
 pub type MailboxConcurrencyOf<R> = <MailboxOf<R> as MailboxFactory>::Concurrency;
 
 /// High-level runtime interface that extends [`MailboxFactory`] with bundle-specific capabilities.
 ///
-/// This trait provides a facade over a use cellex_actor_core_rs::api::mailbox::MailboxRuntime;, adding actor-system-level
-/// features such as:
+/// This trait provides a facade over a use cellex_actor_core_rs::api::mailbox::MailboxRuntime;,
+/// adding actor-system-level features such as:
 /// - Receive timeout configuration
 /// - Failure event listeners and escalation handlers
 /// - Metrics integration
 /// - Scheduler builder configuration
 #[allow(dead_code)]
 pub trait ActorRuntime: Clone {
-  /// Underlying use cellex_actor_core_rs::api::mailbox::MailboxRuntime; retained by this actor runtime facade.
+  /// Underlying use cellex_actor_core_rs::api::mailbox::MailboxRuntime; retained by this actor
+  /// runtime facade.
   type MailboxFactory: MailboxFactory + Clone + 'static;
 
-  /// Returns a shared reference to the underlying use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Returns a shared reference to the underlying use
+  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   fn mailbox_factory(&self) -> &Self::MailboxFactory;
 
-  /// Consumes `self` and returns the underlying use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Consumes `self` and returns the underlying use
+  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   fn into_mailbox_factory(self) -> Self::MailboxFactory
   where
     Self: Sized;
 
-  /// Returns the shared handle to the underlying use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Returns the shared handle to the underlying use
+  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   fn mailbox_factory_shared(&self) -> ArcShared<Self::MailboxFactory>;
 
   /// Returns the receive-timeout scheduler factory configured for this runtime.
@@ -63,7 +69,8 @@ pub trait ActorRuntime: Clone {
     &self,
   ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
 
-  /// Overrides the receive-timeout scheduler factory using the base use cellex_actor_core_rs::api::mailbox::MailboxRuntime; type.
+  /// Overrides the receive-timeout scheduler factory using the base use
+  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime; type.
   fn with_receive_timeout_scheduler_factory_shared(
     self,
     factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>,

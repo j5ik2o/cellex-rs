@@ -1,7 +1,8 @@
 extern crate std;
 
-use super::*;
 use std::collections::HashSet;
+
+use super::*;
 
 #[test]
 fn allocate_provides_unique_keys() {

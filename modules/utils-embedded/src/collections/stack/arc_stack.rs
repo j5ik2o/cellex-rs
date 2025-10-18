@@ -54,9 +54,7 @@ where
   pub fn new() -> Self {
     let storage = ArcShared::new(ArcStateCell::new(StackBuffer::new()));
     let backend = ArcShared::new(StackStorageBackend::new(storage));
-    Self {
-      inner: Stack::new(backend),
-    }
+    Self { inner: Stack::new(backend) }
   }
 
   /// Creates a new stack with the specified capacity
@@ -187,9 +185,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

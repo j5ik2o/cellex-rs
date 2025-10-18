@@ -1,22 +1,26 @@
 use core::marker::PhantomData;
 
-use crate::api::mailbox::Mailbox;
-use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::MailboxPair;
-use crate::api::mailbox::MailboxProducer;
-use crate::api::metrics::MetricsSinkShared;
-use crate::internal::mailbox::PriorityMailboxBuilder;
-use cellex_utils_core_rs::sync::{ArcShared, Shared};
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::{
+  sync::{ArcShared, Shared},
+  Element,
+};
+
+use crate::{
+  api::{
+    mailbox::{Mailbox, MailboxOptions, MailboxPair, MailboxProducer},
+    metrics::MetricsSinkShared,
+  },
+  internal::mailbox::PriorityMailboxBuilder,
+};
 
 /// Shared handle that can spawn priority mailboxes without exposing the underlying factory.
 pub struct PriorityMailboxSpawnerHandle<M, B>
 where
   M: Element,
   B: PriorityMailboxBuilder<M>, {
-  builder: ArcShared<B>,
+  builder:      ArcShared<B>,
   metrics_sink: Option<MetricsSinkShared>,
-  _marker: PhantomData<M>,
+  _marker:      PhantomData<M>,
 }
 
 impl<M, B> Clone for PriorityMailboxSpawnerHandle<M, B>
@@ -25,11 +29,7 @@ where
   B: PriorityMailboxBuilder<M>,
 {
   fn clone(&self) -> Self {
-    Self {
-      builder: self.builder.clone(),
-      metrics_sink: self.metrics_sink.clone(),
-      _marker: PhantomData,
-    }
+    Self { builder: self.builder.clone(), metrics_sink: self.metrics_sink.clone(), _marker: PhantomData }
   }
 }
 
@@ -41,11 +41,7 @@ where
   /// Creates a new handle from an `ArcShared`-wrapped factory.
   #[must_use]
   pub fn new(builder: ArcShared<B>) -> Self {
-    Self {
-      builder,
-      metrics_sink: None,
-      _marker: PhantomData,
-    }
+    Self { builder, metrics_sink: None, _marker: PhantomData }
   }
 
   /// Spawns a priority mailbox using the underlying factory and provided options.

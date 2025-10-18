@@ -1,10 +1,14 @@
-use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
-use cellex_actor_core_rs::api::actor::{ActorId, ActorPath};
-use cellex_actor_core_rs::api::failure_telemetry::FailureTelemetryShared;
-use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
-use cellex_actor_core_rs::api::supervision::telemetry::{FailureSnapshot, FailureTelemetry, NoopFailureTelemetry};
-use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
+
+use cellex_actor_core_rs::api::{
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  failure_telemetry::FailureTelemetryShared,
+  supervision::{
+    failure::FailureInfo,
+    telemetry::{FailureSnapshot, FailureTelemetry, NoopFailureTelemetry},
+  },
+};
+use criterion::{criterion_group, criterion_main, Criterion};
 
 fn snapshot_fixture() -> FailureSnapshot {
   let failure = ActorFailure::from_message("bench failure");

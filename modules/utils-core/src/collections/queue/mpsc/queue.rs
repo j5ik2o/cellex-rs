@@ -30,10 +30,7 @@ where
   ///
   /// A new [`MpscQueue`] instance
   pub const fn new(storage: S) -> Self {
-    Self {
-      storage,
-      _marker: core::marker::PhantomData,
-    }
+    Self { storage, _marker: core::marker::PhantomData }
   }
 
   /// Gets a reference to the backend storage.
@@ -150,10 +147,7 @@ where
   ///
   /// A new [`MpscQueue`] instance sharing the same backend storage
   fn clone(&self) -> Self {
-    Self {
-      storage: self.storage.clone(),
-      _marker: core::marker::PhantomData,
-    }
+    Self { storage: self.storage.clone(), _marker: core::marker::PhantomData }
   }
 }
 

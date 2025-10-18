@@ -1,11 +1,9 @@
 extern crate std;
 
-use super::*;
 use core::task::{Context, Poll};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::Wake;
+use std::{future::Future, pin::Pin, sync::Arc, task::Wake};
+
+use super::*;
 
 fn noop_waker() -> core::task::Waker {
   struct NoopWake;

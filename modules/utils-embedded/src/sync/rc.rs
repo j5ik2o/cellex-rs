@@ -1,11 +1,13 @@
 use alloc::rc::Rc;
-use core::cell::{Ref, RefCell, RefMut};
-use core::ops::Deref;
+use core::{
+  cell::{Ref, RefCell, RefMut},
+  ops::Deref,
+};
 
 use cellex_utils_core_rs::{
-  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, StackBackend, StackHandle,
+  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, Shared, StackBackend, StackHandle,
+  StateCell,
 };
-use cellex_utils_core_rs::{Shared, StateCell};
 
 /// `Rc`-based shared reference wrapper.
 ///

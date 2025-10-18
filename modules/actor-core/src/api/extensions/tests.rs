@@ -1,8 +1,9 @@
 extern crate alloc;
 
-use super::*;
 #[cfg(feature = "std")]
 use alloc::string::String;
+use core::any::Any;
+
 #[cfg(feature = "std")]
 use cellex_serialization_core_rs::{impl_type_key, TypeKey};
 #[cfg(feature = "std")]
@@ -12,24 +13,22 @@ use cellex_serialization_postcard_rs::{PostcardTypeKey, POSTCARD_SERIALIZER_ID};
 #[cfg(feature = "std")]
 use cellex_serialization_prost_rs::{ProstTypeKey, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::sync::ArcShared;
-use core::any::Any;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "std")]
 use serde_json;
 
+use super::*;
+
 #[derive(Debug)]
 struct DummyExtension {
-  id: ExtensionId,
+  id:    ExtensionId,
   value: usize,
 }
 
 impl DummyExtension {
   fn new(value: usize) -> Self {
-    Self {
-      id: next_extension_id(),
-      value,
-    }
+    Self { id: next_extension_id(), value }
   }
 }
 
@@ -53,9 +52,7 @@ fn register_and_lookup_extension() {
   let stored = extensions.get(id).expect("extension should exist");
   assert_eq!(stored.extension_id(), id);
 
-  let value = extensions
-    .with::<DummyExtension, _, _>(id, |ext| ext.value)
-    .expect("typed borrow");
+  let value = extensions.with::<DummyExtension, _, _>(id, |ext| ext.value).expect("typed borrow");
   assert_eq!(value, 42);
 }
 
@@ -65,14 +62,11 @@ fn serializer_extension_installs_default_bindings() {
   let extension = SerializerRegistryExtension::new();
   let router = extension.router();
 
-  let serializer = router
-    .resolve_serializer(<JsonTypeKey as TypeKey>::type_key())
-    .expect("json binding should exist");
+  let serializer = router.resolve_serializer(<JsonTypeKey as TypeKey>::type_key()).expect("json binding should exist");
   assert_eq!(serializer.serializer_id(), SERDE_JSON_SERIALIZER_ID);
 
-  let serializer = router
-    .resolve_serializer(<ProstTypeKey as TypeKey>::type_key())
-    .expect("prost binding should exist");
+  let serializer =
+    router.resolve_serializer(<ProstTypeKey as TypeKey>::type_key()).expect("prost binding should exist");
   assert_eq!(serializer.serializer_id(), PROST_SERIALIZER_ID);
 }
 
@@ -82,9 +76,8 @@ fn serializer_extension_installs_postcard_binding() {
   let extension = SerializerRegistryExtension::new();
   let router = extension.router();
 
-  let serializer = router
-    .resolve_serializer(<PostcardTypeKey as TypeKey>::type_key())
-    .expect("postcard binding should exist");
+  let serializer =
+    router.resolve_serializer(<PostcardTypeKey as TypeKey>::type_key()).expect("postcard binding should exist");
   assert_eq!(serializer.serializer_id(), POSTCARD_SERIALIZER_ID);
 }
 
@@ -94,25 +87,18 @@ fn router_round_trip_serializes_and_deserializes_payload() {
   #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
   struct JsonPayload {
     message: String,
-    count: u32,
+    count:   u32,
   }
 
   impl_type_key!(JsonPayload, "test.JsonPayload");
 
   let extension = SerializerRegistryExtension::new();
-  extension
-    .bind_type::<JsonPayload>(SERDE_JSON_SERIALIZER_ID)
-    .expect("bind payload type");
+  extension.bind_type::<JsonPayload>(SERDE_JSON_SERIALIZER_ID).expect("bind payload type");
 
   let router = extension.router();
-  let serializer = router
-    .resolve_serializer(<JsonPayload as TypeKey>::type_key())
-    .expect("registered serializer");
+  let serializer = router.resolve_serializer(<JsonPayload as TypeKey>::type_key()).expect("registered serializer");
 
-  let payload = JsonPayload {
-    message: "hello".to_owned(),
-    count: 7,
-  };
+  let payload = JsonPayload { message: "hello".to_owned(), count: 7 };
   let encoded = serde_json::to_vec(&payload).expect("encode json");
 
   let message = serializer

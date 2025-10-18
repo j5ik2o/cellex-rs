@@ -3,16 +3,16 @@ mod tests;
 
 use std::sync::Arc;
 
-use cellex_actor_core_rs::api::mailbox::MailboxFactory;
-use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::MailboxSignal;
-use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
-use cellex_actor_core_rs::api::mailbox::ThreadSafe;
-use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
-use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
-use cellex_utils_std_rs::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue};
-use cellex_utils_std_rs::{Element, QueueBase, QueueError, QueueRw, QueueSize};
+use cellex_actor_core_rs::api::{
+  mailbox::{
+    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+    QueueMailboxRecv, ThreadSafe,
+  },
+  metrics::MetricsSinkShared,
+};
+use cellex_utils_std_rs::{
+  ArcMpscBoundedQueue, ArcMpscUnboundedQueue, Element, QueueBase, QueueError, QueueRw, QueueSize,
+};
 use tokio::sync::{futures::Notified, Notify};
 
 /// Mailbox implementation for Tokio runtime
@@ -49,9 +49,7 @@ pub struct NotifySignal {
 
 impl Default for NotifySignal {
   fn default() -> Self {
-    Self {
-      inner: Arc::new(Notify::new()),
-    }
+    Self { inner: Arc::new(Notify::new()) }
   }
 }
 
@@ -90,9 +88,7 @@ where
   M: Element,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: Arc::clone(&self.inner),
-    }
+    Self { inner: Arc::clone(&self.inner) }
   }
 }
 
@@ -102,9 +98,9 @@ where
 {
   fn with_capacity(size: QueueSize) -> Self {
     let kind = match size {
-      QueueSize::Limitless => TokioQueueKind::Unbounded(ArcMpscUnboundedQueue::new()),
-      QueueSize::Limited(0) => TokioQueueKind::Unbounded(ArcMpscUnboundedQueue::new()),
-      QueueSize::Limited(capacity) => TokioQueueKind::Bounded(ArcMpscBoundedQueue::new(capacity)),
+      | QueueSize::Limitless => TokioQueueKind::Unbounded(ArcMpscUnboundedQueue::new()),
+      | QueueSize::Limited(0) => TokioQueueKind::Unbounded(ArcMpscUnboundedQueue::new()),
+      | QueueSize::Limited(capacity) => TokioQueueKind::Bounded(ArcMpscBoundedQueue::new(capacity)),
     };
     Self { inner: Arc::new(kind) }
   }
@@ -120,15 +116,15 @@ where
 {
   fn len(&self) -> QueueSize {
     match self.kind() {
-      TokioQueueKind::Unbounded(queue) => queue.len(),
-      TokioQueueKind::Bounded(queue) => queue.len(),
+      | TokioQueueKind::Unbounded(queue) => queue.len(),
+      | TokioQueueKind::Bounded(queue) => queue.len(),
     }
   }
 
   fn capacity(&self) -> QueueSize {
     match self.kind() {
-      TokioQueueKind::Unbounded(queue) => queue.capacity(),
-      TokioQueueKind::Bounded(queue) => queue.capacity(),
+      | TokioQueueKind::Unbounded(queue) => queue.capacity(),
+      | TokioQueueKind::Bounded(queue) => queue.capacity(),
     }
   }
 }
@@ -139,22 +135,22 @@ where
 {
   fn offer(&self, element: M) -> Result<(), QueueError<M>> {
     match self.kind() {
-      TokioQueueKind::Unbounded(queue) => queue.offer(element),
-      TokioQueueKind::Bounded(queue) => queue.offer(element),
+      | TokioQueueKind::Unbounded(queue) => queue.offer(element),
+      | TokioQueueKind::Bounded(queue) => queue.offer(element),
     }
   }
 
   fn poll(&self) -> Result<Option<M>, QueueError<M>> {
     match self.kind() {
-      TokioQueueKind::Unbounded(queue) => queue.poll(),
-      TokioQueueKind::Bounded(queue) => queue.poll(),
+      | TokioQueueKind::Unbounded(queue) => queue.poll(),
+      | TokioQueueKind::Bounded(queue) => queue.poll(),
     }
   }
 
   fn clean_up(&self) {
     match self.kind() {
-      TokioQueueKind::Unbounded(queue) => queue.clean_up(),
-      TokioQueueKind::Bounded(queue) => queue.clean_up(),
+      | TokioQueueKind::Unbounded(queue) => queue.clean_up(),
+      | TokioQueueKind::Bounded(queue) => queue.clean_up(),
     }
   }
 }
@@ -256,9 +252,7 @@ where
   where
     TokioQueue<M>: Clone,
     NotifySignal: Clone, {
-    TokioMailboxSender {
-      inner: self.inner.producer(),
-    }
+    TokioMailboxSender { inner: self.inner.producer() }
   }
 
   /// Returns a reference to the internal queue mailbox

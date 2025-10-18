@@ -6,16 +6,17 @@ extern crate alloc;
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
-use cellex_actor_core_rs::api::mailbox::SingleThread;
-use cellex_actor_core_rs::api::mailbox::ThreadSafe;
-use cellex_actor_core_rs::api::messaging::{
-  DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode,
+use std::hint::black_box;
+
+use cellex_actor_core_rs::{
+  api::{
+    mailbox::{PriorityEnvelope, SingleThread, ThreadSafe},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+  },
+  internal::message::{take_metadata, InternalMessageSender},
 };
-use cellex_actor_core_rs::internal::message::{take_metadata, InternalMessageSender};
 use cellex_utils_core_rs::sync::ArcShared;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use std::hint::black_box;
 
 #[cfg(target_has_atomic = "ptr")]
 type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
@@ -83,7 +84,7 @@ struct InlineUserMessage<U, C>
 where
   U: Element,
   C: MetadataStorageMode, {
-  message: U,
+  message:  U,
   metadata: Option<MessageMetadata<C>>,
 }
 
@@ -93,10 +94,7 @@ where
   C: MetadataStorageMode,
 {
   fn with_metadata(message: U, metadata: MessageMetadata<C>) -> Self {
-    Self {
-      message,
-      metadata: Some(metadata),
-    }
+    Self { message, metadata: Some(metadata) }
   }
 
   fn into_parts(self) -> (U, Option<MessageMetadata<C>>) {

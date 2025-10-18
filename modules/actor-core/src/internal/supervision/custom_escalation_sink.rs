@@ -1,10 +1,12 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::supervision::failure::FailureInfo;
 use cellex_utils_core_rs::{Element, QueueError};
+
+use crate::api::{
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  supervision::failure::FailureInfo,
+};
 
 type FailureHandler<M> = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static;
 
@@ -31,10 +33,7 @@ where
   pub(crate) fn new<F>(handler: F) -> Self
   where
     F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<M>>> + 'static, {
-    Self {
-      handler: Box::new(handler),
-      _marker: PhantomData,
-    }
+    Self { handler: Box::new(handler), _marker: PhantomData }
   }
 }
 

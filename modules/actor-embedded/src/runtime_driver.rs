@@ -4,11 +4,11 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
+use cellex_actor_core_rs::api::{
+  failure_event_stream::FailureEventStream,
+  supervision::{escalation::FailureEventListener, failure::FailureEvent},
+};
 use spin::Mutex;
-
-use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
-use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
-use cellex_actor_core_rs::api::supervision::failure::FailureEvent;
 
 /// Simple FailureEventHub implementation for embedded environments.
 #[derive(Clone, Default)]
@@ -24,13 +24,13 @@ unsafe impl Sync for EmbeddedFailureEventHub {}
 
 #[derive(Default)]
 struct EmbeddedFailureEventHubState {
-  next_id: u64,
+  next_id:   u64,
   listeners: Vec<(u64, FailureEventListener)>,
 }
 
 pub struct EmbeddedFailureEventSubscription {
   inner: Arc<Mutex<EmbeddedFailureEventHubState>>,
-  id: u64,
+  id:    u64,
 }
 
 #[cfg(not(target_has_atomic = "ptr"))]
@@ -46,9 +46,7 @@ impl EmbeddedFailureEventHub {
   ///
   /// A new event hub instance
   pub fn new() -> Self {
-    Self {
-      inner: Arc::new(Mutex::new(EmbeddedFailureEventHubState::default())),
-    }
+    Self { inner: Arc::new(Mutex::new(EmbeddedFailureEventHubState::default())) }
   }
 
   fn snapshot_listeners(&self) -> Vec<FailureEventListener> {
@@ -78,10 +76,7 @@ impl FailureEventStream for EmbeddedFailureEventHub {
       id
     };
 
-    EmbeddedFailureEventSubscription {
-      inner: self.inner.clone(),
-      id,
-    }
+    EmbeddedFailureEventSubscription { inner: self.inner.clone(), id }
   }
 }
 

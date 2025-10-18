@@ -1,15 +1,14 @@
-use alloc::boxed::Box;
-use alloc::rc::Rc;
+use alloc::{boxed::Box, rc::Rc};
+use core::cell::RefCell;
 
 use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
-use core::cell::RefCell;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use embassy_sync::signal::Signal;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 
 /// Backend for `Rc`-based asynchronous barrier implementation.
 ///
-/// Provides functionality for multiple tasks to wait and resume at a specific synchronization point (barrier)
-/// in `no_std` environments. Internally uses `RefCell` and Embassy's `Signal` to achieve single-threaded synchronization.
+/// Provides functionality for multiple tasks to wait and resume at a specific synchronization point
+/// (barrier) in `no_std` environments. Internally uses `RefCell` and Embassy's `Signal` to achieve
+/// single-threaded synchronization.
 ///
 /// # Features
 ///
@@ -31,8 +30,8 @@ use embassy_sync::signal::Signal;
 #[derive(Clone)]
 pub struct RcAsyncBarrierBackend {
   remaining: Rc<RefCell<usize>>,
-  initial: usize,
-  signal: Rc<Signal<NoopRawMutex, ()>>,
+  initial:   usize,
+  signal:    Rc<Signal<NoopRawMutex, ()>>,
 }
 
 #[async_trait(?Send)]
@@ -44,11 +43,7 @@ impl AsyncBarrierBackend for RcAsyncBarrierBackend {
   /// Panics if `count` is 0.
   fn new(count: usize) -> Self {
     assert!(count > 0, "AsyncBarrier must have positive count");
-    Self {
-      remaining: Rc::new(RefCell::new(count)),
-      initial: count,
-      signal: Rc::new(Signal::new()),
-    }
+    Self { remaining: Rc::new(RefCell::new(count)), initial: count, signal: Rc::new(Signal::new()) }
   }
 
   /// Waits at the barrier.

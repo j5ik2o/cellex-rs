@@ -1,11 +1,15 @@
 use alloc::boxed::Box;
 
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::receive_timeout::ReceiveTimeoutScheduler;
-use crate::internal::scheduler::SchedulerFactoryBound;
 use cellex_utils_core_rs::Element;
+
+use crate::{
+  api::{
+    actor_system::map_system::MapSystemShared,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    receive_timeout::ReceiveTimeoutScheduler,
+  },
+  internal::scheduler::SchedulerFactoryBound,
+};
 
 /// Factory for creating schedulers.
 ///
@@ -21,7 +25,8 @@ where
   MF::Queue<PriorityEnvelope<M>>: Clone,
   MF::Signal: Clone,
   MF::Producer<PriorityEnvelope<M>>: Clone, {
-  /// Creates an actor-specific scheduler by receiving a priority mailbox and SystemMessage conversion function.
+  /// Creates an actor-specific scheduler by receiving a priority mailbox and SystemMessage
+  /// conversion function.
   fn create(
     &self,
     sender: MF::Producer<PriorityEnvelope<M>>,

@@ -3,9 +3,11 @@
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-use crate::error::{DeserializationError, SerializationError};
-use crate::id::SerializerId;
-use crate::message::SerializedMessage;
+use crate::{
+  error::{DeserializationError, SerializationError},
+  id::SerializerId,
+  message::SerializedMessage,
+};
 
 /// Abstraction implemented by concrete serializer backends.
 pub trait Serializer: Send + Sync {

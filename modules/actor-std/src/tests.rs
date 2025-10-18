@@ -1,21 +1,23 @@
-use super::*;
-use cellex_actor_core_rs::actor_loop;
-use cellex_actor_core_rs::api::actor::context::Context;
-use cellex_actor_core_rs::api::actor::ActorId;
-use cellex_actor_core_rs::api::actor::Props;
-use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
-use cellex_actor_core_rs::api::actor_system::map_system::MapSystemShared;
-use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig, Spawn};
-use cellex_actor_core_rs::api::extensions::Extensions;
-use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::SystemMessage;
-use cellex_actor_core_rs::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use cellex_actor_core_rs::api::supervision::supervisor::NoopSupervisor;
-use cellex_actor_core_rs::internal::scheduler::{ChildNaming, SchedulerSpawnContext};
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_std_rs::{ArcStateCell, StateCell};
 use core::time::Duration;
 use std::sync::{Arc, Mutex};
+
+use cellex_actor_core_rs::{
+  actor_loop,
+  api::{
+    actor::{context::Context, ActorId, Props},
+    actor_runtime::GenericActorRuntime,
+    actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
+    extensions::Extensions,
+    mailbox::{MailboxOptions, SystemMessage},
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::supervisor::NoopSupervisor,
+  },
+  internal::scheduler::{ChildNaming, SchedulerSpawnContext},
+};
+use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_std_rs::{ArcStateCell, StateCell};
+
+use super::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Message {
@@ -58,10 +60,8 @@ async fn test_actor_loop_updates_state_multi_thread() {
 }
 
 async fn run_typed_actor_system_handles_user_messages() {
-  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(
-    GenericActorRuntime::new(TokioMailboxRuntime),
-    ActorSystemConfig::default(),
-  );
+  let mut system: ActorSystem<u32, _> =
+    ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(TokioMailboxRuntime), ActorSystemConfig::default());
 
   let log: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
@@ -145,25 +145,22 @@ async fn tokio_scheduler_builder_dispatches() {
 
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
   let context = SchedulerSpawnContext {
-    mailbox_factory: mailbox_factory.clone(),
+    mailbox_factory:        mailbox_factory.clone(),
     mailbox_factory_shared: mailbox_factory_shared,
-    map_system: MapSystemShared::new(Message::System),
-    mailbox_options: MailboxOptions::default(),
-    handler: Box::new(move |_, msg: Message| {
+    map_system:             MapSystemShared::new(Message::System),
+    mailbox_options:        MailboxOptions::default(),
+    handler:                Box::new(move |_, msg: Message| {
       log_clone.lock().unwrap().push(msg);
       Ok(())
     }),
-    child_naming: ChildNaming::Auto,
+    child_naming:           ChildNaming::Auto,
   };
 
   scheduler.spawn_actor(Box::new(NoopSupervisor), context).unwrap();
 
   scheduler.dispatch_next().await.unwrap();
 
-  assert_eq!(
-    log.lock().unwrap().as_slice(),
-    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
-  );
+  assert_eq!(log.lock().unwrap().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
 }
 
 #[test]

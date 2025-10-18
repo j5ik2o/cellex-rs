@@ -1,24 +1,23 @@
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::supervision::failure::EscalationStage;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::failure::FailureMetadata;
-use crate::api::supervision::telemetry::build_snapshot_tags;
-use crate::api::supervision::telemetry::TelemetryTag;
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
+
+use crate::api::{
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  supervision::{
+    failure::{EscalationStage, FailureInfo, FailureMetadata},
+    telemetry::{build_snapshot_tags, TelemetryTag},
+  },
+};
 
 /// Failure state captured for telemetry purposes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FailureSnapshot {
-  actor: ActorId,
-  path: ActorPath,
-  failure: ActorFailure,
-  metadata: FailureMetadata,
-  stage: EscalationStage,
+  actor:       ActorId,
+  path:        ActorPath,
+  failure:     ActorFailure,
+  metadata:    FailureMetadata,
+  stage:       EscalationStage,
   description: String,
-  tags: Vec<TelemetryTag>,
+  tags:        Vec<TelemetryTag>,
 }
 
 impl FailureSnapshot {
@@ -26,13 +25,13 @@ impl FailureSnapshot {
   /// Creates a snapshot from [`FailureInfo`].
   pub fn from_failure_info(info: &FailureInfo) -> Self {
     Self {
-      actor: info.actor,
-      path: info.path.clone(),
-      failure: info.failure.clone(),
-      metadata: info.metadata.clone(),
-      stage: info.stage,
+      actor:       info.actor,
+      path:        info.path.clone(),
+      failure:     info.failure.clone(),
+      metadata:    info.metadata.clone(),
+      stage:       info.stage,
       description: info.description().into_owned(),
-      tags: build_snapshot_tags(&info.metadata),
+      tags:        build_snapshot_tags(&info.metadata),
     }
   }
 

@@ -1,6 +1,9 @@
+use cellex_utils_core_rs::{
+  sync::{ArcShared, SharedBound},
+  Shared,
+};
+
 use crate::api::supervision::telemetry::FailureTelemetry;
-use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
-use cellex_utils_core_rs::Shared;
 
 /// Shared wrapper around a [`FailureTelemetry`] implementation.
 pub struct FailureTelemetryShared {
@@ -14,9 +17,7 @@ impl FailureTelemetryShared {
   where
     T: FailureTelemetry + SharedBound + 'static, {
     let shared = ArcShared::new(telemetry);
-    Self {
-      inner: shared.into_dyn(|inner| inner as &dyn FailureTelemetry),
-    }
+    Self { inner: shared.into_dyn(|inner| inner as &dyn FailureTelemetry) }
   }
 
   /// Wraps an existing shared telemetry handle.
@@ -39,9 +40,7 @@ impl FailureTelemetryShared {
 
 impl Clone for FailureTelemetryShared {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

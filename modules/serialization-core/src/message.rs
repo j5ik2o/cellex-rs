@@ -12,7 +12,7 @@ use crate::id::SerializerId;
 pub struct MessageHeader {
   /// Header name.
   #[cfg(feature = "alloc")]
-  pub key: String,
+  pub key:   String,
   /// Header value.
   #[cfg(feature = "alloc")]
   pub value: String,
@@ -24,10 +24,7 @@ impl MessageHeader {
   #[inline]
   #[must_use]
   pub fn new(key: impl Into<String>, value: impl Into<String>) -> Self {
-    Self {
-      key: key.into(),
-      value: value.into(),
-    }
+    Self { key: key.into(), value: value.into() }
   }
 }
 
@@ -38,13 +35,13 @@ pub struct SerializedMessage {
   pub serializer_id: SerializerId,
   /// Fully-qualified type name, when known.
   #[cfg(feature = "alloc")]
-  pub type_name: Option<String>,
+  pub type_name:     Option<String>,
   /// Raw payload bytes.
   #[cfg(feature = "alloc")]
-  pub payload: Vec<u8>,
+  pub payload:       Vec<u8>,
   /// Additional metadata headers.
   #[cfg(feature = "alloc")]
-  pub headers: Vec<MessageHeader>,
+  pub headers:       Vec<MessageHeader>,
 }
 
 impl SerializedMessage {
@@ -52,12 +49,7 @@ impl SerializedMessage {
   #[cfg(feature = "alloc")]
   #[must_use]
   pub fn new(serializer_id: SerializerId, payload: Vec<u8>) -> Self {
-    Self {
-      serializer_id,
-      type_name: None,
-      payload,
-      headers: Vec::new(),
-    }
+    Self { serializer_id, type_name: None, payload, headers: Vec::new() }
   }
 
   /// Assigns a type name to the message.

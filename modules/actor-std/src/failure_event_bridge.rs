@@ -1,5 +1,4 @@
-use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
-use cellex_actor_core_rs::api::supervision::failure::FailureEvent;
+use cellex_actor_core_rs::api::supervision::{escalation::FailureEventListener, failure::FailureEvent};
 use tokio::sync::broadcast;
 
 /// A wrapper that distributes FailureEvent via Tokio broadcast channels.

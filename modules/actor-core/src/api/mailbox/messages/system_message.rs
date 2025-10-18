@@ -1,6 +1,6 @@
-use crate::api::actor::ActorId;
-use crate::api::supervision::failure::FailureInfo;
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
+
+use crate::api::{actor::ActorId, supervision::failure::FailureInfo};
 
 /// Control message types inspired by protoactor-go's `SystemMessage` catalogue.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,13 +29,13 @@ impl SystemMessage {
   /// Returns the recommended runtime priority for the system message.
   pub fn priority(&self) -> i8 {
     match self {
-      SystemMessage::Watch(_) | SystemMessage::Unwatch(_) => DEFAULT_PRIORITY + 5,
-      SystemMessage::Stop => DEFAULT_PRIORITY + 10,
-      SystemMessage::Failure(_) => DEFAULT_PRIORITY + 12,
-      SystemMessage::Restart => DEFAULT_PRIORITY + 11,
-      SystemMessage::Suspend | SystemMessage::Resume => DEFAULT_PRIORITY + 9,
-      SystemMessage::Escalate(_) => DEFAULT_PRIORITY + 13,
-      SystemMessage::ReceiveTimeout => DEFAULT_PRIORITY + 8,
+      | SystemMessage::Watch(_) | SystemMessage::Unwatch(_) => DEFAULT_PRIORITY + 5,
+      | SystemMessage::Stop => DEFAULT_PRIORITY + 10,
+      | SystemMessage::Failure(_) => DEFAULT_PRIORITY + 12,
+      | SystemMessage::Restart => DEFAULT_PRIORITY + 11,
+      | SystemMessage::Suspend | SystemMessage::Resume => DEFAULT_PRIORITY + 9,
+      | SystemMessage::Escalate(_) => DEFAULT_PRIORITY + 13,
+      | SystemMessage::ReceiveTimeout => DEFAULT_PRIORITY + 8,
     }
   }
 }

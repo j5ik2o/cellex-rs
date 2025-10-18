@@ -1,25 +1,25 @@
 #![allow(missing_docs)]
 
 use alloc::boxed::Box;
+use core::{
+  future::Future,
+  marker::PhantomData,
+  pin::Pin,
+  task::{Context, Poll},
+};
 
-use core::future::Future;
-use core::marker::PhantomData;
-use core::pin::Pin;
-use core::task::{Context, Poll};
-
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
-use embassy_sync::signal::Signal;
-
-use cellex_actor_core_rs::api::mailbox::MailboxFactory;
-use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::MailboxSignal;
-use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
-use cellex_actor_core_rs::api::mailbox::ThreadSafe;
-use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxPair};
-use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
-use cellex_utils_embedded_rs::queue::mpsc::ArcMpscUnboundedQueue;
-use cellex_utils_embedded_rs::{ArcShared, Element, QueueError, QueueSize};
+use cellex_actor_core_rs::api::{
+  mailbox::{
+    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
+    QueueMailboxRecv, ThreadSafe,
+  },
+  metrics::MetricsSinkShared,
+};
+use cellex_utils_embedded_rs::{queue::mpsc::ArcMpscUnboundedQueue, ArcShared, Element, QueueError, QueueSize};
+use embassy_sync::{
+  blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
+  signal::Signal,
+};
 
 #[derive(Clone)]
 pub struct ArcMailbox<M, RM = CriticalSectionRawMutex>
@@ -72,9 +72,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      signal: self.signal.clone(),
-    }
+    Self { signal: self.signal.clone() }
   }
 }
 
@@ -83,9 +81,7 @@ where
   RM: RawMutex,
 {
   fn default() -> Self {
-    Self {
-      signal: ArcShared::new(Signal::new()),
-    }
+    Self { signal: ArcShared::new(Signal::new()) }
   }
 }
 
@@ -112,17 +108,14 @@ where
   }
 
   fn wait(&self) -> Self::WaitFuture<'_> {
-    ArcSignalWait {
-      future: Box::pin(self.signal.wait()),
-      _marker: PhantomData,
-    }
+    ArcSignalWait { future: Box::pin(self.signal.wait()), _marker: PhantomData }
   }
 }
 
 pub struct ArcSignalWait<'a, RM>
 where
   RM: RawMutex, {
-  future: Pin<Box<dyn Future<Output = ()> + 'a>>,
+  future:  Pin<Box<dyn Future<Output = ()> + 'a>>,
   _marker: PhantomData<RM>,
 }
 

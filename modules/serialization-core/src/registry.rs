@@ -7,15 +7,16 @@ mod tests;
 use alloc::collections::BTreeMap;
 
 #[cfg(feature = "alloc")]
+use cellex_utils_core_rs::sync::ArcShared;
+#[cfg(feature = "alloc")]
+use spin::RwLock;
+
+#[cfg(feature = "alloc")]
 use crate::error::RegistryError;
 #[cfg(feature = "alloc")]
 use crate::id::SerializerId;
 #[cfg(feature = "alloc")]
 use crate::serializer::Serializer;
-#[cfg(feature = "alloc")]
-use cellex_utils_core_rs::sync::ArcShared;
-#[cfg(feature = "alloc")]
-use spin::RwLock;
 
 /// Default registry backed by a thread-safe map of serializer identifiers.
 #[cfg(feature = "alloc")]
@@ -29,9 +30,7 @@ impl InMemorySerializerRegistry {
   /// Creates a new, empty registry.
   #[must_use]
   pub fn new() -> Self {
-    Self {
-      inner: ArcShared::new(RwLock::new(BTreeMap::new())),
-    }
+    Self { inner: ArcShared::new(RwLock::new(BTreeMap::new())) }
   }
 
   fn insert_serializer<S>(&self, serializer: ArcShared<S>) -> Result<(), RegistryError>

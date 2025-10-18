@@ -1,54 +1,57 @@
 #![cfg(feature = "std")]
 #![allow(deprecated)]
 
-use super::ask::create_ask_handles;
-use super::behavior::{SupervisorStrategy, SupervisorStrategyConfig};
-use crate::api::actor::actor_ref::ActorRef;
-use crate::api::actor::ask::{ask_with_timeout, AskError};
-use crate::api::actor::behavior::{Behavior, Behaviors};
-use crate::api::actor::context::{Context, MessageAdapterRef};
-use crate::api::actor::props::Props;
-use crate::api::actor::signal::Signal;
-use crate::api::actor::ActorId;
-use crate::api::actor_runtime::GenericActorRuntime;
-use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::actor_system::{ActorSystem, ActorSystemConfig};
-use crate::api::extensions::{
-  next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension,
-};
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MessageEnvelope;
-use crate::api::messaging::MessageMetadata;
-use crate::api::messaging::MessageSender;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::failure::FailureEvent;
-use crate::api::test_support::TestMailboxFactory;
-use crate::internal::guardian::AlwaysRestart;
-use crate::internal::message::take_metadata;
-use crate::internal::message::InternalMessageSender;
-use crate::internal::scheduler::SpawnError;
-use alloc::rc::Rc;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
-use alloc::string::String;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use alloc::vec::Vec;
+use alloc::{rc::Rc, string::String, vec::Vec};
+use core::{
+  cell::RefCell,
+  future::Future,
+  num::NonZeroUsize,
+  pin::Pin,
+  task::{Context as TaskContext, Poll, RawWaker, RawWakerVTable, Waker},
+};
+use std::{
+  panic::{catch_unwind, AssertUnwindSafe},
+  sync::{Arc as StdArc, Mutex},
+};
+
 use cellex_serialization_json_rs::SERDE_JSON_SERIALIZER_ID;
 use cellex_utils_core_rs::{Element, QueueError};
-use core::cell::RefCell;
-use core::future::Future;
-use core::num::NonZeroUsize;
-use core::pin::Pin;
-use core::task::{Context as TaskContext, Poll, RawWaker, RawWakerVTable, Waker};
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::{Arc as StdArc, Mutex};
+
+use super::{
+  ask::create_ask_handles,
+  behavior::{SupervisorStrategy, SupervisorStrategyConfig},
+};
+use crate::{
+  api::{
+    actor::{
+      actor_ref::ActorRef,
+      ask::{ask_with_timeout, AskError},
+      behavior::{Behavior, Behaviors},
+      context::{Context, MessageAdapterRef},
+      props::Props,
+      signal::Signal,
+      ActorId,
+    },
+    actor_runtime::{ActorRuntime, GenericActorRuntime, MailboxQueueOf, MailboxSignalOf},
+    actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
+    extensions::{next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension},
+    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender},
+    supervision::{escalation::FailureEventListener, failure::FailureEvent},
+    test_support::TestMailboxFactory,
+  },
+  internal::{
+    guardian::AlwaysRestart,
+    message::{take_metadata, InternalMessageSender},
+    scheduler::SpawnError,
+  },
+};
 
 type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
@@ -69,12 +72,8 @@ mod ready_queue_worker_configuration {
       ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
     let mut root = system.root_context();
 
-    root
-      .spawn_prefix(Props::new(|_, _: u32| Ok(())), "worker")
-      .expect("spawn worker-0");
-    root
-      .spawn_prefix(Props::new(|_, _: u32| Ok(())), "worker")
-      .expect("spawn worker-1");
+    root.spawn_prefix(Props::new(|_, _: u32| Ok(())), "worker").expect("spawn worker-0");
+    root.spawn_prefix(Props::new(|_, _: u32| Ok(())), "worker").expect("spawn worker-1");
   }
 
   #[test]
@@ -85,13 +84,11 @@ mod ready_queue_worker_configuration {
       ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
     let mut root = system.root_context();
 
-    root
-      .spawn_named(Props::new(|_, _: u32| Ok(())), "service")
-      .expect("spawn service");
+    root.spawn_named(Props::new(|_, _: u32| Ok(())), "service").expect("spawn service");
     match root.spawn_named(Props::new(|_, _: u32| Ok(())), "service") {
-      Err(SpawnError::NameExists(name)) => assert_eq!(name, "service"),
-      Err(SpawnError::Queue(err)) => panic!("unexpected queue error: {:?}", err),
-      Ok(_) => panic!("expected duplicate name error"),
+      | Err(SpawnError::NameExists(name)) => assert_eq!(name, "service"),
+      | Err(SpawnError::Queue(err)) => panic!("unexpected queue error: {:?}", err),
+      | Ok(_) => panic!("expected duplicate name error"),
     }
   }
 
@@ -157,25 +154,27 @@ mod builder_api {
 }
 
 mod receive_timeout_injection {
-  use super::TestRuntime;
-  use super::*;
-  use crate::api::actor_runtime::ActorRuntime;
-  use crate::api::actor_system::map_system::MapSystemShared;
-  use crate::api::actor_system::ActorSystem;
-  use crate::api::actor_system::ActorSystemConfig;
-  use crate::api::mailbox::PriorityEnvelope;
-  use crate::api::messaging::DynMessage;
-  use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
-  use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-  use crate::api::receive_timeout::{
-    ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
-  };
-  use crate::api::test_support::TestMailboxFactory;
   use alloc::boxed::Box;
   use core::time::Duration;
+  use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+  };
+
   use futures::executor::block_on;
-  use std::sync::atomic::{AtomicUsize, Ordering};
-  use std::sync::Arc;
+
+  use super::{TestRuntime, *};
+  use crate::api::{
+    actor_runtime::ActorRuntime,
+    actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
+    mailbox::PriorityEnvelope,
+    messaging::DynMessage,
+    receive_timeout::{
+      ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
+      ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
+    },
+    test_support::TestMailboxFactory,
+  };
 
   #[derive(Clone)]
   struct CountingFactory {
@@ -211,16 +210,13 @@ mod receive_timeout_injection {
 
   #[derive(Clone)]
   struct CountingDriver {
-    driver_calls: Arc<AtomicUsize>,
+    driver_calls:  Arc<AtomicUsize>,
     factory_calls: Arc<AtomicUsize>,
   }
 
   impl CountingDriver {
     fn new(driver_calls: Arc<AtomicUsize>, factory_calls: Arc<AtomicUsize>) -> Self {
-      Self {
-        driver_calls,
-        factory_calls,
-      }
+      Self { driver_calls, factory_calls }
     }
   }
 
@@ -269,9 +265,10 @@ mod receive_timeout_injection {
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
-        CountingDriver::new(driver_calls.clone(), driver_factory_calls.clone()),
-      )))
+      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+        driver_calls.clone(),
+        driver_factory_calls.clone(),
+      ))))
       .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
@@ -295,9 +292,10 @@ mod receive_timeout_injection {
     let config_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
-        CountingDriver::new(driver_calls.clone(), driver_factory_calls.clone()),
-      )))
+      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+        driver_calls.clone(),
+        driver_factory_calls.clone(),
+      ))))
       .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
@@ -316,25 +314,25 @@ mod receive_timeout_injection {
   }
 }
 
-use crate::api::mailbox::ThreadSafe;
+use core::{
+  any::Any,
+  sync::atomic::{AtomicUsize, Ordering},
+};
+
 use cellex_utils_core_rs::sync::ArcShared;
-use core::any::Any;
-use core::sync::atomic::{AtomicUsize, Ordering};
-use futures::executor::block_on;
-use futures::future;
+use futures::{executor::block_on, future};
+
+use crate::api::mailbox::ThreadSafe;
 
 #[derive(Debug)]
 struct CounterExtension {
-  id: ExtensionId,
+  id:   ExtensionId,
   hits: AtomicUsize,
 }
 
 impl CounterExtension {
   fn new() -> Self {
-    Self {
-      id: next_extension_id(),
-      hits: AtomicUsize::new(0),
-    }
+    Self { id: next_extension_id(), hits: AtomicUsize::new(0) }
   }
 
   fn extension_id(&self) -> ExtensionId {
@@ -385,10 +383,7 @@ fn test_supervise_builder_sets_strategy() {
     .with_strategy(SupervisorStrategy::Restart)
   });
   let (_, supervisor_cfg) = props.into_parts();
-  assert_eq!(
-    supervisor_cfg,
-    SupervisorStrategyConfig::from_strategy(SupervisorStrategy::Restart)
-  );
+  assert_eq!(supervisor_cfg, SupervisorStrategyConfig::from_strategy(SupervisorStrategy::Restart));
 }
 
 #[test]
@@ -482,11 +477,7 @@ fn typed_actor_system_handles_user_messages() {
 
 fn spawn_actor_with_counter_extension<AR>(
   actor_runtime: AR,
-) -> (
-  ActorSystem<u32, AR, AlwaysRestart>,
-  ExtensionId,
-  ArcShared<CounterExtension>,
-)
+) -> (ActorSystem<u32, AR, AlwaysRestart>, ExtensionId, ArcShared<CounterExtension>)
 where
   AR: ActorRuntime + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
@@ -507,23 +498,18 @@ fn actor_context_accesses_registered_extension() {
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
   let (mut system, extension_id, extension_probe) = spawn_actor_with_counter_extension(actor_runtime);
   let mut root = system.root_context();
-  assert_eq!(
-    root.extension::<CounterExtension, _, _>(extension_id, |ext| ext.value()),
-    Some(0)
-  );
+  assert_eq!(root.extension::<CounterExtension, _, _>(extension_id, |ext| ext.value()), Some(0));
 
   let props = Props::with_behavior(move || {
-    Behaviors::receive(
-      move |ctx: &mut Context<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, msg: u32| {
-        let _ = msg;
-        ctx
-          .extension::<CounterExtension, _, _>(extension_id, |ext| {
-            ext.increment();
-          })
-          .expect("extension registered");
-        Ok(Behaviors::same())
-      },
-    )
+    Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, msg: u32| {
+      let _ = msg;
+      ctx
+        .extension::<CounterExtension, _, _>(extension_id, |ext| {
+          ext.increment();
+        })
+        .expect("extension registered");
+      Ok(Behaviors::same())
+    })
   });
 
   let actor_ref = root.spawn(props).expect("spawn actor");
@@ -531,10 +517,7 @@ fn actor_context_accesses_registered_extension() {
   block_on(root.dispatch_next()).expect("dispatch message");
 
   assert_eq!(extension_probe.value(), 1);
-  assert_eq!(
-    system.extension::<CounterExtension, _, _>(extension_id, |ext| ext.value()),
-    Some(1)
-  );
+  assert_eq!(system.extension::<CounterExtension, _, _>(extension_id, |ext| ext.value()), Some(1));
 }
 
 #[test]
@@ -551,15 +534,10 @@ fn serializer_extension_provides_json_roundtrip() {
   let roundtrip = system
     .extensions()
     .with::<SerializerRegistryExtension, _, _>(serializer_extension_id(), |ext| {
-      let serializer = ext
-        .registry()
-        .get(SERDE_JSON_SERIALIZER_ID)
-        .expect("serde json registered");
+      let serializer = ext.registry().get(SERDE_JSON_SERIALIZER_ID).expect("serde json registered");
       let payload = JsonPayload { number: 7 };
       let encoded = serde_json::to_vec(&payload).expect("encode json");
-      let message = serializer
-        .serialize_with_type_name(encoded.as_slice(), "JsonPayload")
-        .expect("serialize message");
+      let message = serializer.serialize_with_type_name(encoded.as_slice(), "JsonPayload").expect("serialize message");
       let decoded = serializer.deserialize(&message).expect("deserialize message");
       serde_json::from_slice::<JsonPayload>(&decoded).expect("decode json")
     })
@@ -599,14 +577,11 @@ fn user_message_releases_metadata_on_drop() {
   let metadata = MessageMetadata::<ThreadSafe>::new().with_sender(noop_sender::<ParentMessage>());
   let envelope = MessageEnvelope::user_with_metadata(ParentMessage("ping".into()), metadata);
   let key = match &envelope {
-    MessageEnvelope::User(user) => user.metadata_key().expect("metadata key expected"),
-    MessageEnvelope::System(_) => unreachable!(),
+    | MessageEnvelope::User(user) => user.metadata_key().expect("metadata key expected"),
+    | MessageEnvelope::System(_) => unreachable!(),
   };
   drop(envelope);
-  assert!(
-    take_metadata::<ThreadSafe>(key).is_none(),
-    "metadata key should be released on drop"
-  );
+  assert!(take_metadata::<ThreadSafe>(key).is_none(), "metadata key should be released on drop");
 }
 
 #[test]
@@ -614,8 +589,8 @@ fn metadata_key_consumed_once() {
   let metadata = MessageMetadata::<ThreadSafe>::new().with_sender(noop_sender::<ParentMessage>());
   let envelope = MessageEnvelope::user_with_metadata(ParentMessage("pong".into()), metadata);
   let key = match envelope {
-    MessageEnvelope::User(user) => user.into_parts().1.expect("metadata key expected"),
-    MessageEnvelope::System(_) => unreachable!(),
+    | MessageEnvelope::User(user) => user.into_parts().1.expect("metadata key expected"),
+    | MessageEnvelope::System(_) => unreachable!(),
   };
   assert!(take_metadata::<ThreadSafe>(key).is_some());
   assert!(take_metadata::<ThreadSafe>(key).is_none());
@@ -630,17 +605,15 @@ fn test_typed_actor_handles_watch_unwatch() {
   let watchers_count: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
   let watchers_count_clone = watchers_count.clone();
 
-  let system_handler = Some(
-    |ctx: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
-      SystemMessage::Watch(watcher) => {
-        ctx.register_watcher(watcher);
-      }
-      SystemMessage::Unwatch(watcher) => {
-        ctx.unregister_watcher(watcher);
-      }
-      _ => {}
+  let system_handler = Some(|ctx: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
+    | SystemMessage::Watch(watcher) => {
+      ctx.register_watcher(watcher);
     },
-  );
+    | SystemMessage::Unwatch(watcher) => {
+      ctx.unregister_watcher(watcher);
+    },
+    | _ => {},
+  });
 
   let props = Props::with_behavior_and_system(
     {
@@ -665,34 +638,23 @@ fn test_typed_actor_handles_watch_unwatch() {
   let initial_count = *watchers_count.borrow();
 
   let watcher_id = ActorId(999);
-  actor_ref
-    .send_system(SystemMessage::Watch(watcher_id))
-    .expect("send watch");
+  actor_ref.send_system(SystemMessage::Watch(watcher_id)).expect("send watch");
   block_on(root.dispatch_next()).expect("dispatch watch");
 
   actor_ref.tell(2).expect("tell");
   block_on(root.dispatch_next()).expect("dispatch user message");
 
   let after_watch_count = *watchers_count.borrow();
-  assert_eq!(
-    after_watch_count,
-    initial_count + 1,
-    "Watcher count should increase by 1"
-  );
+  assert_eq!(after_watch_count, initial_count + 1, "Watcher count should increase by 1");
 
-  actor_ref
-    .send_system(SystemMessage::Unwatch(watcher_id))
-    .expect("send unwatch");
+  actor_ref.send_system(SystemMessage::Unwatch(watcher_id)).expect("send unwatch");
   block_on(root.dispatch_next()).expect("dispatch unwatch");
 
   actor_ref.tell(3).expect("tell");
   block_on(root.dispatch_next()).expect("dispatch user message");
 
   let after_unwatch_count = *watchers_count.borrow();
-  assert_eq!(
-    after_unwatch_count, initial_count,
-    "Watcher count should return to initial"
-  );
+  assert_eq!(after_unwatch_count, initial_count, "Watcher count should return to initial");
 }
 
 #[cfg(feature = "std")]
@@ -833,20 +795,14 @@ fn test_parent_spawns_child_with_distinct_message_type() {
           let child_log_factory = child_log_parent.clone();
           move || {
             let child_log_for_child = child_log_factory.clone();
-            Behaviors::receive(
-              move |_child_ctx: &mut Context<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
-                child_log_for_child.borrow_mut().push(child_msg.text.clone());
-                Ok(Behaviors::same())
-              },
-            )
+            Behaviors::receive(move |_child_ctx: &mut Context<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
+              child_log_for_child.borrow_mut().push(child_msg.text.clone());
+              Ok(Behaviors::same())
+            })
           }
         });
         let child_ref = ctx.spawn_child(child_props);
-        child_ref
-          .tell(ChildMessage {
-            text: format!("hello {name}"),
-          })
-          .expect("tell child");
+        child_ref.tell(ChildMessage { text: format!("hello {name}") }).expect("tell child");
         Ok(Behaviors::same())
       })
     }
@@ -854,9 +810,7 @@ fn test_parent_spawns_child_with_distinct_message_type() {
   let mut root = system.root_context();
   let parent_ref = root.spawn(props).expect("spawn parent");
 
-  parent_ref
-    .tell(ParentMessage("world".to_string()))
-    .expect("tell parent");
+  parent_ref.tell(ParentMessage("world".to_string())).expect("tell parent");
   block_on(root.dispatch_next()).expect("dispatch parent");
   block_on(root.dispatch_next()).expect("dispatch child");
 
@@ -1004,19 +958,13 @@ fn test_receive_signal_post_stop() {
 
   let props = Props::with_behavior(move || {
     let signals_cell = signals_clone.clone();
-    Behaviors::receive(|_, msg: u32| {
-      if msg == 0 {
-        Ok(Behaviors::stopped())
-      } else {
-        Ok(Behaviors::same())
-      }
-    })
-    .receive_signal(move |_, signal| {
-      match signal {
-        Signal::PostStop => signals_cell.borrow_mut().push("post_stop"),
-      }
-      Behaviors::same()
-    })
+    Behaviors::receive(|_, msg: u32| if msg == 0 { Ok(Behaviors::stopped()) } else { Ok(Behaviors::same()) })
+      .receive_signal(move |_, signal| {
+        match signal {
+          | Signal::PostStop => signals_cell.borrow_mut().push("post_stop"),
+        }
+        Behaviors::same()
+      })
   });
 
   let mut root = system.root_context();
@@ -1053,8 +1001,8 @@ where
   let mut cx = TaskContext::from_waker(&waker);
   loop {
     match future.as_mut().poll(&mut cx) {
-      Poll::Ready(value) => return value,
-      Poll::Pending => core::hint::spin_loop(),
+      | Poll::Ready(value) => return value,
+      | Poll::Pending => core::hint::spin_loop(),
     }
   }
 }
@@ -1074,11 +1022,7 @@ fn ask_future_timeout_returns_error() {
   let timed = ask_with_timeout(future, future::ready(()));
 
   let result = resolve(timed);
-  assert!(
-    matches!(result, Err(AskError::Timeout)),
-    "unexpected result: {:?}",
-    result
-  );
+  assert!(matches!(result, Err(AskError::Timeout)), "unexpected result: {:?}", result);
 }
 
 #[test]
@@ -1098,23 +1042,24 @@ fn ask_future_cancelled_on_drop() {
 }
 
 mod metrics_injection {
-  use super::*;
-  use crate::api::actor::actor_ref::PriorityActorRef;
-  use crate::api::actor_system::ActorSystem;
-  use crate::api::actor_system::ActorSystemConfig;
-  use crate::api::failure_telemetry::FailureTelemetryShared;
-  use crate::api::mailbox::MailboxFactory;
-  use crate::api::messaging::DynMessage;
-  use crate::api::metrics::MetricsEvent;
-  use crate::api::metrics::MetricsSink;
-  use crate::api::metrics::MetricsSinkShared;
-  use crate::api::supervision::supervisor::Supervisor;
-  use crate::api::supervision::telemetry::TelemetryObservationConfig;
-  use crate::api::test_support::TestMailboxFactory;
-  use crate::internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext};
   use alloc::boxed::Box;
   use core::marker::PhantomData;
   use std::sync::{Arc, Mutex};
+
+  use super::*;
+  use crate::{
+    api::{
+      actor::actor_ref::PriorityActorRef,
+      actor_system::{ActorSystem, ActorSystemConfig},
+      failure_telemetry::FailureTelemetryShared,
+      mailbox::MailboxFactory,
+      messaging::DynMessage,
+      metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+      supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
+      test_support::TestMailboxFactory,
+    },
+    internal::scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext},
+  };
 
   #[derive(Clone)]
   struct TaggedSink {
@@ -1134,18 +1079,13 @@ mod metrics_injection {
 
   impl<M, MF> RecordingScheduler<M, MF> {
     fn new(metrics: Arc<Mutex<Option<usize>>>) -> Self {
-      Self {
-        metrics,
-        _marker: PhantomData,
-      }
+      Self { metrics, _marker: PhantomData }
     }
   }
 
   fn make_scheduler_builder(metrics: Arc<Mutex<Option<usize>>>) -> SchedulerBuilder<DynMessage, TestMailboxFactory> {
     SchedulerBuilder::new(move |_runtime, _extensions| {
-      Box::new(RecordingScheduler::<DynMessage, TestMailboxFactory>::new(
-        metrics.clone(),
-      ))
+      Box::new(RecordingScheduler::<DynMessage, TestMailboxFactory>::new(metrics.clone()))
     })
   }
 

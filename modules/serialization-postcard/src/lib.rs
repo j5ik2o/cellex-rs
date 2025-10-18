@@ -5,14 +5,15 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 
-use alloc::string::ToString;
-use cellex_serialization_core_rs::error::{DeserializationError, SerializationError};
-use cellex_serialization_core_rs::id::SerializerId;
-use cellex_serialization_core_rs::impl_type_key;
-use cellex_serialization_core_rs::message::SerializedMessage;
-use cellex_serialization_core_rs::serializer::Serializer;
+use cellex_serialization_core_rs::{
+  error::{DeserializationError, SerializationError},
+  id::SerializerId,
+  impl_type_key,
+  message::SerializedMessage,
+  serializer::Serializer,
+};
 use cellex_utils_core_rs::sync::ArcShared;
 use serde::{de::DeserializeOwned, Serialize};
 

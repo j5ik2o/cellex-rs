@@ -1,30 +1,20 @@
-use alloc::boxed::Box;
-use alloc::vec;
-use alloc::vec::Vec;
-use core::marker::PhantomData;
+use alloc::{boxed::Box, vec, vec::Vec};
+use core::{cell::RefCell, marker::PhantomData, time::Duration};
 
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::extensions::Extension;
-use crate::api::extensions::ExtensionId;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::ChildNaming;
 use cellex_utils_core_rs::{Element, QueueError, QueueSize};
 
 use super::ChildSpawnSpec;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::receive_timeout::ReceiveTimeoutScheduler;
-use crate::internal::actor::InternalProps;
-use core::cell::RefCell;
-use core::time::Duration;
+use crate::{
+  api::{
+    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath},
+    actor_system::map_system::MapSystemShared,
+    extensions::{Extension, ExtensionId, Extensions},
+    mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
+    receive_timeout::ReceiveTimeoutScheduler,
+    supervision::supervisor::Supervisor,
+  },
+  internal::{actor::InternalProps, mailbox::PriorityMailboxSpawnerHandle, scheduler::ChildNaming},
+};
 
 /// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
 pub type ActorHandlerFn<M, MF> =
@@ -35,21 +25,21 @@ where
   M: Element,
   MF: MailboxFactory + Clone,
   Sup: Supervisor<M> + ?Sized, {
-  mailbox_factory: &'a MF,
-  mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
-  sender: &'a MF::Producer<PriorityEnvelope<M>>,
-  supervisor: &'a mut Sup,
+  mailbox_factory:  &'a MF,
+  mailbox_spawner:  PriorityMailboxSpawnerHandle<M, MF>,
+  sender:           &'a MF::Producer<PriorityEnvelope<M>>,
+  supervisor:       &'a mut Sup,
   #[allow(dead_code)]
-  pending_spawns: &'a mut Vec<ChildSpawnSpec<M, MF>>,
+  pending_spawns:   &'a mut Vec<ChildSpawnSpec<M, MF>>,
   #[allow(dead_code)]
-  map_system: MapSystemShared<M>,
-  actor_path: ActorPath,
-  actor_id: ActorId,
-  watchers: &'a mut Vec<ActorId>,
+  map_system:       MapSystemShared<M>,
+  actor_path:       ActorPath,
+  actor_id:         ActorId,
+  watchers:         &'a mut Vec<ActorId>,
   current_priority: Option<i8>,
-  receive_timeout: Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
-  extensions: Extensions,
-  _marker: PhantomData<M>,
+  receive_timeout:  Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
+  extensions:       Extensions,
+  _marker:          PhantomData<M>,
 }
 
 impl<'a, M, MF, Sup> ActorContext<'a, M, MF, Sup>
@@ -200,11 +190,7 @@ where
   ) -> PriorityActorRef<M, MF>
   where
     MF: MailboxFactory + Clone + 'static, {
-    let InternalProps {
-      options,
-      map_system,
-      handler,
-    } = props;
+    let InternalProps { options, map_system, handler } = props;
     self.enqueue_spawn(supervisor, options, map_system, handler)
   }
 

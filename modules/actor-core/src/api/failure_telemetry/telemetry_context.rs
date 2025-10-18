@@ -1,9 +1,8 @@
-use crate::api::extensions::Extensions;
-use crate::api::metrics::MetricsSinkShared;
+use crate::api::{extensions::Extensions, metrics::MetricsSinkShared};
 
 /// Context provided to telemetry builders.
 pub struct TelemetryContext {
-  metrics: Option<MetricsSinkShared>,
+  metrics:    Option<MetricsSinkShared>,
   extensions: Extensions,
 }
 

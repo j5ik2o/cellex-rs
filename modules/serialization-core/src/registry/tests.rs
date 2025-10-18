@@ -1,8 +1,11 @@
-use super::*;
-use crate::error::{DeserializationError, SerializationError};
-use crate::id::{SerializerId, TEST_ECHO_SERIALIZER_ID};
-use crate::message::SerializedMessage;
 use alloc::vec::Vec;
+
+use super::*;
+use crate::{
+  error::{DeserializationError, SerializationError},
+  id::{SerializerId, TEST_ECHO_SERIALIZER_ID},
+  message::SerializedMessage,
+};
 
 #[derive(Debug)]
 struct EchoSerializer;
@@ -42,9 +45,7 @@ fn registers_and_resolves_serializer() {
   let resolved = registry.get(TEST_ECHO_SERIALIZER_ID).expect("resolve");
   assert_eq!(resolved.serializer_id(), TEST_ECHO_SERIALIZER_ID);
 
-  let serialized = resolved
-    .serialize_with_type_name(b"ping", "Example")
-    .expect("serialize");
+  let serialized = resolved.serialize_with_type_name(b"ping", "Example").expect("serialize");
   let payload = resolved.deserialize(&serialized).expect("deserialize");
   assert_eq!(payload, b"ping");
 }

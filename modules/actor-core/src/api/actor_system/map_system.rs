@@ -1,7 +1,8 @@
 use core::ops::Deref;
 
-use crate::api::mailbox::SystemMessage;
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
+
+use crate::api::mailbox::SystemMessage;
 
 #[cfg(target_has_atomic = "ptr")]
 type MapSystemFn<M> = dyn Fn(SystemMessage) -> M + Send + Sync;
@@ -21,9 +22,7 @@ impl<M> MapSystemShared<M> {
   where
     F: Fn(SystemMessage) -> M + SharedBound + 'static, {
     let shared = ArcShared::new(f);
-    Self {
-      inner: shared.into_dyn(|func| func as &MapSystemFn<M>),
-    }
+    Self { inner: shared.into_dyn(|func| func as &MapSystemFn<M>) }
   }
 
   /// Wraps an existing shared mapper.
@@ -47,9 +46,7 @@ impl<M> MapSystemShared<M> {
 
 impl<M> Clone for MapSystemShared<M> {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

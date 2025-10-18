@@ -1,22 +1,22 @@
-use crate::api::actor::actor_ref::ActorRef;
-use crate::api::actor::props::Props;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::extensions::Extension;
-use crate::api::extensions::ExtensionId;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use crate::internal::actor_system::InternalRootContext;
-use crate::internal::scheduler::ChildNaming;
-use crate::internal::scheduler::SpawnError;
-use alloc::borrow::ToOwned;
-use alloc::boxed::Box;
+use alloc::{borrow::ToOwned, boxed::Box};
+use core::{future::Future, marker::PhantomData};
+
 use cellex_utils_core_rs::{Element, QueueError};
-use core::future::Future;
-use core::marker::PhantomData;
 
 use super::ask::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
+use crate::{
+  api::{
+    actor::{actor_ref::ActorRef, props::Props},
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    extensions::{Extension, ExtensionId, Extensions},
+    mailbox::PriorityEnvelope,
+    messaging::{DynMessage, MetadataStorageMode},
+  },
+  internal::{
+    actor_system::InternalRootContext,
+    scheduler::{ChildNaming, SpawnError},
+  },
+};
 
 /// Context for operating root actors.
 ///
@@ -30,7 +30,7 @@ where
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
   Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
-  pub(crate) inner: InternalRootContext<'a, DynMessage, AR, Strat>,
+  pub(crate) inner:   InternalRootContext<'a, DynMessage, AR, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
 
@@ -123,7 +123,8 @@ where
     target.request_future(message)
   }
 
-  /// Sends a message to the specified actor and returns a Future that waits for a response with timeout.
+  /// Sends a message to the specified actor and returns a Future that waits for a response with
+  /// timeout.
   ///
   /// # Arguments
   ///

@@ -1,19 +1,14 @@
-use alloc::collections::VecDeque;
-use alloc::vec::Vec;
+use alloc::{collections::VecDeque, vec::Vec};
 
 pub(crate) struct ReadyQueueState {
-  pub(crate) queue: VecDeque<usize>,
-  pub(crate) queued: Vec<bool>,
+  pub(crate) queue:   VecDeque<usize>,
+  pub(crate) queued:  Vec<bool>,
   pub(crate) running: Vec<bool>,
 }
 
 impl ReadyQueueState {
   pub(super) fn new() -> Self {
-    Self {
-      queue: VecDeque::new(),
-      queued: Vec::new(),
-      running: Vec::new(),
-    }
+    Self { queue: VecDeque::new(), queued: Vec::new(), running: Vec::new() }
   }
 
   pub(super) fn ensure_capacity(&mut self, len: usize) {

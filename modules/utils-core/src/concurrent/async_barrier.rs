@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+
 use async_trait::async_trait;
 
 /// Trait defining the backend implementation for async barriers.

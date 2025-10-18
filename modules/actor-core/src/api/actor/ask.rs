@@ -11,15 +11,17 @@ pub(crate) use shared::{AskShared, DispatchFn, DropHookFn};
 /// Result alias used by `ask` helpers.
 pub type AskResult<T> = Result<T, AskError>;
 
-use crate::api::mailbox::MailboxConcurrency;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MessageEnvelope;
-use crate::api::messaging::MessageSender;
-use crate::internal::message::discard_metadata;
-use crate::internal::message::InternalMessageSender;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
+
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+
+use crate::{
+  api::{
+    mailbox::MailboxConcurrency,
+    messaging::{DynMessage, MessageEnvelope, MessageSender},
+  },
+  internal::message::{discard_metadata, InternalMessageSender},
+};
 
 /// Helper function to create an `AskFuture` with timeout.
 pub const fn ask_with_timeout<Resp, TFut>(future: AskFuture<Resp>, timeout: TFut) -> AskTimeoutFuture<Resp, TFut>
@@ -44,7 +46,7 @@ where
       return Err(QueueError::Disconnected);
     };
     match envelope {
-      MessageEnvelope::User(user) => {
+      | MessageEnvelope::User(user) => {
         let (value, metadata_key) = user.into_parts();
         if let Some(key) = metadata_key {
           discard_metadata(key);
@@ -52,10 +54,10 @@ where
         if !dispatch_state.complete(value) {
           // response already handled
         }
-      }
-      MessageEnvelope::System(_) => {
+      },
+      | MessageEnvelope::System(_) => {
         return Err(QueueError::Disconnected);
-      }
+      },
     }
     Ok(())
   })

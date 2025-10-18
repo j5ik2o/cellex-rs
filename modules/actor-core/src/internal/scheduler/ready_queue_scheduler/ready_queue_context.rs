@@ -1,35 +1,37 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
+
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
-use futures::future::LocalBoxFuture;
-
-use super::common::ReadyQueueSchedulerCore;
-use super::ready_queue_state::ReadyQueueState;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::actor::ActorCell;
-use crate::internal::guardian::GuardianStrategy;
-use crate::internal::scheduler::spawn_error::SpawnError;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use super::{common::ReadyQueueSchedulerCore, ready_queue_state::ReadyQueueState};
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    actor_system::map_system::MapSystemShared,
+    failure_telemetry::FailureTelemetryShared,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{
+      escalation::{FailureEventHandler, FailureEventListener},
+      failure::FailureInfo,
+      supervisor::Supervisor,
+      telemetry::TelemetryObservationConfig,
+    },
+  },
+  internal::{
+    actor::ActorCell,
+    guardian::GuardianStrategy,
+    scheduler::{spawn_error::SpawnError, SchedulerSpawnContext},
+  },
+};
 
 pub(crate) struct ReadyQueueContext<M, MF, Strat>
 where
   M: Element,
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, MF>, {
-  pub(crate) core: ReadyQueueSchedulerCore<M, MF, Strat>,
+  pub(crate) core:  ReadyQueueSchedulerCore<M, MF, Strat>,
   pub(crate) state: ArcShared<Mutex<ReadyQueueState>>,
 }
 

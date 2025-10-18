@@ -39,8 +39,8 @@ type RcRingStorage<E> = RcShared<RingStorageBackend<RcShared<RefCell<RingBuffer<
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::RcRingQueue;
 /// use cellex_utils_core_rs::QueueRw;
+/// use cellex_utils_embedded_rs::RcRingQueue;
 ///
 /// // Create a dynamic ring queue with capacity 10
 /// let queue: RcRingQueue<i32> = RcRingQueue::new(10);
@@ -75,25 +75,22 @@ impl<E> RcRingQueue<E> {
   pub fn new(capacity: usize) -> Self {
     let storage = RcShared::new(RefCell::new(RingBuffer::new(capacity)));
     let backend: RcRingStorage<E> = RcShared::new(RingStorageBackend::new(storage));
-    Self {
-      inner: RingQueue::new(backend),
-    }
+    Self { inner: RingQueue::new(backend) }
   }
 
   /// Sets the dynamic expansion mode and returns self (builder pattern)
   ///
   /// # Arguments
   ///
-  /// * `dynamic` - If `true`, automatically expands when capacity is insufficient.
-  ///               If `false`, capacity limits are strictly enforced.
+  /// * `dynamic` - If `true`, automatically expands when capacity is insufficient. If `false`,
+  ///   capacity limits are strictly enforced.
   ///
   /// # Examples
   ///
   /// ```
   /// use cellex_utils_embedded_rs::RcRingQueue;
   ///
-  /// let queue: RcRingQueue<i32> = RcRingQueue::new(10)
-  ///     .with_dynamic(false); // Fixed capacity mode
+  /// let queue: RcRingQueue<i32> = RcRingQueue::new(10).with_dynamic(false); // Fixed capacity mode
   /// ```
   pub fn with_dynamic(mut self, dynamic: bool) -> Self {
     self.inner = self.inner.with_dynamic(dynamic);

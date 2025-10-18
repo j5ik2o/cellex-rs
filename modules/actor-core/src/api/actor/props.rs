@@ -1,25 +1,23 @@
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::internal::actor::InternalProps;
-use crate::internal::context::ActorContext;
-use crate::internal::message::take_metadata;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Element;
-
-use super::actor_failure::ActorFailure;
-use super::behavior::ActorAdapter;
-use super::behavior::Behavior;
-use super::context::Context;
-use crate::api::actor::behavior::SupervisorStrategyConfig;
-use crate::api::messaging::MessageEnvelope;
 use core::marker::PhantomData;
+
+use cellex_utils_core_rs::{sync::ArcShared, Element};
 use spin::Mutex;
+
+use super::{
+  actor_failure::ActorFailure,
+  behavior::{ActorAdapter, Behavior},
+  context::Context,
+};
+use crate::{
+  api::{
+    actor::behavior::SupervisorStrategyConfig,
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
+    supervision::supervisor::Supervisor,
+  },
+  internal::{actor::InternalProps, context::ActorContext, message::take_metadata},
+};
 
 /// Properties that hold configuration for actor spawning.
 ///
@@ -32,8 +30,8 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
-  inner: InternalProps<DynMessage, MailboxOf<AR>>,
-  _marker: PhantomData<U>,
+  inner:      InternalProps<DynMessage, MailboxOf<AR>>,
+  _marker:    PhantomData<U>,
   supervisor: SupervisorStrategyConfig,
 }
 
@@ -103,7 +101,8 @@ where
 
   /// Creates a new `Props` with Behavior factory and system message handler.
   ///
-  /// The most flexible way to create `Props`, allowing specification of both behavior and system message handler.
+  /// The most flexible way to create `Props`, allowing specification of both behavior and system
+  /// message handler.
   ///
   /// # Arguments
   /// * `behavior_factory` - Factory function that generates actor behavior
@@ -136,29 +135,23 @@ where
         panic!("unexpected message type delivered to typed handler");
       };
       match envelope {
-        MessageEnvelope::User(user) => {
+        | MessageEnvelope::User(user) => {
           let (message, metadata_key) = user.into_parts();
-          let metadata = metadata_key
-            .and_then(take_metadata::<MailboxConcurrencyOf<AR>>)
-            .unwrap_or_default();
+          let metadata = metadata_key.and_then(take_metadata::<MailboxConcurrencyOf<AR>>).unwrap_or_default();
           let mut typed_ctx = Context::with_metadata(ctx, metadata);
           adapter.handle_user(&mut typed_ctx, message)?;
           Ok(())
-        }
-        MessageEnvelope::System(message) => {
+        },
+        | MessageEnvelope::System(message) => {
           let mut typed_ctx = Context::new(ctx);
           adapter.handle_system(&mut typed_ctx, message)?;
           Ok(())
-        }
+        },
       }
     };
 
     let inner = InternalProps::new(options, map_system, handler);
-    Self {
-      inner,
-      _marker: PhantomData,
-      supervisor,
-    }
+    Self { inner, _marker: PhantomData, supervisor }
   }
 
   /// Overrides the mailbox options for this `Props`.

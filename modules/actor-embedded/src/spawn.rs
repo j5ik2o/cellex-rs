@@ -7,7 +7,8 @@ use cellex_actor_core_rs::api::actor_system::Spawn;
 
 /// A spawner that immediately drops futures.
 ///
-/// An implementation for embedded environments that simply drops tasks without actually executing them.
+/// An implementation for embedded environments that simply drops tasks without actually executing
+/// them.
 pub struct ImmediateSpawner;
 
 impl Spawn for ImmediateSpawner {

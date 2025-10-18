@@ -1,7 +1,12 @@
-use crate::api::mailbox::ThreadSafe;
-use crate::api::messaging::{MessageSender, MetadataStorageMode};
-use crate::internal::message::InternalMessageMetadata;
 use cellex_utils_core_rs::Element;
+
+use crate::{
+  api::{
+    mailbox::ThreadSafe,
+    messaging::{MessageSender, MetadataStorageMode},
+  },
+  internal::message::InternalMessageMetadata,
+};
 
 /// Typed metadata for the external API.
 #[derive(Debug, Clone)]
@@ -86,8 +91,6 @@ where
   C: MetadataStorageMode,
 {
   fn default() -> Self {
-    Self {
-      inner: InternalMessageMetadata::default(),
-    }
+    Self { inner: InternalMessageMetadata::default() }
   }
 }

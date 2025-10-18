@@ -1,6 +1,9 @@
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::{MessageMetadata, MetadataStorageMode, UserMessage};
 use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  mailbox::SystemMessage,
+  messaging::{MessageMetadata, MetadataStorageMode, UserMessage},
+};
 
 /// Typed envelope that integrates user messages and system messages.
 #[derive(Debug, Clone)]

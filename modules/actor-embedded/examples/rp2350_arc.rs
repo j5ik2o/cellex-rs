@@ -5,26 +5,26 @@
 extern crate alloc;
 
 #[cfg(all(target_arch = "arm", target_os = "none"))]
-use alloc_cortex_m::CortexMHeap;
-#[cfg(all(target_arch = "arm", target_os = "none"))]
 use core::future::Future;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use core::pin::Pin;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
-#[cfg(all(target_arch = "arm", target_os = "none"))]
-use cortex_m::{asm, interrupt};
-#[cfg(all(target_arch = "arm", target_os = "none"))]
-use cortex_m_rt::entry;
-#[cfg(all(target_arch = "arm", target_os = "none"))]
-use panic_halt as _;
 
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+use alloc_cortex_m::CortexMHeap;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cellex_actor_core_rs::{actor_loop, Mailbox};
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cellex_actor_embedded_rs::prelude::{ImmediateTimer, LocalMailbox};
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cellex_actor_embedded_rs::ArcStateCell;
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+use cortex_m::{asm, interrupt};
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+use cortex_m_rt::entry;
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+use panic_halt as _;
 
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 #[global_allocator]
@@ -60,12 +60,12 @@ fn main() -> ! {
 
   loop {
     match future.as_mut().poll(&mut cx) {
-      Poll::Ready(_) => break,
-      Poll::Pending => {
+      | Poll::Ready(_) => break,
+      | Poll::Pending => {
         if *state.borrow() >= 2 {
           break;
         }
-      }
+      },
     }
   }
 

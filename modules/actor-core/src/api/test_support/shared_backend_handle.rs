@@ -1,6 +1,6 @@
+use core::{cell::RefCell, fmt};
+
 use cellex_utils_core_rs::{ArcShared, MpscBuffer, MpscHandle, RingBufferBackend, Shared};
-use core::cell::RefCell;
-use core::fmt;
 
 /// Shared handle around the ring-buffer backend used to simulate mailbox queues in tests.
 pub struct SharedBackendHandle<T>(ArcShared<RingBufferBackend<RefCell<MpscBuffer<T>>>>);
@@ -39,8 +39,8 @@ impl<T> Shared<RingBufferBackend<RefCell<MpscBuffer<T>>>> for SharedBackendHandl
   where
     RingBufferBackend<RefCell<MpscBuffer<T>>>: Sized, {
     match self.0.try_unwrap() {
-      Ok(inner) => Ok(inner),
-      Err(shared) => Err(Self(shared)),
+      | Ok(inner) => Ok(inner),
+      | Err(shared) => Err(Self(shared)),
     }
   }
 }

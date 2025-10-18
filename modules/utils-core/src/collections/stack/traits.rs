@@ -1,8 +1,8 @@
-use crate::collections::stack::buffer::StackBuffer;
-use crate::collections::QueueSize;
-use crate::sync::Shared;
-
 use super::StackError;
+use crate::{
+  collections::{stack::buffer::StackBuffer, QueueSize},
+  sync::Shared,
+};
 
 /// Abstraction for storage used by stack backends.
 ///

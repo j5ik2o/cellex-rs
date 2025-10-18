@@ -1,21 +1,24 @@
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::internal::scheduler::SchedulerBuilder;
+use crate::{
+  api::{
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    messaging::DynMessage,
+  },
+  internal::scheduler::SchedulerBuilder,
+};
 
 /// Internal state container for `GenericActorRuntime`.
 ///
-/// This structure holds the use cellex_actor_core_rs::api::mailbox::MailboxRuntime; and scheduler builder configuration
-/// used by the actor runtime implementation.
+/// This structure holds the use cellex_actor_core_rs::api::mailbox::MailboxRuntime; and scheduler
+/// builder configuration used by the actor runtime implementation.
 #[derive(Clone)]
 pub(crate) struct GenericActorRuntimeState<MF>
 where
   MF: MailboxFactory + Clone + 'static,
   MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone, {
-  mailbox_factory: ArcShared<MF>,
+  mailbox_factory:   ArcShared<MF>,
   scheduler_builder: ArcShared<SchedulerBuilder<DynMessage, MF>>,
 }
 
@@ -25,13 +28,14 @@ where
   MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
 {
-  /// Creates a new runtime state with the given use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Creates a new runtime state with the given use
+  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   ///
   /// Initializes with a default ready-queue scheduler builder.
   #[must_use]
   pub(crate) fn new(mailbox_factory: MF) -> Self {
     Self {
-      mailbox_factory: ArcShared::new(mailbox_factory),
+      mailbox_factory:   ArcShared::new(mailbox_factory),
       scheduler_builder: ArcShared::new(SchedulerBuilder::<DynMessage, MF>::ready_queue()),
     }
   }
@@ -53,10 +57,7 @@ where
   /// If the shared handle has other references, clones the runtime.
   #[must_use]
   pub(crate) fn into_mailbox_factory(self) -> MF {
-    self
-      .mailbox_factory
-      .try_unwrap()
-      .unwrap_or_else(|shared| (*shared).clone())
+    self.mailbox_factory.try_unwrap().unwrap_or_else(|shared| (*shared).clone())
   }
 
   /// Returns a shared handle to the scheduler builder.

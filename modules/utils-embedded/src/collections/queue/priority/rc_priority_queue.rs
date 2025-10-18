@@ -33,20 +33,19 @@ use crate::RcRingQueue;
 /// # Examples
 ///
 /// ```
+/// use cellex_utils_core_rs::{PriorityMessage, QueueRw};
 /// use cellex_utils_embedded_rs::RcPriorityQueue;
-/// use cellex_utils_core_rs::{QueueRw, PriorityMessage};
 ///
 /// #[derive(Debug)]
 /// struct Task {
-///     id: u32,
-///     priority: i8,
+///   id:       u32,
+///   priority: i8,
 /// }
 ///
-///
 /// impl PriorityMessage for Task {
-///     fn get_priority(&self) -> Option<i8> {
-///         Some(self.priority)
-///     }
+///   fn get_priority(&self) -> Option<i8> {
+///     Some(self.priority)
+///   }
 /// }
 ///
 /// let queue = RcPriorityQueue::new(10);
@@ -67,7 +66,8 @@ impl<E> RcPriorityQueue<E> {
   ///
   /// # Arguments
   ///
-  /// * `capacity_per_level` - Maximum number of elements that can be stored in each priority level queue
+  /// * `capacity_per_level` - Maximum number of elements that can be stored in each priority level
+  ///   queue
   ///
   /// # Examples
   ///
@@ -78,20 +78,16 @@ impl<E> RcPriorityQueue<E> {
   /// let queue: RcPriorityQueue<u32> = RcPriorityQueue::new(10);
   /// ```
   pub fn new(capacity_per_level: usize) -> Self {
-    let levels = (0..PRIORITY_LEVELS)
-      .map(|_| RcRingQueue::new(capacity_per_level))
-      .collect();
-    Self {
-      inner: PriorityQueue::new(levels),
-    }
+    let levels = (0..PRIORITY_LEVELS).map(|_| RcRingQueue::new(capacity_per_level)).collect();
+    Self { inner: PriorityQueue::new(levels) }
   }
 
   /// Sets the dynamic expansion mode of the queue
   ///
   /// # Arguments
   ///
-  /// * `dynamic` - If `true`, automatically expands when capacity is insufficient.
-  ///               If `false`, capacity limits are strictly enforced.
+  /// * `dynamic` - If `true`, automatically expands when capacity is insufficient. If `false`,
+  ///   capacity limits are strictly enforced.
   ///
   /// # Examples
   ///
@@ -118,8 +114,7 @@ impl<E> RcPriorityQueue<E> {
   /// ```
   /// use cellex_utils_embedded_rs::RcPriorityQueue;
   ///
-  /// let queue: RcPriorityQueue<i32> = RcPriorityQueue::new(5)
-  ///     .with_dynamic(false);
+  /// let queue: RcPriorityQueue<i32> = RcPriorityQueue::new(5).with_dynamic(false);
   /// ```
   pub fn with_dynamic(self, dynamic: bool) -> Self {
     self.set_dynamic(dynamic);

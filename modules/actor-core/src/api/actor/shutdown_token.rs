@@ -1,5 +1,6 @@
-use cellex_utils_core_rs::ArcShared;
 use core::sync::atomic::{AtomicBool, Ordering};
+
+use cellex_utils_core_rs::ArcShared;
 
 /// Token that controls shutdown of the actor system.
 ///
@@ -17,9 +18,7 @@ impl ShutdownToken {
   /// # Returns
   /// New shutdown token
   pub fn new() -> Self {
-    Self {
-      inner: ArcShared::new(AtomicBool::new(false)),
-    }
+    Self { inner: ArcShared::new(AtomicBool::new(false)) }
   }
 
   /// Triggers shutdown.

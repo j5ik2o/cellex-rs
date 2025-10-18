@@ -1,11 +1,15 @@
 #[cfg(test)]
 mod tests;
 
-use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
-use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
-use cellex_actor_core_rs::api::supervision::failure::FailureEvent;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{
+  atomic::{AtomicU64, Ordering},
+  Arc, Mutex,
+};
+
+use cellex_actor_core_rs::api::{
+  failure_event_stream::FailureEventStream,
+  supervision::{escalation::FailureEventListener, failure::FailureEvent},
+};
 
 /// FailureEventStream implementation for std.
 #[derive(Clone, Default)]
@@ -14,16 +18,13 @@ pub struct FailureEventHub {
 }
 
 struct FailureEventHubInner {
-  next_id: AtomicU64,
+  next_id:   AtomicU64,
   listeners: Mutex<Vec<(u64, FailureEventListener)>>,
 }
 
 impl Default for FailureEventHubInner {
   fn default() -> Self {
-    Self {
-      next_id: AtomicU64::new(1),
-      listeners: Mutex::new(Vec::new()),
-    }
+    Self { next_id: AtomicU64::new(1), listeners: Mutex::new(Vec::new()) }
   }
 }
 
@@ -69,17 +70,14 @@ impl FailureEventStream for FailureEventHub {
       guard.push((id, listener));
     }
 
-    FailureEventSubscription {
-      inner: self.inner.clone(),
-      id,
-    }
+    FailureEventSubscription { inner: self.inner.clone(), id }
   }
 }
 
 /// Subscription handle to FailureEventHub. Automatically unsubscribes on Drop.
 pub struct FailureEventSubscription {
   inner: Arc<FailureEventHubInner>,
-  id: u64,
+  id:    u64,
 }
 
 impl Drop for FailureEventSubscription {

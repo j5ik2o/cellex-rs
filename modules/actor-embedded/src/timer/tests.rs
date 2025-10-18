@@ -1,8 +1,13 @@
 extern crate std;
 
+use std::{
+  future::Future,
+  pin::Pin,
+  sync::Arc,
+  task::{Context, Poll, Wake, Waker},
+};
+
 use super::*;
-use std::task::{Context, Poll};
-use std::{future::Future, pin::Pin, sync::Arc, task::Wake, task::Waker};
 
 fn noop_waker() -> Waker {
   struct NoopWake;

@@ -7,6 +7,7 @@ use core::{
   task::{Context, Poll},
   time::Duration,
 };
+
 #[cfg(not(target_has_atomic = "ptr"))]
 use critical_section::with;
 
@@ -90,8 +91,9 @@ impl DeadlineTimerKey {
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_core_rs::TimerDeadline;
 /// use core::time::Duration;
+///
+/// use cellex_utils_core_rs::TimerDeadline;
 ///
 /// let duration = Duration::from_secs(5);
 /// let deadline = TimerDeadline::from_duration(duration);
@@ -172,8 +174,8 @@ pub enum DeadlineTimerError {
 impl fmt::Display for DeadlineTimerError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      DeadlineTimerError::KeyNotFound => write!(f, "key not found"),
-      DeadlineTimerError::Closed => write!(f, "deadline timer is closed"),
+      | DeadlineTimerError::KeyNotFound => write!(f, "key not found"),
+      | DeadlineTimerError::Closed => write!(f, "deadline timer is closed"),
     }
   }
 }
@@ -193,7 +195,7 @@ impl std::error::Error for DeadlineTimerError {}
 #[derive(Debug)]
 pub struct DeadlineTimerExpired<Item> {
   /// The key of the expired item
-  pub key: DeadlineTimerKey,
+  pub key:  DeadlineTimerKey,
   /// The expired item itself
   pub item: Item,
 }
@@ -331,9 +333,7 @@ impl DeadlineTimerKeyAllocator {
   pub const fn new() -> Self {
     #[cfg(target_has_atomic = "ptr")]
     {
-      Self {
-        counter: AtomicUsize::new(1),
-      }
+      Self { counter: AtomicUsize::new(1) }
     }
 
     #[cfg(not(target_has_atomic = "ptr"))]

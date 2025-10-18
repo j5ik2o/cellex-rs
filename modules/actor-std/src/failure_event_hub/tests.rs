@@ -1,10 +1,14 @@
+use std::sync::{Arc as StdArc, Mutex as StdMutex};
+
+use cellex_actor_core_rs::api::{
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  supervision::{
+    escalation::FailureEventListener,
+    failure::{FailureEvent, FailureInfo, FailureMetadata},
+  },
+};
+
 use super::*;
-use cellex_actor_core_rs::api::actor::actor_failure::ActorFailure;
-use cellex_actor_core_rs::api::actor::{ActorId, ActorPath};
-use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
-use cellex_actor_core_rs::api::supervision::failure::{FailureEvent, FailureInfo, FailureMetadata};
-use std::sync::Arc as StdArc;
-use std::sync::Mutex as StdMutex;
 
 #[test]
 fn hub_forwards_events_to_subscribers() {
@@ -28,7 +32,7 @@ fn hub_forwards_events_to_subscribers() {
   let events = storage.lock().unwrap();
   assert_eq!(events.len(), 1);
   match &events[0] {
-    FailureEvent::RootEscalated(info) => assert_eq!(info.description().as_ref(), "boom"),
+    | FailureEvent::RootEscalated(info) => assert_eq!(info.description().as_ref(), "boom"),
   }
 }
 

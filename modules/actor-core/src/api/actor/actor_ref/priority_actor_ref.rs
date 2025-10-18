@@ -1,8 +1,9 @@
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::RuntimeBound;
 use cellex_utils_core_rs::{Element, QueueError};
+
+use crate::{
+  api::mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  RuntimeBound,
+};
 
 /// Minimal handle that delivers envelopes into an actor's mailbox.
 ///
@@ -46,9 +47,7 @@ where
   MF::Producer<PriorityEnvelope<M>>: Clone,
 {
   fn clone(&self) -> Self {
-    Self {
-      sender: self.sender.clone(),
-    }
+    Self { sender: self.sender.clone() }
   }
 }
 

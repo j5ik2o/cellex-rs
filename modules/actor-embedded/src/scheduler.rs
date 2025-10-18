@@ -1,7 +1,6 @@
 #![cfg(feature = "embassy_executor")]
 
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use cellex_actor_core_rs::{
   ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
@@ -17,7 +16,8 @@ use crate::receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 
 /// Embassy 用スケジューラ。
 ///
-/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`] をラップし、`embassy_futures::yield_now` による協調切り替えを提供する。
+/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`]
+/// をラップし、`embassy_futures::yield_now` による協調切り替えを提供する。
 pub struct EmbassyScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
@@ -33,9 +33,7 @@ where
 {
   /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
   pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::new(mailbox_factory, extensions),
-    }
+    Self { inner: ReadyQueueScheduler::new(mailbox_factory, extensions) }
   }
 }
 
@@ -47,9 +45,7 @@ where
 {
   /// 任意の GuardianStrategy を適用した構成を作成する。
   pub fn with_strategy(mailbox_factory: R, strategy: Strat, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions),
-    }
+    Self { inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions) }
   }
 }
 
@@ -138,10 +134,7 @@ where
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
   SchedulerBuilder::new(|mailbox_factory, extensions| {
-    Box::new(EmbassyScheduler::<M, R, AlwaysRestart>::new(
-      mailbox_factory,
-      extensions,
-    ))
+    Box::new(EmbassyScheduler::<M, R, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }
 

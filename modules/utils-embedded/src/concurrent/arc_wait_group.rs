@@ -1,12 +1,13 @@
 #![cfg(feature = "arc")]
 
-use alloc::boxed::Box;
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
-use core::sync::atomic::{AtomicUsize, Ordering};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
-use embassy_sync::signal::Signal;
+use embassy_sync::{
+  blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
+  signal::Signal,
+};
 
 /// Backend implementation for wait group using `Arc`
 ///
@@ -20,7 +21,7 @@ use embassy_sync::signal::Signal;
 pub struct ArcWaitGroupBackend<RM>
 where
   RM: RawMutex, {
-  count: Arc<AtomicUsize>,
+  count:  Arc<AtomicUsize>,
   signal: Arc<Signal<RM, ()>>,
 }
 
@@ -29,10 +30,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      count: self.count.clone(),
-      signal: self.signal.clone(),
-    }
+    Self { count: self.count.clone(), signal: self.signal.clone() }
   }
 }
 
@@ -46,10 +44,7 @@ where
   }
 
   fn with_count(count: usize) -> Self {
-    Self {
-      count: Arc::new(AtomicUsize::new(count)),
-      signal: Arc::new(Signal::new()),
-    }
+    Self { count: Arc::new(AtomicUsize::new(count)), signal: Arc::new(Signal::new()) }
   }
 
   fn add(&self, n: usize) {

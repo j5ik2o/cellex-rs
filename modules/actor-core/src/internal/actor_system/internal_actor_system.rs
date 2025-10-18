@@ -1,19 +1,24 @@
-use core::convert::Infallible;
+use core::{convert::Infallible, marker::PhantomData};
+
+use cellex_utils_core_rs::{
+  sync::{ArcShared, Shared},
+  Element, QueueError,
+};
 
 use super::InternalRootContext;
-use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::metrics::MetricsSinkShared;
-use crate::internal::actor_system::internal_actor_system_config::InternalActorSystemConfig;
-use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::internal::scheduler::ReadyQueueWorker;
-use crate::internal::scheduler::SchedulerBuilder;
-use crate::internal::scheduler::SchedulerHandle;
-use cellex_utils_core_rs::sync::{ArcShared, Shared};
-use cellex_utils_core_rs::{Element, QueueError};
-use core::marker::PhantomData;
+use crate::{
+  api::{
+    actor_runtime::{ActorRuntime, MailboxOf},
+    extensions::Extensions,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    metrics::MetricsSinkShared,
+  },
+  internal::{
+    actor_system::internal_actor_system_config::InternalActorSystemConfig,
+    guardian::{AlwaysRestart, GuardianStrategy},
+    scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle},
+  },
+};
 
 pub(crate) struct InternalActorSystem<M, AR, Strat = AlwaysRestart>
 where
@@ -75,14 +80,7 @@ where
     scheduler.set_root_observation_config(root_observation_config);
     scheduler.set_receive_timeout_factory(receive_timeout_factory);
     scheduler.set_metrics_sink(metrics_sink.clone());
-    Self {
-      scheduler,
-      actor_runtime_shared,
-      mailbox_factory_shared,
-      extensions,
-      metrics_sink,
-      _strategy: PhantomData,
-    }
+    Self { scheduler, actor_runtime_shared, mailbox_factory_shared, extensions, metrics_sink, _strategy: PhantomData }
   }
 }
 

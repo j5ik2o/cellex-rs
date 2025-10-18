@@ -65,6 +65,7 @@ mod timer;
 mod tokio_mailbox;
 mod tokio_priority_mailbox;
 
+use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 pub use cellex_utils_std_rs::{ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn};
 pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
 pub use receive_timeout::{TokioReceiveTimeoutDriver, TokioReceiveTimeoutSchedulerFactory};
@@ -75,16 +76,15 @@ pub use timer::TokioTimer;
 pub use tokio_mailbox::{TokioMailbox, TokioMailboxRuntime, TokioMailboxSender};
 pub use tokio_priority_mailbox::{TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender};
 
-use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
-
 /// A prelude module that provides commonly used re-exported types and traits.
 pub mod prelude {
+  pub use cellex_actor_core_rs::actor_loop;
+
   pub use super::{
     ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn, TokioMailbox, TokioMailboxRuntime, TokioMailboxSender,
     TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender, TokioScheduler, TokioSpawner,
     TokioSystemHandle, TokioTimer,
   };
-  pub use cellex_actor_core_rs::actor_loop;
 }
 
 #[cfg(test)]

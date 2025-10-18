@@ -1,13 +1,13 @@
-use crate::api::messaging::{MessageMetadata, MetadataStorageMode};
-
 #[cfg(not(target_has_atomic = "ptr"))]
 use core::cell::RefCell;
+
 #[cfg(not(target_has_atomic = "ptr"))]
 use critical_section::Mutex;
 #[cfg(target_has_atomic = "ptr")]
 use spin::{Mutex, Once};
 
 use super::metadata_table_inner::MetadataTableInner;
+use crate::api::messaging::{MessageMetadata, MetadataStorageMode};
 
 /// Key type for referencing metadata.
 pub type MetadataKey = u32;
@@ -20,9 +20,7 @@ pub struct MetadataTable {
 #[cfg(target_has_atomic = "ptr")]
 impl MetadataTable {
   const fn new() -> Self {
-    Self {
-      inner: Mutex::new(MetadataTableInner::new()),
-    }
+    Self { inner: Mutex::new(MetadataTableInner::new()) }
   }
 
   pub fn store<C>(&self, metadata: MessageMetadata<C>) -> MetadataKey
@@ -59,9 +57,7 @@ pub struct MetadataTable {
 #[cfg(not(target_has_atomic = "ptr"))]
 impl MetadataTable {
   const fn new() -> Self {
-    Self {
-      inner: Mutex::new(RefCell::new(MetadataTableInner::new())),
-    }
+    Self { inner: Mutex::new(RefCell::new(MetadataTableInner::new())) }
   }
 
   fn with_inner<R>(&self, f: impl FnOnce(&mut MetadataTableInner) -> R) -> R {

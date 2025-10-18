@@ -1,7 +1,7 @@
-use super::ClusterFailureBridge;
+use std::sync::{Arc, Mutex};
+
 use cellex_actor_core_rs::api::{
-  actor::actor_failure::ActorFailure,
-  actor::{ActorId, ActorPath},
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
   failure_event_stream::FailureEventStream,
   supervision::{
     escalation::FailureEventListener,
@@ -10,7 +10,8 @@ use cellex_actor_core_rs::api::{
 };
 use cellex_actor_std_rs::FailureEventHub;
 use cellex_remote_core_rs::RemoteFailureNotifier;
-use std::sync::{Arc, Mutex};
+
+use super::ClusterFailureBridge;
 
 #[test]
 fn cluster_failure_bridge_new_creates_instance() {
@@ -96,11 +97,7 @@ fn cluster_failure_bridge_fan_out_handles_hub_listener_call() {
 
   let bridge = ClusterFailureBridge::new(hub, remote_notifier);
 
-  let info = FailureInfo::new(
-    ActorId(2),
-    ActorPath::new(),
-    ActorFailure::from_message("another error"),
-  );
+  let info = FailureInfo::new(ActorId(2), ActorPath::new(), ActorFailure::from_message("another error"));
   let event = FailureEvent::RootEscalated(info);
 
   bridge.fan_out(event.clone());

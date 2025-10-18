@@ -1,25 +1,26 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use async_trait::async_trait;
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::scheduler::SpawnError;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    actor_system::map_system::MapSystemShared,
+    failure_telemetry::FailureTelemetryShared,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    metrics::MetricsSinkShared,
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{
+      escalation::{FailureEventHandler, FailureEventListener},
+      failure::FailureInfo,
+      supervisor::Supervisor,
+      telemetry::TelemetryObservationConfig,
+    },
+  },
+  internal::scheduler::{SchedulerSpawnContext, SpawnError},
+};
 
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.
 #[allow(dead_code)]

@@ -3,10 +3,11 @@
 //! `Behaviors::setup` で状態（挨拶回数）を初期化し、
 //! `Behaviors::receive` でメッセージごとの遷移を定義しています。
 
-use cellex_actor_core_rs::api::actor::behavior::Behaviors;
-use cellex_actor_core_rs::api::actor::Props;
-use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
-use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
+use cellex_actor_core_rs::api::{
+  actor::{behavior::Behaviors, Props},
+  actor_runtime::GenericActorRuntime,
+  actor_system::{ActorSystem, ActorSystemConfig},
+};
 use cellex_actor_std_rs::TokioMailboxRuntime;
 use tracing_subscriber::FmtSubscriber;
 
@@ -23,10 +24,8 @@ fn main() {
     .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
   let _ = FmtSubscriber::builder().with_env_filter(env_filter).try_init();
 
-  let mut system: ActorSystem<Command, _> = ActorSystem::new_with_actor_runtime(
-    GenericActorRuntime::new(TokioMailboxRuntime),
-    ActorSystemConfig::default(),
-  );
+  let mut system: ActorSystem<Command, _> =
+    ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(TokioMailboxRuntime), ActorSystemConfig::default());
   let mut root = system.root_context();
 
   let greeter_props = Props::with_behavior(|| {
@@ -36,19 +35,19 @@ fn main() {
       let actor_id = ctx.actor_id();
 
       Ok(Behaviors::receive_message(move |msg: Command| match msg {
-        Command::Greet(name) => {
+        | Command::Greet(name) => {
           greeted += 1;
           logger.info(|| format!("actor {:?} says: Hello, {}!", actor_id, name));
           Ok(Behaviors::same())
-        }
-        Command::Report => {
+        },
+        | Command::Report => {
           logger.info(|| format!("actor {:?} greeted {} people", actor_id, greeted));
           Ok(Behaviors::same())
-        }
-        Command::Stop => {
+        },
+        | Command::Stop => {
           logger.warn(|| format!("actor {:?} is stopping after {} greetings", actor_id, greeted));
           Ok(Behaviors::stopped())
-        }
+        },
       }))
     })
   });

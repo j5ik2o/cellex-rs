@@ -1,10 +1,16 @@
-use super::ask_error::AskError;
-use super::shared::{AskShared, STATE_CANCELLED, STATE_PENDING, STATE_READY, STATE_RESPONDER_DROPPED};
-use super::AskResult;
+use core::{
+  future::Future,
+  pin::Pin,
+  task::{Context, Poll},
+};
+
 use cellex_utils_core_rs::sync::ArcShared;
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll};
+
+use super::{
+  ask_error::AskError,
+  shared::{AskShared, STATE_CANCELLED, STATE_PENDING, STATE_READY, STATE_RESPONDER_DROPPED},
+  AskResult,
+};
 
 /// Future that awaits a response from an `ask` operation.
 pub struct AskFuture<Resp> {
@@ -25,22 +31,22 @@ impl<Resp> Future for AskFuture<Resp> {
 
     loop {
       match shared.state() {
-        STATE_READY => {
+        | STATE_READY => {
           let value = unsafe { shared.take_value() };
           if let Some(value) = value {
             return Poll::Ready(Ok(value));
           }
           return Poll::Ready(Err(AskError::MissingResponder));
-        }
-        STATE_RESPONDER_DROPPED => return Poll::Ready(Err(AskError::ResponderDropped)),
-        STATE_CANCELLED => return Poll::Ready(Err(AskError::ResponseAwaitCancelled)),
-        STATE_PENDING => {
+        },
+        | STATE_RESPONDER_DROPPED => return Poll::Ready(Err(AskError::ResponderDropped)),
+        | STATE_CANCELLED => return Poll::Ready(Err(AskError::ResponseAwaitCancelled)),
+        | STATE_PENDING => {
           shared.waker.register(cx.waker());
           if shared.state() == STATE_PENDING {
             return Poll::Pending;
           }
-        }
-        _ => return Poll::Ready(Err(AskError::ResponseAwaitCancelled)),
+        },
+        | _ => return Poll::Ready(Err(AskError::ResponseAwaitCancelled)),
       }
     }
   }

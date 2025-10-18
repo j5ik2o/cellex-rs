@@ -1,5 +1,6 @@
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::supervision::supervisor::supervisor_directive::SupervisorDirective;
+use crate::api::{
+  actor::actor_failure::BehaviorFailure, supervision::supervisor::supervisor_directive::SupervisorDirective,
+};
 
 /// Base supervisor trait.
 ///

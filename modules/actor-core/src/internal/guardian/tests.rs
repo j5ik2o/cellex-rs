@@ -2,26 +2,30 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
 
-use super::*;
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityChannel;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::api::test_support::TestMailboxFactory;
-use crate::internal::scheduler::ChildNaming;
-use crate::internal::scheduler::SpawnError;
-use alloc::string::{String, ToString};
-use alloc::sync::Arc;
-use alloc::vec::Vec;
+use alloc::{
+  string::{String, ToString},
+  sync::Arc,
+  vec::Vec,
+};
+
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 use spin::Mutex;
+
+use super::*;
+use crate::{
+  api::{
+    actor::{
+      actor_failure::{ActorFailure, BehaviorFailure},
+      actor_ref::PriorityActorRef,
+      ActorId, ActorPath,
+    },
+    actor_system::map_system::MapSystemShared,
+    mailbox::{MailboxFactory, PriorityChannel, PriorityEnvelope, SystemMessage},
+    supervision::supervisor::SupervisorDirective,
+    test_support::TestMailboxFactory,
+  },
+  internal::scheduler::{ChildNaming, SpawnError},
+};
 
 #[test]
 fn guardian_sends_restart_message() {
@@ -32,21 +36,13 @@ fn guardian_sends_restart_message() {
   let parent_id = ActorId(1);
   let parent_path = ActorPath::new();
   let (actor_id, _path) = guardian
-    .register_child(
-      ref_control.clone(),
-      MapSystemShared::new(|sys| sys),
-      Some(parent_id),
-      &parent_path,
-    )
+    .register_child(ref_control.clone(), MapSystemShared::new(|sys| sys), Some(parent_id), &parent_path)
     .unwrap();
 
   let first_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(first_envelope.into_parts().0, SystemMessage::Watch(parent_id));
 
-  assert!(guardian
-    .notify_failure(actor_id, ActorFailure::from_message("panic"))
-    .unwrap()
-    .is_none());
+  assert!(guardian.notify_failure(actor_id, ActorFailure::from_message("panic")).unwrap().is_none());
 
   let envelope = mailbox.queue().poll().unwrap().unwrap();
   let (message, priority, channel) = envelope.into_parts_with_channel();
@@ -75,21 +71,13 @@ fn guardian_sends_stop_message() {
   let parent_id = ActorId(7);
   let parent_path = ActorPath::new();
   let (actor_id, _path) = guardian
-    .register_child(
-      ref_control.clone(),
-      MapSystemShared::new(|sys| sys),
-      Some(parent_id),
-      &parent_path,
-    )
+    .register_child(ref_control.clone(), MapSystemShared::new(|sys| sys), Some(parent_id), &parent_path)
     .unwrap();
 
   let watch_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(watch_envelope.into_parts().0, SystemMessage::Watch(parent_id));
 
-  assert!(guardian
-    .notify_failure(actor_id, ActorFailure::from_message("panic"))
-    .unwrap()
-    .is_none());
+  assert!(guardian.notify_failure(actor_id, ActorFailure::from_message("panic")).unwrap().is_none());
 
   let envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(envelope.into_parts().0, SystemMessage::Stop);
@@ -104,12 +92,7 @@ fn guardian_emits_unwatch_on_remove() {
   let parent_id = ActorId(3);
   let parent_path = ActorPath::new();
   let (actor_id, _path) = guardian
-    .register_child(
-      ref_control.clone(),
-      MapSystemShared::new(|sys| sys),
-      Some(parent_id),
-      &parent_path,
-    )
+    .register_child(ref_control.clone(), MapSystemShared::new(|sys| sys), Some(parent_id), &parent_path)
     .unwrap();
 
   // consume watch message
@@ -142,13 +125,10 @@ fn guardian_strategy_receives_behavior_failure() {
   let captured = Arc::new(Mutex::new(Vec::new()));
   let mut guardian: Guardian<SystemMessage, _, CaptureStrategy> = Guardian::new(CaptureStrategy(captured.clone()));
   let parent_path = ActorPath::new();
-  let (actor_id, _) = guardian
-    .register_child(ref_control.clone(), MapSystemShared::new(|sys| sys), None, &parent_path)
-    .unwrap();
+  let (actor_id, _) =
+    guardian.register_child(ref_control.clone(), MapSystemShared::new(|sys| sys), None, &parent_path).unwrap();
 
-  guardian
-    .notify_failure(actor_id, ActorFailure::from_message("child boom"))
-    .expect("notify succeeds");
+  guardian.notify_failure(actor_id, ActorFailure::from_message("child boom")).expect("notify succeeds");
 
   let log = captured.lock();
   assert_eq!(log.len(), 1);
@@ -183,7 +163,7 @@ fn guardian_rejects_duplicate_names() {
     .expect_err("second spawn must fail");
 
   match err {
-    SpawnError::NameExists(name) => assert_eq!(name, "worker"),
-    SpawnError::Queue(_) => panic!("unexpected queue error"),
+    | SpawnError::NameExists(name) => assert_eq!(name, "worker"),
+    | SpawnError::Queue(_) => panic!("unexpected queue error"),
   }
 }

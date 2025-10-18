@@ -1,7 +1,7 @@
 //! Concurrency primitives module.
 //!
-//! This module provides concurrency and synchronization primitives that can be used in `no_std` environments.
-//! You can select between `Rc` or `Arc` based implementations via feature flags.
+//! This module provides concurrency and synchronization primitives that can be used in `no_std`
+//! environments. You can select between `Rc` or `Arc` based implementations via feature flags.
 //!
 //! # Provided Synchronization Primitives
 //!

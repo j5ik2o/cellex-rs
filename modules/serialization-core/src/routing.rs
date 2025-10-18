@@ -1,13 +1,14 @@
 //! Type binding registry and routing utilities.
 
-use alloc::collections::btree_map::{BTreeMap, Entry};
-use alloc::string::String;
+use alloc::{
+  collections::btree_map::{BTreeMap, Entry},
+  string::String,
+};
 
-use crate::id::SerializerId;
-use crate::registry::InMemorySerializerRegistry;
-use crate::serializer::Serializer;
 use cellex_utils_core_rs::sync::ArcShared;
 use spin::RwLock;
+
+use crate::{id::SerializerId, registry::InMemorySerializerRegistry, serializer::Serializer};
 
 /// Errors that can occur when manipulating type bindings.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -19,7 +20,7 @@ pub enum BindingError {
 impl core::fmt::Display for BindingError {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     match self {
-      BindingError::DuplicateBinding(key) => write!(f, "type key '{key}' is already bound"),
+      | BindingError::DuplicateBinding(key) => write!(f, "type key '{key}' is already bound"),
     }
   }
 }
@@ -37,9 +38,7 @@ impl TypeBindingRegistry {
   /// Creates an empty binding registry.
   #[must_use]
   pub fn new() -> Self {
-    Self {
-      inner: ArcShared::new(RwLock::new(BTreeMap::new())),
-    }
+    Self { inner: ArcShared::new(RwLock::new(BTreeMap::new())) }
   }
 
   /// Registers a new binding. Returns an error if the key is already in use.
@@ -49,11 +48,11 @@ impl TypeBindingRegistry {
     let key_string = key.into();
     let mut guard = self.inner.write();
     match guard.entry(key_string.clone()) {
-      Entry::Occupied(_) => Err(BindingError::DuplicateBinding(key_string)),
-      Entry::Vacant(vacant) => {
+      | Entry::Occupied(_) => Err(BindingError::DuplicateBinding(key_string)),
+      | Entry::Vacant(vacant) => {
         vacant.insert(serializer);
         Ok(())
-      }
+      },
     }
   }
 
@@ -84,7 +83,7 @@ impl Default for TypeBindingRegistry {
 /// Routing facade that combines type bindings with the serializer registry.
 #[derive(Clone)]
 pub struct SerializationRouter {
-  bindings: TypeBindingRegistry,
+  bindings:    TypeBindingRegistry,
   serializers: InMemorySerializerRegistry,
 }
 

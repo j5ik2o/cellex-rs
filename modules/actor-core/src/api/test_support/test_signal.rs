@@ -1,9 +1,11 @@
-use crate::api::mailbox::MailboxSignal;
-use crate::api::test_support::test_signal_state::TestSignalState;
-use crate::api::test_support::test_signal_wait::TestSignalWait;
+use core::{cell::RefCell, marker::PhantomData};
+
 use cellex_utils_core_rs::ArcShared;
-use core::cell::RefCell;
-use core::marker::PhantomData;
+
+use crate::api::{
+  mailbox::MailboxSignal,
+  test_support::{test_signal_state::TestSignalState, test_signal_wait::TestSignalWait},
+};
 
 #[derive(Clone)]
 /// Lightweight signal implementation for driving mailbox readiness in tests.
@@ -20,9 +22,7 @@ impl TestSignal {
 
 impl Default for TestSignal {
   fn default() -> Self {
-    Self {
-      state: ArcShared::new(RefCell::new(TestSignalState::default())),
-    }
+    Self { state: ArcShared::new(RefCell::new(TestSignalState::default())) }
   }
 }
 
@@ -41,9 +41,6 @@ impl MailboxSignal for TestSignal {
   }
 
   fn wait(&self) -> Self::WaitFuture<'_> {
-    TestSignalWait {
-      signal: self.clone(),
-      _marker: PhantomData,
-    }
+    TestSignalWait { signal: self.clone(), _marker: PhantomData }
   }
 }

@@ -1,5 +1,4 @@
-use super::super::storage::RingBufferStorage;
-use super::traits::MpscBackend;
+use super::{super::storage::RingBufferStorage, traits::MpscBackend};
 use crate::collections::{QueueError, QueueSize};
 
 /// Backend implementation that drives a shared multi-producer/single-consumer

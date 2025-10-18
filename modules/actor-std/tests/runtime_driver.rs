@@ -1,10 +1,12 @@
+use core::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
-use cellex_actor_core_rs::api::actor::Props;
-use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
-use cellex_actor_core_rs::api::failure_event_stream::FailureEventStream;
+use cellex_actor_core_rs::api::{
+  actor::Props,
+  actor_system::{ActorSystem, ActorSystemConfig},
+  failure_event_stream::FailureEventStream,
+};
 use cellex_actor_std_rs::{tokio_actor_runtime, FailureEventHub, TokioActorRuntime, TokioSystemHandle};
-use core::num::NonZeroUsize;
 
 async fn run_tokio_actor_runtime_processes_messages(worker_count: NonZeroUsize) {
   let failure_hub = FailureEventHub::new();

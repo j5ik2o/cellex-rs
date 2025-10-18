@@ -2,17 +2,15 @@
 
 use core::marker::PhantomData;
 
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
-
-use cellex_actor_core_rs::api::mailbox::{
-  Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv,
+use cellex_actor_core_rs::api::{
+  mailbox::{Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv},
+  metrics::MetricsSinkShared,
 };
-use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
-use cellex_utils_embedded_rs::queue::priority::ArcPriorityQueue;
-use cellex_utils_embedded_rs::queue::ring::ArcRingQueue;
 use cellex_utils_embedded_rs::{
+  queue::{priority::ArcPriorityQueue, ring::ArcRingQueue},
   Element, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, DEFAULT_CAPACITY, PRIORITY_LEVELS,
 };
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 
 use crate::arc_mailbox::ArcSignal;
 
@@ -20,8 +18,8 @@ pub struct ArcPriorityQueues<M, RM>
 where
   M: Element,
   RM: RawMutex, {
-  control: ArcPriorityQueue<PriorityEnvelope<M>, RM>,
-  regular: ArcRingQueue<PriorityEnvelope<M>, RM>,
+  control:          ArcPriorityQueue<PriorityEnvelope<M>, RM>,
+  regular:          ArcRingQueue<PriorityEnvelope<M>, RM>,
   regular_capacity: usize,
 }
 
@@ -32,8 +30,8 @@ where
 {
   fn clone(&self) -> Self {
     Self {
-      control: self.control.clone(),
-      regular: self.regular.clone(),
+      control:          self.control.clone(),
+      regular:          self.regular.clone(),
       regular_capacity: self.regular_capacity,
     }
   }
@@ -52,11 +50,7 @@ where
       ArcRingQueue::new(regular_capacity).with_dynamic(false)
     };
 
-    Self {
-      control,
-      regular,
-      regular_capacity,
-    }
+    Self { control, regular, regular_capacity }
   }
 
   fn offer(&self, envelope: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
@@ -93,11 +87,8 @@ where
 
   fn capacity(&self) -> QueueSize {
     let control_cap = self.control.capacity();
-    let regular_cap = if self.regular_capacity == 0 {
-      QueueSize::limitless()
-    } else {
-      QueueSize::limited(self.regular_capacity)
-    };
+    let regular_cap =
+      if self.regular_capacity == 0 { QueueSize::limitless() } else { QueueSize::limited(self.regular_capacity) };
 
     if control_cap.is_limitless() || regular_cap.is_limitless() {
       QueueSize::limitless()
@@ -185,9 +176,9 @@ pub struct ArcPriorityMailboxRuntime<RM = CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   control_capacity_per_level: usize,
-  regular_capacity: usize,
-  levels: usize,
-  _marker: PhantomData<RM>,
+  regular_capacity:           usize,
+  levels:                     usize,
+  _marker:                    PhantomData<RM>,
 }
 
 impl<RM> Default for ArcPriorityMailboxRuntime<RM>
@@ -197,9 +188,9 @@ where
   fn default() -> Self {
     Self {
       control_capacity_per_level: DEFAULT_CAPACITY,
-      regular_capacity: DEFAULT_CAPACITY,
-      levels: PRIORITY_LEVELS,
-      _marker: PhantomData,
+      regular_capacity:           DEFAULT_CAPACITY,
+      levels:                     PRIORITY_LEVELS,
+      _marker:                    PhantomData,
     }
   }
 }
@@ -236,23 +227,20 @@ where
     let signal = ArcSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();
-    (
-      ArcPriorityMailbox { inner: mailbox },
-      ArcPriorityMailboxSender { inner: sender },
-    )
+    (ArcPriorityMailbox { inner: mailbox }, ArcPriorityMailboxSender { inner: sender })
   }
 
   fn resolve_control_capacity(&self, requested: QueueSize) -> usize {
     match requested {
-      QueueSize::Limitless => self.control_capacity_per_level,
-      QueueSize::Limited(value) => value,
+      | QueueSize::Limitless => self.control_capacity_per_level,
+      | QueueSize::Limited(value) => value,
     }
   }
 
   fn resolve_regular_capacity(&self, requested: QueueSize) -> usize {
     match requested {
-      QueueSize::Limitless => self.regular_capacity,
-      QueueSize::Limited(value) => value,
+      | QueueSize::Limitless => self.regular_capacity,
+      | QueueSize::Limited(value) => value,
     }
   }
 }
@@ -264,9 +252,9 @@ where
   fn clone(&self) -> Self {
     Self {
       control_capacity_per_level: self.control_capacity_per_level,
-      regular_capacity: self.regular_capacity,
-      levels: self.levels,
-      _marker: PhantomData,
+      regular_capacity:           self.regular_capacity,
+      levels:                     self.levels,
+      _marker:                    PhantomData,
     }
   }
 }

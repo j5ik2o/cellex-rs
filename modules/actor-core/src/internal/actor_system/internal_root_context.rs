@@ -1,19 +1,22 @@
 use alloc::boxed::Box;
 
+use cellex_utils_core_rs::{sync::Shared, Element, QueueError};
+
 use super::InternalActorSystem;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::supervision::supervisor::{NoopSupervisor, Supervisor};
-use crate::internal::actor::InternalProps;
-use crate::internal::guardian::GuardianStrategy;
-use crate::internal::scheduler::ChildNaming;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::scheduler::SpawnError;
-use cellex_utils_core_rs::sync::Shared;
-use cellex_utils_core_rs::{Element, QueueError};
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    actor_runtime::{ActorRuntime, MailboxOf},
+    extensions::Extensions,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    supervision::supervisor::{NoopSupervisor, Supervisor},
+  },
+  internal::{
+    actor::InternalProps,
+    guardian::GuardianStrategy,
+    scheduler::{ChildNaming, SchedulerSpawnContext, SpawnError},
+  },
+};
 
 pub(crate) struct InternalRootContext<'a, M, AR, Strat>
 where
@@ -48,11 +51,7 @@ where
     props: InternalProps<M, MailboxOf<AR>>,
     child_naming: ChildNaming,
   ) -> Result<PriorityActorRef<M, MailboxOf<AR>>, SpawnError<M>> {
-    let InternalProps {
-      options,
-      map_system,
-      handler,
-    } = props;
+    let InternalProps { options, map_system, handler } = props;
 
     let mailbox_factory = self.system.mailbox_factory_shared.with_ref(|mailbox| mailbox.clone());
     let mailbox_factory_shared = self.system.mailbox_factory_shared.clone();

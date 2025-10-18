@@ -1,5 +1,6 @@
-use super::extension::{next_extension_id, Extension, ExtensionId};
 use alloc::string::String;
+use core::{any::Any, sync::atomic::Ordering};
+
 use cellex_serialization_core_rs::{
   BindingError, InMemorySerializerRegistry, RegistryError, SerializationRouter, Serializer, SerializerId,
   TypeBindingRegistry, TypeKey,
@@ -11,9 +12,9 @@ use cellex_serialization_postcard_rs::{shared_postcard_serializer, PostcardTypeK
 #[cfg(feature = "std")]
 use cellex_serialization_prost_rs::{shared_prost_serializer, ProstTypeKey, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::ArcShared;
-use core::any::Any;
-use core::sync::atomic::Ordering;
 use portable_atomic::AtomicI32;
+
+use super::extension::{next_extension_id, Extension, ExtensionId};
 
 static SERIALIZER_EXTENSION_ID: AtomicI32 = AtomicI32::new(-1);
 
@@ -24,8 +25,8 @@ pub(crate) fn acquire_serializer_extension_id() -> ExtensionId {
   }
   let new_id = next_extension_id();
   match SERIALIZER_EXTENSION_ID.compare_exchange(-1, new_id, Ordering::SeqCst, Ordering::SeqCst) {
-    Ok(_) => new_id,
-    Err(existing) => existing,
+    | Ok(_) => new_id,
+    | Err(existing) => existing,
   }
 }
 
@@ -37,10 +38,10 @@ pub fn serializer_extension_id() -> ExtensionId {
 
 /// Extension that exposes the shared serializer registry.
 pub struct SerializerRegistryExtension {
-  id: ExtensionId,
+  id:       ExtensionId,
   registry: InMemorySerializerRegistry,
   bindings: TypeBindingRegistry,
-  router: SerializationRouter,
+  router:   SerializationRouter,
 }
 
 impl SerializerRegistryExtension {
@@ -50,12 +51,7 @@ impl SerializerRegistryExtension {
     let registry = InMemorySerializerRegistry::new();
     let bindings = TypeBindingRegistry::new();
     let router = SerializationRouter::new(bindings.clone(), registry.clone());
-    let extension = Self {
-      id: serializer_extension_id(),
-      registry,
-      bindings,
-      router,
-    };
+    let extension = Self { id: serializer_extension_id(), registry, bindings, router };
     extension.install_builtin_serializers();
     extension.install_default_bindings();
     extension

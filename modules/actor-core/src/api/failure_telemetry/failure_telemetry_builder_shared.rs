@@ -1,9 +1,12 @@
-use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
-use cellex_utils_core_rs::Shared;
+use cellex_utils_core_rs::{
+  sync::{ArcShared, SharedBound},
+  Shared,
+};
 
-use super::failure_telemetry_shared::FailureTelemetryShared;
-use super::telemetry_builder_fn::TelemetryBuilderFn;
-use super::telemetry_context::TelemetryContext;
+use super::{
+  failure_telemetry_shared::FailureTelemetryShared, telemetry_builder_fn::TelemetryBuilderFn,
+  telemetry_context::TelemetryContext,
+};
 
 /// Shared wrapper around a failure telemetry builder function.
 pub struct FailureTelemetryBuilderShared {
@@ -17,9 +20,7 @@ impl FailureTelemetryBuilderShared {
   where
     F: Fn(&TelemetryContext) -> FailureTelemetryShared + SharedBound + 'static, {
     let shared = ArcShared::new(builder);
-    Self {
-      inner: shared.into_dyn(|inner| inner as &dyn TelemetryBuilderFn),
-    }
+    Self { inner: shared.into_dyn(|inner| inner as &dyn TelemetryBuilderFn) }
   }
 
   /// Executes the builder to obtain a telemetry implementation.
@@ -31,8 +32,6 @@ impl FailureTelemetryBuilderShared {
 
 impl Clone for FailureTelemetryBuilderShared {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }

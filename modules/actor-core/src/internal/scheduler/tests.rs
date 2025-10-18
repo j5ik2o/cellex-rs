@@ -2,48 +2,14 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
-use super::ready_queue_scheduler::ReadyQueueScheduler;
-use super::*;
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor::shutdown_token::ShutdownToken;
-use crate::api::actor::ActorId;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::PriorityChannel;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::metrics::MetricsEvent;
-use crate::api::metrics::MetricsSink;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::NoopSupervisor;
-use crate::api::supervision::supervisor::Supervisor;
-#[cfg(feature = "std")]
-use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::api::test_support::TestMailboxFactory;
-use crate::internal::context::ActorContext;
-use crate::internal::context::ActorHandlerFn;
-use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::internal::scheduler::actor_scheduler::ActorScheduler;
-use crate::internal::scheduler::child_naming::ChildNaming;
-use crate::internal::scheduler::ready_queue_scheduler::drive_ready_queue_worker;
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorker;
-use crate::internal::scheduler::scheduler_builder::SchedulerBuilder;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::scheduler::SpawnError;
-use alloc::boxed::Box;
-use alloc::rc::Rc;
-use alloc::vec;
-use alloc::vec::Vec;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
+use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use core::cell::{Cell, RefCell};
+#[cfg(feature = "std")]
+use std::collections::VecDeque;
+#[cfg(feature = "std")]
+use std::sync::{Arc, Mutex};
+
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;
 #[cfg(feature = "std")]
@@ -52,10 +18,37 @@ use futures::executor::LocalPool;
 use futures::future::{poll_fn, FutureExt};
 #[cfg(feature = "std")]
 use futures::task::LocalSpawnExt;
+
+use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "std")]
-use std::collections::VecDeque;
-#[cfg(feature = "std")]
-use std::sync::{Arc, Mutex};
+use crate::api::supervision::supervisor::SupervisorDirective;
+use crate::{
+  api::{
+    actor::{actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, shutdown_token::ShutdownToken, ActorId},
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
+    messaging::DynMessage,
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    supervision::{
+      escalation::{FailureEventHandler, FailureEventListener},
+      failure::FailureInfo,
+      supervisor::{NoopSupervisor, Supervisor},
+    },
+    test_support::TestMailboxFactory,
+  },
+  internal::{
+    context::{ActorContext, ActorHandlerFn},
+    guardian::{AlwaysRestart, GuardianStrategy},
+    scheduler::{
+      actor_scheduler::ActorScheduler,
+      child_naming::ChildNaming,
+      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+      scheduler_builder::SchedulerBuilder,
+      SchedulerSpawnContext, SpawnError,
+    },
+  },
+};
 
 #[cfg(feature = "std")]
 fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<M, MF>>
@@ -137,10 +130,10 @@ where
     child_naming: ChildNaming::Auto,
   };
   scheduler.spawn_actor(supervisor, context).map_err(|err| match err {
-    SpawnError::Queue(queue_err) => queue_err,
-    SpawnError::NameExists(name) => {
+    | SpawnError::Queue(queue_err) => queue_err,
+    | SpawnError::NameExists(name) => {
       panic!("unexpected name conflict in scheduler test: {name}")
-    }
+    },
   })
 }
 
@@ -167,10 +160,7 @@ fn scheduler_delivers_watch_before_user_messages() {
 
   block_on(scheduler.dispatch_next()).unwrap();
 
-  assert_eq!(
-    log.borrow().as_slice(),
-    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
-  );
+  assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
 }
 
 #[cfg(feature = "std")]
@@ -198,10 +188,7 @@ fn scheduler_handle_trait_object_dispatches() {
 
   block_on(scheduler.dispatch_next()).unwrap();
 
-  assert_eq!(
-    log.borrow().as_slice(),
-    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
-  );
+  assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
 }
 
 #[cfg(feature = "std")]
@@ -229,10 +216,7 @@ fn immediate_scheduler_builder_dispatches() {
 
   block_on(scheduler.dispatch_next()).unwrap();
 
-  assert_eq!(
-    log.borrow().as_slice(),
-    &[Message::System(SystemMessage::Watch(ActorId::ROOT))]
-  );
+  assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
 }
 
 #[cfg(feature = "std")]
@@ -255,28 +239,13 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 
   {
     let recorded = events.lock().unwrap();
-    let registered = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::ActorRegistered))
-      .count();
-    let deregistered = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::ActorDeregistered))
-      .count();
-    let enqueued = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::MailboxEnqueued))
-      .count();
-    let dequeued = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::MailboxDequeued))
-      .count();
+    let registered = recorded.iter().filter(|event| matches!(event, MetricsEvent::ActorRegistered)).count();
+    let deregistered = recorded.iter().filter(|event| matches!(event, MetricsEvent::ActorDeregistered)).count();
+    let enqueued = recorded.iter().filter(|event| matches!(event, MetricsEvent::MailboxEnqueued)).count();
+    let dequeued = recorded.iter().filter(|event| matches!(event, MetricsEvent::MailboxDequeued)).count();
     assert_eq!(registered, 1);
     assert_eq!(deregistered, 0);
-    assert!(
-      enqueued >= 1,
-      "expected at least one MailboxEnqueued event, got {recorded:?}"
-    );
+    assert!(enqueued >= 1, "expected at least one MailboxEnqueued event, got {recorded:?}");
     assert_eq!(dequeued, 0);
   }
 
@@ -289,28 +258,13 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 
   {
     let recorded = events.lock().unwrap();
-    let registered = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::ActorRegistered))
-      .count();
-    let deregistered = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::ActorDeregistered))
-      .count();
-    let dequeued = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::MailboxDequeued))
-      .count();
-    let enqueued = recorded
-      .iter()
-      .filter(|event| matches!(event, MetricsEvent::MailboxEnqueued))
-      .count();
+    let registered = recorded.iter().filter(|event| matches!(event, MetricsEvent::ActorRegistered)).count();
+    let deregistered = recorded.iter().filter(|event| matches!(event, MetricsEvent::ActorDeregistered)).count();
+    let dequeued = recorded.iter().filter(|event| matches!(event, MetricsEvent::MailboxDequeued)).count();
+    let enqueued = recorded.iter().filter(|event| matches!(event, MetricsEvent::MailboxEnqueued)).count();
     assert_eq!(registered, 1);
     assert_eq!(deregistered, 1);
-    assert!(
-      dequeued >= 1,
-      "expected at least one MailboxDequeued event, got {recorded:?}"
-    );
+    assert!(dequeued >= 1, "expected at least one MailboxDequeued event, got {recorded:?}");
     assert!(enqueued >= dequeued);
   }
 }
@@ -334,7 +288,7 @@ fn actor_context_exposes_parent_watcher() {
       let current_watchers = ctx.watchers().to_vec();
       watchers_clone.borrow_mut().push(current_watchers);
       match msg {
-        Message::User(_) | Message::System(_) => {}
+        | Message::User(_) | Message::System(_) => {},
       }
     }),
   )
@@ -343,15 +297,10 @@ fn actor_context_exposes_parent_watcher() {
   block_on(scheduler.dispatch_next()).unwrap();
   assert_eq!(watchers_log.borrow().as_slice(), &[vec![ActorId::ROOT]]);
 
-  actor_ref
-    .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(1), DEFAULT_PRIORITY).unwrap();
   block_on(scheduler.dispatch_next()).unwrap();
 
-  assert_eq!(
-    watchers_log.borrow().as_slice(),
-    &[vec![ActorId::ROOT], vec![ActorId::ROOT]]
-  );
+  assert_eq!(watchers_log.borrow().as_slice(), &[vec![ActorId::ROOT], vec![ActorId::ROOT]]);
 }
 
 #[cfg(feature = "std")]
@@ -370,25 +319,21 @@ fn scheduler_dispatches_high_priority_first() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |ctx, msg: Message| match msg {
-      Message::User(value) => {
+      | Message::User(value) => {
         log_clone.borrow_mut().push((value, ctx.current_priority().unwrap()));
         if value == 99 {
           let child_log = log_clone.clone();
           ctx
-            .spawn_child(
-              NoopSupervisor,
-              MailboxOptions::default(),
-              move |_, child_msg: Message| {
-                if let Message::User(child_value) = child_msg {
-                  child_log.borrow_mut().push((child_value, 0));
-                }
-              },
-            )
+            .spawn_child(NoopSupervisor, MailboxOptions::default(), move |_, child_msg: Message| {
+              if let Message::User(child_value) = child_msg {
+                child_log.borrow_mut().push((child_value, 0));
+              }
+            })
             .try_send_with_priority(Message::User(7), 0)
             .unwrap();
         }
-      }
-      Message::System(_) => {}
+      },
+      | Message::System(_) => {},
     }),
   )
   .unwrap();
@@ -426,23 +371,18 @@ fn scheduler_prioritizes_system_messages() {
   )
   .unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(42), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(42), DEFAULT_PRIORITY).unwrap();
 
   let control_envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(Message::System);
   actor_ref.try_send_envelope(control_envelope).unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
 
-  assert_eq!(
-    log.borrow().as_slice(),
-    &[
-      Message::System(SystemMessage::Stop),
-      Message::System(SystemMessage::Watch(ActorId::ROOT)),
-      Message::User(42),
-    ]
-  );
+  assert_eq!(log.borrow().as_slice(), &[
+    Message::System(SystemMessage::Stop),
+    Message::System(SystemMessage::Watch(ActorId::ROOT)),
+    Message::User(42),
+  ]);
 }
 
 #[cfg(feature = "std")]
@@ -470,10 +410,7 @@ fn priority_actor_ref_sends_system_messages() {
   actor_ref.try_send_system(SystemMessage::Restart).unwrap();
   block_on(scheduler.dispatch_next()).unwrap();
 
-  assert_eq!(
-    log.borrow().as_slice(),
-    &[SystemMessage::Restart, SystemMessage::Watch(ActorId::ROOT)]
-  );
+  assert_eq!(log.borrow().as_slice(), &[SystemMessage::Restart, SystemMessage::Watch(ActorId::ROOT)]);
 }
 
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
@@ -496,24 +433,22 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
     MapSystemShared::new(Message::System),
     handler_from_fn(move |_, msg: Message| {
       match msg {
-        Message::System(SystemMessage::Watch(_)) => {
+        | Message::System(SystemMessage::Watch(_)) => {
           // Watch メッセージは監視登録のみなのでログに残さない
-        }
-        Message::User(_) if panic_flag.get() => {
+        },
+        | Message::User(_) if panic_flag.get() => {
           panic_flag.set(false);
           panic!("boom");
-        }
-        _ => {
+        },
+        | _ => {
           log_clone.borrow_mut().push(msg.clone());
-        }
+        },
       }
     }),
   )
   .unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(1), DEFAULT_PRIORITY).unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
   assert!(log.borrow().is_empty());
@@ -541,15 +476,13 @@ fn scheduler_run_until_processes_messages() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |_, msg: Message| match msg {
-      Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
-      Message::System(_) => {}
+      | Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
+      | Message::System(_) => {},
     }),
   )
   .unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(11), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(11), DEFAULT_PRIORITY).unwrap();
 
   let mut loops = 0;
   futures::executor::block_on(scheduler.run_until(|| {
@@ -586,19 +519,17 @@ fn scheduler_records_escalations() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |_, msg: Message| match msg {
-      Message::System(SystemMessage::Watch(_)) => {}
-      Message::User(_) if panic_flag.get() => {
+      | Message::System(SystemMessage::Watch(_)) => {},
+      | Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
         panic!("boom");
-      }
-      _ => {}
+      },
+      | _ => {},
     }),
   )
   .unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(1), DEFAULT_PRIORITY).unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
 
@@ -633,19 +564,17 @@ fn scheduler_escalation_handler_delivers_to_parent() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |_, msg: Message| match msg {
-      Message::System(SystemMessage::Watch(_)) => {}
-      Message::User(_) if panic_flag.get() => {
+      | Message::System(SystemMessage::Watch(_)) => {},
+      | Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
         panic!("boom");
-      }
-      _ => {}
+      },
+      | _ => {},
     }),
   )
   .unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(1), DEFAULT_PRIORITY).unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
 
@@ -653,11 +582,11 @@ fn scheduler_escalation_handler_delivers_to_parent() {
   let (msg, _, channel) = envelope.into_parts_with_channel();
   assert_eq!(channel, PriorityChannel::Control);
   match msg {
-    Message::System(SystemMessage::Escalate(info)) => {
+    | Message::System(SystemMessage::Escalate(info)) => {
       assert_eq!(info.actor, ActorId(0));
       assert!(info.description().contains("panic"));
-    }
-    other => panic!("unexpected message: {:?}", other),
+    },
+    | other => panic!("unexpected message: {:?}", other),
   }
 }
 
@@ -687,27 +616,23 @@ fn scheduler_escalation_chain_reaches_root() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |ctx, msg: Message| match msg {
-      Message::System(_) => {}
-      Message::User(0) if !trigger_flag.get() => {
+      | Message::System(_) => {},
+      | Message::User(0) if !trigger_flag.get() => {
         trigger_flag.set(true);
         let panic_once = child_flag.clone();
         ctx
-          .spawn_child(
-            NoopSupervisor,
-            MailboxOptions::default(),
-            move |_, child_msg: Message| match child_msg {
-              Message::System(_) => {}
-              Message::User(1) if panic_once.get() => {
-                panic_once.set(false);
-                panic!("child failure");
-              }
-              _ => {}
+          .spawn_child(NoopSupervisor, MailboxOptions::default(), move |_, child_msg: Message| match child_msg {
+            | Message::System(_) => {},
+            | Message::User(1) if panic_once.get() => {
+              panic_once.set(false);
+              panic!("child failure");
             },
-          )
+            | _ => {},
+          })
           .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
           .unwrap();
-      }
-      _ => {}
+      },
+      | _ => {},
     }),
   )
   .unwrap();
@@ -719,9 +644,7 @@ fn scheduler_escalation_chain_reaches_root() {
     assert_eq!(snapshot.len(), 0);
   }
 
-  parent_ref
-    .try_send_with_priority(Message::User(0), DEFAULT_PRIORITY)
-    .unwrap();
+  parent_ref.try_send_with_priority(Message::User(0), DEFAULT_PRIORITY).unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
   {
@@ -738,14 +661,9 @@ fn scheduler_escalation_chain_reaches_root() {
   let first_stage = first_failure.stage;
   assert!(first_stage.hops() >= 1, "child escalation should have hop count >= 1");
 
-  let parent_failure = first_failure
-    .escalate_to_parent()
-    .expect("parent failure info must exist");
+  let parent_failure = first_failure.escalate_to_parent().expect("parent failure info must exist");
   let parent_stage = parent_failure.stage;
-  assert!(
-    parent_stage.hops() >= first_stage.hops(),
-    "parent escalation hop count must be monotonic"
-  );
+  assert!(parent_stage.hops() >= first_stage.hops(), "parent escalation hop count must be monotonic");
 
   let mut current = parent_failure.clone();
   let mut root_failure = current.clone();
@@ -757,23 +675,12 @@ fn scheduler_escalation_chain_reaches_root() {
 
   assert_eq!(first_failure.path.segments().last().copied(), Some(first_failure.actor));
 
-  assert_eq!(
-    parent_failure.actor,
-    first_failure
-      .path
-      .segments()
-      .first()
-      .copied()
-      .unwrap_or(first_failure.actor)
-  );
+  assert_eq!(parent_failure.actor, first_failure.path.segments().first().copied().unwrap_or(first_failure.actor));
 
   assert_eq!(root_failure.actor, parent_failure.actor);
   assert!(root_failure.path.is_empty());
   assert_eq!(root_failure.description(), parent_failure.description());
-  assert!(
-    root_stage.hops() >= parent_stage.hops(),
-    "root escalation hop count must be monotonic"
-  );
+  assert!(root_stage.hops() >= parent_stage.hops(), "root escalation hop count must be monotonic");
 }
 
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
@@ -802,19 +709,17 @@ fn scheduler_root_escalation_handler_invoked() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |_, msg: Message| match msg {
-      Message::System(SystemMessage::Watch(_)) => {}
-      Message::User(_) if panic_flag.get() => {
+      | Message::System(SystemMessage::Watch(_)) => {},
+      | Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
         panic!("root boom");
-      }
-      _ => {}
+      },
+      | _ => {},
     }),
   )
   .unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(42), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(42), DEFAULT_PRIORITY).unwrap();
 
   let events_ref = events.clone();
   block_on(scheduler.run_until(|| events_ref.lock().unwrap().is_empty())).unwrap();
@@ -836,10 +741,7 @@ fn scheduler_requeues_failed_custom_escalation() {
   let attempts = Rc::new(Cell::new(0usize));
   let attempts_clone = attempts.clone();
   scheduler.on_escalation(move |info| {
-    assert!(
-      info.stage.hops() >= 1,
-      "escalation delivered to custom sink should already have propagated"
-    );
+    assert!(info.stage.hops() >= 1, "escalation delivered to custom sink should already have propagated");
     let current = attempts_clone.get();
     attempts_clone.set(current + 1);
     if current == 0 {
@@ -859,12 +761,12 @@ fn scheduler_requeues_failed_custom_escalation() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |_, msg: Message| match msg {
-      Message::System(_) => {}
-      Message::User(_) if panic_once.get() => {
+      | Message::System(_) => {},
+      | Message::User(_) if panic_once.get() => {
         panic_once.set(false);
         panic!("custom escalation failure");
-      }
-      _ => {}
+      },
+      | _ => {},
     }),
   )
   .unwrap();
@@ -872,9 +774,7 @@ fn scheduler_requeues_failed_custom_escalation() {
   // consume initial watch message
   block_on(scheduler.dispatch_next()).unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(7), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(7), DEFAULT_PRIORITY).unwrap();
 
   // first dispatch: panic occurs and escalation handler fails, causing requeue.
   block_on(scheduler.dispatch_next()).unwrap();
@@ -889,9 +789,9 @@ fn scheduler_requeues_failed_custom_escalation() {
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
 #[test]
 fn scheduler_root_event_listener_broadcasts() {
-  use crate::api::failure_event_stream::tests::TestFailureEventStream;
-  use crate::api::failure_event_stream::FailureEventStream;
   use std::sync::{Arc as StdArc, Mutex};
+
+  use crate::api::failure_event_stream::{tests::TestFailureEventStream, FailureEventStream};
 
   let mailbox_factory = TestMailboxFactory::unbounded();
   let mut scheduler: ReadyQueueScheduler<Message, _, AlwaysEscalate> =
@@ -902,9 +802,9 @@ fn scheduler_root_event_listener_broadcasts() {
   let received_clone = received.clone();
 
   let _subscription = hub.subscribe(FailureEventListener::new(move |event| match event {
-    crate::api::supervision::failure::FailureEvent::RootEscalated(info) => {
+    | crate::api::supervision::failure::FailureEvent::RootEscalated(info) => {
       received_clone.lock().unwrap().push(info.clone());
-    }
+    },
   }));
 
   scheduler.set_root_event_listener(Some(hub.listener()));
@@ -919,19 +819,17 @@ fn scheduler_root_event_listener_broadcasts() {
     MailboxOptions::default(),
     MapSystemShared::new(Message::System),
     handler_from_fn(move |_, msg: Message| match msg {
-      Message::System(SystemMessage::Watch(_)) => {}
-      Message::User(_) if panic_flag.get() => {
+      | Message::System(SystemMessage::Watch(_)) => {},
+      | Message::User(_) if panic_flag.get() => {
         panic_flag.set(false);
         panic!("hub boom");
-      }
-      _ => {}
+      },
+      | _ => {},
     }),
   )
   .unwrap();
 
-  actor_ref
-    .try_send_with_priority(Message::User(7), DEFAULT_PRIORITY)
-    .unwrap();
+  actor_ref.try_send_with_priority(Message::User(7), DEFAULT_PRIORITY).unwrap();
 
   let received_ref = received.clone();
   block_on(scheduler.run_until(|| received_ref.lock().unwrap().is_empty())).unwrap();
@@ -944,9 +842,12 @@ fn scheduler_root_event_listener_broadcasts() {
 #[cfg(feature = "std")]
 #[test]
 fn drive_ready_queue_worker_processes_actions() {
-  use core::future::Future;
-  use core::pin::Pin;
-  use core::task::{Context, Poll};
+  use core::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+  };
+
   use futures::future::LocalBoxFuture;
 
   struct YieldOnce {
@@ -968,7 +869,7 @@ fn drive_ready_queue_worker_processes_actions() {
   }
 
   struct DummyWorker {
-    state: Arc<Mutex<(VecDeque<WorkerAction>, Option<LocalBoxFuture<'static, usize>>, bool)>>,
+    state:     Arc<Mutex<(VecDeque<WorkerAction>, Option<LocalBoxFuture<'static, usize>>, bool)>>,
     processed: Arc<Mutex<Vec<u32>>>,
   }
 
@@ -981,10 +882,7 @@ fn drive_ready_queue_worker_processes_actions() {
 
   impl DummyWorker {
     fn new(actions: VecDeque<WorkerAction>, processed: Arc<Mutex<Vec<u32>>>) -> Self {
-      Self {
-        state: Arc::new(Mutex::new((actions, None, false))),
-        processed,
-      }
+      Self { state: Arc::new(Mutex::new((actions, None, false))), processed }
     }
   }
 
@@ -994,18 +892,18 @@ fn drive_ready_queue_worker_processes_actions() {
       let (actions, wait_future, finished) = &mut *state;
       if let Some(action) = actions.pop_front() {
         match action {
-          WorkerAction::Progress(value) => {
+          | WorkerAction::Progress(value) => {
             self.processed.lock().unwrap().push(value);
             Ok(Some(true))
-          }
-          WorkerAction::Wait => {
+          },
+          | WorkerAction::Wait => {
             *wait_future = Some(futures::future::ready(0usize).boxed_local());
             Ok(None)
-          }
-          WorkerAction::End => {
+          },
+          | WorkerAction::End => {
             *finished = true;
             Ok(None)
-          }
+          },
         }
       } else {
         Ok(None)
@@ -1037,12 +935,8 @@ fn drive_ready_queue_worker_processes_actions() {
   }
 
   let processed = Arc::new(Mutex::new(Vec::new()));
-  let actions = VecDeque::from(vec![
-    WorkerAction::Progress(1),
-    WorkerAction::Wait,
-    WorkerAction::Progress(2),
-    WorkerAction::End,
-  ]);
+  let actions =
+    VecDeque::from(vec![WorkerAction::Progress(1), WorkerAction::Wait, WorkerAction::Progress(2), WorkerAction::End]);
   let worker_impl = DummyWorker::new(actions, processed.clone());
   let worker =
     ArcShared::new(worker_impl).into_dyn(|inner| inner as &dyn ReadyQueueWorker<DynMessage, TestMailboxFactory>);
@@ -1059,7 +953,8 @@ fn drive_ready_queue_worker_processes_actions() {
         worker,
         shutdown_for_worker,
         || {
-          // LocalPool 上で他タスクに制御を明示的に渡すため即時完了 Future ではなく 1 回だけ Pending になる Future を使う
+          // LocalPool 上で他タスクに制御を明示的に渡すため即時完了 Future ではなく 1 回だけ Pending になる
+          // Future を使う
           YieldOnce { yielded: false }
         },
         move || shutdown_poll_future(shutdown_for_wait.clone()),

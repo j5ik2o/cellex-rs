@@ -3,22 +3,24 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
 
-use super::*;
-use crate::api::actor_runtime::GenericActorRuntime;
-use crate::api::mailbox::MailboxOptions;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::test_support::TestMailboxFactory;
-use crate::internal::actor::InternalProps;
-use crate::internal::guardian::AlwaysRestart;
-use alloc::rc::Rc;
-use alloc::vec::Vec;
+use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
-use crate::api::actor_system::map_system::MapSystemShared;
 use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;
+
+use super::*;
+use crate::{
+  api::{
+    actor_runtime::GenericActorRuntime,
+    actor_system::map_system::MapSystemShared,
+    mailbox::{MailboxOptions, SystemMessage},
+    messaging::DynMessage,
+    test_support::TestMailboxFactory,
+  },
+  internal::{actor::InternalProps, guardian::AlwaysRestart},
+};
 
 #[cfg(feature = "std")]
 #[derive(Debug, Clone)]
@@ -40,25 +42,19 @@ fn actor_system_spawns_and_processes_messages() {
 
   let mut root = system.root_context();
   let actor_ref = root
-    .spawn(InternalProps::new(
-      MailboxOptions::default(),
-      map_system.clone(),
-      move |_, msg: DynMessage| {
-        let Ok(message) = msg.downcast::<Message>() else {
-          panic!("unexpected message type");
-        };
-        match message {
-          Message::User(value) => log_clone.borrow_mut().push(value),
-          Message::System => {}
-        }
-        Ok(())
-      },
-    ))
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |_, msg: DynMessage| {
+      let Ok(message) = msg.downcast::<Message>() else {
+        panic!("unexpected message type");
+      };
+      match message {
+        | Message::User(value) => log_clone.borrow_mut().push(value),
+        | Message::System => {},
+      }
+      Ok(())
+    }))
     .expect("spawn actor");
 
-  actor_ref
-    .try_send_with_priority(DynMessage::new(Message::User(7)), DEFAULT_PRIORITY)
-    .expect("send message");
+  actor_ref.try_send_with_priority(DynMessage::new(Message::User(7)), DEFAULT_PRIORITY).expect("send message");
 
   block_on(root.dispatch_next()).expect("dispatch");
 

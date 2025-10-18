@@ -1,7 +1,5 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
-use core::fmt::Debug;
-use core::mem::MaybeUninit;
+use alloc::{boxed::Box, vec::Vec};
+use core::{fmt::Debug, mem::MaybeUninit};
 
 use crate::collections::queue::{QueueBase, QueueError, QueueReader, QueueSize, QueueWriter};
 
@@ -23,13 +21,13 @@ pub const DEFAULT_CAPACITY: usize = 32;
 #[derive(Debug)]
 pub struct RingBuffer<T> {
   /// Internal buffer (may contain uninitialized memory)
-  buf: Box<[MaybeUninit<T>]>,
+  buf:     Box<[MaybeUninit<T>]>,
   /// Head index indicating read position
-  head: usize,
+  head:    usize,
   /// Tail index indicating write position
-  tail: usize,
+  tail:    usize,
   /// Current number of elements in the buffer
-  len: usize,
+  len:     usize,
   /// Whether dynamic capacity expansion is enabled
   dynamic: bool,
 }
@@ -57,13 +55,7 @@ impl<T> RingBuffer<T> {
   pub fn new(capacity: usize) -> Self {
     assert!(capacity > 0, "capacity must be > 0");
     let buf = Self::alloc_buffer(capacity);
-    Self {
-      buf,
-      head: 0,
-      tail: 0,
-      len: 0,
-      dynamic: true,
-    }
+    Self { buf, head: 0, tail: 0, len: 0, dynamic: true }
   }
 
   /// Sets dynamic expansion enabled/disabled and returns the ring buffer (builder pattern)

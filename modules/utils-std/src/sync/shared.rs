@@ -1,12 +1,10 @@
 #[cfg(test)]
 mod tests;
 
-use std::ops::Deref;
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
-use cellex_utils_core_rs::Shared;
 use cellex_utils_core_rs::{
-  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, StackBackend, StackHandle,
+  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, Shared, StackBackend, StackHandle,
 };
 
 /// Shared ownership wrapper using `Arc`

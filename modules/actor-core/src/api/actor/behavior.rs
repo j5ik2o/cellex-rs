@@ -1,15 +1,13 @@
 use alloc::boxed::Box;
 
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::{sync::ArcShared, Element};
 
-use super::actor_failure::ActorFailure;
-use super::context::Context;
-use super::signal::Signal;
+use super::{actor_failure::ActorFailure, context::Context, signal::Signal};
+use crate::api::{
+  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+  mailbox::{PriorityEnvelope, SystemMessage},
+  messaging::{DynMessage, MetadataStorageMode},
+};
 
 mod actor_adapter;
 mod behavior_directive;
@@ -56,7 +54,7 @@ where
   /// Execute setup processing to generate Behavior
   Setup {
     /// Initialization callback (returns Result).
-    init: Option<ArcShared<SetupFn<U, AR>>>,
+    init:   Option<ArcShared<SetupFn<U, AR>>>,
     /// Signal handler retained across behavior transitions.
     signal: Option<ArcShared<SignalFn<U, AR>>>,
   },
@@ -79,10 +77,7 @@ where
     F:
       for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure> + 'static,
   {
-    Self::Receive(BehaviorState::new(
-      Box::new(move |ctx, msg| handler(ctx, msg)),
-      SupervisorStrategyConfig::default(),
-    ))
+    Self::Receive(BehaviorState::new(Box::new(move |ctx, msg| handler(ctx, msg)), SupervisorStrategyConfig::default()))
   }
 
   /// Constructs Behavior with a simple stateless handler.
@@ -115,17 +110,14 @@ where
   where
     F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
     let handler = ArcShared::new(init).into_dyn(|inner| inner as &SetupFn<U, AR>);
-    Self::Setup {
-      init: Some(handler),
-      signal: None,
-    }
+    Self::Setup { init: Some(handler), signal: None }
   }
 
   /// Gets supervisor configuration (internal API).
   pub(crate) fn supervisor_config(&self) -> SupervisorStrategyConfig {
     match self {
-      Behavior::Receive(state) => state.supervisor.clone(),
-      Behavior::Setup { .. } | Behavior::Stopped => SupervisorStrategyConfig::default(),
+      | Behavior::Receive(state) => state.supervisor.clone(),
+      | Behavior::Setup { .. } | Behavior::Stopped => SupervisorStrategyConfig::default(),
     }
   }
 
@@ -140,13 +132,13 @@ where
   pub(super) fn attach_signal_arc(mut self, handler: Option<ArcShared<SignalFn<U, AR>>>) -> Self {
     if let Some(handler) = handler {
       match &mut self {
-        Behavior::Receive(state) => {
+        | Behavior::Receive(state) => {
           state.set_signal_handler(handler);
-        }
-        Behavior::Setup { signal, .. } => {
+        },
+        | Behavior::Setup { signal, .. } => {
           *signal = Some(handler);
-        }
-        Behavior::Stopped => {}
+        },
+        | Behavior::Stopped => {},
       }
     }
     self

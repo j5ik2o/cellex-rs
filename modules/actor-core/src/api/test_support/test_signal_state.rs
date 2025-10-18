@@ -2,7 +2,7 @@
 /// Shared state manipulated by `TestSignal` to track notifications during polling.
 pub struct TestSignalState {
   pub(crate) notified: bool,
-  pub(crate) waker: Option<core::task::Waker>,
+  pub(crate) waker:    Option<core::task::Waker>,
 }
 
 impl TestSignalState {

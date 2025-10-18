@@ -1,39 +1,40 @@
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_ref::ActorRef;
-use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
-use crate::api::actor::props::Props;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::extensions::Extension;
-use crate::api::extensions::ExtensionId;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use crate::api::messaging::{MessageEnvelope, MessageMetadata, MessageSender};
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::internal::context::ActorContext;
-use crate::RuntimeBound;
 use alloc::boxed::Box;
-use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
-use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
-use core::future::Future;
-use core::marker::PhantomData;
-use core::time::Duration;
+use core::{future::Future, marker::PhantomData, time::Duration};
+
+use cellex_utils_core_rs::{
+  sync::{ArcShared, SharedBound},
+  Element, QueueError, DEFAULT_PRIORITY,
+};
+
+use crate::{
+  api::{
+    actor::{
+      actor_failure::ActorFailure,
+      actor_ref::ActorRef,
+      ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
+      props::Props,
+    },
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    extensions::{Extension, ExtensionId, Extensions},
+    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    supervision::{failure::FailureInfo, supervisor::Supervisor},
+  },
+  internal::context::ActorContext,
+  RuntimeBound,
+};
 
 mod context_log_level;
 mod context_logger;
 mod message_adapter_ref;
 mod message_metadata_responder;
 
-use crate::api::actor::actor_id::ActorId;
-use crate::api::actor::actor_path::ActorPath;
 pub use context_log_level::ContextLogLevel;
 pub use context_logger::ContextLogger;
 pub use message_adapter_ref::MessageAdapterRef;
 pub use message_metadata_responder::MessageMetadataResponder;
+
+use crate::api::actor::{actor_id::ActorId, actor_path::ActorPath};
 
 #[cfg(target_has_atomic = "ptr")]
 pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
@@ -52,10 +53,10 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
-  pub(super) inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
-  pub(super) metadata: Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<AR>>>,
+  pub(super) inner:      &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
+  pub(super) metadata:   Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<AR>>>,
   pub(super) extensions: Extensions,
-  pub(super) _marker: PhantomData<U>,
+  pub(super) _marker:    PhantomData<U>,
 }
 
 /// Type alias for context during setup.
@@ -72,12 +73,7 @@ where
 {
   pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>) -> Self {
     let extensions = inner.extensions();
-    Self {
-      inner,
-      metadata: None,
-      extensions,
-      _marker: PhantomData,
-    }
+    Self { inner, metadata: None, extensions, _marker: PhantomData }
   }
 }
 
@@ -127,12 +123,7 @@ where
     metadata: MessageMetadata<MailboxConcurrencyOf<AR>>,
   ) -> Self {
     let extensions = inner.extensions();
-    Self {
-      inner,
-      metadata: Some(metadata),
-      extensions,
-      _marker: PhantomData,
-    }
+    Self { inner, metadata: Some(metadata), extensions, _marker: PhantomData }
   }
 
   /// Returns the shared extension registry.
@@ -203,9 +194,8 @@ where
   where
     V: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
-    let actor_ref = self
-      .inner
-      .spawn_child_from_props(Box::new(supervisor_cfg.as_supervisor::<DynMessage>()), internal_props);
+    let actor_ref =
+      self.inner.spawn_child_from_props(Box::new(supervisor_cfg.as_supervisor::<DynMessage>()), internal_props);
     ActorRef::new(actor_ref)
   }
 }
@@ -325,12 +315,11 @@ where
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
-      .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+    let metadata =
+      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(future),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(future),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
@@ -352,12 +341,11 @@ where
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
-      .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+    let metadata =
+      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
@@ -369,9 +357,8 @@ where
     MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
-      .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+    let metadata =
+      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
     target.tell_with_metadata(message, metadata)?;
     Ok(future)
   }
@@ -391,12 +378,11 @@ where
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
-      .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+    let metadata =
+      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 }

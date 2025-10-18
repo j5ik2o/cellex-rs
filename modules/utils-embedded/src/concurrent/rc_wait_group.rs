@@ -1,15 +1,14 @@
-use alloc::boxed::Box;
-use alloc::rc::Rc;
+use alloc::{boxed::Box, rc::Rc};
+use core::cell::RefCell;
 
 use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
-use core::cell::RefCell;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use embassy_sync::signal::Signal;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 
 /// Backend for `Rc`-based wait group implementation.
 ///
-/// Provides a mechanism in `no_std` environments to track and wait for the completion of multiple tasks.
-/// The count can be dynamically increased or decreased, and waiting tasks are released when the count reaches 0.
+/// Provides a mechanism in `no_std` environments to track and wait for the completion of multiple
+/// tasks. The count can be dynamically increased or decreased, and waiting tasks are released when
+/// the count reaches 0.
 ///
 /// # Features
 ///
@@ -36,7 +35,7 @@ use embassy_sync::signal::Signal;
 /// ```
 #[derive(Clone)]
 pub struct RcWaitGroupBackend {
-  count: Rc<RefCell<usize>>,
+  count:  Rc<RefCell<usize>>,
   signal: Rc<Signal<NoopRawMutex, ()>>,
 }
 
@@ -53,10 +52,7 @@ impl WaitGroupBackend for RcWaitGroupBackend {
   ///
   /// * `count` - Initial count value
   fn with_count(count: usize) -> Self {
-    Self {
-      count: Rc::new(RefCell::new(count)),
-      signal: Rc::new(Signal::new()),
-    }
+    Self { count: Rc::new(RefCell::new(count)), signal: Rc::new(Signal::new()) }
   }
 
   /// Increments the count by the specified amount.

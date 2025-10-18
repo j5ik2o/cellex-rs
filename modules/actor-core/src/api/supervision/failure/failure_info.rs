@@ -3,26 +3,25 @@ mod tests;
 
 use alloc::borrow::Cow;
 
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-
 use super::{EscalationStage, FailureMetadata};
+use crate::api::actor::{
+  actor_failure::{ActorFailure, BehaviorFailure},
+  ActorId, ActorPath,
+};
 
 /// Failure information. Holds a simplified form of protoactor-go's Failure message.
 #[derive(Clone, Debug)]
 pub struct FailureInfo {
   /// ID of the actor where the failure occurred
-  pub actor: ActorId,
+  pub actor:    ActorId,
   /// Path of the actor where the failure occurred
-  pub path: ActorPath,
+  pub path:     ActorPath,
   /// Detailed failure payload
-  pub failure: ActorFailure,
+  pub failure:  ActorFailure,
   /// Metadata associated with the failure
   pub metadata: FailureMetadata,
   /// Escalation stage
-  pub stage: EscalationStage,
+  pub stage:    EscalationStage,
 }
 
 impl FailureInfo {
@@ -50,13 +49,7 @@ impl FailureInfo {
   /// # Returns
   /// New `FailureInfo` instance
   pub fn new_with_metadata(actor: ActorId, path: ActorPath, failure: ActorFailure, metadata: FailureMetadata) -> Self {
-    Self {
-      actor,
-      path,
-      failure,
-      metadata,
-      stage: EscalationStage::Initial,
-    }
+    Self { actor, path, failure, metadata, stage: EscalationStage::Initial }
   }
 
   /// Sets metadata.
@@ -83,7 +76,8 @@ impl FailureInfo {
     self
   }
 
-  /// Creates failure information from an error with default metadata (helper for legacy call sites).
+  /// Creates failure information from an error with default metadata (helper for legacy call
+  /// sites).
   ///
   /// # Arguments
   /// * `actor` - ID of the actor where the failure occurred
@@ -130,11 +124,11 @@ impl FailureInfo {
     let parent_path = self.path.parent()?;
     let parent_actor = parent_path.last().unwrap_or(self.actor);
     Some(Self {
-      actor: parent_actor,
-      path: parent_path,
-      failure: self.failure.clone(),
+      actor:    parent_actor,
+      path:     parent_path,
+      failure:  self.failure.clone(),
       metadata: self.metadata.clone(),
-      stage: self.stage.escalate(),
+      stage:    self.stage.escalate(),
     })
   }
 

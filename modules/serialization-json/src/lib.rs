@@ -2,14 +2,15 @@
 
 #![deny(missing_docs)]
 
-use cellex_serialization_core_rs::error::{DeserializationError, SerializationError};
-use cellex_serialization_core_rs::id::SerializerId;
-use cellex_serialization_core_rs::impl_type_key;
-use cellex_serialization_core_rs::message::SerializedMessage;
-use cellex_serialization_core_rs::serializer::Serializer;
+use cellex_serialization_core_rs::{
+  error::{DeserializationError, SerializationError},
+  id::SerializerId,
+  impl_type_key,
+  message::SerializedMessage,
+  serializer::Serializer,
+};
 use cellex_utils_core_rs::sync::ArcShared;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 
 /// `serde_json` 用に予約されたシリアライザ ID。
 pub const SERDE_JSON_SERIALIZER_ID: SerializerId = SerializerId::new(1);

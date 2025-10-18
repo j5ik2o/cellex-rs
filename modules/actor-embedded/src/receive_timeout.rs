@@ -1,32 +1,28 @@
 #![cfg(feature = "embassy_executor")]
 
-use core::marker::PhantomData;
-use core::time::Duration;
-
-use embassy_executor::Spawner;
-use embassy_futures::select::{select, Either};
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::blocking_mutex::Mutex;
-use embassy_sync::signal::Signal;
-use embassy_time::{Duration as EmbassyDuration, Timer};
+use core::{marker::PhantomData, time::Duration};
 
 use cellex_actor_core_rs::{
   DynMessage, MailboxRuntime, MapSystemShared, PriorityEnvelope, ReceiveTimeoutScheduler,
   ReceiveTimeoutSchedulerFactory, SystemMessage,
 };
+use embassy_executor::Spawner;
+use embassy_futures::select::{select, Either};
+use embassy_sync::{
+  blocking_mutex::{raw::CriticalSectionRawMutex, Mutex},
+  signal::Signal,
+};
+use embassy_time::{Duration as EmbassyDuration, Timer};
 
 /// Internal shared state manipulated by both scheduler commands and the worker task.
 struct SchedulerState {
-  duration: Option<Duration>,
+  duration:   Option<Duration>,
   generation: u32,
 }
 
 impl SchedulerState {
   const fn new() -> Self {
-    Self {
-      duration: None,
-      generation: 0,
-    }
+    Self { duration: None, generation: 0 }
   }
 
   fn increment_generation(&mut self) {
@@ -42,7 +38,7 @@ type WakeSignal = Signal<CriticalSectionRawMutex, ()>;
 /// Commands (`set` / `cancel` / `notify_activity`) update shared state immediately and
 /// wake the background task, which drives the actual Embassy timer.
 pub struct EmbassyReceiveTimeoutScheduler {
-  state: &'static StateMutex,
+  state:       &'static StateMutex,
   wake_signal: &'static WakeSignal,
 }
 
@@ -100,10 +96,7 @@ where
 {
   /// Creates a new factory backed by the provided Embassy spawner.
   pub fn new(spawner: &'static Spawner) -> Self {
-    Self {
-      spawner,
-      _marker: PhantomData,
-    }
+    Self { spawner, _marker: PhantomData }
   }
 }
 
@@ -112,10 +105,7 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   fn clone(&self) -> Self {
-    Self {
-      spawner: self.spawner,
-      _marker: PhantomData,
-    }
+    Self { spawner: self.spawner, _marker: PhantomData }
   }
 }
 
@@ -176,10 +166,10 @@ async fn run_scheduler<R>(
     };
 
     match current_duration {
-      Some(duration) => {
+      | Some(duration) => {
         let mut timer = Timer::after(to_embassy_duration(duration));
         match select(timer, wake_signal.wait()).await {
-          Either::First(_) => {
+          | Either::First(_) => {
             let should_fire = {
               let mut state = state.lock();
               if state.duration.is_some() && state.generation == generation {
@@ -194,15 +184,15 @@ async fn run_scheduler<R>(
               let _ = sender.try_send(envelope);
               wake_signal.signal(());
             }
-          }
-          Either::Second(_) => {
+          },
+          | Either::Second(_) => {
             // Command received, restart loop to observe new state.
-          }
+          },
         }
-      }
-      None => {
+      },
+      | None => {
         wake_signal.wait().await;
-      }
+      },
     }
   }
 }

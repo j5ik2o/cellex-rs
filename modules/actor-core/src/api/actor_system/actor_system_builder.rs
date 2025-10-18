@@ -1,14 +1,16 @@
-use crate::api::actor_runtime::ActorRuntime;
-use crate::api::actor_runtime::MailboxQueueOf;
-use crate::api::actor_runtime::MailboxSignalOf;
-use crate::api::actor_system::ActorSystem;
-use crate::api::actor_system::ActorSystemConfig;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use cellex_utils_core_rs::Element;
 use core::marker::PhantomData;
 
-/// Builder that constructs an [`ActorSystem`] by applying configuration overrides on top of a runtime preset.
+use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
+  actor_system::{ActorSystem, ActorSystemConfig},
+  mailbox::PriorityEnvelope,
+  messaging::DynMessage,
+};
+
+/// Builder that constructs an [`ActorSystem`] by applying configuration overrides on top of a
+/// runtime preset.
 pub struct ActorSystemBuilder<U, AR>
 where
   U: Element,
@@ -16,8 +18,8 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   actor_runtime: AR,
-  config: ActorSystemConfig<AR>,
-  _marker: PhantomData<U>,
+  config:        ActorSystemConfig<AR>,
+  _marker:       PhantomData<U>,
 }
 
 impl<U, AR> ActorSystemBuilder<U, AR>
@@ -30,11 +32,7 @@ where
   /// Creates a new builder with default configuration.
   #[must_use]
   pub fn new(actor_runtime: AR) -> Self {
-    Self {
-      actor_runtime,
-      config: ActorSystemConfig::default(),
-      _marker: PhantomData,
-    }
+    Self { actor_runtime, config: ActorSystemConfig::default(), _marker: PhantomData }
   }
 
   /// Returns a reference to the runtime preset owned by the builder.

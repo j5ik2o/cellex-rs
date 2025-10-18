@@ -1,14 +1,14 @@
-use crate::api::messaging::MessageMetadata;
-use crate::api::messaging::MetadataStorageMode;
-use crate::internal::message::discard_metadata;
-use crate::internal::message::store_metadata;
-use crate::internal::message::MetadataKey;
 use core::mem::{forget, ManuallyDrop};
+
+use crate::{
+  api::messaging::{MessageMetadata, MetadataStorageMode},
+  internal::message::{discard_metadata, store_metadata, MetadataKey},
+};
 
 /// Wrapper that holds a user message and metadata.
 #[derive(Debug, Clone)]
 pub struct UserMessage<U> {
-  message: ManuallyDrop<U>,
+  message:      ManuallyDrop<U>,
   metadata_key: Option<MetadataKey>,
 }
 
@@ -18,10 +18,7 @@ impl<U> UserMessage<U> {
   /// # Arguments
   /// * `message` - User message
   pub fn new(message: U) -> Self {
-    Self {
-      message: ManuallyDrop::new(message),
-      metadata_key: None,
-    }
+    Self { message: ManuallyDrop::new(message), metadata_key: None }
   }
 
   /// Creates a new `UserMessage` with message and metadata.
@@ -38,10 +35,7 @@ impl<U> UserMessage<U> {
       Self::new(message)
     } else {
       let key = store_metadata(metadata);
-      Self {
-        message: ManuallyDrop::new(message),
-        metadata_key: Some(key),
-      }
+      Self { message: ManuallyDrop::new(message), metadata_key: Some(key) }
     }
   }
 

@@ -1,21 +1,17 @@
-use super::{ChildRecord, GuardianStrategy};
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::internal::scheduler::ChildNaming;
-use crate::internal::scheduler::SpawnError;
-use alloc::collections::BTreeMap;
-use alloc::format;
-use alloc::string::String;
+use alloc::{collections::BTreeMap, format, string::String};
+
 use cellex_utils_core_rs::{Element, QueueError};
+
+use super::{ChildRecord, GuardianStrategy};
+use crate::{
+  api::{
+    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath},
+    actor_system::map_system::MapSystemShared,
+    mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+    supervision::{failure::FailureInfo, supervisor::SupervisorDirective},
+  },
+  internal::scheduler::{ChildNaming, SpawnError},
+};
 
 type ChildRoute<M, MF> = (PriorityActorRef<M, MF>, MapSystemShared<M>);
 
@@ -25,11 +21,11 @@ where
   M: Element,
   MF: MailboxFactory,
   Strat: GuardianStrategy<M, MF>, {
-  next_id: usize,
+  next_id:             usize,
   pub(crate) children: BTreeMap<ActorId, ChildRecord<M, MF>>,
-  names: BTreeMap<String, ActorId>,
-  strategy: Strat,
-  _marker: core::marker::PhantomData<M>,
+  names:               BTreeMap<String, ActorId>,
+  strategy:            Strat,
+  _marker:             core::marker::PhantomData<M>,
 }
 
 #[allow(dead_code)]
@@ -42,13 +38,7 @@ where
   Strat: GuardianStrategy<M, MF>,
 {
   pub fn new(strategy: Strat) -> Self {
-    Self {
-      next_id: 0,
-      children: BTreeMap::new(),
-      names: BTreeMap::new(),
-      strategy,
-      _marker: core::marker::PhantomData,
-    }
+    Self { next_id: 0, children: BTreeMap::new(), names: BTreeMap::new(), strategy, _marker: core::marker::PhantomData }
   }
 
   pub fn register_child_with_naming(
@@ -60,14 +50,14 @@ where
     naming: ChildNaming,
   ) -> Result<(ActorId, ActorPath), SpawnError<M>> {
     let assigned_name = match naming {
-      ChildNaming::Auto => None,
-      ChildNaming::WithPrefix(prefix) => Some(self.generate_prefixed_name(&prefix)),
-      ChildNaming::Explicit(name) => {
+      | ChildNaming::Auto => None,
+      | ChildNaming::WithPrefix(prefix) => Some(self.generate_prefixed_name(&prefix)),
+      | ChildNaming::Explicit(name) => {
         if self.names.contains_key(&name) {
           return Err(SpawnError::name_exists(name));
         }
         Some(name)
-      }
+      },
     };
 
     let id = ActorId(self.next_id);
@@ -77,16 +67,13 @@ where
     if let Some(name) = assigned_name.as_ref() {
       self.names.insert(name.clone(), id);
     }
-    self.children.insert(
-      id,
-      ChildRecord {
-        control_ref: control_ref.clone(),
-        map_system: map_system.clone(),
-        watcher,
-        path: path.clone(),
-        name: assigned_name,
-      },
-    );
+    self.children.insert(id, ChildRecord {
+      control_ref: control_ref.clone(),
+      map_system: map_system.clone(),
+      watcher,
+      path: path.clone(),
+      name: assigned_name,
+    });
 
     if let Some(watcher_id) = watcher {
       let map_clone = map_system.clone();
@@ -122,8 +109,8 @@ where
     failure: ActorFailure,
   ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<M>>> {
     let path = match self.children.get(&actor) {
-      Some(record) => record.path.clone(),
-      None => ActorPath::new().push_child(actor),
+      | Some(record) => record.path.clone(),
+      | None => ActorPath::new().push_child(actor),
     };
     let directive = self.strategy.decide(actor, failure.behavior());
     let failure = FailureInfo::from_failure(actor, path, failure);
@@ -156,19 +143,16 @@ where
     parent_path: &ActorPath,
   ) -> Result<(ActorId, ActorPath), QueueError<PriorityEnvelope<M>>> {
     match self.register_child_with_naming(control_ref, map_system, watcher, parent_path, ChildNaming::Auto) {
-      Ok(result) => Ok(result),
-      Err(SpawnError::Queue(err)) => Err(err),
-      Err(SpawnError::NameExists(_)) => {
+      | Ok(result) => Ok(result),
+      | Err(SpawnError::Queue(err)) => Err(err),
+      | Err(SpawnError::NameExists(_)) => {
         unreachable!("NameExists cannot occur when using automatic naming")
-      }
+      },
     }
   }
 
   pub fn child_route(&self, actor: ActorId) -> Option<ChildRoute<M, MF>> {
-    self
-      .children
-      .get(&actor)
-      .map(|record| (record.control_ref.clone(), record.map_system.clone()))
+    self.children.get(&actor).map(|record| (record.control_ref.clone(), record.map_system.clone()))
   }
 
   fn generate_prefixed_name(&mut self, prefix: &str) -> String {
@@ -189,8 +173,8 @@ where
     directive: SupervisorDirective,
   ) -> Result<Option<FailureInfo>, QueueError<PriorityEnvelope<M>>> {
     match directive {
-      SupervisorDirective::Resume => Ok(None),
-      SupervisorDirective::Stop => {
+      | SupervisorDirective::Resume => Ok(None),
+      | SupervisorDirective::Stop => {
         if let Some(record) = self.children.get(&actor) {
           let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (&*record.map_system)(sys));
           record.control_ref.sender().try_send(envelope)?;
@@ -198,8 +182,8 @@ where
         } else {
           Ok(Some(failure))
         }
-      }
-      SupervisorDirective::Restart => {
+      },
+      | SupervisorDirective::Restart => {
         if let Some(record) = self.children.get(&actor) {
           let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(|sys| (&*record.map_system)(sys));
           record.control_ref.sender().try_send(envelope)?;
@@ -208,14 +192,14 @@ where
         } else {
           Ok(Some(failure))
         }
-      }
-      SupervisorDirective::Escalate => {
+      },
+      | SupervisorDirective::Escalate => {
         if let Some(parent_failure) = failure.escalate_to_parent() {
           Ok(Some(parent_failure))
         } else {
           Ok(Some(failure))
         }
-      }
+      },
     }
   }
 }

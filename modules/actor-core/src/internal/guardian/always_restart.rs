@@ -1,10 +1,11 @@
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::actor::ActorId;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::supervision::supervisor::SupervisorDirective;
 use cellex_utils_core_rs::Element;
 
 use super::guardian_strategy::GuardianStrategy;
+use crate::api::{
+  actor::{actor_failure::BehaviorFailure, ActorId},
+  mailbox::MailboxFactory,
+  supervision::supervisor::SupervisorDirective,
+};
 
 /// Simplest strategy: Always instruct Restart.
 ///

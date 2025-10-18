@@ -1,5 +1,6 @@
-use super::*;
 use cellex_utils_core_rs::{QueueBase, QueueRw};
+
+use super::*;
 
 #[test]
 fn rc_unbounded_offer_poll() {

@@ -1,16 +1,17 @@
-use crate::api::actor_runtime::ActorRuntime;
-use crate::api::actor_runtime::MailboxOf;
-use crate::api::extensions::Extensions;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::telemetry::default_failure_telemetry_shared;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  actor_runtime::{ActorRuntime, MailboxOf},
+  extensions::Extensions,
+  failure_telemetry::FailureTelemetryShared,
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  metrics::MetricsSinkShared,
+  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+  supervision::{
+    escalation::{FailureEventHandler, FailureEventListener},
+    telemetry::{default_failure_telemetry_shared, TelemetryObservationConfig},
+  },
+};
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
 pub struct InternalActorSystemConfig<M, AR>
@@ -21,17 +22,17 @@ where
   <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
-  pub(crate) root_event_listener: Option<FailureEventListener>,
+  pub(crate) root_event_listener:     Option<FailureEventListener>,
   /// Escalation handler invoked when failures bubble to the root guardian.
   pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
   pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MailboxOf<AR>>>,
   /// Metrics sink shared across the actor runtime.
-  pub(crate) metrics_sink: Option<MetricsSinkShared>,
+  pub(crate) metrics_sink:            Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
-  pub(crate) extensions: Extensions,
+  pub(crate) extensions:              Extensions,
   /// Telemetry invoked when failures reach the root guardian。
-  pub(crate) root_failure_telemetry: FailureTelemetryShared,
+  pub(crate) root_failure_telemetry:  FailureTelemetryShared,
   /// Observation config applied to telemetry calls.
   pub(crate) root_observation_config: TelemetryObservationConfig,
 }
@@ -46,12 +47,12 @@ where
 {
   fn default() -> Self {
     Self {
-      root_event_listener: None,
+      root_event_listener:     None,
       root_escalation_handler: None,
       receive_timeout_factory: None,
-      metrics_sink: None,
-      extensions: Extensions::new(),
-      root_failure_telemetry: default_failure_telemetry_shared(),
+      metrics_sink:            None,
+      extensions:              Extensions::new(),
+      root_failure_telemetry:  default_failure_telemetry_shared(),
       root_observation_config: TelemetryObservationConfig::new(),
     }
   }

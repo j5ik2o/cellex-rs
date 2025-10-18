@@ -1,5 +1,7 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{
+  atomic::{AtomicUsize, Ordering},
+  Arc,
+};
 
 use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
 use tokio::sync::Notify;
@@ -15,21 +17,15 @@ pub struct TokioAsyncBarrierBackend {
 
 struct Inner {
   remaining: AtomicUsize,
-  initial: usize,
-  notify: Notify,
+  initial:   usize,
+  notify:    Notify,
 }
 
 #[async_trait(?Send)]
 impl AsyncBarrierBackend for TokioAsyncBarrierBackend {
   fn new(count: usize) -> Self {
     assert!(count > 0, "AsyncBarrier must have positive count");
-    Self {
-      inner: Arc::new(Inner {
-        remaining: AtomicUsize::new(count),
-        initial: count,
-        notify: Notify::new(),
-      }),
-    }
+    Self { inner: Arc::new(Inner { remaining: AtomicUsize::new(count), initial: count, notify: Notify::new() }) }
   }
 
   async fn wait(&self) {
@@ -52,8 +48,8 @@ impl AsyncBarrierBackend for TokioAsyncBarrierBackend {
 
 /// Async barrier using Tokio runtime
 ///
-/// A synchronization primitive that causes all tasks to wait until the specified number of tasks arrive.
-/// When all tasks reach the barrier, it resets to a reusable state.
+/// A synchronization primitive that causes all tasks to wait until the specified number of tasks
+/// arrive. When all tasks reach the barrier, it resets to a reusable state.
 pub type AsyncBarrier = CoreAsyncBarrier<TokioAsyncBarrierBackend>;
 
 #[cfg(test)]

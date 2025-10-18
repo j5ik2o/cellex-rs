@@ -5,19 +5,23 @@
 
 use core::time::Duration;
 
-use crate::TokioMailboxRuntime;
-use cellex_actor_core_rs::api::actor_system::map_system::MapSystemShared;
-use cellex_actor_core_rs::api::mailbox::MailboxFactory;
-use cellex_actor_core_rs::api::mailbox::{PriorityEnvelope, SystemMessage};
-use cellex_actor_core_rs::api::messaging::DynMessage;
-use cellex_actor_core_rs::api::receive_timeout::{
-  ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
-  ReceiveTimeoutSchedulerFactoryShared,
+use cellex_actor_core_rs::api::{
+  actor_system::map_system::MapSystemShared,
+  mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+  messaging::DynMessage,
+  receive_timeout::{
+    ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
+    ReceiveTimeoutSchedulerFactoryShared,
+  },
 };
 use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
 use futures::future::poll_fn;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tokio::task::JoinHandle;
+use tokio::{
+  sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+  task::JoinHandle,
+};
+
+use crate::TokioMailboxRuntime;
 
 /// Producer for sending `PriorityEnvelope<DynMessage>` to Tokio mailbox.
 type TokioSender = <TokioMailboxRuntime as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>;
@@ -31,16 +35,13 @@ enum Command {
 }
 
 struct TimerState {
-  key: Option<DeadlineTimerKey>,
+  key:      Option<DeadlineTimerKey>,
   duration: Option<Duration>,
 }
 
 impl TimerState {
   fn new() -> Self {
-    Self {
-      key: None,
-      duration: None,
-    }
+    Self { key: None, duration: None }
   }
 }
 
@@ -51,7 +52,7 @@ impl TimerState {
 /// The `ActorCell` side can simply call `set` / `cancel` / `notify_activity`
 /// without being aware of the timer implementation.
 pub struct TokioReceiveTimeoutScheduler {
-  tx: UnboundedSender<Command>,
+  tx:     UnboundedSender<Command>,
   handle: JoinHandle<()>,
 }
 

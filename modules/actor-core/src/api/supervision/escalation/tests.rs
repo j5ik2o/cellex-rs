@@ -1,18 +1,16 @@
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::metrics::MetricsEvent;
-use crate::api::metrics::MetricsSink;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::supervision::escalation::escalation_sink::EscalationSink;
-use crate::api::supervision::escalation::root_escalation_sink::RootEscalationSink;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::telemetry::FailureSnapshot;
-use crate::api::supervision::telemetry::FailureTelemetry;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::api::test_support::TestMailboxFactory;
 use std::sync::{Arc, Mutex};
+
+use crate::api::{
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  failure_telemetry::FailureTelemetryShared,
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+  supervision::{
+    escalation::{escalation_sink::EscalationSink, root_escalation_sink::RootEscalationSink},
+    failure::FailureInfo,
+    telemetry::{FailureSnapshot, FailureTelemetry, TelemetryObservationConfig},
+  },
+  test_support::TestMailboxFactory,
+};
 
 #[derive(Clone, Default)]
 struct RecordingTelemetry {
@@ -100,7 +98,5 @@ fn root_escalation_sink_records_metrics() {
 
   let guard = metrics_events.lock().unwrap();
   assert!(guard.contains(&MetricsEvent::TelemetryInvoked));
-  assert!(guard
-    .iter()
-    .any(|event| matches!(event, MetricsEvent::TelemetryLatencyNanos(_))));
+  assert!(guard.iter().any(|event| matches!(event, MetricsEvent::TelemetryLatencyNanos(_))));
 }

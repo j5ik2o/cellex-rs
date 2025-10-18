@@ -1,11 +1,12 @@
-use crate::api::mailbox::MailboxConcurrency;
-use crate::api::mailbox::ThreadSafe;
-use crate::internal::message::internal_message_sender::InternalMessageSender;
+use crate::{
+  api::mailbox::{MailboxConcurrency, ThreadSafe},
+  internal::message::internal_message_sender::InternalMessageSender,
+};
 
 /// Metadata accompanying a message (internal representation).
 #[derive(Debug, Clone)]
 pub struct InternalMessageMetadata<C: MailboxConcurrency = ThreadSafe> {
-  pub(crate) sender: Option<InternalMessageSender<C>>,
+  pub(crate) sender:    Option<InternalMessageSender<C>>,
   pub(crate) responder: Option<InternalMessageSender<C>>,
 }
 
@@ -78,9 +79,6 @@ where
   C: MailboxConcurrency,
 {
   fn default() -> Self {
-    Self {
-      sender: None,
-      responder: None,
-    }
+    Self { sender: None, responder: None }
   }
 }

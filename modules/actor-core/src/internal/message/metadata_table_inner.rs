@@ -1,11 +1,10 @@
 use alloc::vec::Vec;
 
+use super::metadata_table::MetadataKey;
 use crate::api::messaging::{MessageMetadata, MetadataStorageMode, MetadataStorageRecord};
 
-use super::metadata_table::MetadataKey;
-
 pub(crate) struct MetadataTableInner {
-  pub(crate) entries: Vec<Option<MetadataStorageRecord>>,
+  pub(crate) entries:   Vec<Option<MetadataStorageRecord>>,
   pub(crate) free_list: Vec<MetadataKey>,
 }
 
@@ -17,10 +16,7 @@ unsafe impl Sync for MetadataTableInner {}
 
 impl MetadataTableInner {
   pub(crate) const fn new() -> Self {
-    Self {
-      entries: Vec::new(),
-      free_list: Vec::new(),
-    }
+    Self { entries: Vec::new(), free_list: Vec::new() }
   }
 
   pub(crate) fn store<C>(&mut self, metadata: MessageMetadata<C>) -> MetadataKey

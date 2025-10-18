@@ -1,11 +1,10 @@
-use core::fmt::{self, Debug, Formatter};
-
 #[cfg(all(feature = "alloc", not(target_has_atomic = "ptr")))]
 use alloc::rc::Rc;
 #[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
 use alloc::sync::Arc;
 #[cfg(any(not(feature = "alloc"), all(feature = "alloc", not(target_has_atomic = "ptr"))))]
 use core::cell::Cell;
+use core::fmt::{self, Debug, Formatter};
 #[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
 use core::sync::atomic::{AtomicBool, Ordering};
 
@@ -16,7 +15,8 @@ use core::sync::atomic::{AtomicBool, Ordering};
 /// # Implementation Details
 ///
 /// - When `alloc` feature is enabled: Provides thread-safe implementation using `Arc<AtomicBool>`
-/// - When `alloc` feature is disabled: Provides lightweight implementation for single-threaded environments using `Cell<bool>`
+/// - When `alloc` feature is disabled: Provides lightweight implementation for single-threaded
+///   environments using `Cell<bool>`
 ///
 /// # Examples
 ///
@@ -61,23 +61,17 @@ impl Flag {
   pub fn new(value: bool) -> Self {
     #[cfg(all(feature = "alloc", target_has_atomic = "ptr"))]
     {
-      Self {
-        inner: Arc::new(AtomicBool::new(value)),
-      }
+      Self { inner: Arc::new(AtomicBool::new(value)) }
     }
 
     #[cfg(all(feature = "alloc", not(target_has_atomic = "ptr")))]
     {
-      Self {
-        inner: Rc::new(Cell::new(value)),
-      }
+      Self { inner: Rc::new(Cell::new(value)) }
     }
 
     #[cfg(not(feature = "alloc"))]
     {
-      Self {
-        inner: Cell::new(value),
-      }
+      Self { inner: Cell::new(value) }
     }
   }
 

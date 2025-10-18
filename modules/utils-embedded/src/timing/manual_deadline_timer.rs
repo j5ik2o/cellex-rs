@@ -10,22 +10,23 @@ use cellex_utils_core_rs::{
 
 #[derive(Debug)]
 struct Entry<Item> {
-  key: DeadlineTimerKey,
+  key:       DeadlineTimerKey,
   remaining: Duration,
-  item: Item,
+  item:      Item,
 }
 
 /// Software-driven `DeadlineTimer` implementation for `no_std` environments.
 ///
 /// Detects expiration by receiving elapsed time notifications via [`Self::advance`]
 /// and queues expired items for retrieval in the next `poll_expired` call.
-/// Enables handling of `ReceiveTimeout` without hardware timers while keeping the core abstraction unchanged.
+/// Enables handling of `ReceiveTimeout` without hardware timers while keeping the core abstraction
+/// unchanged.
 #[derive(Debug)]
 pub struct ManualDeadlineTimer<Item> {
   allocator: DeadlineTimerKeyAllocator,
-  entries: Vec<Entry<Item>>,
-  ready: VecDeque<DeadlineTimerExpired<Item>>,
-  waker: Option<Waker>,
+  entries:   Vec<Entry<Item>>,
+  ready:     VecDeque<DeadlineTimerExpired<Item>>,
+  waker:     Option<Waker>,
 }
 
 impl<Item> ManualDeadlineTimer<Item> {
@@ -34,9 +35,9 @@ impl<Item> ManualDeadlineTimer<Item> {
   pub fn new() -> Self {
     Self {
       allocator: DeadlineTimerKeyAllocator::new(),
-      entries: Vec::new(),
-      ready: VecDeque::new(),
-      waker: None,
+      entries:   Vec::new(),
+      ready:     VecDeque::new(),
+      waker:     None,
     }
   }
 
@@ -58,10 +59,7 @@ impl<Item> ManualDeadlineTimer<Item> {
     while idx < self.entries.len() {
       if elapsed >= self.entries[idx].remaining {
         let entry = self.entries.swap_remove(idx);
-        self.ready.push_back(DeadlineTimerExpired {
-          key: entry.key,
-          item: entry.item,
-        });
+        self.ready.push_back(DeadlineTimerExpired { key: entry.key, item: entry.item });
         became_ready = true;
       } else if let Some(remaining) = self.entries[idx].remaining.checked_sub(elapsed) {
         self.entries[idx].remaining = remaining;
@@ -69,10 +67,7 @@ impl<Item> ManualDeadlineTimer<Item> {
       } else {
         // If `checked_sub` returns None, treat as expired.
         let entry = self.entries.swap_remove(idx);
-        self.ready.push_back(DeadlineTimerExpired {
-          key: entry.key,
-          item: entry.item,
-        });
+        self.ready.push_back(DeadlineTimerExpired { key: entry.key, item: entry.item });
         became_ready = true;
       }
     }
@@ -105,11 +100,7 @@ impl<Item> DeadlineTimer for ManualDeadlineTimer<Item> {
       return Ok(key);
     }
 
-    self.entries.push(Entry {
-      key,
-      remaining: deadline.as_duration(),
-      item,
-    });
+    self.entries.push(Entry { key, remaining: deadline.as_duration(), item });
     Ok(key)
   }
 
@@ -121,11 +112,7 @@ impl<Item> DeadlineTimer for ManualDeadlineTimer<Item> {
 
     if let Some(position) = self.ready.iter().position(|expired| expired.key == key) {
       let expired = self.ready.remove(position).unwrap();
-      self.entries.push(Entry {
-        key,
-        remaining: deadline.as_duration(),
-        item: expired.item,
-      });
+      self.entries.push(Entry { key, remaining: deadline.as_duration(), item: expired.item });
       return Ok(());
     }
 

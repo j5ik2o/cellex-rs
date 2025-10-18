@@ -1,5 +1,6 @@
-use super::AsyncBarrier;
 use tokio::join;
+
+use super::AsyncBarrier;
 
 #[tokio::test]
 async fn barrier_releases_all() {

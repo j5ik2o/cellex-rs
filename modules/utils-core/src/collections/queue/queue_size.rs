@@ -30,8 +30,8 @@ impl QueueSize {
   #[must_use]
   pub const fn to_usize(self) -> usize {
     match self {
-      Self::Limitless => usize::MAX,
-      Self::Limited(value) => value,
+      | Self::Limitless => usize::MAX,
+      | Self::Limited(value) => value,
     }
   }
 }

@@ -1,39 +1,33 @@
-use alloc::boxed::Box;
-use alloc::vec;
-use alloc::vec::Vec;
-use core::convert::Infallible;
-use core::marker::PhantomData;
+use alloc::{boxed::Box, vec, vec::Vec};
+use core::{convert::Infallible, marker::PhantomData};
 
-use futures::future::select_all;
-use futures::future::LocalBoxFuture;
-use futures::FutureExt;
-
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::extensions::Extensions;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::mailbox::Mailbox;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::MailboxSignal;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::metrics::MetricsEvent;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::EscalationSink;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::actor::ActorCell;
-use crate::internal::guardian::{AlwaysRestart, Guardian, GuardianStrategy};
-use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::spawn_error::SpawnError;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::supervision::CompositeEscalationSink;
 use cellex_utils_core_rs::{Element, QueueError};
+use futures::{
+  future::{select_all, LocalBoxFuture},
+  FutureExt,
+};
+
+use crate::{
+  api::{
+    actor::{actor_ref::PriorityActorRef, ActorId, ActorPath},
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    failure_telemetry::FailureTelemetryShared,
+    mailbox::{Mailbox, MailboxFactory, MailboxProducer, MailboxSignal, PriorityEnvelope, SystemMessage},
+    metrics::{MetricsEvent, MetricsSinkShared},
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{
+      escalation::EscalationSink, failure::FailureInfo, supervisor::Supervisor, telemetry::TelemetryObservationConfig,
+    },
+  },
+  internal::{
+    actor::ActorCell,
+    guardian::{AlwaysRestart, Guardian, GuardianStrategy},
+    mailbox::PriorityMailboxSpawnerHandle,
+    scheduler::{spawn_error::SpawnError, SchedulerSpawnContext},
+    supervision::CompositeEscalationSink,
+  },
+};
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub(crate) struct ReadyQueueSchedulerCore<M, MF, Strat = AlwaysRestart>
@@ -41,14 +35,14 @@ where
   M: Element,
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, MF>, {
-  pub(super) guardian: Guardian<M, MF, Strat>,
-  actors: Vec<ActorCell<M, MF, Strat>>,
-  escalations: Vec<FailureInfo>,
-  escalation_sink: CompositeEscalationSink<M, MF>,
+  pub(super) guardian:     Guardian<M, MF, Strat>,
+  actors:                  Vec<ActorCell<M, MF, Strat>>,
+  escalations:             Vec<FailureInfo>,
+  escalation_sink:         CompositeEscalationSink<M, MF>,
   receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
-  metrics_sink: Option<MetricsSinkShared>,
-  extensions: Extensions,
-  _strategy: PhantomData<Strat>,
+  metrics_sink:            Option<MetricsSinkShared>,
+  extensions:              Extensions,
+  _strategy:               PhantomData<Strat>,
 }
 
 #[allow(dead_code)]
@@ -202,11 +196,7 @@ where
   }
 
   pub fn actor_has_pending(&self, index: usize) -> bool {
-    self
-      .actors
-      .get(index)
-      .map(|cell| cell.has_pending_messages())
-      .unwrap_or(false)
+    self.actors.get(index).map(|cell| cell.has_pending_messages()).unwrap_or(false)
   }
 
   pub fn take_escalations(&mut self) -> Vec<FailureInfo> {
@@ -275,8 +265,8 @@ where
     for info in pending.into_iter() {
       let handled_locally = self.forward_to_local_parent(&info);
       match self.escalation_sink.handle(info, handled_locally) {
-        Ok(()) => handled = true,
-        Err(unhandled) => remaining.push(unhandled),
+        | Ok(()) => handled = true,
+        | Err(unhandled) => remaining.push(unhandled),
       }
     }
     self.escalations = remaining;
@@ -327,9 +317,8 @@ where
     }
 
     let mut new_children = Vec::new();
-    let processed_count = self.actors[index]
-      .wait_and_process(&mut self.guardian, &mut new_children, &mut self.escalations)
-      .await?;
+    let processed_count =
+      self.actors[index].wait_and_process(&mut self.guardian, &mut new_children, &mut self.escalations).await?;
     if processed_count > 0 {
       self.record_messages_dequeued(processed_count);
     }

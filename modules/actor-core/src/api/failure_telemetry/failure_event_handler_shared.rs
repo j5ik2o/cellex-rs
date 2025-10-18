@@ -1,5 +1,6 @@
-use crate::api::supervision::failure::FailureInfo;
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
+
+use crate::api::supervision::failure::FailureInfo;
 
 #[cfg(target_has_atomic = "ptr")]
 type FailureEventHandlerFn = dyn Fn(&FailureInfo) + Send + Sync;
@@ -19,9 +20,7 @@ impl FailureEventHandlerShared {
   where
     F: Fn(&FailureInfo) + SharedBound + 'static, {
     let shared = ArcShared::new(handler);
-    Self {
-      inner: shared.into_dyn(|inner| inner as &FailureEventHandlerFn),
-    }
+    Self { inner: shared.into_dyn(|inner| inner as &FailureEventHandlerFn) }
   }
 
   /// Wraps an existing shared handler reference.
@@ -39,9 +38,7 @@ impl FailureEventHandlerShared {
 
 impl Clone for FailureEventHandlerShared {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

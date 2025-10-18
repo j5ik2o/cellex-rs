@@ -1,10 +1,14 @@
-use crate::api::actor::behavior::dyn_supervisor::DynSupervisor;
-use crate::api::actor::behavior::fixed_directive_supervisor::FixedDirectiveSupervisor;
-use crate::api::actor::behavior::supervisor_strategy::SupervisorStrategy;
-use crate::api::supervision::supervisor::NoopSupervisor;
-use crate::api::supervision::supervisor::Supervisor;
 use alloc::boxed::Box;
+
 use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  actor::behavior::{
+    dyn_supervisor::DynSupervisor, fixed_directive_supervisor::FixedDirectiveSupervisor,
+    supervisor_strategy::SupervisorStrategy,
+  },
+  supervision::supervisor::{NoopSupervisor, Supervisor},
+};
 
 /// Supervisor strategy configuration (internal representation).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -28,8 +32,8 @@ impl SupervisorStrategyConfig {
   where
     M: Element, {
     let inner: Box<dyn Supervisor<M>> = match self {
-      SupervisorStrategyConfig::Default => Box::new(NoopSupervisor),
-      SupervisorStrategyConfig::Fixed(strategy) => Box::new(FixedDirectiveSupervisor::new(*strategy)),
+      | SupervisorStrategyConfig::Default => Box::new(NoopSupervisor),
+      | SupervisorStrategyConfig::Fixed(strategy) => Box::new(FixedDirectiveSupervisor::new(*strategy)),
     };
     DynSupervisor::new(inner)
   }

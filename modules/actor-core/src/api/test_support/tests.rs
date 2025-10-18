@@ -1,11 +1,13 @@
 #![allow(clippy::unwrap_used)]
 
+use core::{
+  future::Future,
+  pin::Pin,
+  task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
+};
+
 use super::*;
-use crate::api::mailbox::Mailbox;
-use crate::api::mailbox::MailboxFactory;
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+use crate::api::mailbox::{Mailbox, MailboxFactory};
 
 #[test]
 fn test_mailbox_factory_delivers_fifo() {

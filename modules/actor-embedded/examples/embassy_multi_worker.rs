@@ -1,13 +1,15 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
-  use cellex_actor_core_rs::{
-    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, MailboxOf, Props,
-    ReadyQueueWorker, ShutdownToken,
+  use core::{
+    num::NonZeroUsize,
+    sync::atomic::{AtomicU32, Ordering},
   };
-  use cellex_actor_core_rs::{ArcShared, DynMessage};
+
+  use cellex_actor_core_rs::{
+    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, ArcShared, DynMessage,
+    MailboxOf, Props, ReadyQueueWorker, ShutdownToken,
+  };
   use cellex_actor_embedded_rs::{embassy_actor_runtime, EmbassyActorRuntime};
-  use core::num::NonZeroUsize;
-  use core::sync::atomic::{AtomicU32, Ordering};
   use embassy_executor::{Executor, Spawner};
   use embassy_futures::yield_now;
   use embassy_time::Timer;
@@ -40,9 +42,7 @@ mod sample {
     worker_count: NonZeroUsize,
   ) {
     for _ in 0..worker_count.get() {
-      spawner
-        .spawn(ready_queue_worker_task(worker.clone(), shutdown.clone()))
-        .expect("spawn worker task");
+      spawner.spawn(ready_queue_worker_task(worker.clone(), shutdown.clone())).expect("spawn worker task");
     }
   }
 
@@ -83,9 +83,7 @@ mod sample {
         actor_ref.tell(value).expect("tell");
       }
 
-      spawner
-        .spawn(shutdown_listener(shutdown.clone()))
-        .expect("spawn shutdown wait");
+      spawner.spawn(shutdown_listener(shutdown.clone())).expect("spawn shutdown wait");
 
       Timer::after_millis(10).await;
       shutdown.trigger();

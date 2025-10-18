@@ -1,9 +1,9 @@
-use super::FailureEventStream;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::failure::FailureEvent;
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+
+use super::FailureEventStream;
+use crate::api::supervision::{escalation::FailureEventListener, failure::FailureEvent};
 
 /// In-memory implementation for testing only.
 #[derive(Clone, Default)]
@@ -13,14 +13,14 @@ pub(crate) struct TestFailureEventStream {
 
 #[derive(Default)]
 struct TestFailureEventStreamInner {
-  next_id: AtomicU64,
+  next_id:   AtomicU64,
   listeners: Mutex<Vec<(u64, FailureEventListener)>>,
 }
 
 #[derive(Clone)]
 pub(crate) struct TestFailureEventSubscription {
   inner: Arc<TestFailureEventStreamInner>,
-  id: u64,
+  id:    u64,
 }
 
 impl FailureEventStream for TestFailureEventStream {
@@ -45,10 +45,7 @@ impl FailureEventStream for TestFailureEventStream {
       let mut guard = self.inner.listeners.lock().unwrap();
       guard.push((id, listener));
     }
-    TestFailureEventSubscription {
-      inner: self.inner.clone(),
-      id,
-    }
+    TestFailureEventSubscription { inner: self.inner.clone(), id }
   }
 }
 

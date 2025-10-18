@@ -6,10 +6,11 @@ mod hw {
   extern crate alloc;
 
   use alloc::rc::Rc;
+  use core::cell::RefCell;
+
   use alloc_cortex_m::CortexMHeap;
   use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
   use cellex_actor_embedded_rs::LocalMailboxRuntime;
-  use core::cell::RefCell;
   use cortex_m::{asm, interrupt};
   use cortex_m_rt::entry;
   use embedded_hal::digital::v2::OutputPin;
@@ -66,9 +67,8 @@ mod hw {
     let sio = Sio::new(pac.SIO);
     let pins = hal::gpio::Pins::new(pac.IO_BANK0, pac.PADS_BANK0, sio.gpio_bank0, &mut pac.RESETS);
 
-    let led_pin: LedHandle = Rc::new(RefCell::new(
-      pins.gpio25.into_function::<FunctionSioOutput>().into_push_pull_output(),
-    ));
+    let led_pin: LedHandle =
+      Rc::new(RefCell::new(pins.gpio25.into_function::<FunctionSioOutput>().into_push_pull_output()));
     let system_clock_hz = clocks.system_clock.freq().to_Hz();
 
     let mut system = ActorSystem::new(LocalMailboxRuntime::default());
@@ -87,7 +87,7 @@ mod hw {
         let message_led = setup_led.clone();
         let mut greeted = 0usize;
         Ok(Behaviors::receive_message(move |msg: Command| match msg {
-          Command::Greet(name) => {
+          | Command::Greet(name) => {
             blink_message(&message_led, &BlinkPattern::short_pulse(), clock_hz);
             greeted = greeted.wrapping_add(1);
             // 名前の長さで追加の点滅パターンを作成し、誰に挨拶したかを伝える。
@@ -96,16 +96,16 @@ mod hw {
               blink_repeated(&message_led, name_len as usize, 80, 80, clock_hz);
             }
             Ok(Behaviors::same())
-          }
-          Command::Report => {
+          },
+          | Command::Report => {
             let flashes = core::cmp::max(greeted, 1);
             blink_repeated(&message_led, flashes, 200, 120, clock_hz);
             Ok(Behaviors::same())
-          }
-          Command::Stop => {
+          },
+          | Command::Stop => {
             blink_message(&message_led, &BlinkPattern::shutdown(), clock_hz);
             Ok(Behaviors::stopped())
-          }
+          },
         }))
       })
     });
@@ -127,7 +127,7 @@ mod hw {
   }
 
   struct BlinkPattern {
-    on_ms: u32,
+    on_ms:  u32,
     off_ms: u32,
     repeat: usize,
   }

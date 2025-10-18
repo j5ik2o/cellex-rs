@@ -1,18 +1,18 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::ChildNaming;
 use cellex_utils_core_rs::Element;
 
 use super::ActorHandlerFn;
-use crate::api::actor_system::map_system::MapSystemShared;
+use crate::{
+  api::{
+    actor::{ActorId, ActorPath},
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    supervision::supervisor::Supervisor,
+  },
+  internal::{mailbox::PriorityMailboxSpawnerHandle, scheduler::ChildNaming},
+};
 
 /// Information required when spawning child actors.
 pub struct ChildSpawnSpec<M, MF>
@@ -20,23 +20,23 @@ where
   M: Element,
   MF: MailboxFactory + Clone, {
   /// Mailbox instance assigned to the child actor.
-  pub mailbox: MF::Mailbox<PriorityEnvelope<M>>,
+  pub mailbox:         MF::Mailbox<PriorityEnvelope<M>>,
   /// Producer handle used to send messages to the child actor.
-  pub sender: MF::Producer<PriorityEnvelope<M>>,
+  pub sender:          MF::Producer<PriorityEnvelope<M>>,
   /// Supervisor that governs the child actor lifecycle.
-  pub supervisor: Box<dyn Supervisor<M>>,
+  pub supervisor:      Box<dyn Supervisor<M>>,
   /// Message handler executed by the child actor.
-  pub handler: Box<ActorHandlerFn<M, MF>>,
+  pub handler:         Box<ActorHandlerFn<M, MF>>,
   /// Mailbox spawner shared with the child.
   pub mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
   /// List of actor IDs watching the child.
-  pub watchers: Vec<ActorId>,
+  pub watchers:        Vec<ActorId>,
   /// Mapping function from system messages to the actor message type.
-  pub map_system: MapSystemShared<M>,
+  pub map_system:      MapSystemShared<M>,
   /// Parent actor path for the spawned child.
-  pub parent_path: ActorPath,
+  pub parent_path:     ActorPath,
   /// Shared extensions available to the child actor.
-  pub extensions: Extensions,
+  pub extensions:      Extensions,
   /// Naming strategy applied when instantiating the child actor.
-  pub child_naming: ChildNaming,
+  pub child_naming:    ChildNaming,
 }

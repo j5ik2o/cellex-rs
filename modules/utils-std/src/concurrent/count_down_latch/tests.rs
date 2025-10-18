@@ -1,5 +1,6 @@
-use super::CountDownLatch;
 use tokio::join;
+
+use super::CountDownLatch;
 
 #[tokio::test]
 async fn latch_reaches_zero() {

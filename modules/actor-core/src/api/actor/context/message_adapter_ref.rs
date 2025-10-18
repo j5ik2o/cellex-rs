@@ -1,10 +1,12 @@
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+
 use super::AdapterFn;
-use crate::api::actor::actor_ref::ActorRef;
-use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use crate::api::{
+  actor::actor_ref::ActorRef,
+  actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
+  mailbox::PriorityEnvelope,
+  messaging::DynMessage,
+};
 
 /// Reference to a message adapter.
 #[derive(Clone)]
@@ -15,7 +17,7 @@ where
   AR: ActorRuntime + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
-  target: ActorRef<U, AR>,
+  target:  ActorRef<U, AR>,
   adapter: ArcShared<AdapterFn<Ext, U>>,
 }
 

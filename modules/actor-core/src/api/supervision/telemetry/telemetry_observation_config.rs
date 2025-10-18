@@ -1,10 +1,9 @@
-use crate::api::metrics::MetricsEvent;
-use crate::api::metrics::MetricsSinkShared;
+use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
 
 /// Telemetry 呼び出しの観測設定。
 #[derive(Clone, Default, Debug)]
 pub struct TelemetryObservationConfig {
-  metrics: Option<MetricsSinkShared>,
+  metrics:       Option<MetricsSinkShared>,
   record_timing: bool,
 }
 

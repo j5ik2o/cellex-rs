@@ -1,5 +1,7 @@
-use crate::collections::{QueueError, QueueSize};
-use crate::sync::Shared;
+use crate::{
+  collections::{QueueError, QueueSize},
+  sync::Shared,
+};
 
 /// Transport-oriented trait abstracting MPSC queue backends.
 ///

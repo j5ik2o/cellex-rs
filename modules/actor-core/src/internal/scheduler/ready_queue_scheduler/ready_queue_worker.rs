@@ -1,10 +1,10 @@
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use futures::future::{select, Either, LocalBoxFuture};
 
-use crate::api::actor::shutdown_token::ShutdownToken;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use crate::api::{
+  actor::shutdown_token::ShutdownToken,
+  mailbox::{MailboxFactory, PriorityEnvelope},
+};
 
 /// Worker interface exposing ReadyQueue operations for driver-level scheduling.
 pub trait ReadyQueueWorker<M, MF>
@@ -55,18 +55,18 @@ where
     }
 
     match worker.wait_for_ready() {
-      Some(wait_future) => {
+      | Some(wait_future) => {
         let shutdown_future = wait_for_shutdown();
         futures::pin_mut!(wait_future);
         futures::pin_mut!(shutdown_future);
         match select(wait_future, shutdown_future).await {
-          Either::Left((_, _)) => {}
-          Either::Right((_, _)) => return Ok(()),
+          | Either::Left((_, _)) => {},
+          | Either::Right((_, _)) => return Ok(()),
         }
-      }
-      None => {
+      },
+      | None => {
         yield_now().await;
-      }
+      },
     }
   }
 }

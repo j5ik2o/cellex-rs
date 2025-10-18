@@ -5,16 +5,21 @@ extern crate rustc_hir;
 extern crate rustc_middle;
 extern crate rustc_span;
 
+use std::{
+  collections::{HashMap, HashSet},
+  fs,
+  path::{Path, PathBuf},
+};
+
 use quote::ToTokens;
 use rustc_errors::Diag;
 use rustc_hir::{Item, ItemKind, UseKind, UsePath};
 use rustc_lint::{LateContext, LateLintPass, LintContext};
-use rustc_span::source_map::SourceMap;
-use rustc_span::symbol::{sym, Symbol};
-use rustc_span::{FileName, RealFileName, Span};
-use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
+use rustc_span::{
+  source_map::SourceMap,
+  symbol::{sym, Symbol},
+  FileName, RealFileName, Span,
+};
 use syn::{Attribute as SynAttribute, Item as SynItem, ItemMod as SynItemMod};
 
 dylint_linting::impl_late_lint! {
@@ -25,16 +30,13 @@ dylint_linting::impl_late_lint! {
 }
 
 pub struct ModuleWiring {
-  seen_files: HashSet<PathBuf>,
+  seen_files:       HashSet<PathBuf>,
   delegation_cache: HashMap<PathBuf, bool>,
 }
 
 impl Default for ModuleWiring {
   fn default() -> Self {
-    Self {
-      seen_files: HashSet::new(),
-      delegation_cache: HashMap::new(),
-    }
+    Self { seen_files: HashSet::new(), delegation_cache: HashMap::new() }
   }
 }
 
@@ -56,23 +58,23 @@ impl<'tcx> LateLintPass<'tcx> for ModuleWiring {
 
 struct ModuleData {
   skip_missing: bool,
-  mods: HashMap<String, ModEntry>,
-  reexports: HashMap<String, Vec<ReexportEntry>>,
+  mods:         HashMap<String, ModEntry>,
+  reexports:    HashMap<String, Vec<ReexportEntry>>,
 }
 
 #[derive(Clone)]
 struct ModEntry {
-  symbol: Symbol,
-  span: Span,
-  is_public: bool,
-  has_reexport: bool,
+  symbol:             Symbol,
+  span:               Span,
+  is_public:          bool,
+  has_reexport:       bool,
   delegates_children: bool,
-  is_cfg_test: bool,
+  is_cfg_test:        bool,
 }
 
 #[derive(Clone)]
 struct ReexportEntry {
-  span: Span,
+  span:    Span,
   snippet: Option<String>,
 }
 
@@ -90,11 +92,7 @@ fn analyze_file(cx: &LateContext<'_>, file_path: &Path, delegation_cache: &mut H
 
   collect_items_for_file(cx, file_path, delegation_cache, &mut mods, &mut reexports);
 
-  let mut data = ModuleData {
-    skip_missing,
-    mods,
-    reexports,
-  };
+  let mut data = ModuleData { skip_missing, mods, reexports };
 
   emit_violations(cx, &mut data);
 
@@ -192,10 +190,7 @@ fn collect_use_item(
 
   let first_segment = segments.first().cloned();
   let mut normalized = segments;
-  while matches!(
-    normalized.first().map(|s| s.as_str()),
-    Some("self") | Some("super") | Some("crate")
-  ) {
+  while matches!(normalized.first().map(|s| s.as_str()), Some("self") | Some("super") | Some("crate")) {
     normalized.remove(0);
   }
 
@@ -212,10 +207,7 @@ fn collect_use_item(
   }
 
   let snippet = cx.tcx.sess.source_map().span_to_snippet(item.span).ok();
-  let entry = ReexportEntry {
-    span: item.span,
-    snippet,
-  };
+  let entry = ReexportEntry { span: item.span, snippet };
   reexports.entry(child_key).or_default().push(entry);
 
   // For glob imports, we want to ensure the key exists for subsequent diagnostics even if
@@ -269,17 +261,11 @@ fn emit_violations(cx: &LateContext<'_>, data: &mut ModuleData) {
 fn emit_pub_mod_with_reexport(cx: &LateContext<'_>, entry: &ModEntry, reexport: &ReexportEntry) {
   let child_name = entry.symbol.to_ident_string();
   cx.span_lint(MODULE_WIRING, entry.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!(
-      "`pub mod {child_name};` is declared alongside a public re-export"
-    ));
+    diag.primary_message(format!("`pub mod {child_name};` is declared alongside a public re-export"));
     if let Some(snippet) = &reexport.snippet {
-      diag.help(format!(
-        "replace this with `mod {child_name};` and keep only `{snippet}`"
-      ));
+      diag.help(format!("replace this with `mod {child_name};` and keep only `{snippet}`"));
     } else {
-      diag.help(format!(
-        "replace `pub mod {child_name};` with `mod {child_name};` and keep the re-export only"
-      ));
+      diag.help(format!("replace `pub mod {child_name};` with `mod {child_name};` and keep the re-export only"));
     }
   });
 }
@@ -295,9 +281,7 @@ fn emit_delegated_reexport(cx: &LateContext<'_>, child: &str, reexport: &Reexpor
 fn emit_stray_reexport(cx: &LateContext<'_>, child: &str, reexport: &ReexportEntry) {
   let snippet = reexport.snippet.as_deref().unwrap_or("public re-export");
   cx.span_lint(MODULE_WIRING, reexport.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!(
-      "`{snippet}` has no matching `mod {child};` in this parent module"
-    ));
+    diag.primary_message(format!("`{snippet}` has no matching `mod {child};` in this parent module"));
     diag.help("declare the module locally and re-export from the direct parent only");
   });
 }
@@ -306,28 +290,22 @@ fn emit_non_public_delegator(cx: &LateContext<'_>, entry: &ModEntry) {
   let child_name = entry.symbol.to_ident_string();
   cx.span_lint(MODULE_WIRING, entry.span, |diag: &mut Diag<'_, ()>| {
     diag.primary_message(format!("`mod {child_name};` aggregates submodules but is not exported"));
-    diag.help(format!(
-      "change to `pub mod {child_name};` and let deeper modules handle re-exports"
-    ));
+    diag.help(format!("change to `pub mod {child_name};` and let deeper modules handle re-exports"));
   });
 }
 
 fn emit_missing_reexport(cx: &LateContext<'_>, entry: &ModEntry) {
   let child_name = entry.symbol.to_ident_string();
   cx.span_lint(MODULE_WIRING, entry.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!(
-      "`mod {child_name};` is missing a matching `pub use {child_name}::...;` re-export"
-    ));
-    diag.help(format!(
-      "add `pub use {child_name}::Type;` so the parent re-exports the leaf type"
-    ));
+    diag.primary_message(format!("`mod {child_name};` is missing a matching `pub use {child_name}::...;` re-export"));
+    diag.help(format!("add `pub use {child_name}::Type;` so the parent re-exports the leaf type"));
   });
 }
 
 fn file_path_from_span(sm: &SourceMap, span: Span) -> Option<PathBuf> {
   match sm.span_to_filename(span) {
-    FileName::Real(RealFileName::LocalPath(path)) => Some(path.to_path_buf()),
-    _ => None,
+    | FileName::Real(RealFileName::LocalPath(path)) => Some(path.to_path_buf()),
+    | _ => None,
   }
 }
 
@@ -370,19 +348,14 @@ fn module_delegates(path: &Path, cache: &mut HashMap<PathBuf, bool>) -> bool {
     .and_then(|src| syn::parse_file(&src).ok())
     .map(|file| {
       file.items.into_iter().any(|item| match item {
-        SynItem::Mod(SynItemMod {
-          content: None,
-          ident,
-          attrs,
-          ..
-        }) => {
+        | SynItem::Mod(SynItemMod { content: None, ident, attrs, .. }) => {
           let name = ident.to_string();
           if should_ignore_name(&name) || name.starts_with("__") {
             return false;
           }
           !syn_has_cfg_test(&attrs)
-        }
-        _ => false,
+        },
+        | _ => false,
       })
     })
     .unwrap_or(false);
@@ -402,10 +375,7 @@ fn has_cfg_test_attr(cx: &LateContext<'_>, attrs: &[rustc_hir::Attribute]) -> bo
   let sm = cx.tcx.sess.source_map();
   attrs.iter().any(|attr| {
     (attr.has_name(sym::cfg) || attr.has_name(sym::cfg_attr))
-      && sm
-        .span_to_snippet(attr.span())
-        .map(|snippet| snippet.contains("test"))
-        .unwrap_or(false)
+      && sm.span_to_snippet(attr.span()).map(|snippet| snippet.contains("test")).unwrap_or(false)
   })
 }
 
@@ -418,8 +388,5 @@ fn should_ignore_name(name: &str) -> bool {
 }
 
 fn is_exception_file(path: &Path) -> bool {
-  matches!(
-    path.file_name().and_then(|s| s.to_str()),
-    Some("main.rs") | Some("tests.rs") | Some("build.rs")
-  )
+  matches!(path.file_name().and_then(|s| s.to_str()), Some("main.rs") | Some("tests.rs") | Some("build.rs"))
 }

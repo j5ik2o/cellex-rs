@@ -1,9 +1,10 @@
 //! Public mailbox abstractions shared across the crate.
 
-use crate::api::metrics::MetricsSinkShared;
-use crate::internal::scheduler::ReadyQueueHandle;
-use cellex_utils_core_rs::{QueueError, QueueSize};
 use core::future::Future;
+
+use cellex_utils_core_rs::{QueueError, QueueSize};
+
+use crate::{api::metrics::MetricsSinkShared, internal::scheduler::ReadyQueueHandle};
 
 /// Mailbox concurrency modes
 mod mailbox_concurrency;
@@ -47,7 +48,8 @@ pub type MailboxPair<H, P> = (H, P);
 /// Mailbox abstraction that decouples message queue implementations from core logic.
 ///
 /// Abstraction trait that decouples message queue implementations from core logic.
-/// Enables unified handling of various queue implementations (bounded/unbounded, prioritized, etc.).
+/// Enables unified handling of various queue implementations (bounded/unbounded, prioritized,
+/// etc.).
 ///
 /// # Type Parameters
 /// - `M`: Type of the message to process

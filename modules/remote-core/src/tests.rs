@@ -1,7 +1,7 @@
-use super::{placeholder_metadata, RemoteFailureNotifier};
+use std::sync::{Arc, Mutex};
+
 use cellex_actor_core_rs::api::{
-  actor::actor_failure::ActorFailure,
-  actor::{ActorId, ActorPath},
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
   failure_event_stream::FailureEventStream,
   supervision::{
     escalation::FailureEventListener,
@@ -9,7 +9,8 @@ use cellex_actor_core_rs::api::{
   },
 };
 use cellex_actor_std_rs::FailureEventHub;
-use std::sync::{Arc, Mutex};
+
+use super::{placeholder_metadata, RemoteFailureNotifier};
 
 #[test]
 fn remote_failure_notifier_new_creates_instance() {

@@ -1,15 +1,22 @@
 use alloc::boxed::Box;
 
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::internal::guardian::GuardianStrategy;
-use crate::internal::scheduler::actor_scheduler::ActorScheduler;
+use cellex_utils_core_rs::{
+  sync::{ArcShared, Shared},
+  Element, SharedBound,
+};
+
 #[cfg(any(test, feature = "test-support"))]
 use crate::internal::scheduler::immediate_scheduler::ImmediateScheduler;
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
-use cellex_utils_core_rs::sync::{ArcShared, Shared};
-use cellex_utils_core_rs::{Element, SharedBound};
+use crate::{
+  api::{
+    extensions::Extensions,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+  },
+  internal::{
+    guardian::GuardianStrategy,
+    scheduler::{actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler},
+  },
+};
 
 /// Type alias for boxed scheduler instances returned by builders.
 pub type SchedulerHandle<M, MF> = Box<dyn ActorScheduler<M, MF>>;
@@ -49,9 +56,7 @@ where
   where
     F: Fn(MF, Extensions) -> SchedulerHandle<M, MF> + SharedBound + 'static, {
     let shared = ArcShared::new(factory);
-    Self {
-      factory: shared.into_dyn(|inner| inner as &FactoryFn<M, MF>),
-    }
+    Self { factory: shared.into_dyn(|inner| inner as &FactoryFn<M, MF>) }
   }
 
   /// Builds a scheduler using the stored factory and provided runtime components.
@@ -76,11 +81,7 @@ where
     Strat: GuardianStrategy<M, MF> + Clone + Send + Sync, {
     let _ = self;
     Self::new(move |mailbox_factory, extensions| {
-      Box::new(ReadyQueueScheduler::with_strategy(
-        mailbox_factory,
-        strategy.clone(),
-        extensions,
-      ))
+      Box::new(ReadyQueueScheduler::with_strategy(mailbox_factory, strategy.clone(), extensions))
     })
   }
 }

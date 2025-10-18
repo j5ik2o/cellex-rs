@@ -15,9 +15,11 @@ pub use telemetry_context::TelemetryContext;
 
 #[cfg(test)]
 mod tests {
-  use crate::api::extensions::Extensions;
-  use crate::api::failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared, TelemetryContext};
-  use crate::api::supervision::telemetry::NoopFailureTelemetry;
+  use crate::api::{
+    extensions::Extensions,
+    failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared, TelemetryContext},
+    supervision::telemetry::NoopFailureTelemetry,
+  };
 
   #[test]
   fn telemetry_builder_shared_invokes_closure() {

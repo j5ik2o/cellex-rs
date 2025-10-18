@@ -1,5 +1,7 @@
-use crate::api::mailbox::ThreadSafe;
-use crate::api::messaging::{MessageMetadata, MetadataStorageMode, MetadataStorageRecord};
+use crate::api::{
+  mailbox::ThreadSafe,
+  messaging::{MessageMetadata, MetadataStorageMode, MetadataStorageRecord},
+};
 
 impl MetadataStorageMode for ThreadSafe {
   fn into_record(metadata: MessageMetadata<Self>) -> MetadataStorageRecord {
@@ -8,8 +10,8 @@ impl MetadataStorageMode for ThreadSafe {
 
   fn from_record(record: MetadataStorageRecord) -> Option<MessageMetadata<Self>> {
     match record {
-      MetadataStorageRecord::ThreadSafe(metadata) => Some(metadata),
-      MetadataStorageRecord::SingleThread(_) => None,
+      | MetadataStorageRecord::ThreadSafe(metadata) => Some(metadata),
+      | MetadataStorageRecord::SingleThread(_) => None,
     }
   }
 }

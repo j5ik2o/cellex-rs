@@ -16,10 +16,10 @@ pub enum SupervisorStrategy {
 impl From<SupervisorStrategy> for SupervisorDirective {
   fn from(value: SupervisorStrategy) -> Self {
     match value {
-      SupervisorStrategy::Restart => SupervisorDirective::Restart,
-      SupervisorStrategy::Stop => SupervisorDirective::Stop,
-      SupervisorStrategy::Resume => SupervisorDirective::Resume,
-      SupervisorStrategy::Escalate => SupervisorDirective::Escalate,
+      | SupervisorStrategy::Restart => SupervisorDirective::Restart,
+      | SupervisorStrategy::Stop => SupervisorDirective::Stop,
+      | SupervisorStrategy::Resume => SupervisorDirective::Resume,
+      | SupervisorStrategy::Escalate => SupervisorDirective::Escalate,
     }
   }
 }

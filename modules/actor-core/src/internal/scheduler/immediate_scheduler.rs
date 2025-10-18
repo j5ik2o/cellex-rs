@@ -1,31 +1,37 @@
 #![allow(dead_code)]
 
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::extensions::Extensions;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::internal::scheduler::actor_scheduler::ActorScheduler;
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueScheduler;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::scheduler::SpawnError;
 use cellex_utils_core_rs::{Element, QueueError};
+
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    failure_telemetry::FailureTelemetryShared,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    metrics::MetricsSinkShared,
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{
+      escalation::{FailureEventHandler, FailureEventListener},
+      failure::FailureInfo,
+      supervisor::Supervisor,
+      telemetry::TelemetryObservationConfig,
+    },
+  },
+  internal::{
+    guardian::{AlwaysRestart, GuardianStrategy},
+    scheduler::{
+      actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, SchedulerSpawnContext, SpawnError,
+    },
+  },
+};
 
 /// Scheduler wrapper that executes actors immediately using the ReadyQueue scheduler logic.
 ///
-/// This scheduler simply delegates to [`ReadyQueueScheduler`] but exposes a distinct builder entry point.
+/// This scheduler simply delegates to [`ReadyQueueScheduler`] but exposes a distinct builder entry
+/// point.
 pub struct ImmediateScheduler<M, MF, Strat = AlwaysRestart>
 where
   M: Element,
@@ -42,9 +48,7 @@ where
   /// Creates a new immediate scheduler with the default guardian strategy.
   #[must_use]
   pub fn new(mailbox_factory: MF, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::new(mailbox_factory, extensions),
-    }
+    Self { inner: ReadyQueueScheduler::new(mailbox_factory, extensions) }
   }
 }
 
@@ -57,9 +61,7 @@ where
   /// Creates a new immediate scheduler with a custom guardian strategy.
   #[must_use]
   pub fn with_strategy(mailbox_factory: MF, strategy: Strat, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions),
-    }
+    Self { inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions) }
   }
 }
 

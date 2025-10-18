@@ -1,11 +1,14 @@
-use crate::collections::queue::mpsc::TokioBoundedMpscBackend;
-use crate::sync::ArcShared;
+use std::{
+  fmt,
+  sync::{Arc, Mutex},
+};
+
 use cellex_utils_core_rs::{
   Element, MpscBackend, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
   RingBufferBackend,
 };
-use std::fmt;
-use std::sync::{Arc, Mutex};
+
+use crate::{collections::queue::mpsc::TokioBoundedMpscBackend, sync::ArcShared};
 
 /// Bounded multi-producer, single-consumer (MPSC) queue
 ///
@@ -71,9 +74,7 @@ where
     B: MpscBackend<E> + Send + Sync + 'static, {
     let arc_backend: Arc<dyn MpscBackend<E> + Send + Sync> = Arc::new(backend);
     let storage = ArcShared::from_arc(arc_backend);
-    Self {
-      inner: MpscQueue::new(storage),
-    }
+    Self { inner: MpscQueue::new(storage) }
   }
 }
 

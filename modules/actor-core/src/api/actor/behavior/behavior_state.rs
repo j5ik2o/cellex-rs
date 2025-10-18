@@ -1,16 +1,19 @@
 use alloc::boxed::Box;
 
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::behavior::behavior_directive::BehaviorDirective;
-use crate::api::actor::behavior::supervisor_strategy_config::SupervisorStrategyConfig;
-use crate::api::actor::behavior::{ReceiveFn, SignalFn};
-use crate::api::actor::context::Context;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::{sync::ArcShared, Element};
+
+use crate::api::{
+  actor::{
+    actor_failure::ActorFailure,
+    behavior::{
+      behavior_directive::BehaviorDirective, supervisor_strategy_config::SupervisorStrategyConfig, ReceiveFn, SignalFn,
+    },
+    context::Context,
+  },
+  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+  mailbox::PriorityEnvelope,
+  messaging::{DynMessage, MetadataStorageMode},
+};
 
 /// Struct that holds the internal state of Behavior.
 pub struct BehaviorState<U, AR>
@@ -19,9 +22,9 @@ where
   AR: ActorRuntime + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
-  handler: Box<ReceiveFn<U, AR>>,
+  handler:               Box<ReceiveFn<U, AR>>,
   pub(super) supervisor: SupervisorStrategyConfig,
-  signal_handler: Option<ArcShared<SignalFn<U, AR>>>,
+  signal_handler:        Option<ArcShared<SignalFn<U, AR>>>,
 }
 
 impl<U, AR> BehaviorState<U, AR>
@@ -33,11 +36,7 @@ where
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   pub fn new(handler: Box<ReceiveFn<U, AR>>, supervisor: SupervisorStrategyConfig) -> Self {
-    Self {
-      handler,
-      supervisor,
-      signal_handler: None,
-    }
+    Self { handler, supervisor, signal_handler: None }
   }
 
   pub fn handle(

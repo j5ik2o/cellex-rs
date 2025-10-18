@@ -5,7 +5,6 @@ use cellex_utils_core_rs::{
   async_trait, Synchronized as CoreSynchronized, SynchronizedMutexBackend, SynchronizedRw as CoreSynchronizedRw,
   SynchronizedRwBackend,
 };
-
 use tokio::sync::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Backend implementation of exclusive control using Tokio Mutex
@@ -43,9 +42,7 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      inner: Mutex::new(value),
-    }
+    Self { inner: Mutex::new(value) }
   }
 
   async fn lock(&self) -> Self::Guard<'_> {
@@ -92,9 +89,7 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      inner: RwLock::new(value),
-    }
+    Self { inner: RwLock::new(value) }
   }
 
   async fn read(&self) -> Self::ReadGuard<'_> {

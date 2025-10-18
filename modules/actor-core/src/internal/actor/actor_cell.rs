@@ -1,35 +1,26 @@
-use alloc::boxed::Box;
-use alloc::vec;
-use alloc::vec::Vec;
-use core::any::TypeId;
-use core::cell::RefCell;
-use core::cmp::Reverse;
-use core::marker::PhantomData;
+use alloc::{boxed::Box, vec, vec::Vec};
+use core::{any::TypeId, cell::RefCell, cmp::Reverse, marker::PhantomData};
 
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::Mailbox;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxHandle;
-use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::internal::context::{ActorContext, ActorHandlerFn, ChildSpawnSpec};
-use crate::internal::guardian::{Guardian, GuardianStrategy};
-use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::scheduler::ReadyQueueHandle;
-use crate::internal::scheduler::SpawnError;
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared};
+use crate::{
+  api::{
+    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath},
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    mailbox::{Mailbox, MailboxFactory, MailboxHandle, MailboxProducer, PriorityEnvelope, SystemMessage},
+    messaging::DynMessage,
+    metrics::MetricsSinkShared,
+    receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
+    supervision::{failure::FailureInfo, supervisor::Supervisor},
+  },
+  internal::{
+    context::{ActorContext, ActorHandlerFn, ChildSpawnSpec},
+    guardian::{Guardian, GuardianStrategy},
+    mailbox::PriorityMailboxSpawnerHandle,
+    scheduler::{ReadyQueueHandle, SpawnError},
+  },
+};
 
 pub(crate) struct ActorCell<M, MF, Strat>
 where
@@ -37,21 +28,21 @@ where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, MF>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
-  actor_id: ActorId,
-  map_system: MapSystemShared<M>,
-  watchers: Vec<ActorId>,
-  actor_path: ActorPath,
-  mailbox_factory: MF,
-  mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
-  mailbox: MF::Mailbox<PriorityEnvelope<M>>,
-  sender: MF::Producer<PriorityEnvelope<M>>,
-  supervisor: Box<dyn Supervisor<M>>,
-  handler: Box<ActorHandlerFn<M, MF>>,
-  _strategy: PhantomData<Strat>,
-  stopped: bool,
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  actor_id:                  ActorId,
+  map_system:                MapSystemShared<M>,
+  watchers:                  Vec<ActorId>,
+  actor_path:                ActorPath,
+  mailbox_factory:           MF,
+  mailbox_spawner:           PriorityMailboxSpawnerHandle<M, MF>,
+  mailbox:                   MF::Mailbox<PriorityEnvelope<M>>,
+  sender:                    MF::Producer<PriorityEnvelope<M>>,
+  supervisor:                Box<dyn Supervisor<M>>,
+  handler:                   Box<ActorHandlerFn<M, MF>>,
+  _strategy:                 PhantomData<Strat>,
+  stopped:                   bool,
+  receive_timeout_factory:   Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
   receive_timeout_scheduler: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
-  extensions: Extensions,
+  extensions:                Extensions,
 }
 
 impl<M, MF, Strat> ActorCell<M, MF, Strat>
@@ -208,9 +199,9 @@ where
       return Ok(0);
     }
     let first: PriorityEnvelope<M> = match self.mailbox.recv().await {
-      Ok(message) => message,
-      Err(QueueError::Disconnected) => return Ok(0),
-      Err(err) => return Err(err),
+      | Ok(message) => message,
+      | Err(QueueError::Disconnected) => return Ok(0),
+      | Err(err) => return Err(err),
     };
     let mut envelopes = vec![first];
     envelopes.extend(self.collect_envelopes()?);
@@ -260,21 +251,16 @@ where
       }));
 
       return match result {
-        Ok(handler_result) => self.apply_handler_result(
-          handler_result,
-          pending_specs,
-          should_stop,
-          guardian,
-          new_children,
-          escalations,
-        ),
-        Err(payload) => {
+        | Ok(handler_result) => {
+          self.apply_handler_result(handler_result, pending_specs, should_stop, guardian, new_children, escalations)
+        },
+        | Err(payload) => {
           let failure = ActorFailure::from_panic_payload(payload.as_ref());
           if let Some(info) = guardian.notify_failure(self.actor_id, failure)? {
             escalations.push(info);
           }
           Ok(())
-        }
+        },
       };
     }
 
@@ -282,14 +268,7 @@ where
     {
       let handler_result = self.invoke_handler(message, priority, influences_receive_timeout, &mut pending_specs);
 
-      self.apply_handler_result(
-        handler_result,
-        pending_specs,
-        should_stop,
-        guardian,
-        new_children,
-        escalations,
-      )
+      self.apply_handler_result(handler_result, pending_specs, should_stop, guardian, new_children, escalations)
     }
   }
 
@@ -333,26 +312,24 @@ where
     escalations: &mut Vec<FailureInfo>,
   ) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     match handler_result {
-      Ok(()) => {
+      | Ok(()) => {
         for spec in pending_specs.into_iter() {
-          self
-            .register_child_from_spec(spec, guardian, new_children)
-            .map_err(|err| match err {
-              SpawnError::Queue(queue_err) => queue_err,
-              SpawnError::NameExists(name) => panic!("unexpected named spawn conflict: {name}"),
-            })?;
+          self.register_child_from_spec(spec, guardian, new_children).map_err(|err| match err {
+            | SpawnError::Queue(queue_err) => queue_err,
+            | SpawnError::NameExists(name) => panic!("unexpected named spawn conflict: {name}"),
+          })?;
         }
         if should_stop {
           self.mark_stopped(guardian);
         }
         Ok(())
-      }
-      Err(err) => {
+      },
+      | Err(err) => {
         if let Some(info) = guardian.notify_failure(self.actor_id, err)? {
           escalations.push(info);
         }
         Ok(())
-      }
+      },
     }
   }
 

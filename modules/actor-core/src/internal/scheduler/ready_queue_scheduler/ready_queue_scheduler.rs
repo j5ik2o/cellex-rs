@@ -1,36 +1,40 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use core::convert::Infallible;
 
 use async_trait::async_trait;
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use spin::Mutex;
 
-use super::super::actor_scheduler::ActorScheduler;
-use super::common::ReadyQueueSchedulerCore;
-use super::ready_event_hook::{ReadyEventHook, ReadyQueueHandle};
-use super::ready_notifier::ReadyNotifier;
-use super::ready_queue_context::ReadyQueueContext;
-use super::ready_queue_state::ReadyQueueState;
-use super::ready_queue_worker::ReadyQueueWorker;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor_system::map_system::MapSystemShared;
-use crate::api::extensions::Extensions;
-use crate::api::failure_telemetry::FailureTelemetryShared;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use crate::internal::scheduler::ready_queue_scheduler::ReadyQueueWorkerImpl;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::scheduler::SpawnError;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use super::{
+  super::actor_scheduler::ActorScheduler,
+  common::ReadyQueueSchedulerCore,
+  ready_event_hook::{ReadyEventHook, ReadyQueueHandle},
+  ready_notifier::ReadyNotifier,
+  ready_queue_context::ReadyQueueContext,
+  ready_queue_state::ReadyQueueState,
+  ready_queue_worker::ReadyQueueWorker,
+};
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    failure_telemetry::FailureTelemetryShared,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    metrics::MetricsSinkShared,
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{
+      escalation::{FailureEventHandler, FailureEventListener},
+      failure::FailureInfo,
+      supervisor::Supervisor,
+      telemetry::TelemetryObservationConfig,
+    },
+  },
+  internal::{
+    guardian::{AlwaysRestart, GuardianStrategy},
+    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, SchedulerSpawnContext, SpawnError},
+  },
+};
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.
 pub struct ReadyQueueScheduler<M, MF, Strat = AlwaysRestart>
@@ -39,7 +43,7 @@ where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, MF>, {
   context: ArcShared<Mutex<ReadyQueueContext<M, MF, Strat>>>,
-  state: ArcShared<Mutex<ReadyQueueState>>,
+  state:   ArcShared<Mutex<ReadyQueueState>>,
 }
 
 #[allow(dead_code)]
@@ -63,13 +67,10 @@ where
     Strat: GuardianStrategy<M, MF>, {
     let state = ArcShared::new(Mutex::new(ReadyQueueState::new()));
     let context = ReadyQueueContext {
-      core: ReadyQueueSchedulerCore::with_strategy(mailbox_factory, strategy, extensions),
+      core:  ReadyQueueSchedulerCore::with_strategy(mailbox_factory, strategy, extensions),
       state: state.clone(),
     };
-    ReadyQueueScheduler {
-      context: ArcShared::new(Mutex::new(context)),
-      state,
-    }
+    ReadyQueueScheduler { context: ArcShared::new(Mutex::new(context)), state }
   }
 }
 

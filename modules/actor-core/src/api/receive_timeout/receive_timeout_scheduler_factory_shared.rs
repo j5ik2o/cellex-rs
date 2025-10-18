@@ -1,8 +1,9 @@
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::receive_timeout::ReceiveTimeoutSchedulerFactory;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::{sync::ArcShared, Element};
+
+use crate::api::{
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  receive_timeout::ReceiveTimeoutSchedulerFactory,
+};
 
 /// Shared wrapper around a `ReceiveTimeoutSchedulerFactory` implementation.
 pub struct ReceiveTimeoutSchedulerFactoryShared<M, MF> {
@@ -21,9 +22,7 @@ where
   where
     F: ReceiveTimeoutSchedulerFactory<M, MF> + 'static, {
     let shared = ArcShared::new(factory);
-    Self {
-      inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactory<M, MF>),
-    }
+    Self { inner: shared.into_dyn(|inner| inner as &dyn ReceiveTimeoutSchedulerFactory<M, MF>) }
   }
 
   /// Wraps an existing shared factory.
@@ -47,9 +46,7 @@ where
 
 impl<M, MF> Clone for ReceiveTimeoutSchedulerFactoryShared<M, MF> {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

@@ -1,14 +1,18 @@
-use super::priority_actor_ref::PriorityActorRef;
-use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::{PriorityEnvelope, SystemMessage};
-use crate::api::messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode};
-use crate::internal::message::InternalMessageSender;
-use crate::RuntimeBound;
+use core::{future::Future, marker::PhantomData};
+
 use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
-use core::future::Future;
-use core::marker::PhantomData;
+
+use super::priority_actor_ref::PriorityActorRef;
+use crate::{
+  api::{
+    actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+  },
+  internal::message::InternalMessageSender,
+  RuntimeBound,
+};
 
 /// Typed actor reference.
 ///
@@ -23,7 +27,7 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
-  inner: PriorityActorRef<DynMessage, MailboxOf<AR>>,
+  inner:   PriorityActorRef<DynMessage, MailboxOf<AR>>,
   _marker: PhantomData<U>,
 }
 
@@ -38,10 +42,7 @@ where
 {
   /// Creates a new `ActorRef` from an internal reference.
   pub(crate) const fn new(inner: PriorityActorRef<DynMessage, MailboxOf<AR>>) -> Self {
-    Self {
-      inner,
-      _marker: PhantomData,
-    }
+    Self { inner, _marker: PhantomData }
   }
 
   /// Wraps a user message into a dynamic message.
@@ -75,9 +76,7 @@ where
 
   /// Sends a message (Fire-and-Forget).
   pub fn tell(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    self
-      .inner
-      .try_send_with_priority(Self::wrap_user(message), DEFAULT_PRIORITY)
+    self.inner.try_send_with_priority(Self::wrap_user(message), DEFAULT_PRIORITY)
   }
 
   /// Sends a message with specified priority.
@@ -127,7 +126,8 @@ where
     self.tell_with_metadata(message, metadata)
   }
 
-  /// Generates a response channel internally, sends `message`, and returns `AskFuture` (internal API).
+  /// Generates a response channel internally, sends `message`, and returns `AskFuture` (internal
+  /// API).
   pub(crate) fn request_future<Resp>(&self, message: U) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element, {
@@ -163,9 +163,7 @@ where
     Resp: Element,
     S: Element, {
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
-      .with_sender(sender)
-      .with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(sender).with_responder(responder);
     self.tell_with_metadata(message, metadata)?;
     Ok(future)
   }
@@ -186,8 +184,8 @@ where
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
@@ -224,12 +222,10 @@ where
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
-      .with_sender(sender)
-      .with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(sender).with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
@@ -258,8 +254,8 @@ where
     let message = factory(responder_for_message);
     let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 }
