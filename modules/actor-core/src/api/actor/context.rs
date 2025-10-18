@@ -10,7 +10,7 @@ use crate::{
   api::{
     actor::{
       actor_failure::ActorFailure,
-      actor_ref::ActorRef,
+      actor_ref::{ActorRef, PriorityActorRef},
       ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
       props::Props,
     },
@@ -18,6 +18,7 @@ use crate::{
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
     messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
   internal::context::ActorContext,
@@ -158,6 +159,20 @@ where
     self.inner.watchers()
   }
 
+  /// Gets the PID representing this actor.
+  #[must_use]
+  pub fn self_pid(&self) -> &Pid {
+    self.inner.pid()
+  }
+
+  /// Returns the process registry handle for PID resolution.
+  #[must_use]
+  pub fn process_registry(
+    &self,
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, PriorityEnvelope<DynMessage>>> {
+    self.inner.process_registry()
+  }
+
   /// Gets the logger for this actor.
   #[must_use]
   pub fn log(&self) -> ContextLogger {
@@ -262,7 +277,9 @@ where
     V: Element,
     MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher());
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone());
     target.tell_with_metadata(message, metadata)
   }
 
@@ -315,8 +332,11 @@ where
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata =
-      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     match target.tell_with_metadata(message, metadata) {
       | Ok(()) => Ok(future),
       | Err(err) => Err(AskError::from(err)),
@@ -341,8 +361,11 @@ where
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata =
-      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     match target.tell_with_metadata(message, metadata) {
       | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       | Err(err) => Err(AskError::from(err)),
@@ -357,8 +380,11 @@ where
     MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
-    let metadata =
-      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     target.tell_with_metadata(message, metadata)?;
     Ok(future)
   }
@@ -378,8 +404,11 @@ where
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
-    let metadata =
-      MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(self.self_dispatcher()).with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     match target.tell_with_metadata(message, metadata) {
       | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       | Err(err) => Err(AskError::from(err)),

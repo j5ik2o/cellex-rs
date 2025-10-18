@@ -4,7 +4,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use crate::{
   api::{
-    actor::{root_context::RootContext, shutdown_token::ShutdownToken},
+    actor::{actor_ref::PriorityActorRef, root_context::RootContext, shutdown_token::ShutdownToken},
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ReadyQueueWorker,
     actor_system::{
@@ -16,6 +16,10 @@ use crate::{
     failure_telemetry::TelemetryContext,
     mailbox::PriorityEnvelope,
     messaging::DynMessage,
+    process::{
+      pid::{NodeId, SystemId},
+      process_registry::ProcessRegistry,
+    },
     supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::{
@@ -38,6 +42,8 @@ where
   pub(crate) shutdown:      ShutdownToken,
   extensions:               Extensions,
   ready_queue_worker_count: NonZeroUsize,
+  system_id:                SystemId,
+  node_id:                  Option<NodeId>,
   _marker:                  PhantomData<U>,
 }
 
@@ -60,6 +66,9 @@ where
     let root_handler_from_runtime = actor_runtime.root_escalation_handler_opt();
     let metrics_from_runtime = actor_runtime.metrics_sink_shared_opt();
     let scheduler_builder = actor_runtime.scheduler_builder_shared();
+
+    let system_id = config.system_id().clone();
+    let node_id = config.node_id_opt();
 
     let extensions_handle = config.extensions();
     if extensions_handle.get(serializer_extension_id()).is_none() {
@@ -105,6 +114,8 @@ where
       root_failure_telemetry,
       root_observation_config: observation_config,
       extensions: extensions.clone(),
+      system_id: system_id.clone(),
+      node_id: node_id.clone(),
     };
 
     let ready_queue_worker_count = config
@@ -113,10 +124,12 @@ where
       .unwrap_or_else(|| unsafe { NonZeroUsize::new_unchecked(1) });
 
     Self {
-      inner: InternalActorSystem::new_with_settings_and_builder(actor_runtime, &scheduler_builder, settings),
+      inner: InternalActorSystem::new_with_config_and_builder(actor_runtime, &scheduler_builder, settings),
       shutdown: ShutdownToken::default(),
       extensions,
       ready_queue_worker_count,
+      system_id,
+      node_id,
       _marker: PhantomData,
     }
   }
@@ -260,5 +273,25 @@ where
   #[must_use]
   pub fn supports_ready_queue(&self) -> bool {
     self.ready_queue_worker().is_some()
+  }
+
+  /// Returns the process registry associated with this actor system.
+  #[must_use]
+  pub fn process_registry(
+    &self,
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, PriorityEnvelope<DynMessage>>> {
+    self.inner.process_registry()
+  }
+
+  /// Returns the system identifier assigned to this actor system.
+  #[must_use]
+  pub fn system_id(&self) -> &SystemId {
+    &self.system_id
+  }
+
+  /// Returns the node identifier when it has been configured.
+  #[must_use]
+  pub fn node_id(&self) -> Option<&NodeId> {
+    self.node_id.as_ref()
   }
 }

@@ -59,6 +59,7 @@ where
       mailbox_options: options,
       handler,
       child_naming,
+      process_registry: self.system.process_registry(),
     };
     self.system.scheduler.spawn_actor(supervisor, context)
   }

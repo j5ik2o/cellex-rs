@@ -39,6 +39,7 @@ use crate::{
     mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
     messaging::DynMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    process::{pid::SystemId, process_registry::ProcessRegistry},
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -123,6 +124,7 @@ where
   MF::Queue<PriorityEnvelope<M>>: Clone,
   MF::Signal: Clone, {
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
+  let process_registry = ArcShared::new(ProcessRegistry::new(SystemId::new("test"), None));
   let context = ActorSchedulerSpawnContext {
     mailbox_factory,
     mailbox_factory_shared,
@@ -130,6 +132,7 @@ where
     mailbox_options: options,
     handler,
     child_naming: ChildNaming::Auto,
+    process_registry,
   };
   scheduler.spawn_actor(supervisor, context).map_err(|err| match err {
     | SpawnError::Queue(queue_err) => queue_err,

@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{any::TypeId, cell::RefCell, cmp::Reverse, marker::PhantomData};
 
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
 
 use crate::{
   api::{
@@ -12,6 +12,7 @@ use crate::{
     mailbox::{Mailbox, MailboxFactory, MailboxHandle, MailboxProducer, PriorityEnvelope, SystemMessage},
     messaging::DynMessage,
     metrics::MetricsSinkShared,
+    process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
@@ -28,21 +29,23 @@ where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<M, MF>, {
   #[cfg_attr(not(feature = "std"), allow(dead_code))]
-  actor_id:                  ActorId,
-  map_system:                MapSystemShared<M>,
-  watchers:                  Vec<ActorId>,
-  actor_path:                ActorPath,
-  mailbox_factory:           MF,
-  mailbox_spawner:           PriorityMailboxSpawnerHandle<M, MF>,
-  mailbox:                   MF::Mailbox<PriorityEnvelope<M>>,
-  sender:                    MF::Producer<PriorityEnvelope<M>>,
-  supervisor:                Box<dyn Supervisor<M>>,
-  handler:                   Box<ActorHandlerFn<M, MF>>,
-  _strategy:                 PhantomData<Strat>,
-  stopped:                   bool,
-  receive_timeout_factory:   Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  actor_id: ActorId,
+  map_system: MapSystemShared<M>,
+  watchers: Vec<ActorId>,
+  actor_path: ActorPath,
+  pid: Pid,
+  mailbox_factory: MF,
+  mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
+  mailbox: MF::Mailbox<PriorityEnvelope<M>>,
+  sender: MF::Producer<PriorityEnvelope<M>>,
+  supervisor: Box<dyn Supervisor<M>>,
+  handler: Box<ActorHandlerFn<M, MF>>,
+  _strategy: PhantomData<Strat>,
+  stopped: bool,
+  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
   receive_timeout_scheduler: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
-  extensions:                Extensions,
+  extensions: Extensions,
+  process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
 }
 
 impl<M, MF, Strat> ActorCell<M, MF, Strat>
@@ -57,6 +60,7 @@ where
     map_system: MapSystemShared<M>,
     watchers: Vec<ActorId>,
     actor_path: ActorPath,
+    pid: Pid,
     mailbox_factory: MF,
     mailbox_spawner: PriorityMailboxSpawnerHandle<M, MF>,
     mailbox: MF::Mailbox<PriorityEnvelope<M>>,
@@ -65,12 +69,14 @@ where
     handler: Box<ActorHandlerFn<M, MF>>,
     receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
     extensions: Extensions,
+    process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
   ) -> Self {
     let mut cell = Self {
       actor_id,
       map_system,
       watchers,
       actor_path,
+      pid,
       mailbox_factory,
       mailbox_spawner,
       mailbox,
@@ -82,6 +88,7 @@ where
       receive_timeout_factory: None,
       receive_timeout_scheduler: None,
       extensions,
+      process_registry,
     };
     cell.configure_receive_timeout_factory(receive_timeout_factory);
     cell
@@ -132,6 +139,7 @@ where
     self.receive_timeout_scheduler = None;
     self.receive_timeout_factory = None;
     self.mailbox.close();
+    self.process_registry.with_ref(|registry| registry.deregister(&self.pid));
     let _ = guardian.remove_child(self.actor_id);
     self.watchers.clear();
   }
@@ -286,6 +294,8 @@ where
       self.map_system.clone(),
       self.actor_path.clone(),
       self.actor_id,
+      self.pid.clone(),
+      self.process_registry.clone(),
       &mut self.watchers,
       receive_timeout,
       self.extensions.clone(),
@@ -352,17 +362,21 @@ where
     let control_ref = PriorityActorRef::new(sender.clone());
     let primary_watcher = watchers.first().copied();
     let (actor_id, actor_path) = guardian.register_child_with_naming(
-      control_ref,
+      control_ref.clone(),
       map_system.clone(),
       primary_watcher,
       &parent_path,
       child_naming,
     )?;
+    let control_handle = ArcShared::new(control_ref.clone());
+    let pid =
+      self.process_registry.with_ref(|registry| registry.register_local(actor_path.clone(), control_handle.clone()));
     let mut cell = ActorCell::new(
       actor_id,
       map_system,
       watchers,
       actor_path,
+      pid,
       self.mailbox_factory.clone(),
       mailbox_spawner,
       mailbox,
@@ -371,6 +385,7 @@ where
       handler,
       self.receive_timeout_factory.clone(),
       extensions,
+      self.process_registry.clone(),
     );
     let sink = self.mailbox_spawner.metrics_sink();
     cell.set_metrics_sink(sink);

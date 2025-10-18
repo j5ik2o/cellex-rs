@@ -4,9 +4,10 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use crate::{
   api::{
-    actor::ChildNaming,
+    actor::{actor_ref::PriorityActorRef, ChildNaming},
     actor_system::map_system::MapSystemShared,
     mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
+    process::process_registry::ProcessRegistry,
   },
   internal::context::ActorHandlerFn,
 };
@@ -32,4 +33,6 @@ where
   pub handler:                Box<ActorHandlerFn<M, MF>>,
   /// Naming strategy to apply when registering the child actor.
   pub child_naming:           ChildNaming,
+  /// Process registry used to register and resolve actor PIDs.
+  pub process_registry:       ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
 }

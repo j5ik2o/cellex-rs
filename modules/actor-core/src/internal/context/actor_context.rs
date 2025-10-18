@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, marker::PhantomData, time::Duration};
 
-use cellex_utils_core_rs::{Element, QueueError, QueueSize};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, QueueSize};
 
 use super::ChildSpawnSpec;
 use crate::{
@@ -10,6 +10,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
+    process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::ReceiveTimeoutScheduler,
     supervision::supervisor::Supervisor,
   },
@@ -35,6 +36,8 @@ where
   map_system:       MapSystemShared<M>,
   actor_path:       ActorPath,
   actor_id:         ActorId,
+  pid:              Pid,
+  process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
   watchers:         &'a mut Vec<ActorId>,
   current_priority: Option<i8>,
   receive_timeout:  Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
@@ -58,6 +61,8 @@ where
     map_system: MapSystemShared<M>,
     actor_path: ActorPath,
     actor_id: ActorId,
+    pid: Pid,
+    process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
     watchers: &'a mut Vec<ActorId>,
     receive_timeout: Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
     extensions: Extensions,
@@ -71,6 +76,8 @@ where
       map_system,
       actor_path,
       actor_id,
+      pid,
+      process_registry,
       watchers,
       current_priority: None,
       receive_timeout,
@@ -114,6 +121,14 @@ where
 
   pub fn watchers(&self) -> &[ActorId] {
     self.watchers.as_slice()
+  }
+
+  pub fn pid(&self) -> &Pid {
+    &self.pid
+  }
+
+  pub fn process_registry(&self) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>> {
+    self.process_registry.clone()
   }
 
   pub fn register_watcher(&mut self, watcher: ActorId) {

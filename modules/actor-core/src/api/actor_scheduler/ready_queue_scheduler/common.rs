@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{convert::Infallible, marker::PhantomData};
 
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
 use futures::{
   future::{select_all, LocalBoxFuture},
   FutureExt,
@@ -94,6 +94,7 @@ where
       mailbox_options,
       handler,
       child_naming,
+      process_registry,
     } = context;
     let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_factory_shared);
     mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
@@ -112,11 +113,15 @@ where
       &parent_path,
       child_naming,
     )?;
+    let control_handle = ArcShared::new(control_ref.clone());
+    let pid = process_registry.with_ref(|registry| registry.register_local(actor_path.clone(), control_handle.clone()));
+
     let mut cell = ActorCell::new(
       actor_id,
       map_system,
       watchers,
       actor_path,
+      pid,
       mailbox_factory,
       mailbox_spawner,
       mailbox,
@@ -125,6 +130,7 @@ where
       handler,
       self.receive_timeout_factory.clone(),
       self.extensions.clone(),
+      process_registry,
     );
     cell.set_metrics_sink(self.metrics_sink.clone());
     self.actors.push(cell);

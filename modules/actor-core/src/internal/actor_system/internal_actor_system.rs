@@ -8,11 +8,16 @@ use cellex_utils_core_rs::{
 use super::InternalRootContext;
 use crate::{
   api::{
+    actor::actor_ref::PriorityActorRef,
     actor_runtime::{ActorRuntime, MailboxOf},
     actor_scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
+    process::{
+      pid::{NodeId, SystemId},
+      process_registry::ProcessRegistry,
+    },
   },
   internal::{
     actor_system::internal_actor_system_config::InternalActorSystemConfig,
@@ -35,6 +40,11 @@ where
   extensions: Extensions,
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
+  pub(super) process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, PriorityEnvelope<M>>>,
+  #[allow(dead_code)]
+  pub(super) system_id: SystemId,
+  #[allow(dead_code)]
+  pub(super) node_id: Option<NodeId>,
   _strategy: PhantomData<Strat>,
 }
 
@@ -53,10 +63,10 @@ where
 
   pub fn new_with_config(actor_runtime: AR, config: InternalActorSystemConfig<M, AR>) -> Self {
     let scheduler_builder = ArcShared::new(ActorSchedulerHandleBuilder::<M, MailboxOf<AR>>::ready_queue());
-    Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, config)
+    Self::new_with_config_and_builder(actor_runtime, &scheduler_builder, config)
   }
 
-  pub fn new_with_settings_and_builder(
+  pub fn new_with_config_and_builder(
     actor_runtime: AR,
     scheduler_builder: &ArcShared<ActorSchedulerHandleBuilder<M, MailboxOf<AR>>>,
     config: InternalActorSystemConfig<M, AR>,
@@ -69,6 +79,8 @@ where
       root_failure_telemetry,
       root_observation_config,
       extensions,
+      system_id,
+      node_id,
     } = config;
     let actor_runtime_shared = ArcShared::new(actor_runtime);
     let mailbox_factory_shared = actor_runtime_shared.with_ref(|rt| rt.mailbox_factory_shared());
@@ -80,7 +92,18 @@ where
     scheduler.set_root_observation_config(root_observation_config);
     scheduler.set_receive_timeout_scheduler_factory_shared(receive_timeout_factory);
     scheduler.set_metrics_sink(metrics_sink.clone());
-    Self { scheduler, actor_runtime_shared, mailbox_factory_shared, extensions, metrics_sink, _strategy: PhantomData }
+    let process_registry = ArcShared::new(ProcessRegistry::new(system_id.clone(), node_id.clone()));
+    Self {
+      scheduler,
+      actor_runtime_shared,
+      mailbox_factory_shared,
+      extensions,
+      metrics_sink,
+      process_registry,
+      system_id,
+      node_id,
+      _strategy: PhantomData,
+    }
   }
 }
 
@@ -142,6 +165,25 @@ where
   #[must_use]
   pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MailboxOf<AR>>>> {
     self.scheduler.ready_queue_worker()
+  }
+
+  #[must_use]
+  pub fn process_registry(
+    &self,
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, PriorityEnvelope<M>>> {
+    self.process_registry.clone()
+  }
+
+  #[allow(dead_code)]
+  #[must_use]
+  pub fn system_id(&self) -> &SystemId {
+    &self.system_id
+  }
+
+  #[allow(dead_code)]
+  #[must_use]
+  pub fn node_id(&self) -> Option<&NodeId> {
+    self.node_id.as_ref()
   }
 
   async fn run_until_impl<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<M>>>

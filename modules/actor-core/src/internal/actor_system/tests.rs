@@ -6,21 +6,28 @@
 use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
-use cellex_utils_core_rs::{Element, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{Element, Shared, DEFAULT_PRIORITY};
 #[cfg(feature = "std")]
 use futures::executor::block_on;
 
 use super::*;
 use crate::{
   api::{
-    actor_runtime::GenericActorRuntime,
+    actor::actor_ref::PriorityActorRef,
+    actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_system::map_system::MapSystemShared,
-    mailbox::{MailboxOptions, SystemMessage},
-    messaging::DynMessage,
+    mailbox::{MailboxOptions, PriorityEnvelope, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata},
+    process::{
+      pid::Pid,
+      process_registry::{ProcessRegistry, ProcessResolution},
+    },
     test_support::TestMailboxFactory,
   },
   internal::{actor::InternalProps, guardian::AlwaysRestart},
 };
+
+type TestRegistry = ProcessRegistry<PriorityActorRef<DynMessage, TestMailboxFactory>, PriorityEnvelope<DynMessage>>;
 
 #[cfg(feature = "std")]
 #[derive(Debug, Clone)]
@@ -59,4 +66,145 @@ fn actor_system_spawns_and_processes_messages() {
   block_on(root.dispatch_next()).expect("dispatch");
 
   assert_eq!(log.borrow().as_slice(), &[7]);
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn process_registry_registers_and_deregisters_actor() {
+  #[derive(Debug, Clone)]
+  enum TestMsg {
+    CapturePid,
+  }
+
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let actor_runtime = GenericActorRuntime::new(mailbox_factory);
+  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+
+  let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
+  let captured: Rc<RefCell<Option<Pid>>> = Rc::new(RefCell::new(None));
+  let captured_clone = captured.clone();
+
+  let registry = system.process_registry();
+  let mut root = system.root_context();
+  let actor_ref = root
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: DynMessage| {
+      if let Ok(TestMsg::CapturePid) = msg.downcast::<TestMsg>() {
+        captured_clone.borrow_mut().replace(ctx.pid().clone());
+      }
+      Ok(())
+    }))
+    .expect("spawn actor");
+
+  actor_ref.try_send_with_priority(DynMessage::new(TestMsg::CapturePid), DEFAULT_PRIORITY).expect("send capture");
+
+  block_on(root.dispatch_next()).expect("dispatch capture");
+
+  drop(root);
+  let pid = captured.borrow().clone().expect("pid captured");
+  let resolution = registry.with_ref(|registry: &TestRegistry| registry.resolve_pid(&pid));
+  assert!(matches!(resolution, ProcessResolution::Local(_)));
+
+  let map_clone = map_system.clone();
+  actor_ref
+    .try_send_envelope(PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| map_clone(sys)))
+    .expect("send stop");
+
+  let mut root = system.root_context();
+  block_on(root.dispatch_next()).ok();
+  block_on(root.dispatch_next()).ok();
+  drop(root);
+
+  let resolution_after = registry.with_ref(|registry: &TestRegistry| registry.resolve_pid(&pid));
+  assert!(matches!(resolution_after, ProcessResolution::Unresolved));
+}
+
+#[cfg(feature = "std")]
+#[test]
+fn responder_pid_allows_response_delivery() {
+  type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
+  #[derive(Debug, Clone, PartialEq, Eq)]
+  enum TestMsg {
+    RecordPid,
+    Ping,
+    Response(u32),
+  }
+
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory);
+  let mut system: InternalActorSystem<DynMessage, _, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
+
+  let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
+  let probe_pid: Rc<RefCell<Option<Pid>>> = Rc::new(RefCell::new(None));
+  let probe_pid_clone = probe_pid.clone();
+  let responses: Rc<RefCell<Vec<TestMsg>>> = Rc::new(RefCell::new(Vec::new()));
+  let responses_clone = responses.clone();
+
+  let mut root = system.root_context();
+  let probe_ref = root
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: DynMessage| {
+      if let Ok(envelope) = msg.downcast::<MessageEnvelope<TestMsg>>() {
+        match envelope {
+          | MessageEnvelope::User(user) => {
+            let (message, _) = user.into_parts::<MailboxConcurrencyOf<TestRuntime>>();
+            match message {
+              | TestMsg::RecordPid => {
+                probe_pid_clone.borrow_mut().replace(ctx.pid().clone());
+              },
+              | TestMsg::Response(value) => {
+                responses_clone.borrow_mut().push(TestMsg::Response(value));
+              },
+              | TestMsg::Ping => {},
+            }
+          },
+          | MessageEnvelope::System(_) => {},
+        }
+      }
+      Ok(())
+    }))
+    .expect("spawn probe");
+
+  let target_ref = root
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: DynMessage| {
+      if let Ok(envelope) = msg.downcast::<MessageEnvelope<TestMsg>>() {
+        match envelope {
+          | MessageEnvelope::User(user) => {
+            let (message, metadata) = user.into_parts::<MailboxConcurrencyOf<TestRuntime>>();
+            if matches!(message, TestMsg::Ping) {
+              if let Some(metadata) = metadata {
+                if let Some(responder_pid) = metadata.responder_pid().cloned() {
+                  ctx.process_registry().with_ref(|registry| {
+                    if let ProcessResolution::Local(handle) = registry.resolve_pid(&responder_pid) {
+                      let response = DynMessage::new(MessageEnvelope::user(TestMsg::Response(99)));
+                      let priority = PriorityEnvelope::with_default_priority(response);
+                      let _ = handle.with_ref(|actor_ref| actor_ref.clone()).try_send_envelope(priority);
+                    }
+                  });
+                }
+              }
+            }
+          },
+          | MessageEnvelope::System(_) => {},
+        }
+      }
+      Ok(())
+    }))
+    .expect("spawn target");
+
+  let probe_typed: crate::api::actor::actor_ref::ActorRef<TestMsg, TestRuntime> =
+    crate::api::actor::actor_ref::ActorRef::new(probe_ref.clone());
+  probe_typed.tell(TestMsg::RecordPid).expect("record pid message");
+
+  block_on(root.dispatch_next()).expect("dispatch record pid");
+
+  let responder_pid = probe_pid.borrow().clone().expect("pid available");
+
+  let target_typed: crate::api::actor::actor_ref::ActorRef<TestMsg, TestRuntime> =
+    crate::api::actor::actor_ref::ActorRef::new(target_ref.clone());
+  let metadata = MessageMetadata::<MailboxConcurrencyOf<TestRuntime>>::new().with_responder_pid(responder_pid);
+  target_typed.tell_with_metadata(TestMsg::Ping, metadata).expect("send ping");
+
+  block_on(root.dispatch_next()).expect("dispatch ping");
+  block_on(root.dispatch_next()).ok();
+
+  assert_eq!(responses.borrow().as_slice(), &[TestMsg::Response(99)]);
 }

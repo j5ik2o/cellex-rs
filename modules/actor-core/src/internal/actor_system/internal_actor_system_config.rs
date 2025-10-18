@@ -6,6 +6,7 @@ use crate::api::{
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
   metrics::MetricsSinkShared,
+  process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
     escalation::{FailureEventHandler, FailureEventListener},
@@ -35,6 +36,10 @@ where
   pub(crate) root_failure_telemetry:  FailureTelemetryShared,
   /// Observation config applied to telemetry calls.
   pub(crate) root_observation_config: TelemetryObservationConfig,
+  /// Identifier assigned to the actor system for PID construction.
+  pub(crate) system_id:               SystemId,
+  /// Optional node identifier associated with this actor system instance.
+  pub(crate) node_id:                 Option<NodeId>,
 }
 
 impl<M, AR> Default for InternalActorSystemConfig<M, AR>
@@ -54,6 +59,8 @@ where
       extensions:              Extensions::new(),
       root_failure_telemetry:  default_failure_telemetry_shared(),
       root_observation_config: TelemetryObservationConfig::new(),
+      system_id:               SystemId::new("cellex"),
+      node_id:                 None,
     }
   }
 }

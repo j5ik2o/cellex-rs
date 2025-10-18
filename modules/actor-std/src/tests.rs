@@ -10,6 +10,7 @@ use cellex_actor_core_rs::{
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
+    process::{pid::SystemId, process_registry::ProcessRegistry},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::NoopSupervisor,
   },
@@ -144,16 +145,18 @@ async fn tokio_scheduler_builder_dispatches() {
   let log_clone = log.clone();
 
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
+  let process_registry = ArcShared::new(ProcessRegistry::new(SystemId::new("tokio-test"), None));
   let context = ActorSchedulerSpawnContext {
-    mailbox_factory:        mailbox_factory.clone(),
+    mailbox_factory: mailbox_factory.clone(),
     mailbox_factory_shared: mailbox_factory_shared,
-    map_system:             MapSystemShared::new(Message::System),
-    mailbox_options:        MailboxOptions::default(),
-    handler:                Box::new(move |_, msg: Message| {
+    map_system: MapSystemShared::new(Message::System),
+    mailbox_options: MailboxOptions::default(),
+    handler: Box::new(move |_, msg: Message| {
       log_clone.lock().unwrap().push(msg);
       Ok(())
     }),
-    child_naming:           ChildNaming::Auto,
+    child_naming: ChildNaming::Auto,
+    process_registry,
   };
 
   scheduler.spawn_actor(Box::new(NoopSupervisor), context).unwrap();

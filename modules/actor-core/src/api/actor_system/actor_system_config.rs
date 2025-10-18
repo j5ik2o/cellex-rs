@@ -9,6 +9,7 @@ use crate::api::{
   mailbox::PriorityEnvelope,
   messaging::DynMessage,
   metrics::MetricsSinkShared,
+  process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{escalation::FailureEventListener, telemetry::TelemetryObservationConfig},
 };
@@ -35,6 +36,10 @@ where
   extensions: Extensions,
   /// Default ReadyQueue worker count supplied by configuration.
   ready_queue_worker_count_opt: Option<NonZeroUsize>,
+  /// Identifier assigned to the actor system for PID construction.
+  system_id: SystemId,
+  /// Optional node identifier associated with the actor system instance.
+  node_id_opt: Option<NodeId>,
 }
 
 impl<AR> Default for ActorSystemConfig<AR>
@@ -53,6 +58,8 @@ where
       failure_observation_config_opt: None,
       extensions: Extensions::new(),
       ready_queue_worker_count_opt: None,
+      system_id: SystemId::new("cellex"),
+      node_id_opt: None,
     }
   }
 }
@@ -108,6 +115,26 @@ where
     self
   }
 
+  /// Sets the system identifier used for PID construction.
+  #[must_use]
+  pub fn with_system_id(mut self, system_id: SystemId) -> Self {
+    self.system_id = system_id;
+    self
+  }
+
+  /// Sets the node identifier associated with this actor system.
+  #[must_use]
+  pub fn with_node_id_opt(mut self, node_id: Option<NodeId>) -> Self {
+    self.node_id_opt = node_id;
+    self
+  }
+
+  /// Convenience helper to set a concrete node identifier.
+  #[must_use]
+  pub fn with_node_id(self, node_id: NodeId) -> Self {
+    self.with_node_id_opt(Some(node_id))
+  }
+
   /// Sets the metrics sink using a concrete shared handle.
   #[must_use]
   pub fn with_metrics_sink_shared(mut self, sink: MetricsSinkShared) -> Self {
@@ -153,6 +180,16 @@ where
     self.ready_queue_worker_count_opt = worker_count;
   }
 
+  /// Mutable setter for the system identifier.
+  pub fn set_system_id(&mut self, system_id: SystemId) {
+    self.system_id = system_id;
+  }
+
+  /// Mutable setter for the node identifier.
+  pub fn set_node_id_opt(&mut self, node_id: Option<NodeId>) {
+    self.node_id_opt = node_id;
+  }
+
   pub(crate) fn failure_event_listener_opt(&self) -> Option<FailureEventListener> {
     self.failure_event_listener_opt.clone()
   }
@@ -181,6 +218,14 @@ where
 
   pub(crate) fn ready_queue_worker_count_opt(&self) -> Option<NonZeroUsize> {
     self.ready_queue_worker_count_opt
+  }
+
+  pub(crate) fn system_id(&self) -> &SystemId {
+    &self.system_id
+  }
+
+  pub(crate) fn node_id_opt(&self) -> Option<NodeId> {
+    self.node_id_opt.clone()
   }
 
   /// Replaces the extension registry in the configuration.

@@ -58,6 +58,8 @@ where
 
 #[cfg(test)]
 mod tests {
+  use alloc::string::String;
+
   use super::MessageEnvelope;
   use crate::api::mailbox::{PriorityChannel, SystemMessage};
 
