@@ -41,33 +41,4 @@ impl SystemMessage {
 }
 
 #[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::api::actor::actor_failure::ActorFailure;
-
-  #[test]
-  fn priority_table_matches_expected_values() {
-    let base = DEFAULT_PRIORITY;
-    let failure_info = FailureInfo::new(
-      crate::api::actor::ActorId(1),
-      crate::api::actor::ActorPath::new(),
-      ActorFailure::from_message("fail"),
-    );
-
-    let expectations = [
-      (SystemMessage::Watch(crate::api::actor::ActorId(1)), base + 5),
-      (SystemMessage::Unwatch(crate::api::actor::ActorId(1)), base + 5),
-      (SystemMessage::Stop, base + 10),
-      (SystemMessage::Failure(failure_info.clone()), base + 12),
-      (SystemMessage::Restart, base + 11),
-      (SystemMessage::Suspend, base + 9),
-      (SystemMessage::Resume, base + 9),
-      (SystemMessage::Escalate(failure_info.clone()), base + 13),
-      (SystemMessage::ReceiveTimeout, base + 8),
-    ];
-
-    for (message, expected) in expectations {
-      assert_eq!(message.priority(), expected, "unexpected priority for {message:?}");
-    }
-  }
-}
+mod tests;
