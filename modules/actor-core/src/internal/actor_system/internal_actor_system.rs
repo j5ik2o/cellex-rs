@@ -40,7 +40,8 @@ where
   extensions: Extensions,
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
-  pub(super) process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, PriorityEnvelope<M>>>,
+  pub(super) process_registry:
+    ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, ArcShared<PriorityEnvelope<M>>>>,
   #[allow(dead_code)]
   pub(super) system_id: SystemId,
   #[allow(dead_code)]
@@ -170,7 +171,7 @@ where
   #[must_use]
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, PriorityEnvelope<M>>> {
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, ArcShared<PriorityEnvelope<M>>>> {
     self.process_registry.clone()
   }
 

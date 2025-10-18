@@ -10,13 +10,17 @@ use cellex_actor_core_rs::{
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
-    process::{pid::SystemId, process_registry::ProcessRegistry},
+    process::{
+      pid::{Pid, SystemId},
+      process_registry::ProcessRegistry,
+    },
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::NoopSupervisor,
   },
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_std_rs::{ArcStateCell, StateCell};
+use spin::RwLock;
 
 use super::*;
 
@@ -146,6 +150,7 @@ async fn tokio_scheduler_builder_dispatches() {
 
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
   let process_registry = ArcShared::new(ProcessRegistry::new(SystemId::new("tokio-test"), None));
+  let pid_slot = ArcShared::new(RwLock::new(None::<Pid>));
   let context = ActorSchedulerSpawnContext {
     mailbox_factory: mailbox_factory.clone(),
     mailbox_factory_shared: mailbox_factory_shared,
@@ -157,6 +162,7 @@ async fn tokio_scheduler_builder_dispatches() {
     }),
     child_naming: ChildNaming::Auto,
     process_registry,
+    actor_pid_slot: pid_slot,
   };
 
   scheduler.spawn_actor(Box::new(NoopSupervisor), context).unwrap();

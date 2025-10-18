@@ -1,6 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::{sync::ArcShared, Element};
+use spin::RwLock;
 
 use super::ActorHandlerFn;
 use crate::{
@@ -9,6 +10,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
+    process::pid::Pid,
     supervision::supervisor::Supervisor,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
@@ -39,4 +41,6 @@ where
   pub extensions:      Extensions,
   /// Naming strategy applied when instantiating the child actor.
   pub child_naming:    ChildNaming,
+  /// Slot used to supply the assigned PID back to API-level references.
+  pub pid_slot:        ArcShared<RwLock<Option<Pid>>>,
 }

@@ -2,6 +2,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, marker::PhantomData, time::Duration};
 
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, QueueSize};
+use spin::RwLock;
 
 use super::ChildSpawnSpec;
 use crate::{
@@ -37,7 +38,7 @@ where
   actor_path:       ActorPath,
   actor_id:         ActorId,
   pid:              Pid,
-  process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
+  process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, ArcShared<PriorityEnvelope<M>>>>,
   watchers:         &'a mut Vec<ActorId>,
   current_priority: Option<i8>,
   receive_timeout:  Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
@@ -62,7 +63,7 @@ where
     actor_path: ActorPath,
     actor_id: ActorId,
     pid: Pid,
-    process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
+    process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, ArcShared<PriorityEnvelope<M>>>>,
     watchers: &'a mut Vec<ActorId>,
     receive_timeout: Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
     extensions: Extensions,
@@ -127,7 +128,9 @@ where
     &self.pid
   }
 
-  pub fn process_registry(&self) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>> {
+  pub fn process_registry(
+    &self,
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, ArcShared<PriorityEnvelope<M>>>> {
     self.process_registry.clone()
   }
 
@@ -158,6 +161,7 @@ where
     options: MailboxOptions,
     map_system: MapSystemShared<M>,
     handler: Box<ActorHandlerFn<M, MF>>,
+    pid_slot: ArcShared<RwLock<Option<Pid>>>,
   ) -> PriorityActorRef<M, MF> {
     let (mailbox, sender) = self.mailbox_spawner.spawn_mailbox(options);
     let actor_ref = PriorityActorRef::new(sender.clone());
@@ -173,6 +177,7 @@ where
       parent_path: self.actor_path.clone(),
       extensions: self.extensions.clone(),
       child_naming: ChildNaming::Auto,
+      pid_slot,
     });
     actor_ref
   }
@@ -182,6 +187,7 @@ where
     supervisor: S,
     options: MailboxOptions,
     handler: F,
+    pid_slot: ArcShared<RwLock<Option<Pid>>>,
   ) -> PriorityActorRef<M, MF>
   where
     F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) + 'static,
@@ -195,6 +201,7 @@ where
         handler(ctx, message);
         Ok(())
       }),
+      pid_slot,
     )
   }
 
@@ -202,11 +209,12 @@ where
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
     props: InternalProps<M, MF>,
+    pid_slot: ArcShared<RwLock<Option<Pid>>>,
   ) -> PriorityActorRef<M, MF>
   where
     MF: MailboxFactory + Clone + 'static, {
     let InternalProps { options, map_system, handler } = props;
-    self.enqueue_spawn(supervisor, options, map_system, handler)
+    self.enqueue_spawn(supervisor, options, map_system, handler, pid_slot)
   }
 
   #[allow(dead_code)]
@@ -215,7 +223,8 @@ where
     F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) + 'static,
     S: Supervisor<M> + 'static, {
     let options = MailboxOptions::default().with_priority_capacity(QueueSize::limitless());
-    self.spawn_child(supervisor, options, handler)
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    self.spawn_child(supervisor, options, handler, pid_slot)
   }
 
   pub fn current_priority(&self) -> Option<i8> {

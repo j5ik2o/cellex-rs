@@ -95,6 +95,7 @@ where
       handler,
       child_naming,
       process_registry,
+      actor_pid_slot,
     } = context;
     let mut mailbox_spawner = PriorityMailboxSpawnerHandle::new(mailbox_factory_shared);
     mailbox_spawner.set_metrics_sink(self.metrics_sink.clone());
@@ -115,6 +116,10 @@ where
     )?;
     let control_handle = ArcShared::new(control_ref.clone());
     let pid = process_registry.with_ref(|registry| registry.register_local(actor_path.clone(), control_handle.clone()));
+    {
+      let mut slot = actor_pid_slot.write();
+      *slot = Some(pid.clone());
+    }
 
     let mut cell = ActorCell::new(
       actor_id,

@@ -45,7 +45,7 @@ where
   receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
   receive_timeout_scheduler: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
-  process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
+  process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, ArcShared<PriorityEnvelope<M>>>>,
 }
 
 impl<M, MF, Strat> ActorCell<M, MF, Strat>
@@ -69,7 +69,7 @@ where
     handler: Box<ActorHandlerFn<M, MF>>,
     receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
     extensions: Extensions,
-    process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
+    process_registry: ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, ArcShared<PriorityEnvelope<M>>>>,
   ) -> Self {
     let mut cell = Self {
       actor_id,
@@ -357,6 +357,7 @@ where
       parent_path,
       extensions,
       child_naming,
+      pid_slot,
     } = spec;
 
     let control_ref = PriorityActorRef::new(sender.clone());
@@ -371,6 +372,10 @@ where
     let control_handle = ArcShared::new(control_ref.clone());
     let pid =
       self.process_registry.with_ref(|registry| registry.register_local(actor_path.clone(), control_handle.clone()));
+    {
+      let mut slot = pid_slot.write();
+      *slot = Some(pid.clone());
+    }
     let mut cell = ActorCell::new(
       actor_id,
       map_system,

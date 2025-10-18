@@ -5,6 +5,7 @@ use cellex_utils_core_rs::{
   sync::{ArcShared, SharedBound},
   Element, QueueError, DEFAULT_PRIORITY,
 };
+use spin::RwLock;
 
 use crate::{
   api::{
@@ -169,7 +170,8 @@ where
   #[must_use]
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, PriorityEnvelope<DynMessage>>> {
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  {
     self.inner.process_registry()
   }
 
@@ -209,9 +211,14 @@ where
   where
     V: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
-    let actor_ref =
-      self.inner.spawn_child_from_props(Box::new(supervisor_cfg.as_supervisor::<DynMessage>()), internal_props);
-    ActorRef::new(actor_ref)
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.process_registry();
+    let actor_ref = self.inner.spawn_child_from_props(
+      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
+      internal_props,
+      pid_slot.clone(),
+    );
+    ActorRef::new(actor_ref, pid_slot, Some(registry))
   }
 }
 
@@ -248,7 +255,9 @@ where
   /// Gets a reference to itself.
   #[must_use]
   pub fn self_ref(&self) -> ActorRef<U, AR> {
-    ActorRef::new(self.inner.self_ref())
+    let registry = self.process_registry();
+    let pid_slot = ArcShared::new(RwLock::new(Some(self.self_pid().clone())));
+    ActorRef::new(self.inner.self_ref(), pid_slot, Some(registry))
   }
 
   /// Creates an adapter that converts external message types to internal message types.

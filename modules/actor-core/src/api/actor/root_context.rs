@@ -1,7 +1,8 @@
 use alloc::{borrow::ToOwned, boxed::Box};
 use core::{future::Future, marker::PhantomData};
 
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use spin::RwLock;
 
 use super::ask::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
 use crate::{
@@ -57,12 +58,15 @@ where
   where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
       Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::Auto,
+      pid_slot.clone(),
     )?;
-    Ok(ActorRef::new(actor_ref))
+    Ok(ActorRef::new(actor_ref, pid_slot, Some(registry)))
   }
 
   /// Spawns a new actor with a unique name generated from the provided prefix.
@@ -77,12 +81,15 @@ where
   where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
       Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::WithPrefix(prefix.to_owned()),
+      pid_slot.clone(),
     )?;
-    Ok(ActorRef::new(actor_ref))
+    Ok(ActorRef::new(actor_ref, pid_slot, Some(registry)))
   }
 
   /// Spawns a new actor using the specified name. Fails if the name already exists.
@@ -95,12 +102,15 @@ where
   where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
       Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::Explicit(name.to_owned()),
+      pid_slot.clone(),
     )?;
-    Ok(ActorRef::new(actor_ref))
+    Ok(ActorRef::new(actor_ref, pid_slot, Some(registry)))
   }
 
   /// Sends a message to the specified actor and returns a Future that waits for a response.

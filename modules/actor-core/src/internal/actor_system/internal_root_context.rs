@@ -1,6 +1,10 @@
 use alloc::boxed::Box;
 
-use cellex_utils_core_rs::{sync::Shared, Element, QueueError};
+use cellex_utils_core_rs::{
+  sync::{ArcShared, Shared},
+  Element, QueueError,
+};
+use spin::RwLock;
 
 use super::InternalActorSystem;
 use crate::{
@@ -10,6 +14,7 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
+    process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::{actor::InternalProps, guardian::GuardianStrategy},
@@ -38,7 +43,8 @@ where
     &mut self,
     props: InternalProps<M, MailboxOf<AR>>,
   ) -> Result<PriorityActorRef<M, MailboxOf<AR>>, SpawnError<M>> {
-    self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto)
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto, pid_slot)
   }
 
   /// Spawns a child actor with an explicit supervisor and naming strategy.
@@ -47,6 +53,7 @@ where
     supervisor: Box<dyn Supervisor<M>>,
     props: InternalProps<M, MailboxOf<AR>>,
     child_naming: ChildNaming,
+    pid_slot: ArcShared<RwLock<Option<Pid>>>,
   ) -> Result<PriorityActorRef<M, MailboxOf<AR>>, SpawnError<M>> {
     let InternalProps { options, map_system, handler } = props;
 
@@ -60,8 +67,15 @@ where
       handler,
       child_naming,
       process_registry: self.system.process_registry(),
+      actor_pid_slot: pid_slot,
     };
     self.system.scheduler.spawn_actor(supervisor, context)
+  }
+
+  pub fn process_registry(
+    &self,
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, ArcShared<PriorityEnvelope<M>>>> {
+    self.system.process_registry()
   }
 
   #[deprecated(since = "3.1.0", note = "dispatch_next / run_until を使用してください")]

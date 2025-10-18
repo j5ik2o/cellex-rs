@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, QueueError, Shared};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
 
 use super::Context;
 use crate::{
@@ -79,15 +79,23 @@ where
       match send_result {
         | Ok(()) => Ok(()),
         | Err(QueueError::Full(envelope)) | Err(QueueError::OfferError(envelope)) => {
+          let shared = ArcShared::new(envelope);
           registry.with_ref(|registry| {
-            registry.publish_dead_letter(DeadLetter::new(pid.clone(), envelope, DeadLetterReason::DeliveryRejected));
+            registry.publish_dead_letter(DeadLetter::new(
+              pid.clone(),
+              shared.clone(),
+              DeadLetterReason::DeliveryRejected,
+            ));
           });
+          let _ = shared.try_unwrap();
           Err(AskError::SendFailed(QueueError::Disconnected))
         },
         | Err(QueueError::Closed(envelope)) => {
+          let shared = ArcShared::new(envelope);
           registry.with_ref(|registry| {
-            registry.publish_dead_letter(DeadLetter::new(pid.clone(), envelope, DeadLetterReason::Terminated));
+            registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated));
           });
+          let _ = shared.try_unwrap();
           Err(AskError::SendFailed(QueueError::Disconnected))
         },
         | Err(QueueError::Disconnected) => Err(AskError::SendFailed(QueueError::Disconnected)),
@@ -96,25 +104,25 @@ where
     | ProcessResolution::Remote => {
       let dyn_message = DynMessage::new(envelope);
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
+      let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {
         registry.publish_dead_letter(DeadLetter::new(
           pid.clone(),
-          priority_envelope,
+          shared.clone(),
           DeadLetterReason::NetworkUnreachable,
         ));
       });
+      let _ = shared.try_unwrap();
       Err(AskError::MissingResponder)
     },
     | ProcessResolution::Unresolved => {
       let dyn_message = DynMessage::new(envelope);
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
+      let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {
-        registry.publish_dead_letter(DeadLetter::new(
-          pid.clone(),
-          priority_envelope,
-          DeadLetterReason::UnregisteredPid,
-        ));
+        registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::UnregisteredPid));
       });
+      let _ = shared.try_unwrap();
       Err(AskError::MissingResponder)
     },
   }

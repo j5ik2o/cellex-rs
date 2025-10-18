@@ -18,6 +18,7 @@ use futures::executor::LocalPool;
 use futures::future::{poll_fn, FutureExt};
 #[cfg(feature = "std")]
 use futures::task::LocalSpawnExt;
+use spin::RwLock;
 
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "std")]
@@ -39,7 +40,10 @@ use crate::{
     mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
     messaging::DynMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    process::{pid::SystemId, process_registry::ProcessRegistry},
+    process::{
+      pid::{Pid, SystemId},
+      process_registry::ProcessRegistry,
+    },
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -125,6 +129,7 @@ where
   MF::Signal: Clone, {
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
   let process_registry = ArcShared::new(ProcessRegistry::new(SystemId::new("test"), None));
+  let pid_slot = ArcShared::new(RwLock::new(None::<Pid>));
   let context = ActorSchedulerSpawnContext {
     mailbox_factory,
     mailbox_factory_shared,
@@ -133,6 +138,7 @@ where
     handler,
     child_naming: ChildNaming::Auto,
     process_registry,
+    actor_pid_slot: pid_slot,
   };
   scheduler.spawn_actor(supervisor, context).map_err(|err| match err {
     | SpawnError::Queue(queue_err) => queue_err,
@@ -329,11 +335,16 @@ fn scheduler_dispatches_high_priority_first() {
         if value == 99 {
           let child_log = log_clone.clone();
           ctx
-            .spawn_child(NoopSupervisor, MailboxOptions::default(), move |_, child_msg: Message| {
-              if let Message::User(child_value) = child_msg {
-                child_log.borrow_mut().push((child_value, 0));
-              }
-            })
+            .spawn_child(
+              NoopSupervisor,
+              MailboxOptions::default(),
+              move |_, child_msg: Message| {
+                if let Message::User(child_value) = child_msg {
+                  child_log.borrow_mut().push((child_value, 0));
+                }
+              },
+              ArcShared::new(RwLock::new(None)),
+            )
             .try_send_with_priority(Message::User(7), 0)
             .unwrap();
         }
@@ -626,14 +637,19 @@ fn scheduler_escalation_chain_reaches_root() {
         trigger_flag.set(true);
         let panic_once = child_flag.clone();
         ctx
-          .spawn_child(NoopSupervisor, MailboxOptions::default(), move |_, child_msg: Message| match child_msg {
-            | Message::System(_) => {},
-            | Message::User(1) if panic_once.get() => {
-              panic_once.set(false);
-              panic!("child failure");
+          .spawn_child(
+            NoopSupervisor,
+            MailboxOptions::default(),
+            move |_, child_msg: Message| match child_msg {
+              | Message::System(_) => {},
+              | Message::User(1) if panic_once.get() => {
+                panic_once.set(false);
+                panic!("child failure");
+              },
+              | _ => {},
             },
-            | _ => {},
-          })
+            ArcShared::new(RwLock::new(None)),
+          )
           .try_send_with_priority(Message::User(1), DEFAULT_PRIORITY)
           .unwrap();
       },

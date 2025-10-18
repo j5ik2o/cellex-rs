@@ -3,7 +3,7 @@ use cellex_utils_core_rs::{Element, PriorityMessage, DEFAULT_PRIORITY};
 use crate::api::mailbox::messages::{priority_channel::PriorityChannel, system_message::SystemMessage};
 
 /// Envelope type that stores priority and channel information for messages.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PriorityEnvelope<M> {
   message:        M,
   priority:       i8,

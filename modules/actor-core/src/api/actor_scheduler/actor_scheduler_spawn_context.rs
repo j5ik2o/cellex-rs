@@ -1,13 +1,14 @@
 use alloc::boxed::Box;
 
 use cellex_utils_core_rs::{sync::ArcShared, Element};
+use spin::RwLock;
 
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ChildNaming},
     actor_system::map_system::MapSystemShared,
     mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
-    process::process_registry::ProcessRegistry,
+    process::{pid::Pid, process_registry::ProcessRegistry},
   },
   internal::context::ActorHandlerFn,
 };
@@ -34,5 +35,7 @@ where
   /// Naming strategy to apply when registering the child actor.
   pub child_naming:           ChildNaming,
   /// Process registry used to register and resolve actor PIDs.
-  pub process_registry:       ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, PriorityEnvelope<M>>>,
+  pub process_registry:       ArcShared<ProcessRegistry<PriorityActorRef<M, MF>, ArcShared<PriorityEnvelope<M>>>>,
+  /// Slot where the assigned PID will be recorded.
+  pub actor_pid_slot:         ArcShared<RwLock<Option<Pid>>>,
 }
