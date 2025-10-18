@@ -159,6 +159,12 @@ where
     self.inner.watchers()
   }
 
+  /// Returns the current processing priority if the actor is executing within a priority context.
+  #[must_use]
+  pub fn current_priority(&self) -> Option<i8> {
+    self.inner.current_priority()
+  }
+
   /// Gets the PID representing this actor.
   #[must_use]
   pub fn self_pid(&self) -> &Pid {

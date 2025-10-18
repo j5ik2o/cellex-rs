@@ -1,3 +1,4 @@
+#![cfg(feature = "std")]
 #![allow(deprecated, unused_imports)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]

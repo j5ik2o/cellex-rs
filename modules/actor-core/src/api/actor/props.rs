@@ -10,7 +10,7 @@ use super::{
 };
 use crate::{
   api::{
-    actor::{behavior::SupervisorStrategyConfig},
+    actor::behavior::SupervisorStrategyConfig,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope, SystemMessage},
     messaging::{DynMessage, MetadataStorageMode},

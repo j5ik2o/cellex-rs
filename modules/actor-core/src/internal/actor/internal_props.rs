@@ -50,8 +50,7 @@ where
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
-  MailboxConcurrencyOf<AR>: MetadataStorageMode,
-{
+  MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   InternalProps::new(options, map_system, move |ctx, message| {
     let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
       panic!("unexpected message type delivered to typed handler");
