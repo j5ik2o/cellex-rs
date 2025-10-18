@@ -15,29 +15,29 @@ use crate::internal::scheduler::SpawnError;
 use cellex_utils_core_rs::sync::Shared;
 use cellex_utils_core_rs::{Element, QueueError};
 
-pub(crate) struct InternalRootContext<'a, M, R, Strat>
+pub(crate) struct InternalRootContext<'a, M, AR, Strat>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<R>>, {
-  pub(super) system: &'a mut InternalActorSystem<M, R, Strat>,
+  AR: ActorRuntime + Clone + 'static,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<AR>>, {
+  pub(super) system: &'a mut InternalActorSystem<M, AR, Strat>,
 }
 
-impl<'a, M, R, Strat> InternalRootContext<'a, M, R, Strat>
+impl<'a, M, AR, Strat> InternalRootContext<'a, M, AR, Strat>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<R>>,
+  AR: ActorRuntime + Clone + 'static,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<AR>>,
 {
   #[allow(dead_code)]
   pub fn spawn(
     &mut self,
-    props: InternalProps<M, MailboxOf<R>>,
-  ) -> Result<PriorityActorRef<M, MailboxOf<R>>, SpawnError<M>> {
+    props: InternalProps<M, MailboxOf<AR>>,
+  ) -> Result<PriorityActorRef<M, MailboxOf<AR>>, SpawnError<M>> {
     self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto)
   }
 
@@ -45,9 +45,9 @@ where
   pub fn spawn_with_supervisor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    props: InternalProps<M, MailboxOf<R>>,
+    props: InternalProps<M, MailboxOf<AR>>,
     child_naming: ChildNaming,
-  ) -> Result<PriorityActorRef<M, MailboxOf<R>>, SpawnError<M>> {
+  ) -> Result<PriorityActorRef<M, MailboxOf<AR>>, SpawnError<M>> {
     let InternalProps {
       options,
       map_system,

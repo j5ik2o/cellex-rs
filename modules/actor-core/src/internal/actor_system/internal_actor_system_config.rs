@@ -13,19 +13,19 @@ use crate::api::supervision::telemetry::TelemetryObservationConfig;
 use cellex_utils_core_rs::Element;
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
-pub struct InternalActorSystemConfig<M, R>
+pub struct InternalActorSystemConfig<M, AR>
 where
   M: Element,
-  R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxFactory + Clone,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone, {
+  AR: ActorRuntime + Clone,
+  MailboxOf<AR>: MailboxFactory + Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
   pub(crate) root_event_listener: Option<FailureEventListener>,
   /// Escalation handler invoked when failures bubble to the root guardian.
   pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
-  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MailboxOf<R>>>,
+  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MailboxOf<AR>>>,
   /// Metrics sink shared across the actor runtime.
   pub(crate) metrics_sink: Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
@@ -36,13 +36,13 @@ where
   pub(crate) root_observation_config: TelemetryObservationConfig,
 }
 
-impl<M, R> Default for InternalActorSystemConfig<M, R>
+impl<M, AR> Default for InternalActorSystemConfig<M, AR>
 where
   M: Element,
-  R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxFactory + Clone,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
+  AR: ActorRuntime + Clone,
+  MailboxOf<AR>: MailboxFactory + Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
 {
   fn default() -> Self {
     Self {

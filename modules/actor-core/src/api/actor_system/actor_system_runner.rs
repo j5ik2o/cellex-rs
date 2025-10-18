@@ -16,25 +16,25 @@ use core::num::NonZeroUsize;
 /// Execution runner for the actor system.
 ///
 /// Wraps `ActorSystem` and provides an interface for execution on an asynchronous runtime.
-pub struct ActorSystemRunner<U, R, Strat = AlwaysRestart>
+pub struct ActorSystemRunner<U, AR, Strat = AlwaysRestart>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
-  pub(crate) system: ActorSystem<U, R, Strat>,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
+  pub(crate) system: ActorSystem<U, AR, Strat>,
   pub(crate) ready_queue_worker_count: NonZeroUsize,
   pub(crate) _marker: PhantomData<U>,
 }
 
-impl<U, R, Strat> ActorSystemRunner<U, R, Strat>
+impl<U, AR, Strat> ActorSystemRunner<U, AR, Strat>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
 {
   /// Gets the number of ReadyQueue workers to spawn when driving the system.
   #[must_use]
@@ -56,7 +56,7 @@ where
 
   /// Returns a ReadyQueue worker handle if supported by the underlying scheduler.
   #[must_use]
-  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<R>>>> {
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>> {
     self.system.ready_queue_worker()
   }
 
@@ -98,7 +98,7 @@ where
   ///
   /// # Returns
   /// Internal actor system
-  pub fn into_inner(self) -> ActorSystem<U, R, Strat> {
+  pub fn into_inner(self) -> ActorSystem<U, AR, Strat> {
     self.system
   }
 }

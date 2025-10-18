@@ -15,18 +15,18 @@ use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
 
-pub(crate) struct InternalActorSystem<M, R, Strat = AlwaysRestart>
+pub(crate) struct InternalActorSystem<M, AR, Strat = AlwaysRestart>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<R>>, {
-  pub(super) scheduler: SchedulerHandle<M, MailboxOf<R>>,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<AR>>, {
+  pub(super) scheduler: SchedulerHandle<M, MailboxOf<AR>>,
   #[allow(dead_code)]
-  pub(super) actor_runtime_shared: ArcShared<R>,
-  pub(super) mailbox_factory_shared: ArcShared<MailboxOf<R>>,
+  pub(super) actor_runtime_shared: ArcShared<AR>,
+  pub(super) mailbox_factory_shared: ArcShared<MailboxOf<AR>>,
   extensions: Extensions,
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
@@ -34,27 +34,27 @@ where
 }
 
 #[allow(dead_code)]
-impl<M, R> InternalActorSystem<M, R, AlwaysRestart>
+impl<M, AR> InternalActorSystem<M, AR, AlwaysRestart>
 where
   M: Element,
-  R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxFactory + Clone,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
+  AR: ActorRuntime + Clone,
+  MailboxOf<AR>: MailboxFactory + Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
 {
-  pub fn new(actor_runtime: R) -> Self {
+  pub fn new(actor_runtime: AR) -> Self {
     Self::new_with_config(actor_runtime, InternalActorSystemConfig::default())
   }
 
-  pub fn new_with_config(actor_runtime: R, config: InternalActorSystemConfig<M, R>) -> Self {
-    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, MailboxOf<R>>::ready_queue());
+  pub fn new_with_config(actor_runtime: AR, config: InternalActorSystemConfig<M, AR>) -> Self {
+    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, MailboxOf<AR>>::ready_queue());
     Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, config)
   }
 
   pub fn new_with_settings_and_builder(
-    actor_runtime: R,
-    scheduler_builder: &ArcShared<SchedulerBuilder<M, MailboxOf<R>>>,
-    config: InternalActorSystemConfig<M, R>,
+    actor_runtime: AR,
+    scheduler_builder: &ArcShared<SchedulerBuilder<M, MailboxOf<AR>>>,
+    config: InternalActorSystemConfig<M, AR>,
   ) -> Self {
     let InternalActorSystemConfig {
       root_event_listener,
@@ -86,17 +86,17 @@ where
   }
 }
 
-impl<M, R, Strat> InternalActorSystem<M, R, Strat>
+impl<M, AR, Strat> InternalActorSystem<M, AR, Strat>
 where
   M: Element,
-  R: ActorRuntime + Clone,
-  MailboxOf<R>: MailboxFactory + Clone,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<R>>,
+  AR: ActorRuntime + Clone,
+  MailboxOf<AR>: MailboxFactory + Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<AR>>,
 {
   #[allow(clippy::missing_const_for_fn)]
-  pub fn root_context(&mut self) -> InternalRootContext<'_, M, R, Strat> {
+  pub fn root_context(&mut self) -> InternalRootContext<'_, M, AR, Strat> {
     InternalRootContext { system: self }
   }
 
@@ -142,7 +142,7 @@ where
   }
 
   #[must_use]
-  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MailboxOf<R>>>> {
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MailboxOf<AR>>>> {
     self.scheduler.ready_queue_worker()
   }
 

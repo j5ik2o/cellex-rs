@@ -15,15 +15,15 @@ use core::marker::PhantomData;
 /// Used to send user messages and system messages to the mailbox,
 /// and to receive responses via `ask`-style APIs.
 #[derive(Clone)]
-pub struct ActorRef<U, R>
+pub struct ActorRef<U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode, {
-  inner: PriorityActorRef<DynMessage, MailboxOf<R>>,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode, {
+  inner: PriorityActorRef<DynMessage, MailboxOf<AR>>,
   _marker: PhantomData<U>,
 }
 

@@ -45,38 +45,39 @@ pub(super) type SetupFn<U, R> =
   dyn for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static;
 
 /// Typed Behavior representation. Equivalent to Akka/Pekko Typed's `Behavior`.
-pub enum Behavior<U, R>
+pub enum Behavior<U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
   /// Message receiving state
-  Receive(BehaviorState<U, R>),
+  Receive(BehaviorState<U, AR>),
   /// Execute setup processing to generate Behavior
   Setup {
     /// Initialization callback (returns Result).
-    init: Option<ArcShared<SetupFn<U, R>>>,
+    init: Option<ArcShared<SetupFn<U, AR>>>,
     /// Signal handler retained across behavior transitions.
-    signal: Option<ArcShared<SignalFn<U, R>>>,
+    signal: Option<ArcShared<SignalFn<U, AR>>>,
   },
   /// Stopped state
   Stopped,
 }
 
-impl<U, R> Behavior<U, R>
+impl<U, AR> Behavior<U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Constructs a `Behavior` with specified message receive handler.
   #[must_use]
   pub fn receive<F>(mut handler: F) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static,
+    F:
+      for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure> + 'static,
   {
     Self::Receive(BehaviorState::new(
       Box::new(move |ctx, msg| handler(ctx, msg)),
@@ -88,7 +89,7 @@ where
   #[must_use]
   pub fn stateless<F>(mut handler: F) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<(), ActorFailure> + 'static, {
+    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
     Self::receive(move |ctx, msg| {
       handler(ctx, msg)?;
       Ok(BehaviorDirective::Same)
@@ -99,7 +100,7 @@ where
   #[must_use]
   pub fn receive_message<F>(mut handler: F) -> Self
   where
-    F: FnMut(U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static, {
+    F: FnMut(U) -> Result<BehaviorDirective<U, AR>, ActorFailure> + 'static, {
     Self::receive(move |_, msg| handler(msg))
   }
 
@@ -112,8 +113,8 @@ where
   /// Executes setup processing to generate Behavior.
   pub fn setup<F>(init: F) -> Self
   where
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static, {
-    let handler = ArcShared::new(init).into_dyn(|inner| inner as &SetupFn<U, R>);
+    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
+    let handler = ArcShared::new(init).into_dyn(|inner| inner as &SetupFn<U, AR>);
     Self::Setup {
       init: Some(handler),
       signal: None,
@@ -131,12 +132,12 @@ where
   /// Adds a signal handler.
   pub fn receive_signal<F>(self, handler: F) -> Self
   where
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static, {
-    let handler = ArcShared::new(handler).into_dyn(|inner| inner as &SignalFn<U, R>);
+    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, AR>, Signal) -> BehaviorDirective<U, AR> + 'static, {
+    let handler = ArcShared::new(handler).into_dyn(|inner| inner as &SignalFn<U, AR>);
     self.attach_signal_arc(Some(handler))
   }
 
-  pub(super) fn attach_signal_arc(mut self, handler: Option<ArcShared<SignalFn<U, R>>>) -> Self {
+  pub(super) fn attach_signal_arc(mut self, handler: Option<ArcShared<SignalFn<U, AR>>>) -> Self {
     if let Some(handler) = handler {
       match &mut self {
         Behavior::Receive(state) => {

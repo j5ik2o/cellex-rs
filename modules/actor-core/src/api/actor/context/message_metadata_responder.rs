@@ -11,31 +11,31 @@ use crate::RuntimeBound;
 use cellex_utils_core_rs::Element;
 
 /// Trait allowing message metadata to respond to the original sender.
-pub trait MessageMetadataResponder<R>
+pub trait MessageMetadataResponder<AR>
 where
-  R: ActorRuntime,
-  MailboxOf<R>: MailboxFactory + Clone + 'static, {
+  AR: ActorRuntime,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static, {
   /// Sends a response message back to the original sender.
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element;
 }
 
-impl<R> MessageMetadataResponder<R> for MessageMetadata<MailboxConcurrencyOf<R>>
+impl<AR> MessageMetadataResponder<AR> for MessageMetadata<MailboxConcurrencyOf<AR>>
 where
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-  MailboxSignalOf<R>: Clone + RuntimeBound + 'static,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+  MailboxSignalOf<AR>: Clone + RuntimeBound + 'static,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element, {
     let dispatcher = self.dispatcher_for::<Resp>().ok_or(AskError::MissingResponder)?;
-    let dispatch_metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_sender(ctx.self_dispatcher());
+    let dispatch_metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(ctx.self_dispatcher());
     let envelope = MessageEnvelope::user_with_metadata(message, dispatch_metadata);
     dispatcher.dispatch_envelope(envelope).map_err(AskError::from)
   }

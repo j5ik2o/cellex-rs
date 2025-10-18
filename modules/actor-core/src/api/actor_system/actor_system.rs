@@ -27,26 +27,26 @@ use cellex_utils_core_rs::{Element, QueueError};
 /// Primary instance of the actor system.
 ///
 /// Responsible for actor spawning, management, and message dispatching.
-pub struct ActorSystem<U, R, Strat = AlwaysRestart>
+pub struct ActorSystem<U, AR, Strat = AlwaysRestart>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
-  inner: InternalActorSystem<DynMessage, R, Strat>,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
+  inner: InternalActorSystem<DynMessage, AR, Strat>,
   pub(crate) shutdown: ShutdownToken,
   extensions: Extensions,
   ready_queue_worker_count: NonZeroUsize,
   _marker: PhantomData<U>,
 }
 
-impl<U, R> ActorSystem<U, R>
+impl<U, AR> ActorSystem<U, AR>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
 {
   /// Creates a new actor system with an explicit runtime and configuration.
   ///
@@ -55,7 +55,7 @@ where
   /// This function contains an `expect` call that should never panic in practice,
   /// as it uses `NonZeroUsize::new(1)` which is guaranteed to succeed.
   #[allow(clippy::needless_pass_by_value)]
-  pub fn new_with_actor_runtime(actor_runtime: R, config: ActorSystemConfig<R>) -> Self {
+  pub fn new_with_actor_runtime(actor_runtime: AR, config: ActorSystemConfig<AR>) -> Self {
     let root_listener_from_runtime = actor_runtime.root_event_listener_opt();
     let root_handler_from_runtime = actor_runtime.root_escalation_handler_opt();
     let metrics_from_runtime = actor_runtime.metrics_sink_shared_opt();
@@ -126,7 +126,7 @@ where
   }
 
   /// Creates an actor system using the provided runtime and failure event stream.
-  pub fn new_with_actor_runtime_and_event_stream<E>(actor_runtime: R, event_stream: &E) -> Self
+  pub fn new_with_actor_runtime_and_event_stream<E>(actor_runtime: AR, event_stream: &E) -> Self
   where
     E: FailureEventStream, {
     let config = ActorSystemConfig::default().with_failure_event_listener(Some(event_stream.listener()));
@@ -135,18 +135,18 @@ where
 
   /// Returns a builder that creates an actor system from the provided runtime preset.
   #[must_use]
-  pub fn builder(actor_runtime: R) -> ActorSystemBuilder<U, R> {
+  pub fn builder(actor_runtime: AR) -> ActorSystemBuilder<U, AR> {
     ActorSystemBuilder::new(actor_runtime)
   }
 }
 
-impl<U, R, Strat> ActorSystem<U, R, Strat>
+impl<U, AR, Strat> ActorSystem<U, AR, Strat>
 where
   U: Element,
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
 {
   /// Gets the shutdown token.
   ///
@@ -165,7 +165,7 @@ where
   /// Actor system runner
   #[must_use]
   #[allow(clippy::missing_const_for_fn)]
-  pub fn into_runner(self) -> ActorSystemRunner<U, R, Strat> {
+  pub fn into_runner(self) -> ActorSystemRunner<U, AR, Strat> {
     let ready_queue_worker_count = self.ready_queue_worker_count;
     ActorSystemRunner {
       system: self,
@@ -180,7 +180,7 @@ where
   ///
   /// # Returns
   /// Mutable reference to the root context
-  pub fn root_context(&mut self) -> RootContext<'_, U, R, Strat> {
+  pub fn root_context(&mut self) -> RootContext<'_, U, AR, Strat> {
     RootContext {
       inner: self.inner.root_context(),
       _marker: PhantomData,
@@ -262,7 +262,7 @@ where
 
   /// Returns a ReadyQueue worker handle if supported by the underlying scheduler.
   #[must_use]
-  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<R>>>> {
+  pub fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>> {
     self.inner.ready_queue_worker()
   }
 
