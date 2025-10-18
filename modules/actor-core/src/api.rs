@@ -20,7 +20,7 @@ pub mod metrics;
 /// Receive timeout handling
 pub mod receive_timeout;
 /// Internal schedulers coordinating actor execution and supervision.
-pub mod scheduler;
+pub mod actor_scheduler;
 /// Supervision strategies and failure handling.
 pub mod supervision;
 #[cfg(any(test, feature = "test-support"))]

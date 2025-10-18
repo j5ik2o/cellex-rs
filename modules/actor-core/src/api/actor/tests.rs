@@ -1054,7 +1054,7 @@ mod metrics_injection {
     mailbox::MailboxFactory,
     messaging::DynMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
+    actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
     supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
     test_support::TestMailboxFactory,
   };

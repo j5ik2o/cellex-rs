@@ -11,7 +11,7 @@ use crate::api::{
   mailbox::{MailboxFactory, PriorityEnvelope},
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  scheduler::ActorSchedulerSpawnContext,
+  actor_scheduler::ActorSchedulerSpawnContext,
   supervision::{
     escalation::{FailureEventHandler, FailureEventListener},
     failure::FailureInfo,

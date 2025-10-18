@@ -40,7 +40,7 @@ pub use queue_mailbox_producer::*;
 pub use single_thread::*;
 pub use thread_safe::*;
 
-use crate::api::scheduler::ReadyQueueHandle;
+use crate::api::actor_scheduler::ReadyQueueHandle;
 
 /// Type alias for mailbox and producer pair.
 ///

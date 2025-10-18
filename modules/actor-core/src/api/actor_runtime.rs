@@ -15,7 +15,7 @@ use crate::{
     messaging::DynMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    scheduler::ActorSchedulerHandleBuilder,
+    actor_scheduler::ActorSchedulerHandleBuilder,
     supervision::escalation::{FailureEventHandler, FailureEventListener},
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,

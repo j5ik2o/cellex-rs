@@ -15,7 +15,7 @@ use crate::{
     failure_telemetry::TelemetryContext,
     mailbox::PriorityEnvelope,
     messaging::DynMessage,
-    scheduler::ReadyQueueWorker,
+    actor_scheduler::ReadyQueueWorker,
     supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::{

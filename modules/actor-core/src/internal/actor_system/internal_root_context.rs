@@ -9,7 +9,7 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxOf},
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    scheduler::ActorSchedulerSpawnContext,
+    actor_scheduler::ActorSchedulerSpawnContext,
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::{actor::InternalProps, guardian::GuardianStrategy},

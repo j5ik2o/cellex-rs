@@ -12,7 +12,7 @@ use crate::{
     messaging::DynMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
-    scheduler::ReadyQueueHandle,
+    actor_scheduler::ReadyQueueHandle,
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
   internal::{

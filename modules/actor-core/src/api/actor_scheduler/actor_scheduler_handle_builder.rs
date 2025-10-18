@@ -6,12 +6,12 @@ use cellex_utils_core_rs::{
 };
 
 #[cfg(any(test, feature = "test-support"))]
-use crate::api::scheduler::immediate_scheduler::ImmediateScheduler;
+use crate::api::actor_scheduler::immediate_scheduler::ImmediateScheduler;
 use crate::{
   api::{
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    scheduler::{
+    actor_scheduler::{
       actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
       ActorSchedulerHandleFactoryFn,
     },

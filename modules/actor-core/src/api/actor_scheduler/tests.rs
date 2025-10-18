@@ -33,7 +33,7 @@ use crate::{
     mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
     messaging::DynMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    scheduler::{
+    actor_scheduler::{
       actor_scheduler::ActorScheduler,
       actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},

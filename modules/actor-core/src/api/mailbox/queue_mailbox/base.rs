@@ -7,7 +7,7 @@ use crate::api::{
     queue_mailbox_producer::QueueMailboxProducer, Mailbox,
   },
   metrics::{MetricsEvent, MetricsSinkShared},
-  scheduler::ReadyQueueHandle,
+  actor_scheduler::ReadyQueueHandle,
 };
 
 /// Mailbox implementation backed by a generic queue and notification signal.

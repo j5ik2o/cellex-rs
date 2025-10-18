@@ -3,7 +3,7 @@ use cellex_utils_core_rs::sync::{ArcShared, Shared};
 use crate::api::{
   mailbox::{MailboxFactory, PriorityEnvelope},
   messaging::DynMessage,
-  scheduler::ActorSchedulerHandleBuilder,
+  actor_scheduler::ActorSchedulerHandleBuilder,
 };
 
 /// Internal state container for `GenericActorRuntime`.

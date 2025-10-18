@@ -10,7 +10,7 @@ use crate::{
       NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
       ReceiveTimeoutSchedulerFactoryShared,
     },
-    scheduler::ActorSchedulerHandleBuilder,
+    actor_scheduler::ActorSchedulerHandleBuilder,
     supervision::escalation::{FailureEventHandler, FailureEventListener},
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},

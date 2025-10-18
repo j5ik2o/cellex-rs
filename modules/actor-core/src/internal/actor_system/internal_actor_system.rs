@@ -12,7 +12,7 @@ use crate::{
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
-    scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
+    actor_scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
   },
   internal::{
     actor_system::internal_actor_system_config::InternalActorSystemConfig,

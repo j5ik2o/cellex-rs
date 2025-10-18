@@ -1,4 +1,4 @@
-use crate::api::{extensions::Extensions, scheduler::actor_scheduler_handle::ActorSchedulerHandle};
+use crate::api::{extensions::Extensions, actor_scheduler::actor_scheduler_handle::ActorSchedulerHandle};
 
 /// Type alias for factory closures that produce [`ActorSchedulerHandle`] values.
 #[cfg(target_has_atomic = "ptr")]

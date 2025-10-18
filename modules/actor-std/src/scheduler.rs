@@ -10,7 +10,7 @@ use cellex_actor_core_rs::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    scheduler::{
+    actor_scheduler::{
       ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext, ReadyQueueScheduler, ReadyQueueWorker,
     },
     supervision::{

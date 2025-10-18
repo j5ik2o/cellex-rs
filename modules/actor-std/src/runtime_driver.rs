@@ -6,7 +6,7 @@ use cellex_actor_core_rs::api::{
   actor_system::ActorSystemRunner,
   mailbox::PriorityEnvelope,
   messaging::DynMessage,
-  scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+  actor_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
 };
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use futures::future::select_all;

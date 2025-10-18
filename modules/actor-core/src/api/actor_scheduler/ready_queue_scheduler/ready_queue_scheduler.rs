@@ -23,7 +23,7 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorSchedulerSpawnContext},
+    actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorSchedulerSpawnContext},
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,

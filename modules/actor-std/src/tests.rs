@@ -10,7 +10,7 @@ use cellex_actor_core_rs::{
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::ActorSchedulerSpawnContext,
+    actor_scheduler::ActorSchedulerSpawnContext,
     supervision::supervisor::NoopSupervisor,
   },
 };

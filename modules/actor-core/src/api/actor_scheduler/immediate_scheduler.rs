@@ -13,7 +13,7 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::{
+    actor_scheduler::{
       actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, ActorSchedulerSpawnContext,
     },
     supervision::{
