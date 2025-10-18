@@ -46,10 +46,7 @@ use crate::{
     supervision::{escalation::FailureEventListener, failure::FailureEvent},
     test_support::TestMailboxFactory,
   },
-  internal::{
-    guardian::AlwaysRestart,
-    message::{take_metadata, InternalMessageSender},
-  },
+  internal::{guardian::AlwaysRestart, message::InternalMessageSender},
 };
 
 type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
@@ -364,6 +361,12 @@ type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEn
 #[cfg(not(target_has_atomic = "ptr"))]
 type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
 
+#[cfg(target_has_atomic = "ptr")]
+type TestDropHookFn = dyn Fn() + Send + Sync;
+
+#[cfg(not(target_has_atomic = "ptr"))]
+type TestDropHookFn = dyn Fn();
+
 fn noop_sender<M>() -> MessageSender<M, ThreadSafe>
 where
   M: Element, {
@@ -573,27 +576,43 @@ fn test_typed_actor_handles_system_stop() {
 }
 
 #[test]
-fn user_message_releases_metadata_on_drop() {
-  let metadata = MessageMetadata::<ThreadSafe>::new().with_sender(noop_sender::<ParentMessage>());
-  let envelope = MessageEnvelope::user_with_metadata(ParentMessage("ping".into()), metadata);
-  let key = match &envelope {
-    | MessageEnvelope::User(user) => user.metadata_key().expect("metadata key expected"),
-    | MessageEnvelope::System(_) => unreachable!(),
-  };
-  drop(envelope);
-  assert!(take_metadata::<ThreadSafe>(key).is_none(), "metadata key should be released on drop");
+fn user_message_drops_metadata_on_drop() {
+  use core::sync::atomic::{AtomicUsize, Ordering};
+
+  let drop_counter = StdArc::new(AtomicUsize::new(0));
+  let drop_counter_clone = StdArc::clone(&drop_counter);
+
+  let dispatch_impl: Arc<NoopDispatchFn> = Arc::new(|_message, _priority| Ok(()));
+  let dispatch = ArcShared::from_arc_for_testing_dont_use_production(dispatch_impl);
+
+  let drop_hook_impl: Arc<TestDropHookFn> = Arc::new(move || {
+    let _ = drop_counter_clone.fetch_add(1, Ordering::SeqCst);
+  });
+  let drop_hook = ArcShared::from_arc_for_testing_dont_use_production(drop_hook_impl);
+
+  let internal = InternalMessageSender::with_drop_hook(dispatch, drop_hook);
+  let metadata = MessageMetadata::<ThreadSafe>::new()
+    .with_sender(MessageSender::<ParentMessage, ThreadSafe>::from_internal(internal));
+
+  drop(MessageEnvelope::user_with_metadata(ParentMessage("ping".into()), metadata));
+
+  assert_eq!(drop_counter.load(Ordering::SeqCst), 1, "drop hook should be triggered exactly once");
 }
 
 #[test]
-fn metadata_key_consumed_once() {
+fn metadata_restored_through_into_parts() {
   let metadata = MessageMetadata::<ThreadSafe>::new().with_sender(noop_sender::<ParentMessage>());
   let envelope = MessageEnvelope::user_with_metadata(ParentMessage("pong".into()), metadata);
-  let key = match envelope {
-    | MessageEnvelope::User(user) => user.into_parts().1.expect("metadata key expected"),
+  let restored = match envelope {
+    | MessageEnvelope::User(user) => {
+      let (message, metadata) = user.into_parts::<ThreadSafe>();
+      assert_eq!(message.0, "pong");
+      metadata.expect("metadata expected")
+    },
     | MessageEnvelope::System(_) => unreachable!(),
   };
-  assert!(take_metadata::<ThreadSafe>(key).is_some());
-  assert!(take_metadata::<ThreadSafe>(key).is_none());
+
+  assert!(restored.sender_as::<ParentMessage>().is_some(), "sender metadata should be preserved");
 }
 
 #[test]

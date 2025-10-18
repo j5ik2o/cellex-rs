@@ -16,7 +16,7 @@ use crate::{
     messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
     supervision::supervisor::Supervisor,
   },
-  internal::{actor::InternalProps, context::ActorContext, message::take_metadata},
+  internal::{actor::InternalProps, context::ActorContext},
 };
 
 /// Properties that hold configuration for actor spawning.
@@ -136,8 +136,8 @@ where
       };
       match envelope {
         | MessageEnvelope::User(user) => {
-          let (message, metadata_key) = user.into_parts();
-          let metadata = metadata_key.and_then(take_metadata::<MailboxConcurrencyOf<AR>>).unwrap_or_default();
+          let (message, metadata) = user.into_parts::<MailboxConcurrencyOf<AR>>();
+          let metadata = metadata.unwrap_or_default();
           let mut typed_ctx = Context::with_metadata(ctx, metadata);
           adapter.handle_user(&mut typed_ctx, message)?;
           Ok(())

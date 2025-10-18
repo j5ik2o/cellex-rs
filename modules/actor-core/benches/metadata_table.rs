@@ -13,7 +13,7 @@ use cellex_actor_core_rs::{
     mailbox::{PriorityEnvelope, SingleThread, ThreadSafe},
     messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
   },
-  internal::message::{take_metadata, InternalMessageSender},
+  internal::message::InternalMessageSender,
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
@@ -54,17 +54,14 @@ fn bench_side_table(c: &mut Criterion) {
 fn bench_mode<C>(group: &mut criterion::BenchmarkGroup<'_, criterion::measurement::WallTime>, label: &str)
 where
   C: MetadataStorageMode, {
-  group.bench_function(BenchmarkId::new(label, "side_table"), |b| {
+  group.bench_function(BenchmarkId::new(label, "local_store"), |b| {
     b.iter(|| {
       let metadata = sample_metadata::<u32, C>();
       let envelope = MessageEnvelope::user_with_metadata(black_box(42_u32), metadata);
       if let MessageEnvelope::User(user) = envelope {
-        let (message, key) = user.into_parts();
+        let (message, metadata) = user.into_parts::<C>();
         black_box(message);
-        if let Some(key) = key {
-          let metadata = take_metadata::<C>(key).expect("metadata present");
-          black_box(metadata);
-        }
+        black_box(metadata);
       }
     });
   });

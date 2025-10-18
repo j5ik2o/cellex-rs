@@ -16,11 +16,8 @@ use core::future::Future;
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use crate::{
-  api::{
-    mailbox::MailboxConcurrency,
-    messaging::{DynMessage, MessageEnvelope, MessageSender},
-  },
-  internal::message::{discard_metadata, InternalMessageSender},
+  api::messaging::{DynMessage, MessageEnvelope, MessageSender, MetadataStorageMode},
+  internal::message::InternalMessageSender,
 };
 
 /// Helper function to create an `AskFuture` with timeout.
@@ -32,10 +29,10 @@ where
 }
 
 /// Creates a Future and responder pair for the `ask` pattern (internal API).
-pub(crate) fn create_ask_handles<Resp, C>() -> (AskFuture<Resp>, MessageSender<Resp, C>)
+pub(crate) fn create_ask_handles<Resp, Mode>() -> (AskFuture<Resp>, MessageSender<Resp, Mode>)
 where
   Resp: Element,
-  C: MailboxConcurrency, {
+  Mode: MetadataStorageMode, {
   let shared = ArcShared::new(AskShared::<Resp>::new());
   let future = AskFuture::new(shared.clone());
   let dispatch_state = shared.clone();
@@ -47,10 +44,7 @@ where
     };
     match envelope {
       | MessageEnvelope::User(user) => {
-        let (value, metadata_key) = user.into_parts();
-        if let Some(key) = metadata_key {
-          discard_metadata(key);
-        }
+        let (value, _metadata) = user.into_parts::<Mode>();
         if !dispatch_state.complete(value) {
           // response already handled
         }
@@ -68,7 +62,7 @@ where
   })
   .into_dyn(|f| f as &DropHookFn);
 
-  let internal = InternalMessageSender::<C>::with_drop_hook(dispatch, drop_hook);
+  let internal = InternalMessageSender::<Mode>::with_drop_hook(dispatch, drop_hook);
   let responder = MessageSender::new(internal);
   (future, responder)
 }
