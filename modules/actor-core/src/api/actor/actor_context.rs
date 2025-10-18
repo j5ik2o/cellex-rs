@@ -3,7 +3,7 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, marker::PhantomData, time::Duration};
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, QueueSize};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use spin::RwLock;
 
 use crate::{
@@ -180,29 +180,6 @@ where
     actor_ref
   }
 
-  pub(crate) fn spawn_child<F, S>(
-    &mut self,
-    supervisor: S,
-    options: MailboxOptions,
-    handler: F,
-    pid_slot: ArcShared<RwLock<Option<Pid>>>,
-  ) -> PriorityActorRef<M, MF>
-  where
-    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) + 'static,
-    S: Supervisor<M> + 'static, {
-    let mut handler = handler;
-    self.enqueue_spawn(
-      Box::new(supervisor),
-      options,
-      self.map_system.clone(),
-      Box::new(move |ctx, message| {
-        handler(ctx, message);
-        Ok(())
-      }),
-      pid_slot,
-    )
-  }
-
   pub(crate) fn spawn_child_from_props(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
@@ -213,16 +190,6 @@ where
     MF: MailboxFactory + Clone + 'static, {
     let InternalProps { options, map_system, handler } = props;
     self.enqueue_spawn(supervisor, options, map_system, handler, pid_slot)
-  }
-
-  #[allow(dead_code)]
-  pub(crate) fn spawn_control_child<F, S>(&mut self, supervisor: S, handler: F) -> PriorityActorRef<M, MF>
-  where
-    F: for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) + 'static,
-    S: Supervisor<M> + 'static, {
-    let options = MailboxOptions::default().with_priority_capacity(QueueSize::limitless());
-    let pid_slot = ArcShared::new(RwLock::new(None));
-    self.spawn_child(supervisor, options, handler, pid_slot)
   }
 
   pub fn current_priority(&self) -> Option<i8> {

@@ -72,7 +72,7 @@ where
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>) -> Self {
+  pub(crate) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>) -> Self {
     let extensions = inner.extensions();
     Self { inner, metadata: None, extensions, _marker: PhantomData }
   }
