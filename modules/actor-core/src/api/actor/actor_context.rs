@@ -1,13 +1,14 @@
+#![allow(missing_docs)]
+
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, marker::PhantomData, time::Duration};
 
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, QueueSize};
 use spin::RwLock;
 
-use super::ChildSpawnSpec;
 use crate::{
   api::{
-    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming},
+    actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, ChildNaming},
     actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
@@ -15,12 +16,9 @@ use crate::{
     receive_timeout::ReceiveTimeoutScheduler,
     supervision::supervisor::Supervisor,
   },
-  internal::{actor::InternalProps, mailbox::PriorityMailboxSpawnerHandle},
+  internal::{actor::InternalProps, context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
 };
 
-/// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
-pub type ActorHandlerFn<M, MF> =
-  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) -> Result<(), ActorFailure> + 'static;
 /// Context for actors to operate on themselves and child actors.
 pub struct ActorContext<'a, M, MF, Sup>
 where
@@ -104,11 +102,11 @@ where
     self.mailbox_factory
   }
 
-  pub fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<M, MF> {
+  pub(crate) fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<M, MF> {
     &self.mailbox_spawner
   }
 
-  pub fn supervisor(&mut self) -> &mut Sup {
+  pub(crate) fn supervisor(&mut self) -> &mut Sup {
     self.supervisor
   }
 

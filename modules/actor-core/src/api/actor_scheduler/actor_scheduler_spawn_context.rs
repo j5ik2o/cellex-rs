@@ -3,14 +3,11 @@ use alloc::boxed::Box;
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 use spin::RwLock;
 
-use crate::{
-  api::{
-    actor::{actor_ref::PriorityActorRef, ChildNaming},
-    actor_system::map_system::MapSystemShared,
-    mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
-    process::{pid::Pid, process_registry::ProcessRegistry},
-  },
-  internal::context::ActorHandlerFn,
+use crate::api::{
+  actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ChildNaming},
+  actor_system::map_system::MapSystemShared,
+  mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
+  process::{pid::Pid, process_registry::ProcessRegistry},
 };
 
 /// Parameters supplied to schedulers when spawning a new actor.

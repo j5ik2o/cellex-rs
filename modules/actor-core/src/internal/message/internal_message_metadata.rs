@@ -8,7 +8,7 @@ use crate::{
 
 /// Metadata accompanying a message (internal representation).
 #[derive(Debug, Clone)]
-pub struct InternalMessageMetadata<C: MailboxConcurrency = ThreadSafe> {
+pub(crate) struct InternalMessageMetadata<C: MailboxConcurrency = ThreadSafe> {
   pub(crate) sender:        Option<InternalMessageSender<C>>,
   pub(crate) responder:     Option<InternalMessageSender<C>>,
   pub(crate) sender_pid:    Option<Pid>,

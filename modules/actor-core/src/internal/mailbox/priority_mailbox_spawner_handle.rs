@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// Shared handle that can spawn priority mailboxes without exposing the underlying factory.
-pub struct PriorityMailboxSpawnerHandle<M, B>
+pub(crate) struct PriorityMailboxSpawnerHandle<M, B>
 where
   M: Element,
   B: PriorityMailboxBuilder<M>, {

@@ -22,7 +22,6 @@ use crate::{
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
-  internal::context::ActorContext,
   RuntimeBound,
 };
 
@@ -36,7 +35,7 @@ pub use context_logger::ContextLogger;
 pub use message_adapter_ref::MessageAdapterRef;
 pub use message_metadata_responder::MessageMetadataResponder;
 
-use crate::api::actor::{actor_id::ActorId, actor_path::ActorPath};
+use crate::api::actor::{actor_context::ActorContext, actor_id::ActorId, actor_path::ActorPath};
 
 #[cfg(target_has_atomic = "ptr")]
 pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;

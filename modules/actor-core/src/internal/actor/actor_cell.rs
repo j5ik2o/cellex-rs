@@ -5,7 +5,10 @@ use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
 
 use crate::{
   api::{
-    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, SpawnError},
+    actor::{
+      actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorContext, ActorHandlerFn, ActorId, ActorPath,
+      SpawnError,
+    },
     actor_scheduler::ReadyQueueHandle,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
@@ -17,7 +20,7 @@ use crate::{
     supervision::{failure::FailureInfo, supervisor::Supervisor},
   },
   internal::{
-    context::{ActorContext, ActorHandlerFn, ChildSpawnSpec},
+    context::ChildSpawnSpec,
     guardian::{Guardian, GuardianStrategy},
     mailbox::PriorityMailboxSpawnerHandle,
   },

@@ -3,10 +3,9 @@ use alloc::{boxed::Box, vec::Vec};
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 use spin::RwLock;
 
-use super::ActorHandlerFn;
 use crate::{
   api::{
-    actor::{ActorId, ActorPath, ChildNaming},
+    actor::{ActorHandlerFn, ActorId, ActorPath, ChildNaming},
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
@@ -17,7 +16,7 @@ use crate::{
 };
 
 /// Information required when spawning child actors.
-pub struct ChildSpawnSpec<M, MF>
+pub(crate) struct ChildSpawnSpec<M, MF>
 where
   M: Element,
   MF: MailboxFactory + Clone, {

@@ -1,5 +1,6 @@
 //! Actor API aggregation module.
 
+mod actor_context;
 /// Actor failure information
 pub mod actor_failure;
 mod actor_id;
@@ -27,6 +28,7 @@ mod spawn_error;
 mod tests;
 mod timer;
 
+pub use actor_context::ActorContext;
 pub use actor_id::ActorId;
 pub use actor_path::ActorPath;
 pub use child_naming::ChildNaming;
@@ -34,3 +36,9 @@ pub use props::Props;
 pub use spawn::Spawn;
 pub use spawn_error::SpawnError;
 pub use timer::Timer;
+
+use crate::api::{actor::actor_failure::ActorFailure, supervision::supervisor::Supervisor};
+
+/// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
+pub type ActorHandlerFn<M, MF> =
+  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, M, MF, dyn Supervisor<M>>, M) -> Result<(), ActorFailure> + 'static;

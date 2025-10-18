@@ -3,7 +3,9 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use core::cell::{Cell, RefCell};
+use core::cell::RefCell;
+#[cfg(feature = "std")]
+use std::cell::Cell;
 #[cfg(feature = "std")]
 use std::collections::VecDeque;
 #[cfg(feature = "std")]
@@ -26,8 +28,8 @@ use crate::api::supervision::supervisor::SupervisorDirective;
 use crate::{
   api::{
     actor::{
-      actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, shutdown_token::ShutdownToken, ActorId, ChildNaming,
-      SpawnError,
+      actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, shutdown_token::ShutdownToken, ActorContext,
+      ActorHandlerFn, ActorId, ChildNaming, SpawnError,
     },
     actor_scheduler::{
       actor_scheduler::ActorScheduler,
@@ -51,10 +53,7 @@ use crate::{
     },
     test_support::TestMailboxFactory,
   },
-  internal::{
-    context::{ActorContext, ActorHandlerFn},
-    guardian::{AlwaysRestart, GuardianStrategy},
-  },
+  internal::guardian::{AlwaysRestart, GuardianStrategy},
 };
 
 #[cfg(feature = "std")]

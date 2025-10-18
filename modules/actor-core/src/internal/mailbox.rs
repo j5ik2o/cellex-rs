@@ -1,7 +1,7 @@
 mod priority_mailbox_builder;
-mod spawner;
+mod priority_mailbox_spawner_handle;
 #[cfg(test)]
 mod tests;
 
 pub(crate) use priority_mailbox_builder::PriorityMailboxBuilder;
-pub use spawner::PriorityMailboxSpawnerHandle;
+pub(crate) use priority_mailbox_spawner_handle::PriorityMailboxSpawnerHandle;

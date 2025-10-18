@@ -2,14 +2,11 @@ use alloc::boxed::Box;
 
 use cellex_utils_core_rs::Element;
 
-use crate::{
-  api::{
-    actor::actor_failure::ActorFailure,
-    actor_system::map_system::MapSystemShared,
-    mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
-    supervision::supervisor::Supervisor,
-  },
-  internal::context::{ActorContext, ActorHandlerFn},
+use crate::api::{
+  actor::{actor_failure::ActorFailure, ActorContext, ActorHandlerFn},
+  actor_system::map_system::MapSystemShared,
+  mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
+  supervision::supervisor::Supervisor,
 };
 
 pub(crate) struct InternalProps<M, MF>
