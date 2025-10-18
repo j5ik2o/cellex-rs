@@ -50,7 +50,7 @@ where
     self.mailbox_factory.clone()
   }
 
-  /// Consumes this state and returns the use [`MailboxFactory`];.
+  /// Consumes this state and returns the contained [`MailboxFactory`].
   ///
   /// If the shared handle has other references, clones the runtime.
   #[must_use]
