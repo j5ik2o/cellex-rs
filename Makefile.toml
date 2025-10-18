@@ -72,3 +72,10 @@ description = "Run lifetime regression suite (tests + coverage)"
 workspace = false
 category = "Test"
 dependencies = ["coverage"]
+
+[tasks.cyclomatic]
+description = "Report heuristic cyclomatic complexity for key crates"
+workspace = false
+category = "Lint"
+command = "rust-script"
+args = ["scripts/cyclomatic.rs"]
