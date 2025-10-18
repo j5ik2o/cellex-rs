@@ -23,7 +23,7 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, SchedulerSpawnContext},
+    scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorSchedulerSpawnContext},
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -101,7 +101,7 @@ where
   pub fn spawn_actor_internal(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, MF>,
+    context: ActorSchedulerSpawnContext<M, MF>,
   ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     let (actor_ref, index) = {
       let mut ctx = self.context.lock();
@@ -254,7 +254,7 @@ where
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, MF>,
+    context: ActorSchedulerSpawnContext<M, MF>,
   ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     ReadyQueueScheduler::spawn_actor_internal(self, supervisor, context)
   }

@@ -6,8 +6,11 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     messaging::DynMessage,
     metrics::MetricsSinkShared,
-    receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    scheduler::{NoopReceiveTimeoutSchedulerFactoryProvider, SchedulerBuilder},
+    receive_timeout::{
+      NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
+      ReceiveTimeoutSchedulerFactoryShared,
+    },
+    scheduler::ActorSchedulerHandleBuilder,
     supervision::escalation::{FailureEventHandler, FailureEventListener},
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
@@ -181,21 +184,24 @@ where
 
   /// Overrides the scheduler builder with a concrete value.
   #[must_use]
-  pub fn with_scheduler_builder(mut self, builder: SchedulerBuilder<DynMessage, MF>) -> Self {
+  pub fn with_scheduler_builder(mut self, builder: ActorSchedulerHandleBuilder<DynMessage, MF>) -> Self {
     self.core.set_scheduler_builder(ArcShared::new(builder));
     self
   }
 
   /// Overrides the scheduler builder using a shared handle.
   #[must_use]
-  pub fn with_scheduler_builder_shared(mut self, builder: ArcShared<SchedulerBuilder<DynMessage, MF>>) -> Self {
+  pub fn with_scheduler_builder_shared(
+    mut self,
+    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>>,
+  ) -> Self {
     self.core.set_scheduler_builder(builder);
     self
   }
 
   /// Returns the scheduler builder currently configured for the bundle.
   #[must_use]
-  pub fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, MF>> {
+  pub fn scheduler_builder(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>> {
     self.core.scheduler_builder()
   }
 }
@@ -282,18 +288,18 @@ where
     GenericActorRuntime::priority_mailbox_spawner(self)
   }
 
-  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self::MailboxFactory>) -> Self {
+  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>) -> Self {
     GenericActorRuntime::with_scheduler_builder(self, builder)
   }
 
   fn with_scheduler_builder_shared(
     self,
-    builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>,
+    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>,
   ) -> Self {
     GenericActorRuntime::with_scheduler_builder_shared(self, builder)
   }
 
-  fn scheduler_builder_shared(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>> {
+  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
 }

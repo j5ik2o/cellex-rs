@@ -9,7 +9,7 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxOf},
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    scheduler::SchedulerSpawnContext,
+    scheduler::ActorSchedulerSpawnContext,
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::{actor::InternalProps, guardian::GuardianStrategy},
@@ -52,7 +52,7 @@ where
 
     let mailbox_factory = self.system.mailbox_factory_shared.with_ref(|mailbox| mailbox.clone());
     let mailbox_factory_shared = self.system.mailbox_factory_shared.clone();
-    let context = SchedulerSpawnContext {
+    let context = ActorSchedulerSpawnContext {
       mailbox_factory,
       mailbox_factory_shared,
       map_system,

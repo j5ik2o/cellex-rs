@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use crate::api::scheduler::SchedulerBound;
+use crate::api::receive_timeout::ReceiveTimeoutSchedulerBound;
 
 /// Scheduler abstraction for managing actor `ReceiveTimeout`.
 ///
@@ -8,7 +8,7 @@ use crate::api::scheduler::SchedulerBound;
 /// so that `actor-core` doesn't need to directly handle runtime-dependent timers.
 /// By calling `notify_activity` after user message processing,
 /// the runtime side can re-arm with any implementation (tokio / embedded software timer, etc.).
-pub trait ReceiveTimeoutScheduler: SchedulerBound {
+pub trait ReceiveTimeoutScheduler: ReceiveTimeoutSchedulerBound {
   /// Sets/re-arms the timer with the specified duration.
   fn set(&mut self, duration: Duration);
 

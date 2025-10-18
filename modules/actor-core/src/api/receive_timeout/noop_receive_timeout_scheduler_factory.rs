@@ -5,8 +5,10 @@ use cellex_utils_core_rs::Element;
 use crate::api::{
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory},
-  scheduler::noop_receive_timeout_scheduler::NoopReceiveTimeoutScheduler,
+  receive_timeout::{
+    noop_receive_timeout_scheduler::NoopReceiveTimeoutScheduler, ReceiveTimeoutScheduler,
+    ReceiveTimeoutSchedulerFactory,
+  },
 };
 
 /// Factory that returns [`NoopReceiveTimeoutScheduler`].

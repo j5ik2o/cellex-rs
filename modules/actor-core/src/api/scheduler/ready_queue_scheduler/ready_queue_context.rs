@@ -13,7 +13,7 @@ use crate::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::SchedulerSpawnContext,
+    scheduler::ActorSchedulerSpawnContext,
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -54,7 +54,7 @@ where
   pub(crate) fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, MF>,
+    context: ActorSchedulerSpawnContext<M, MF>,
   ) -> Result<(PriorityActorRef<M, MF>, usize), SpawnError<M>> {
     let actor_ref = self.core.spawn_actor(supervisor, context)?;
     let index = self.core.actor_count().saturating_sub(1);

@@ -12,7 +12,7 @@ use crate::{
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
-    scheduler::{ReadyQueueWorker, SchedulerBuilder, SchedulerHandle},
+    scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
   },
   internal::{
     actor_system::internal_actor_system_config::InternalActorSystemConfig,
@@ -28,7 +28,7 @@ where
   <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<M, MailboxOf<AR>>, {
-  pub(super) scheduler: SchedulerHandle<M, MailboxOf<AR>>,
+  pub(super) scheduler: ActorSchedulerHandle<M, MailboxOf<AR>>,
   #[allow(dead_code)]
   pub(super) actor_runtime_shared: ArcShared<AR>,
   pub(super) mailbox_factory_shared: ArcShared<MailboxOf<AR>>,
@@ -52,13 +52,13 @@ where
   }
 
   pub fn new_with_config(actor_runtime: AR, config: InternalActorSystemConfig<M, AR>) -> Self {
-    let scheduler_builder = ArcShared::new(SchedulerBuilder::<M, MailboxOf<AR>>::ready_queue());
+    let scheduler_builder = ArcShared::new(ActorSchedulerHandleBuilder::<M, MailboxOf<AR>>::ready_queue());
     Self::new_with_settings_and_builder(actor_runtime, &scheduler_builder, config)
   }
 
   pub fn new_with_settings_and_builder(
     actor_runtime: AR,
-    scheduler_builder: &ArcShared<SchedulerBuilder<M, MailboxOf<AR>>>,
+    scheduler_builder: &ArcShared<ActorSchedulerHandleBuilder<M, MailboxOf<AR>>>,
     config: InternalActorSystemConfig<M, AR>,
   ) -> Self {
     let InternalActorSystemConfig {

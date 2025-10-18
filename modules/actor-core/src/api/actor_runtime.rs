@@ -15,7 +15,7 @@ use crate::{
     messaging::DynMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    scheduler::SchedulerBuilder,
+    scheduler::ActorSchedulerHandleBuilder,
     supervision::escalation::{FailureEventHandler, FailureEventListener},
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
@@ -129,17 +129,17 @@ pub trait ActorRuntime: Clone {
     MailboxSignalOf<Self>: Clone;
 
   /// Overrides the scheduler builder used during actor system construction.
-  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self::MailboxFactory>) -> Self
+  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>) -> Self
   where
     Self: Sized;
 
   /// Returns the scheduler builder configured for this runtime.
-  fn scheduler_builder_shared(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>;
+  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>;
 
   /// Overrides the scheduler builder using a shared handle.
   fn with_scheduler_builder_shared(
     self,
-    builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>,
+    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>,
   ) -> Self
   where
     Self: Sized;

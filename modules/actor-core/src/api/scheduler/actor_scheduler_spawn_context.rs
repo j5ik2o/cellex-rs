@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Parameters supplied to schedulers when spawning a new actor.
-pub struct SchedulerSpawnContext<M, MF>
+pub struct ActorSchedulerSpawnContext<M, MF>
 where
   M: Element,
   MF: MailboxFactory + Clone + 'static,

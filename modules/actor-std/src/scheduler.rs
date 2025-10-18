@@ -10,7 +10,9 @@ use cellex_actor_core_rs::{
     mailbox::{MailboxFactory, PriorityEnvelope},
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    scheduler::{ActorScheduler, ReadyQueueScheduler, ReadyQueueWorker, SchedulerBuilder, SchedulerSpawnContext},
+    scheduler::{
+      ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext, ReadyQueueScheduler, ReadyQueueWorker,
+    },
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
       failure::FailureInfo,
@@ -70,7 +72,7 @@ where
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, MF>,
+    context: ActorSchedulerSpawnContext<M, MF>,
   ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
@@ -137,13 +139,13 @@ where
 }
 
 /// Tokio 用スケジューラビルダーを生成するユーティリティ。
-pub fn tokio_scheduler_builder<M, MF>() -> SchedulerBuilder<M, MF>
+pub fn tokio_scheduler_builder<M, MF>() -> ActorSchedulerHandleBuilder<M, MF>
 where
   M: Element,
   MF: MailboxFactory + Clone + 'static,
   MF::Queue<PriorityEnvelope<M>>: Clone,
   MF::Signal: Clone, {
-  SchedulerBuilder::new(|mailbox_factory, extensions| {
+  ActorSchedulerHandleBuilder::new(|mailbox_factory, extensions| {
     Box::new(TokioScheduler::<M, MF, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }

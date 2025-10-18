@@ -11,7 +11,7 @@ use crate::api::{
   mailbox::{MailboxFactory, PriorityEnvelope},
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  scheduler::SchedulerSpawnContext,
+  scheduler::ActorSchedulerSpawnContext,
   supervision::{
     escalation::{FailureEventHandler, FailureEventListener},
     failure::FailureInfo,
@@ -33,7 +33,7 @@ where
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, MF>,
+    context: ActorSchedulerSpawnContext<M, MF>,
   ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>>;
 
   /// Installs a factory used to create receive-timeout drivers for child actors.

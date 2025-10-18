@@ -5,8 +5,7 @@ use cellex_utils_core_rs::Element;
 use crate::api::{
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  receive_timeout::ReceiveTimeoutScheduler,
-  scheduler::SchedulerFactoryBound,
+  receive_timeout::{receive_timeout_factory_bound::ReceiveTimeoutSchedulerFactoryBound, ReceiveTimeoutScheduler},
 };
 
 /// Factory for creating schedulers.
@@ -16,7 +15,7 @@ use crate::api::{
 /// By configuring the system through `ActorSystemConfig::with_receive_timeout_factory` or
 /// `ActorSystemConfig::set_receive_timeout_scheduler_factory_shared_opt` before constructing it,
 /// all actors can handle timeouts with the same policy.
-pub trait ReceiveTimeoutSchedulerFactory<M, MF>: SchedulerFactoryBound
+pub trait ReceiveTimeoutSchedulerFactory<M, MF>: ReceiveTimeoutSchedulerFactoryBound
 where
   M: Element + 'static,
   MF: MailboxFactory + Clone + 'static,

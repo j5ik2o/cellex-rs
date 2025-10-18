@@ -35,9 +35,9 @@ use crate::{
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     scheduler::{
       actor_scheduler::ActorScheduler,
+      actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-      scheduler_builder::SchedulerBuilder,
-      SchedulerSpawnContext,
+      ActorSchedulerSpawnContext,
     },
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
@@ -123,7 +123,7 @@ where
   MF::Queue<PriorityEnvelope<M>>: Clone,
   MF::Signal: Clone, {
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
-  let context = SchedulerSpawnContext {
+  let context = ActorSchedulerSpawnContext {
     mailbox_factory,
     mailbox_factory_shared,
     map_system,
@@ -171,7 +171,7 @@ fn scheduler_handle_trait_object_dispatches() {
   use futures::executor::block_on;
 
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler = SchedulerBuilder::ready_queue().build(mailbox_factory.clone(), Extensions::new());
+  let mut scheduler = ActorSchedulerHandleBuilder::ready_queue().build(mailbox_factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
@@ -199,7 +199,7 @@ fn immediate_scheduler_builder_dispatches() {
   use futures::executor::block_on;
 
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler = SchedulerBuilder::immediate().build(mailbox_factory.clone(), Extensions::new());
+  let mut scheduler = ActorSchedulerHandleBuilder::immediate().build(mailbox_factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();

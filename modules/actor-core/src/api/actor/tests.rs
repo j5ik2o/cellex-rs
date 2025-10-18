@@ -1054,7 +1054,7 @@ mod metrics_injection {
     mailbox::MailboxFactory,
     messaging::DynMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    scheduler::{ActorScheduler, SchedulerBuilder, SchedulerSpawnContext},
+    scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
     supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
     test_support::TestMailboxFactory,
   };
@@ -1081,8 +1081,10 @@ mod metrics_injection {
     }
   }
 
-  fn make_scheduler_builder(metrics: Arc<Mutex<Option<usize>>>) -> SchedulerBuilder<DynMessage, TestMailboxFactory> {
-    SchedulerBuilder::new(move |_runtime, _extensions| {
+  fn make_scheduler_builder(
+    metrics: Arc<Mutex<Option<usize>>>,
+  ) -> ActorSchedulerHandleBuilder<DynMessage, TestMailboxFactory> {
+    ActorSchedulerHandleBuilder::new(move |_runtime, _extensions| {
       Box::new(RecordingScheduler::<DynMessage, TestMailboxFactory>::new(metrics.clone()))
     })
   }
@@ -1098,7 +1100,7 @@ mod metrics_injection {
     fn spawn_actor(
       &mut self,
       _supervisor: Box<dyn Supervisor<M>>,
-      _context: SchedulerSpawnContext<M, MF>,
+      _context: ActorSchedulerSpawnContext<M, MF>,
     ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }

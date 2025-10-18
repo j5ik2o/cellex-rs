@@ -10,7 +10,7 @@ use cellex_actor_core_rs::{
     extensions::Extensions,
     mailbox::{MailboxOptions, SystemMessage},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::SchedulerSpawnContext,
+    scheduler::ActorSchedulerSpawnContext,
     supervision::supervisor::NoopSupervisor,
   },
 };
@@ -144,7 +144,7 @@ async fn tokio_scheduler_builder_dispatches() {
   let log_clone = log.clone();
 
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
-  let context = SchedulerSpawnContext {
+  let context = ActorSchedulerSpawnContext {
     mailbox_factory:        mailbox_factory.clone(),
     mailbox_factory_shared: mailbox_factory_shared,
     map_system:             MapSystemShared::new(Message::System),

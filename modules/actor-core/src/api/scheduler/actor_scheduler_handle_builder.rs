@@ -11,30 +11,26 @@ use crate::{
   api::{
     extensions::Extensions,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    scheduler::{actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler},
+    scheduler::{
+      actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
+      ActorSchedulerHandleFactoryFn,
+    },
   },
   internal::guardian::GuardianStrategy,
 };
 
-/// Type alias for boxed scheduler instances returned by builders.
-pub type SchedulerHandle<M, MF> = Box<dyn ActorScheduler<M, MF>>;
-#[cfg(target_has_atomic = "ptr")]
-type FactoryFn<M, MF> = dyn Fn(MF, Extensions) -> SchedulerHandle<M, MF> + Send + Sync + 'static;
-#[cfg(not(target_has_atomic = "ptr"))]
-type FactoryFn<M, MF> = dyn Fn(MF, Extensions) -> SchedulerHandle<M, MF> + 'static;
-
 /// Factory wrapper used to construct scheduler instances with consistent runtime configuration.
 #[derive(Clone)]
-pub struct SchedulerBuilder<M, MF>
+pub struct ActorSchedulerHandleBuilder<M, MF>
 where
   M: Element,
   MF: MailboxFactory + Clone + 'static,
   MF::Queue<PriorityEnvelope<M>>: Clone,
   MF::Signal: Clone, {
-  factory: ArcShared<FactoryFn<M, MF>>,
+  factory: ArcShared<ActorSchedulerHandleFactoryFn<M, MF>>,
 }
 
-impl<M, MF> SchedulerBuilder<M, MF>
+impl<M, MF> ActorSchedulerHandleBuilder<M, MF>
 where
   M: Element,
   MF: MailboxFactory + Clone + 'static,
@@ -52,17 +48,17 @@ where
   /// Creates a builder from a factory closure producing scheduler handles.
   pub fn new<F>(factory: F) -> Self
   where
-    F: Fn(MF, Extensions) -> SchedulerHandle<M, MF> + SharedBound + 'static, {
+    F: Fn(MF, Extensions) -> ActorSchedulerHandle<M, MF> + SharedBound + 'static, {
     let shared = ArcShared::new(factory);
-    Self { factory: shared.into_dyn(|inner| inner as &FactoryFn<M, MF>) }
+    Self { factory: shared.into_dyn(|inner| inner as &ActorSchedulerHandleFactoryFn<M, MF>) }
   }
 
   /// Builds a scheduler using the stored factory and provided runtime components.
-  pub fn build(&self, mailbox_factory: MF, extensions: Extensions) -> SchedulerHandle<M, MF> {
+  pub fn build(&self, mailbox_factory: MF, extensions: Extensions) -> ActorSchedulerHandle<M, MF> {
     self.factory.with_ref(|factory| (factory)(mailbox_factory, extensions))
   }
 }
-impl<M, MF> SchedulerBuilder<M, MF>
+impl<M, MF> ActorSchedulerHandleBuilder<M, MF>
 where
   M: Element,
   MF: MailboxFactory + Clone + 'static,

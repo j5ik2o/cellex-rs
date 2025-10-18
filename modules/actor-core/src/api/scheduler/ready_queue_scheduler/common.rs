@@ -16,7 +16,7 @@ use crate::{
     mailbox::{Mailbox, MailboxFactory, MailboxProducer, MailboxSignal, PriorityEnvelope, SystemMessage},
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    scheduler::SchedulerSpawnContext,
+    scheduler::ActorSchedulerSpawnContext,
     supervision::{
       escalation::EscalationSink, failure::FailureInfo, supervisor::Supervisor, telemetry::TelemetryObservationConfig,
     },
@@ -85,9 +85,9 @@ where
   pub fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, MF>,
+    context: ActorSchedulerSpawnContext<M, MF>,
   ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
-    let SchedulerSpawnContext {
+    let ActorSchedulerSpawnContext {
       mailbox_factory,
       mailbox_factory_shared,
       map_system,
