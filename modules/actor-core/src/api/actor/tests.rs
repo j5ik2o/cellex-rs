@@ -231,7 +231,7 @@ mod receive_timeout_injection {
     }
   }
 
-  fn spawn_test_actor<R: ActorRuntime>(system: &mut ActorSystem<u32, R, AlwaysRestart>) {
+  fn spawn_test_actor<AR: ActorRuntime>(system: &mut ActorSystem<u32, AR, AlwaysRestart>) {
     let props = Props::new(|_, _: u32| Ok(()));
     let mut root = system.root_context();
     let actor_ref = root.spawn(props).expect("spawn actor");
@@ -480,24 +480,24 @@ fn typed_actor_system_handles_user_messages() {
   assert_eq!(log.borrow().as_slice(), &[11]);
 }
 
-fn spawn_actor_with_counter_extension<R>(
-  actor_runtime: R,
+fn spawn_actor_with_counter_extension<AR>(
+  actor_runtime: AR,
 ) -> (
-  ActorSystem<u32, R, AlwaysRestart>,
+  ActorSystem<u32, AR, AlwaysRestart>,
   ExtensionId,
   ArcShared<CounterExtension>,
 )
 where
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
   let extension = CounterExtension::new();
   let extension_id = extension.extension_id();
   let extension_handle = ArcShared::new(extension);
   let extension_probe = extension_handle.clone();
 
   let config = ActorSystemConfig::default().with_extension_handle(extension_handle);
-  let system: ActorSystem<u32, R, AlwaysRestart> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
+  let system: ActorSystem<u32, AR, AlwaysRestart> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
   (system, extension_id, extension_probe)
 }
 

@@ -27,17 +27,17 @@ where
   _marker: PhantomData<U>,
 }
 
-impl<U, R> ActorRef<U, R>
+impl<U, AR> ActorRef<U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Creates a new `ActorRef` from an internal reference.
-  pub(crate) const fn new(inner: PriorityActorRef<DynMessage, MailboxOf<R>>) -> Self {
+  pub(crate) const fn new(inner: PriorityActorRef<DynMessage, MailboxOf<AR>>) -> Self {
     Self {
       inner,
       _marker: PhantomData,
@@ -50,7 +50,7 @@ where
   }
 
   /// Wraps a user message with metadata into a dynamic message.
-  pub(crate) fn wrap_user_with_metadata(message: U, metadata: MessageMetadata<MailboxConcurrencyOf<R>>) -> DynMessage {
+  pub(crate) fn wrap_user_with_metadata(message: U, metadata: MessageMetadata<MailboxConcurrencyOf<AR>>) -> DynMessage {
     DynMessage::new(MessageEnvelope::user_with_metadata(message, metadata))
   }
 
@@ -67,7 +67,7 @@ where
   pub(crate) fn tell_with_metadata(
     &self,
     message: U,
-    metadata: MessageMetadata<MailboxConcurrencyOf<R>>,
+    metadata: MessageMetadata<MailboxConcurrencyOf<AR>>,
   ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
     let dyn_message = Self::wrap_user_with_metadata(message, metadata);
     self.send_envelope(dyn_message, DEFAULT_PRIORITY)
@@ -92,11 +92,11 @@ where
   }
 
   /// Converts this actor reference to a message dispatcher.
-  pub fn to_dispatcher(&self) -> MessageSender<U, MailboxConcurrencyOf<R>>
+  pub fn to_dispatcher(&self) -> MessageSender<U, MailboxConcurrencyOf<AR>>
   where
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
-    let internal = InternalMessageSender::<MailboxConcurrencyOf<R>>::from_factory_ref(self.inner.clone());
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let internal = InternalMessageSender::<MailboxConcurrencyOf<AR>>::from_factory_ref(self.inner.clone());
     MessageSender::new(internal)
   }
 
@@ -105,12 +105,12 @@ where
   pub(crate) fn request_from<S>(
     &self,
     message: U,
-    sender: &ActorRef<S, R>,
+    sender: &ActorRef<S, AR>,
   ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     S: Element,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     self.request_with_dispatcher(message, sender.to_dispatcher())
   }
 
@@ -119,11 +119,11 @@ where
   pub(crate) fn request_with_dispatcher<S>(
     &self,
     message: U,
-    sender: MessageSender<S, MailboxConcurrencyOf<R>>,
+    sender: MessageSender<S, MailboxConcurrencyOf<AR>>,
   ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     S: Element, {
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_sender(sender);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(sender);
     self.tell_with_metadata(message, metadata)
   }
 
@@ -131,20 +131,20 @@ where
   pub(crate) fn request_future<Resp>(&self, message: U) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element, {
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_responder(responder);
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_responder(responder);
     self.tell_with_metadata(message, metadata)?;
     Ok(future)
   }
 
   /// Issues `ask` with specified sender actor reference (internal API).
   #[allow(dead_code)]
-  pub(crate) fn request_future_from<Resp, S>(&self, message: U, sender: &ActorRef<S, R>) -> AskResult<AskFuture<Resp>>
+  pub(crate) fn request_future_from<Resp, S>(&self, message: U, sender: &ActorRef<S, AR>) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element,
     S: Element,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     self.request_future_with_dispatcher(message, sender.to_dispatcher())
   }
 
@@ -153,13 +153,13 @@ where
   pub(crate) fn request_future_with_dispatcher<Resp, S>(
     &self,
     message: U,
-    sender: MessageSender<S, MailboxConcurrencyOf<R>>,
+    sender: MessageSender<S, MailboxConcurrencyOf<AR>>,
   ) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element,
     S: Element, {
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new()
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
       .with_sender(sender)
       .with_responder(responder);
     self.tell_with_metadata(message, metadata)?;
@@ -176,11 +176,11 @@ where
   where
     Resp: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_responder(responder);
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
       Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
@@ -192,15 +192,15 @@ where
   pub(crate) fn request_future_with_timeout_from<Resp, S, TFut>(
     &self,
     message: U,
-    sender: &ActorRef<S, R>,
+    sender: &ActorRef<S, AR>,
     timeout: TFut,
   ) -> AskResult<AskTimeoutFuture<Resp, TFut>>
   where
     Resp: Element,
     S: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     self.request_future_with_timeout_dispatcher(message, sender.to_dispatcher(), timeout)
   }
 
@@ -209,18 +209,18 @@ where
   pub(crate) fn request_future_with_timeout_dispatcher<Resp, S, TFut>(
     &self,
     message: U,
-    sender: MessageSender<S, MailboxConcurrencyOf<R>>,
+    sender: MessageSender<S, MailboxConcurrencyOf<AR>>,
     timeout: TFut,
   ) -> AskResult<AskTimeoutFuture<Resp, TFut>>
   where
     Resp: Element,
     S: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new()
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
       .with_sender(sender)
       .with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
@@ -233,11 +233,11 @@ where
   pub fn ask_with<Resp, F>(&self, factory: F) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element,
-    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<R>>) -> U, {
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
+    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> U, {
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_responder(responder);
     self.tell_with_metadata(message, metadata)?;
     Ok(future)
   }
@@ -246,13 +246,13 @@ where
   pub fn ask_with_timeout<Resp, F, TFut>(&self, factory: F, timeout: TFut) -> AskResult<AskTimeoutFuture<Resp, TFut>>
   where
     Resp: Element,
-    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<R>>) -> U,
+    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> U,
     TFut: Future<Output = ()> + Unpin, {
     let timeout_future = timeout;
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_responder(responder);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_responder(responder);
     match self.tell_with_metadata(message, metadata) {
       Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
       Err(err) => Err(AskError::from(err)),
