@@ -1,5 +1,4 @@
-use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::{collections::BTreeMap, string::String};
 
 /// Metadata associated with Failure. Used to hold remote/cluster layer information in the future.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -7,11 +6,11 @@ pub struct FailureMetadata {
   /// Component name where the failure occurred
   pub component: Option<String>,
   /// Endpoint where the failure occurred
-  pub endpoint: Option<String>,
+  pub endpoint:  Option<String>,
   /// Transport used
   pub transport: Option<String>,
   /// Additional tag information
-  pub tags: BTreeMap<String, String>,
+  pub tags:      BTreeMap<String, String>,
 }
 
 impl FailureMetadata {
@@ -20,12 +19,7 @@ impl FailureMetadata {
   /// # Returns
   /// New `FailureMetadata` instance
   pub fn new() -> Self {
-    Self {
-      component: None,
-      endpoint: None,
-      transport: None,
-      tags: BTreeMap::new(),
-    }
+    Self { component: None, endpoint: None, transport: None, tags: BTreeMap::new() }
   }
 
   /// Sets the component name.

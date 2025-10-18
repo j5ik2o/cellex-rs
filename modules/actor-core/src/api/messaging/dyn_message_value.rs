@@ -5,7 +5,8 @@ use core::any::Any;
 #[cfg(target_has_atomic = "ptr")]
 pub trait DynMessageValue: Any + Send + Sync {}
 
-/// Trait bound describing values that can be erased into [`DynMessage`] on targets without atomic pointers.
+/// Trait bound describing values that can be erased into [`DynMessage`] on targets without atomic
+/// pointers.
 #[cfg(not(target_has_atomic = "ptr"))]
 pub trait DynMessageValue: Any {}
 

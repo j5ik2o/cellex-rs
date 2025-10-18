@@ -1,7 +1,9 @@
-use super::*;
-use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
 use core::sync::atomic::{AtomicBool, Ordering};
+
+use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
 use critical_section::{Impl, RawRestoreState};
+
+use super::*;
 
 fn prepare() {
   init_critical_section();
@@ -14,10 +16,7 @@ static CS_INIT: AtomicBool = AtomicBool::new(false);
 
 unsafe impl Impl for TestCriticalSection {
   unsafe fn acquire() -> RawRestoreState {
-    while CS_LOCK
-      .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-      .is_err()
-    {}
+    while CS_LOCK.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {}
     ()
   }
 
@@ -27,10 +26,7 @@ unsafe impl Impl for TestCriticalSection {
 }
 
 fn init_critical_section() {
-  if CS_INIT
-    .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-    .is_ok()
-  {
+  if CS_INIT.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
     critical_section::set_impl!(TestCriticalSection);
   }
 }
@@ -41,15 +37,9 @@ fn priority_mailbox_orders_messages_by_priority() {
   let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
   let (mailbox, sender) = factory.mailbox::<u8>(MailboxOptions::default());
 
-  sender
-    .try_send_with_priority(10, DEFAULT_PRIORITY)
-    .expect("low priority");
-  sender
-    .try_send_control_with_priority(99, DEFAULT_PRIORITY + 7)
-    .expect("high priority");
-  sender
-    .try_send_control_with_priority(20, DEFAULT_PRIORITY + 3)
-    .expect("medium priority");
+  sender.try_send_with_priority(10, DEFAULT_PRIORITY).expect("low priority");
+  sender.try_send_control_with_priority(99, DEFAULT_PRIORITY + 7).expect("high priority");
+  sender.try_send_control_with_priority(20, DEFAULT_PRIORITY + 3).expect("medium priority");
 
   let first = mailbox.inner().queue().poll().unwrap().unwrap();
   let second = mailbox.inner().queue().poll().unwrap().unwrap();
@@ -69,19 +59,11 @@ fn priority_mailbox_capacity_split() {
 
   assert!(!mailbox.capacity().is_limitless());
 
-  sender
-    .try_send_control_with_priority(1, DEFAULT_PRIORITY + 3)
-    .expect("control enqueue");
-  sender
-    .try_send_with_priority(2, DEFAULT_PRIORITY)
-    .expect("regular enqueue");
-  sender
-    .try_send_with_priority(3, DEFAULT_PRIORITY)
-    .expect("second regular enqueue");
+  sender.try_send_control_with_priority(1, DEFAULT_PRIORITY + 3).expect("control enqueue");
+  sender.try_send_with_priority(2, DEFAULT_PRIORITY).expect("regular enqueue");
+  sender.try_send_with_priority(3, DEFAULT_PRIORITY).expect("second regular enqueue");
 
-  let err = sender
-    .try_send_with_priority(4, DEFAULT_PRIORITY)
-    .expect_err("regular capacity reached");
+  let err = sender.try_send_with_priority(4, DEFAULT_PRIORITY).expect_err("regular capacity reached");
   assert!(matches!(err, QueueError::Full(_)));
 }
 
@@ -91,12 +73,8 @@ fn control_queue_preempts_regular_messages() {
   let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
   let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
-  sender
-    .try_send_with_priority(1, DEFAULT_PRIORITY)
-    .expect("regular message");
-  sender
-    .try_send_control_with_priority(99, DEFAULT_PRIORITY + 5)
-    .expect("control message");
+  sender.try_send_with_priority(1, DEFAULT_PRIORITY).expect("regular message");
+  sender.try_send_control_with_priority(99, DEFAULT_PRIORITY + 5).expect("control message");
 
   let first = mailbox.inner().queue().poll().unwrap().unwrap();
   let second = mailbox.inner().queue().poll().unwrap().unwrap();

@@ -1,16 +1,20 @@
-use crate::collections::queue::mpsc::TokioUnboundedMpscBackend;
-use crate::sync::ArcShared;
+use std::{
+  fmt,
+  sync::{Arc, Mutex},
+};
+
 use cellex_utils_core_rs::{
   Element, MpscBackend, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
   RingBufferBackend,
 };
-use std::fmt;
-use std::sync::{Arc, Mutex};
+
+use crate::{collections::queue::mpsc::TokioUnboundedMpscBackend, sync::ArcShared};
 
 /// Unbounded multi-producer, single-consumer (MPSC) queue
 ///
-/// An unbounded queue that can be safely accessed from multiple threads using `Arc`-based shared ownership.
-/// By default, it uses a Tokio unbounded channel backend, but a ring buffer backend can also be selected.
+/// An unbounded queue that can be safely accessed from multiple threads using `Arc`-based shared
+/// ownership. By default, it uses a Tokio unbounded channel backend, but a ring buffer backend can
+/// also be selected.
 #[derive(Clone)]
 pub struct ArcMpscUnboundedQueue<E> {
   inner: MpscQueue<ArcShared<dyn MpscBackend<E> + Send + Sync>, E>,
@@ -59,9 +63,7 @@ where
     B: MpscBackend<E> + Send + Sync + 'static, {
     let arc_backend: Arc<dyn MpscBackend<E> + Send + Sync> = Arc::new(backend);
     let storage = ArcShared::from_arc(arc_backend);
-    Self {
-      inner: MpscQueue::new(storage),
-    }
+    Self { inner: MpscQueue::new(storage) }
   }
 }
 

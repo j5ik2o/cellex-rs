@@ -1,47 +1,45 @@
-use crate::api::actor::actor_ref::ActorRef;
-use crate::api::actor::props::Props;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::extensions::Extension;
-use crate::api::extensions::ExtensionId;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use crate::internal::actor_system::InternalRootContext;
-use crate::internal::scheduler::ChildNaming;
-use crate::internal::scheduler::SpawnError;
-use alloc::borrow::ToOwned;
-use alloc::boxed::Box;
-use cellex_utils_core_rs::{Element, QueueError};
-use core::future::Future;
-use core::marker::PhantomData;
+use alloc::{borrow::ToOwned, boxed::Box};
+use core::{future::Future, marker::PhantomData};
+
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use spin::RwLock;
 
 use super::ask::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};
+use crate::{
+  api::{
+    actor::{actor_ref::ActorRef, props::Props, ChildNaming, SpawnError},
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    extensions::{Extension, ExtensionId, Extensions},
+    mailbox::PriorityEnvelope,
+    messaging::{DynMessage, MetadataStorageMode},
+  },
+  internal::actor_system::InternalRootContext,
+};
 
 /// Context for operating root actors.
 ///
 /// Performs actor spawning and message sending from the top level of the actor system.
 /// Manages failure handling of child actors through guardian strategies.
-pub struct RootContext<'a, U, R, Strat>
+pub struct RootContext<'a, U, AR, Strat>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>, {
-  pub(crate) inner: InternalRootContext<'a, DynMessage, R, Strat>,
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>, {
+  pub(crate) inner:   InternalRootContext<'a, DynMessage, AR, Strat>,
   pub(crate) _marker: PhantomData<U>,
 }
 
-impl<'a, U, R, Strat> RootContext<'a, U, R, Strat>
+impl<'a, U, AR, Strat> RootContext<'a, U, AR, Strat>
 where
   U: Element,
-  R: ActorRuntime,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
-  Strat: crate::internal::guardian::GuardianStrategy<DynMessage, MailboxOf<R>>,
+  AR: ActorRuntime,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
+  Strat: crate::api::guardian::GuardianStrategy<DynMessage, MailboxOf<AR>>,
 {
   /// Spawns a new actor using the specified properties.
   ///
@@ -56,16 +54,19 @@ where
   /// # Errors
   ///
   /// Returns [`SpawnError::Queue`] when the underlying scheduler encounters a queue failure.
-  pub fn spawn(&mut self, props: Props<U, R>) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
+  pub fn spawn(&mut self, props: Props<U, AR>) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
       Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::Auto,
+      pid_slot.clone(),
     )?;
-    Ok(ActorRef::new(actor_ref))
+    Ok(ActorRef::new(actor_ref, pid_slot, Some(registry)))
   }
 
   /// Spawns a new actor with a unique name generated from the provided prefix.
@@ -76,16 +77,19 @@ where
   /// # Errors
   ///
   /// Propagates queue failures from the scheduler.
-  pub fn spawn_prefix(&mut self, props: Props<U, R>, prefix: &str) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
+  pub fn spawn_prefix(&mut self, props: Props<U, AR>, prefix: &str) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
       Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::WithPrefix(prefix.to_owned()),
+      pid_slot.clone(),
     )?;
-    Ok(ActorRef::new(actor_ref))
+    Ok(ActorRef::new(actor_ref, pid_slot, Some(registry)))
   }
 
   /// Spawns a new actor using the specified name. Fails if the name already exists.
@@ -94,16 +98,19 @@ where
   ///
   /// Returns [`SpawnError::NameExists`] if an actor with the same name already exists, or
   /// [`SpawnError::Queue`] if the scheduler reports a queue failure.
-  pub fn spawn_named(&mut self, props: Props<U, R>, name: &str) -> Result<ActorRef<U, R>, SpawnError<DynMessage>>
+  pub fn spawn_named(&mut self, props: Props<U, AR>, name: &str) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
       Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
       internal_props,
       ChildNaming::Explicit(name.to_owned()),
+      pid_slot.clone(),
     )?;
-    Ok(ActorRef::new(actor_ref))
+    Ok(ActorRef::new(actor_ref, pid_slot, Some(registry)))
   }
 
   /// Sends a message to the specified actor and returns a Future that waits for a response.
@@ -116,14 +123,15 @@ where
   /// # Returns
   ///
   /// Future for receiving the response, or an error
-  pub fn request_future<V, Resp>(&self, target: &ActorRef<V, R>, message: V) -> AskResult<AskFuture<Resp>>
+  pub fn request_future<V, Resp>(&self, target: &ActorRef<V, AR>, message: V) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
     Resp: Element, {
     target.request_future(message)
   }
 
-  /// Sends a message to the specified actor and returns a Future that waits for a response with timeout.
+  /// Sends a message to the specified actor and returns a Future that waits for a response with
+  /// timeout.
   ///
   /// # Arguments
   ///
@@ -136,7 +144,7 @@ where
   /// Future for receiving the response with timeout, or an error
   pub fn request_future_with_timeout<V, Resp, TFut>(
     &self,
-    target: &ActorRef<V, R>,
+    target: &ActorRef<V, AR>,
     message: V,
     timeout: TFut,
   ) -> AskResult<AskTimeoutFuture<Resp, TFut>>

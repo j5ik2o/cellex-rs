@@ -1,6 +1,6 @@
+use futures::{executor::block_on, join};
+
 use super::CountDownLatch;
-use futures::executor::block_on;
-use futures::join;
 
 #[test]
 fn latch_reaches_zero() {

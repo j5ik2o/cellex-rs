@@ -1,7 +1,5 @@
-use alloc::borrow::Cow;
-use alloc::format;
-use core::any::Any;
-use core::fmt;
+use alloc::{borrow::Cow, format};
+use core::{any::Any, fmt};
 
 /// Abstraction exposed to supervisors when a behavior fails.
 pub trait BehaviorFailure: fmt::Debug + Send + Sync + 'static {

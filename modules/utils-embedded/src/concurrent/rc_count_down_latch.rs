@@ -1,15 +1,13 @@
-use alloc::boxed::Box;
-use alloc::rc::Rc;
+use alloc::{boxed::Box, rc::Rc};
 
 use cellex_utils_core_rs::{async_trait, CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use embassy_sync::mutex::Mutex;
-use embassy_sync::signal::Signal;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex, signal::Signal};
 
 /// Backend for `Rc`-based countdown latch implementation.
 ///
-/// Provides a synchronization mechanism that waits for multiple tasks to complete in `no_std` environments.
-/// When the count decrements from the specified value to 0, all waiting tasks are released.
+/// Provides a synchronization mechanism that waits for multiple tasks to complete in `no_std`
+/// environments. When the count decrements from the specified value to 0, all waiting tasks are
+/// released.
 ///
 /// # Features
 ///
@@ -36,7 +34,7 @@ use embassy_sync::signal::Signal;
 /// ```
 #[derive(Clone)]
 pub struct RcCountDownLatchBackend {
-  count: Rc<Mutex<NoopRawMutex, usize>>,
+  count:  Rc<Mutex<NoopRawMutex, usize>>,
   signal: Rc<Signal<NoopRawMutex, ()>>,
 }
 
@@ -48,10 +46,7 @@ impl CountDownLatchBackend for RcCountDownLatchBackend {
   ///
   /// * `count` - Initial count value (0 is allowed)
   fn new(count: usize) -> Self {
-    Self {
-      count: Rc::new(Mutex::new(count)),
-      signal: Rc::new(Signal::new()),
-    }
+    Self { count: Rc::new(Mutex::new(count)), signal: Rc::new(Signal::new()) }
   }
 
   /// Decrements the count by 1.

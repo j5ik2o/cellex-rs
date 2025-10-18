@@ -2,11 +2,13 @@
 
 #![deny(missing_docs)]
 
-use cellex_serialization_core_rs::error::{DeserializationError, SerializationError};
-use cellex_serialization_core_rs::id::SerializerId;
-use cellex_serialization_core_rs::impl_type_key;
-use cellex_serialization_core_rs::message::SerializedMessage;
-use cellex_serialization_core_rs::serializer::Serializer;
+use cellex_serialization_core_rs::{
+  error::{DeserializationError, SerializationError},
+  id::SerializerId,
+  impl_type_key,
+  message::SerializedMessage,
+  serializer::Serializer,
+};
 use cellex_utils_core_rs::sync::ArcShared;
 use prost::Message;
 
@@ -33,9 +35,7 @@ impl ProstSerializer {
   where
     T: Message, {
     let mut buffer = Vec::new();
-    value
-      .encode(&mut buffer)
-      .map_err(|err| SerializationError::custom(err.to_string()))?;
+    value.encode(&mut buffer).map_err(|err| SerializationError::custom(err.to_string()))?;
     self.serialize_with_type_name_opt(buffer.as_slice(), type_name)
   }
 

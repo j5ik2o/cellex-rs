@@ -1,6 +1,6 @@
+use futures::{executor::block_on, join};
+
 use super::ArcLocalAsyncBarrier;
-use futures::executor::block_on;
-use futures::join;
 
 #[test]
 fn barrier_releases_all() {

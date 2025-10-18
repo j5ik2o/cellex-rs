@@ -1,8 +1,10 @@
-use super::extension::{Extension, ExtensionId};
 use alloc::vec::Vec;
-use cellex_utils_core_rs::sync::ArcShared;
 use core::fmt::{self, Debug, Formatter};
+
+use cellex_utils_core_rs::sync::ArcShared;
 use spin::RwLock;
+
+use super::extension::{Extension, ExtensionId};
 
 /// Container managing registered extensions.
 pub struct Extensions {
@@ -13,9 +15,7 @@ impl Extensions {
   /// Creates an empty extension registry.
   #[must_use]
   pub fn new() -> Self {
-    Self {
-      slots: ArcShared::new(RwLock::new(Vec::new())),
-    }
+    Self { slots: ArcShared::new(RwLock::new(Vec::new())) }
   }
 
   /// Builds a registry from an externally managed slot list.
@@ -61,11 +61,7 @@ impl Extensions {
     E: Extension + 'static,
     F: FnOnce(&E) -> R, {
     let guard = self.slots.read();
-    guard.get(id as usize).and_then(|slot| {
-      slot
-        .as_ref()
-        .and_then(|handle| handle.as_any().downcast_ref::<E>().map(f))
-    })
+    guard.get(id as usize).and_then(|slot| slot.as_ref().and_then(|handle| handle.as_any().downcast_ref::<E>().map(f)))
   }
 
   fn store_extension(&self, id: ExtensionId, extension: ArcShared<dyn Extension>) {
@@ -86,9 +82,7 @@ impl Default for Extensions {
 
 impl Clone for Extensions {
   fn clone(&self) -> Self {
-    Self {
-      slots: self.slots.clone(),
-    }
+    Self { slots: self.slots.clone() }
   }
 }
 

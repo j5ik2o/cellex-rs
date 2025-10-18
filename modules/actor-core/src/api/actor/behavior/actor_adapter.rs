@@ -1,71 +1,74 @@
-use super::{Behavior, BehaviorDirective, Signal, SignalFn, SupervisorStrategyConfig, SystemHandlerFn};
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::context::Context;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MessageEnvelope;
-use crate::api::messaging::MetadataStorageMode;
-use crate::shared::map_system::MapSystemShared;
 use alloc::boxed::Box;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Element;
 use core::mem;
 
+use cellex_utils_core_rs::{sync::ArcShared, Element};
+
+use super::{Behavior, BehaviorDirective, Signal, SignalFn, SupervisorStrategyConfig, SystemHandlerFn};
+use crate::api::{
+  actor::{actor_failure::ActorFailure, context::Context},
+  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+  actor_system::map_system::MapSystemShared,
+  mailbox::{PriorityEnvelope, SystemMessage},
+  messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
+};
+
 /// Adapter that bridges Behavior to untyped runtime.
-pub struct ActorAdapter<U, R>
+pub struct ActorAdapter<U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
-  behavior_factory: ArcShared<dyn Fn() -> Behavior<U, R> + 'static>,
-  pub(super) behavior: Behavior<U, R>,
-  pub(super) system_handler: Option<Box<SystemHandlerFn<U, R>>>,
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
+  behavior_factory:          ArcShared<dyn Fn() -> Behavior<U, AR> + 'static>,
+  pub(super) behavior:       Behavior<U, AR>,
+  pub(super) system_handler: Option<Box<SystemHandlerFn<U, AR>>>,
 }
 
-impl<U, R> ActorAdapter<U, R>
+impl<U, AR> ActorAdapter<U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Creates a new `ActorAdapter`.
-  pub fn new<S>(behavior_factory: ArcShared<dyn Fn() -> Behavior<U, R> + 'static>, system_handler: Option<S>) -> Self
+  pub fn new<S>(behavior_factory: ArcShared<dyn Fn() -> Behavior<U, AR> + 'static>, system_handler: Option<S>) -> Self
   where
-    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static, {
+    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
     let behavior = behavior_factory();
     Self {
       behavior_factory,
       behavior,
-      system_handler: system_handler.map(|h| Box::new(h) as Box<SystemHandlerFn<U, R>>),
+      system_handler: system_handler.map(|h| Box::new(h) as Box<SystemHandlerFn<U, AR>>),
     }
   }
 
   /// Processes a user message.
-  pub fn handle_user(&mut self, ctx: &mut Context<'_, '_, U, R>, message: U) -> Result<(), ActorFailure> {
+  pub fn handle_user(&mut self, ctx: &mut Context<'_, '_, U, AR>, message: U) -> Result<(), ActorFailure> {
     self.ensure_initialized(ctx)?;
     while matches!(self.behavior, Behavior::Setup { .. }) {
       self.ensure_initialized(ctx)?;
     }
     match &mut self.behavior {
-      Behavior::Receive(state) => match state.handle(ctx, message)? {
-        BehaviorDirective::Same => {}
-        BehaviorDirective::Become(next) => self.transition(next, ctx)?,
+      | Behavior::Receive(state) => match state.handle(ctx, message)? {
+        | BehaviorDirective::Same => {},
+        | BehaviorDirective::Become(next) => self.transition(next, ctx)?,
       },
-      Behavior::Stopped => {}
-      Behavior::Setup { .. } => {
+      | Behavior::Stopped => {},
+      | Behavior::Setup { .. } => {
         return Err(ActorFailure::from_message("behavior remained in setup state"));
-      }
+      },
     }
     Ok(())
   }
 
   /// Processes a system message.
-  pub fn handle_system(&mut self, ctx: &mut Context<'_, '_, U, R>, message: SystemMessage) -> Result<(), ActorFailure> {
+  pub fn handle_system(
+    &mut self,
+    ctx: &mut Context<'_, '_, U, AR>,
+    message: SystemMessage,
+  ) -> Result<(), ActorFailure> {
     self.ensure_initialized(ctx)?;
     while matches!(self.behavior, Behavior::Setup { .. }) {
       self.ensure_initialized(ctx)?;
@@ -96,46 +99,42 @@ where
     self.behavior.supervisor_config()
   }
 
-  fn ensure_initialized(&mut self, ctx: &mut Context<'_, '_, U, R>) -> Result<(), ActorFailure> {
+  fn ensure_initialized(&mut self, ctx: &mut Context<'_, '_, U, AR>) -> Result<(), ActorFailure> {
     while matches!(self.behavior, Behavior::Setup { .. }) {
       let (init, signal) = match mem::replace(&mut self.behavior, Behavior::stopped()) {
-        Behavior::Setup { init, signal } => (init, signal),
-        other => {
+        | Behavior::Setup { init, signal } => (init, signal),
+        | other => {
           self.behavior = other;
           break;
-        }
+        },
       };
       let next_signal = signal.clone();
-      let next_behavior = if let Some(init) = init {
-        init(ctx)?
-      } else {
-        Behavior::stopped()
-      };
+      let next_behavior = if let Some(init) = init { init(ctx)? } else { Behavior::stopped() };
       self.behavior = next_behavior.attach_signal_arc(next_signal);
     }
     Ok(())
   }
 
-  fn current_signal_handler(&self) -> Option<ArcShared<SignalFn<U, R>>> {
+  fn current_signal_handler(&self) -> Option<ArcShared<SignalFn<U, AR>>> {
     match &self.behavior {
-      Behavior::Receive(state) => state.signal_handler(),
-      Behavior::Setup { signal, .. } => signal.clone(),
-      Behavior::Stopped => None,
+      | Behavior::Receive(state) => state.signal_handler(),
+      | Behavior::Setup { signal, .. } => signal.clone(),
+      | Behavior::Stopped => None,
     }
   }
 
   #[allow(dead_code)]
-  fn handle_signal(&mut self, ctx: &mut Context<'_, '_, U, R>, signal: Signal) -> Result<(), ActorFailure> {
+  fn handle_signal(&mut self, ctx: &mut Context<'_, '_, U, AR>, signal: Signal) -> Result<(), ActorFailure> {
     if let Some(handler) = self.current_signal_handler() {
       match handler(ctx, signal) {
-        BehaviorDirective::Same => {}
-        BehaviorDirective::Become(next) => self.transition(next, ctx)?,
+        | BehaviorDirective::Same => {},
+        | BehaviorDirective::Become(next) => self.transition(next, ctx)?,
       }
     }
     Ok(())
   }
 
-  fn transition(&mut self, next: Behavior<U, R>, ctx: &mut Context<'_, '_, U, R>) -> Result<(), ActorFailure> {
+  fn transition(&mut self, next: Behavior<U, AR>, ctx: &mut Context<'_, '_, U, AR>) -> Result<(), ActorFailure> {
     let previous_handler = self.current_signal_handler();
     self.behavior = next;
     self.ensure_initialized(ctx)?;
@@ -146,8 +145,8 @@ where
       }
       if let Some(handler) = handler {
         match handler(ctx, Signal::PostStop) {
-          BehaviorDirective::Same => {}
-          BehaviorDirective::Become(next) => self.transition(next, ctx)?,
+          | BehaviorDirective::Same => {},
+          | BehaviorDirective::Become(next) => self.transition(next, ctx)?,
         }
       }
     }

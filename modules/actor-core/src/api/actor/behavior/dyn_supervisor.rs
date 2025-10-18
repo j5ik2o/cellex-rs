@@ -1,8 +1,11 @@
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::supervisor::SupervisorDirective;
 use alloc::boxed::Box;
+
 use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  actor::actor_failure::BehaviorFailure,
+  supervision::supervisor::{Supervisor, SupervisorDirective},
+};
 
 /// Dynamic supervisor implementation (internal type).
 pub(crate) struct DynSupervisor<M>

@@ -7,7 +7,7 @@ use cellex_utils_core_rs::QueueSize;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MailboxOptions {
   /// Capacity for regular message queue
-  pub capacity: QueueSize,
+  pub capacity:          QueueSize,
   /// Capacity for priority message queue
   pub priority_capacity: QueueSize,
 }
@@ -20,10 +20,7 @@ impl MailboxOptions {
   /// # Arguments
   /// - `capacity`: Capacity for regular message queue
   pub const fn with_capacity(capacity: usize) -> Self {
-    Self {
-      capacity: QueueSize::limited(capacity),
-      priority_capacity: QueueSize::limitless(),
-    }
+    Self { capacity: QueueSize::limited(capacity), priority_capacity: QueueSize::limitless() }
   }
 
   /// Creates mailbox options with both regular and priority capacities specified.
@@ -32,10 +29,7 @@ impl MailboxOptions {
   /// - `capacity`: Capacity for regular message queue
   /// - `priority_capacity`: Capacity for priority message queue
   pub const fn with_capacities(capacity: QueueSize, priority_capacity: QueueSize) -> Self {
-    Self {
-      capacity,
-      priority_capacity,
-    }
+    Self { capacity, priority_capacity }
   }
 
   /// Sets the capacity for the priority message queue.
@@ -49,10 +43,7 @@ impl MailboxOptions {
 
   /// Creates mailbox options with unlimited capacity.
   pub const fn unbounded() -> Self {
-    Self {
-      capacity: QueueSize::limitless(),
-      priority_capacity: QueueSize::limitless(),
-    }
+    Self { capacity: QueueSize::limitless(), priority_capacity: QueueSize::limitless() }
   }
 }
 

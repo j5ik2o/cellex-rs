@@ -37,9 +37,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 
@@ -53,12 +51,8 @@ where
   ///
   /// * `capacity_per_level` - Maximum number of elements per priority level
   pub fn new(capacity_per_level: usize) -> Self {
-    let levels = (0..PRIORITY_LEVELS)
-      .map(|_| ArcRingQueue::new(capacity_per_level))
-      .collect();
-    Self {
-      inner: PriorityQueue::new(levels),
-    }
+    let levels = (0..PRIORITY_LEVELS).map(|_| ArcRingQueue::new(capacity_per_level)).collect();
+    Self { inner: PriorityQueue::new(levels) }
   }
 
   /// Sets the dynamic expansion mode for all priority levels

@@ -11,15 +11,14 @@ pub(crate) use shared::{AskShared, DispatchFn, DropHookFn};
 /// Result alias used by `ask` helpers.
 pub type AskResult<T> = Result<T, AskError>;
 
-use crate::api::mailbox::MailboxConcurrency;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MessageEnvelope;
-use crate::api::messaging::MessageSender;
-use crate::internal::message::discard_metadata;
-use crate::internal::message::InternalMessageSender;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
 use core::future::Future;
+
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+
+use crate::{
+  api::messaging::{DynMessage, MessageEnvelope, MessageSender, MetadataStorageMode},
+  internal::message::InternalMessageSender,
+};
 
 /// Helper function to create an `AskFuture` with timeout.
 pub const fn ask_with_timeout<Resp, TFut>(future: AskFuture<Resp>, timeout: TFut) -> AskTimeoutFuture<Resp, TFut>
@@ -30,10 +29,10 @@ where
 }
 
 /// Creates a Future and responder pair for the `ask` pattern (internal API).
-pub(crate) fn create_ask_handles<Resp, C>() -> (AskFuture<Resp>, MessageSender<Resp, C>)
+pub(crate) fn create_ask_handles<Resp, Mode>() -> (AskFuture<Resp>, MessageSender<Resp, Mode>)
 where
   Resp: Element,
-  C: MailboxConcurrency, {
+  Mode: MetadataStorageMode, {
   let shared = ArcShared::new(AskShared::<Resp>::new());
   let future = AskFuture::new(shared.clone());
   let dispatch_state = shared.clone();
@@ -44,18 +43,15 @@ where
       return Err(QueueError::Disconnected);
     };
     match envelope {
-      MessageEnvelope::User(user) => {
-        let (value, metadata_key) = user.into_parts();
-        if let Some(key) = metadata_key {
-          discard_metadata(key);
-        }
+      | MessageEnvelope::User(user) => {
+        let (value, _metadata) = user.into_parts::<Mode>();
         if !dispatch_state.complete(value) {
           // response already handled
         }
-      }
-      MessageEnvelope::System(_) => {
+      },
+      | MessageEnvelope::System(_) => {
         return Err(QueueError::Disconnected);
-      }
+      },
     }
     Ok(())
   })
@@ -66,7 +62,7 @@ where
   })
   .into_dyn(|f| f as &DropHookFn);
 
-  let internal = InternalMessageSender::<C>::with_drop_hook(dispatch, drop_hook);
+  let internal = InternalMessageSender::<Mode>::with_drop_hook(dispatch, drop_hook);
   let responder = MessageSender::new(internal);
   (future, responder)
 }

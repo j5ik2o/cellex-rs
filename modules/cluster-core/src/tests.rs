@@ -1,7 +1,14 @@
-use super::ClusterFailureBridge;
+use std::{
+  any::Any,
+  borrow::Cow,
+  sync::{Arc, Mutex},
+};
+
 use cellex_actor_core_rs::api::{
-  actor::actor_failure::ActorFailure,
-  actor::{ActorId, ActorPath},
+  actor::{
+    actor_failure::{ActorFailure, BehaviorFailure},
+    ActorId, ActorPath,
+  },
   failure_event_stream::FailureEventStream,
   supervision::{
     escalation::FailureEventListener,
@@ -10,7 +17,8 @@ use cellex_actor_core_rs::api::{
 };
 use cellex_actor_std_rs::FailureEventHub;
 use cellex_remote_core_rs::RemoteFailureNotifier;
-use std::sync::{Arc, Mutex};
+
+use super::ClusterFailureBridge;
 
 #[test]
 fn cluster_failure_bridge_new_creates_instance() {
@@ -96,15 +104,59 @@ fn cluster_failure_bridge_fan_out_handles_hub_listener_call() {
 
   let bridge = ClusterFailureBridge::new(hub, remote_notifier);
 
-  let info = FailureInfo::new(
-    ActorId(2),
-    ActorPath::new(),
-    ActorFailure::from_message("another error"),
-  );
+  let info = FailureInfo::new(ActorId(2), ActorPath::new(), ActorFailure::from_message("another error"));
   let event = FailureEvent::RootEscalated(info);
 
   bridge.fan_out(event.clone());
 
   let events = hub_events.lock().unwrap();
   assert_eq!(events.len(), 1);
+}
+
+#[derive(Debug)]
+struct ClusterBehaviorFailure(&'static str);
+
+impl BehaviorFailure for ClusterBehaviorFailure {
+  fn as_any(&self) -> &dyn Any {
+    self
+  }
+
+  fn description(&self) -> Cow<'_, str> {
+    Cow::Borrowed(self.0)
+  }
+}
+
+#[test]
+fn cluster_failure_bridge_preserves_behavior_failure() {
+  let hub = FailureEventHub::new();
+
+  let captured_local: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+  let captured_local_clone = Arc::clone(&captured_local);
+  let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
+    let FailureEvent::RootEscalated(info) = event;
+    if let Some(custom) = info.behavior_failure().as_any().downcast_ref::<ClusterBehaviorFailure>() {
+      captured_local_clone.lock().unwrap().replace(custom.0.to_owned());
+    }
+  }));
+
+  let remote_hub = FailureEventHub::new();
+  let mut remote_notifier = RemoteFailureNotifier::new(remote_hub);
+
+  let captured_remote: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+  let captured_remote_clone = Arc::clone(&captured_remote);
+  remote_notifier.set_handler(FailureEventListener::new(move |event: FailureEvent| {
+    let FailureEvent::RootEscalated(info) = event;
+    if let Some(custom) = info.behavior_failure().as_any().downcast_ref::<ClusterBehaviorFailure>() {
+      captured_remote_clone.lock().unwrap().replace(custom.0.to_owned());
+    }
+  }));
+
+  let bridge = ClusterFailureBridge::new(hub, remote_notifier);
+
+  let failure = ActorFailure::new(ClusterBehaviorFailure("cluster boom"));
+  let info = FailureInfo::new(ActorId(5), ActorPath::new(), failure);
+  bridge.fan_out(FailureEvent::RootEscalated(info));
+
+  assert_eq!(captured_local.lock().unwrap().as_deref(), Some("cluster boom"));
+  assert_eq!(captured_remote.lock().unwrap().as_deref(), Some("cluster boom"));
 }

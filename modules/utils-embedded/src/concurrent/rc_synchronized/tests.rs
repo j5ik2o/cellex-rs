@@ -1,8 +1,10 @@
 extern crate alloc;
 
-use super::{Synchronized, SynchronizedRw};
 use alloc::vec;
+
 use futures::executor::block_on;
+
+use super::{Synchronized, SynchronizedRw};
 
 #[test]
 fn rc_mutex_backend_basic() {

@@ -1,8 +1,10 @@
-use crate::api::mailbox::mailbox_signal::MailboxSignal;
-use crate::api::metrics::MetricsEvent;
-use crate::api::metrics::MetricsSinkShared;
-use crate::internal::scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw};
+
+use crate::api::{
+  actor_scheduler::ReadyQueueHandle,
+  mailbox::mailbox_signal::MailboxSignal,
+  metrics::{MetricsEvent, MetricsSinkShared},
+};
 
 /// Sending handle that shares queue ownership with [`QueueMailbox`].
 ///
@@ -14,10 +16,10 @@ use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw};
 /// - `S`: Notification signal implementation type
 #[derive(Clone)]
 pub struct QueueMailboxProducer<Q, S> {
-  pub(crate) queue: Q,
-  pub(crate) signal: S,
-  pub(crate) closed: Flag,
-  pub(crate) metrics_sink: Option<MetricsSinkShared>,
+  pub(crate) queue:          Q,
+  pub(crate) signal:         S,
+  pub(crate) closed:         Flag,
+  pub(crate) metrics_sink:   Option<MetricsSinkShared>,
   pub(crate) scheduler_hook: Option<ReadyQueueHandle>,
 }
 
@@ -65,7 +67,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     }
 
     match self.queue.offer(message) {
-      Ok(()) => {
+      | Ok(()) => {
         self.signal.notify();
         if let Some(sink) = &self.metrics_sink {
           sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
@@ -74,12 +76,12 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
           hook.notify_ready();
         }
         Ok(())
-      }
-      Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
+      },
+      | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
         self.closed.set(true);
         Err(err)
-      }
-      Err(err) => Err(err),
+      },
+      | Err(err) => Err(err),
     }
   }
 

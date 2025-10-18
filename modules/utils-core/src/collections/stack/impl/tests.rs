@@ -1,12 +1,16 @@
 extern crate alloc;
 
-use super::*;
 use alloc::rc::Rc;
 use core::cell::RefCell;
 
-use crate::collections::stack::buffer::StackBuffer;
-use crate::collections::stack::traits::{StackHandle, StackStorage, StackStorageBackend};
-use crate::sync::Shared;
+use super::*;
+use crate::{
+  collections::stack::{
+    buffer::StackBuffer,
+    traits::{StackHandle, StackStorage, StackStorageBackend},
+  },
+  sync::Shared,
+};
 
 struct RcStorageHandle<T>(Rc<RefCell<StackBuffer<T>>>);
 

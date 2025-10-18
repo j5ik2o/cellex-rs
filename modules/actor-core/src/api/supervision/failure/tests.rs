@@ -1,7 +1,5 @@
 use super::*;
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::ActorId;
-use crate::api::actor::ActorPath;
+use crate::api::actor::{actor_failure::ActorFailure, ActorId, ActorPath};
 
 #[test]
 fn escalation_stage_increments_with_parent_hops() {
@@ -9,10 +7,7 @@ fn escalation_stage_increments_with_parent_hops() {
   let child = ActorId(1);
   let grandchild = ActorId(2);
 
-  let path = ActorPath::new()
-    .push_child(root)
-    .push_child(child)
-    .push_child(grandchild);
+  let path = ActorPath::new().push_child(root).push_child(child).push_child(grandchild);
   let failure = FailureInfo::new(grandchild, path, ActorFailure::from_message("boom"));
   assert!(matches!(failure.stage, EscalationStage::Initial));
 

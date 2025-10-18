@@ -1,7 +1,6 @@
 #![cfg(feature = "embassy_executor")]
 
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use cellex_actor_core_rs::{
   ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
@@ -17,7 +16,8 @@ use crate::receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 
 /// Embassy 用スケジューラ。
 ///
-/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`] をラップし、`embassy_futures::yield_now` による協調切り替えを提供する。
+/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`]
+/// をラップし、`embassy_futures::yield_now` による協調切り替えを提供する。
 pub struct EmbassyScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
@@ -32,10 +32,8 @@ where
   R: MailboxRuntime + Clone + 'static,
 {
   /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
-  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
-    }
+  pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
+    Self { inner: ReadyQueueScheduler::new(mailbox_factory, extensions) }
   }
 }
 
@@ -46,10 +44,8 @@ where
   Strat: GuardianStrategy<M, R>,
 {
   /// 任意の GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),
-    }
+  pub fn with_strategy(mailbox_factory: R, strategy: Strat, extensions: Extensions) -> Self {
+    Self { inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions) }
   }
 }
 
@@ -70,8 +66,8 @@ where
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
-    self.inner.set_receive_timeout_factory(factory);
+  fn set_receive_timeout_scheduler_factory_shared_opt(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+    self.inner.set_receive_timeout_scheduler_factory_shared_opt(factory);
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
@@ -137,11 +133,8 @@ where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<M>>: Clone,
   R::Signal: Clone, {
-  SchedulerBuilder::new(|mailbox_runtime, extensions| {
-    Box::new(EmbassyScheduler::<M, R, AlwaysRestart>::new(
-      mailbox_runtime,
-      extensions,
-    ))
+  SchedulerBuilder::new(|mailbox_factory, extensions| {
+    Box::new(EmbassyScheduler::<M, R, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }
 

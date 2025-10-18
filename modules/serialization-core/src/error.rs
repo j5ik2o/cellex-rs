@@ -36,7 +36,7 @@ impl SerializationError {
 impl core::fmt::Display for SerializationError {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     match self {
-      SerializationError::UnsupportedType { .. } => {
+      | SerializationError::UnsupportedType { .. } => {
         #[cfg(feature = "alloc")]
         {
           let SerializationError::UnsupportedType { type_name } = self else {
@@ -48,9 +48,9 @@ impl core::fmt::Display for SerializationError {
         {
           f.write_str("unsupported type")
         }
-      }
+      },
       #[cfg(feature = "alloc")]
-      SerializationError::Custom(message) => f.write_str(message),
+      | SerializationError::Custom(message) => f.write_str(message),
     }
   }
 }
@@ -77,9 +77,9 @@ impl DeserializationError {
 impl core::fmt::Display for DeserializationError {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     match self {
-      DeserializationError::MalformedPayload => f.write_str("malformed payload"),
+      | DeserializationError::MalformedPayload => f.write_str("malformed payload"),
       #[cfg(feature = "alloc")]
-      DeserializationError::Custom(message) => f.write_str(message),
+      | DeserializationError::Custom(message) => f.write_str(message),
     }
   }
 }
@@ -94,7 +94,7 @@ pub enum RegistryError {
 impl core::fmt::Display for RegistryError {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     match self {
-      RegistryError::DuplicateEntry(id) => write!(f, "serializer id {id} already registered"),
+      | RegistryError::DuplicateEntry(id) => write!(f, "serializer id {id} already registered"),
     }
   }
 }

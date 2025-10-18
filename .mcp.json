@@ -11,7 +11,7 @@
         "--context",
         "ide-assistant",
         "--project",
-        "/Users/j5ik2o/Sources/nexus-actor-rs"
+        "/Users/j5ik2o/Sources/cellex-rs"
       ],
       "env": {}
     }

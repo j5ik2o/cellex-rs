@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+
 use async_trait::async_trait;
 
 /// Trait defining WaitGroup backend implementation
@@ -108,9 +109,7 @@ where
   /// A WaitGroup instance initialized with the specified count
   #[must_use]
   pub fn with_count(count: usize) -> Self {
-    Self {
-      backend: B::with_count(count),
-    }
+    Self { backend: B::with_count(count) }
   }
 
   /// Adds the specified number to the counter

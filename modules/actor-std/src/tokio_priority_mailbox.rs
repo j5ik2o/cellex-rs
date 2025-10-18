@@ -1,43 +1,38 @@
 #[cfg(test)]
 mod tests;
 
-use cellex_actor_core_rs::api::mailbox::Mailbox;
-use cellex_actor_core_rs::api::mailbox::MailboxOptions;
-use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
-use cellex_actor_core_rs::api::mailbox::QueueMailboxProducer;
-use cellex_actor_core_rs::api::mailbox::{QueueMailbox, QueueMailboxRecv};
-use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
+use std::{
+  collections::VecDeque,
+  sync::{Arc, Mutex},
+};
+
+use cellex_actor_core_rs::api::{
+  mailbox::{Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv},
+  metrics::MetricsSinkShared,
+};
 use cellex_utils_std_rs::{
   Element, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, DEFAULT_CAPACITY, PRIORITY_LEVELS,
 };
-use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
 
 type PriorityQueueError<M> = Box<QueueError<PriorityEnvelope<M>>>;
 
 use crate::tokio_mailbox::NotifySignal;
 
 struct TokioPriorityLevels<M> {
-  levels: Arc<Vec<Mutex<VecDeque<PriorityEnvelope<M>>>>>,
+  levels:             Arc<Vec<Mutex<VecDeque<PriorityEnvelope<M>>>>>,
   capacity_per_level: usize,
 }
 
 impl<M> Clone for TokioPriorityLevels<M> {
   fn clone(&self) -> Self {
-    Self {
-      levels: Arc::clone(&self.levels),
-      capacity_per_level: self.capacity_per_level,
-    }
+    Self { levels: Arc::clone(&self.levels), capacity_per_level: self.capacity_per_level }
   }
 }
 
 impl<M> TokioPriorityLevels<M> {
   fn new(levels: usize, capacity_per_level: usize) -> Self {
     let storage = (0..levels).map(|_| Mutex::new(VecDeque::new())).collect();
-    Self {
-      levels: Arc::new(storage),
-      capacity_per_level,
-    }
+    Self { levels: Arc::new(storage), capacity_per_level }
   }
 
   fn level_index(priority: i8, levels: usize) -> usize {
@@ -76,11 +71,7 @@ impl<M> TokioPriorityLevels<M> {
   }
 
   fn len(&self) -> usize {
-    self
-      .levels
-      .iter()
-      .map(|level| level.lock().expect("priority queue poisoned").len())
-      .sum()
+    self.levels.iter().map(|level| level.lock().expect("priority queue poisoned").len()).sum()
   }
 
   fn capacity(&self) -> QueueSize {
@@ -94,8 +85,8 @@ impl<M> TokioPriorityLevels<M> {
 }
 
 pub struct TokioPriorityQueues<M> {
-  control: TokioPriorityLevels<M>,
-  regular: Arc<Mutex<VecDeque<PriorityEnvelope<M>>>>,
+  control:          TokioPriorityLevels<M>,
+  regular:          Arc<Mutex<VecDeque<PriorityEnvelope<M>>>>,
   regular_capacity: usize,
 }
 
@@ -146,11 +137,8 @@ impl<M> TokioPriorityQueues<M> {
 
   fn capacity(&self) -> QueueSize {
     let control_cap = self.control.capacity();
-    let regular_cap = if self.regular_capacity == 0 {
-      QueueSize::limitless()
-    } else {
-      QueueSize::limited(self.regular_capacity)
-    };
+    let regular_cap =
+      if self.regular_capacity == 0 { QueueSize::limitless() } else { QueueSize::limited(self.regular_capacity) };
 
     if control_cap.is_limitless() || regular_cap.is_limitless() {
       QueueSize::limitless()
@@ -164,8 +152,8 @@ impl<M> TokioPriorityQueues<M> {
 impl<M> Clone for TokioPriorityQueues<M> {
   fn clone(&self) -> Self {
     Self {
-      control: self.control.clone(),
-      regular: Arc::clone(&self.regular),
+      control:          self.control.clone(),
+      regular:          Arc::clone(&self.regular),
       regular_capacity: self.regular_capacity,
     }
   }
@@ -238,16 +226,16 @@ where
 #[derive(Clone, Debug)]
 pub struct TokioPriorityMailboxRuntime {
   control_capacity_per_level: usize,
-  regular_capacity: usize,
-  levels: usize,
+  regular_capacity:           usize,
+  levels:                     usize,
 }
 
 impl Default for TokioPriorityMailboxRuntime {
   fn default() -> Self {
     Self {
       control_capacity_per_level: DEFAULT_CAPACITY,
-      regular_capacity: DEFAULT_CAPACITY,
-      levels: PRIORITY_LEVELS,
+      regular_capacity:           DEFAULT_CAPACITY,
+      levels:                     PRIORITY_LEVELS,
     }
   }
 }
@@ -261,13 +249,10 @@ impl TokioPriorityMailboxRuntime {
   ///
   /// # Returns
   ///
-  /// A factory initialized with default regular queue capacity and default number of priority levels
+  /// A factory initialized with default regular queue capacity and default number of priority
+  /// levels
   pub fn new(control_capacity_per_level: usize) -> Self {
-    Self {
-      control_capacity_per_level,
-      regular_capacity: DEFAULT_CAPACITY,
-      levels: PRIORITY_LEVELS,
-    }
+    Self { control_capacity_per_level, regular_capacity: DEFAULT_CAPACITY, levels: PRIORITY_LEVELS }
   }
 
   /// Sets the number of priority levels (builder pattern)
@@ -306,7 +291,8 @@ impl TokioPriorityMailboxRuntime {
   ///
   /// # Returns
   ///
-  /// `(TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)` - Tuple of mailbox and sender handle
+  /// `(TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)` - Tuple of mailbox and sender
+  /// handle
   pub fn mailbox<M>(&self, options: MailboxOptions) -> (TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)
   where
     M: Element, {
@@ -316,23 +302,20 @@ impl TokioPriorityMailboxRuntime {
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();
-    (
-      TokioPriorityMailbox { inner: mailbox },
-      TokioPriorityMailboxSender { inner: sender },
-    )
+    (TokioPriorityMailbox { inner: mailbox }, TokioPriorityMailboxSender { inner: sender })
   }
 
   fn resolve_control_capacity(&self, requested: QueueSize) -> usize {
     match requested {
-      QueueSize::Limitless => self.control_capacity_per_level,
-      QueueSize::Limited(value) => value,
+      | QueueSize::Limitless => self.control_capacity_per_level,
+      | QueueSize::Limited(value) => value,
     }
   }
 
   fn resolve_regular_capacity(&self, requested: QueueSize) -> usize {
     match requested {
-      QueueSize::Limitless => self.regular_capacity,
-      QueueSize::Limited(value) => value,
+      | QueueSize::Limitless => self.regular_capacity,
+      | QueueSize::Limited(value) => value,
     }
   }
 }
@@ -349,7 +332,8 @@ where
   ///
   /// # Returns
   ///
-  /// `(TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)` - Tuple of mailbox and sender handle
+  /// `(TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)` - Tuple of mailbox and sender
+  /// handle
   pub fn new(control_capacity_per_level: usize) -> (Self, TokioPriorityMailboxSender<M>) {
     TokioPriorityMailboxRuntime::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
   }

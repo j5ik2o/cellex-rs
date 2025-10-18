@@ -1,7 +1,13 @@
-use crate::collections::queue::traits::{QueueBase, QueueReader, QueueWriter};
-use crate::collections::queue::QueueStorage;
-use crate::collections::{QueueError, QueueSize};
-use crate::sync::Shared;
+use crate::{
+  collections::{
+    queue::{
+      traits::{QueueBase, QueueReader, QueueWriter},
+      QueueStorage,
+    },
+    QueueError, QueueSize,
+  },
+  sync::Shared,
+};
 
 /// Backend abstraction trait for ring buffer-based queues.
 ///
@@ -38,7 +44,8 @@ pub trait RingBackend<E> {
   ///
   /// # Errors
   ///
-  /// This method currently does not return any errors, but the signature allows for future error handling.
+  /// This method currently does not return any errors, but the signature allows for future error
+  /// handling.
   fn poll(&self) -> Result<Option<E>, QueueError<E>>;
 
   /// Cleans up the queue's internal state.

@@ -63,12 +63,13 @@ use cellex_remote_core_rs::RemoteFailureNotifier;
 
 /// Bridge connecting cluster and remote failure notifications.
 ///
-/// Propagates local failure events to remote nodes, enabling cluster-wide sharing of failure information.
+/// Propagates local failure events to remote nodes, enabling cluster-wide sharing of failure
+/// information.
 #[cfg(feature = "std")]
 pub struct ClusterFailureBridge<E>
 where
   E: FailureEventStream, {
-  hub: E,
+  hub:             E,
   remote_notifier: RemoteFailureNotifier<E>,
 }
 

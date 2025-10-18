@@ -1,70 +1,82 @@
 use alloc::boxed::Box;
 
-use super::InternalActorSystem;
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::actor_runtime::{ActorRuntime, MailboxOf};
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::supervision::supervisor::{NoopSupervisor, Supervisor};
-use crate::internal::actor::InternalProps;
-use crate::internal::guardian::GuardianStrategy;
-use crate::internal::scheduler::ChildNaming;
-use crate::internal::scheduler::SchedulerSpawnContext;
-use crate::internal::scheduler::SpawnError;
-use cellex_utils_core_rs::sync::Shared;
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{
+  sync::{ArcShared, Shared},
+  Element, QueueError,
+};
+use spin::RwLock;
 
-pub(crate) struct InternalRootContext<'a, M, R, Strat>
+use super::InternalActorSystem;
+use crate::{
+  api::{
+    actor::{actor_ref::PriorityActorRef, ChildNaming, SpawnError},
+    actor_runtime::{ActorRuntime, MailboxOf},
+    actor_scheduler::ActorSchedulerSpawnContext,
+    extensions::Extensions,
+    guardian::GuardianStrategy,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    process::{pid::Pid, process_registry::ProcessRegistry},
+    supervision::supervisor::{NoopSupervisor, Supervisor},
+  },
+  internal::actor::InternalProps,
+};
+
+pub(crate) struct InternalRootContext<'a, M, AR, Strat>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<R>>, {
-  pub(super) system: &'a mut InternalActorSystem<M, R, Strat>,
+  AR: ActorRuntime + Clone + 'static,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<AR>>, {
+  pub(super) system: &'a mut InternalActorSystem<M, AR, Strat>,
 }
 
-impl<'a, M, R, Strat> InternalRootContext<'a, M, R, Strat>
+impl<'a, M, AR, Strat> InternalRootContext<'a, M, AR, Strat>
 where
   M: Element + 'static,
-  R: ActorRuntime + Clone + 'static,
-  <MailboxOf<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-  <MailboxOf<R> as MailboxFactory>::Signal: Clone,
-  Strat: GuardianStrategy<M, MailboxOf<R>>,
+  AR: ActorRuntime + Clone + 'static,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
+  Strat: GuardianStrategy<M, MailboxOf<AR>>,
 {
   #[allow(dead_code)]
   pub fn spawn(
     &mut self,
-    props: InternalProps<M, MailboxOf<R>>,
-  ) -> Result<PriorityActorRef<M, MailboxOf<R>>, SpawnError<M>> {
-    self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto)
+    props: InternalProps<M, MailboxOf<AR>>,
+  ) -> Result<PriorityActorRef<M, MailboxOf<AR>>, SpawnError<M>> {
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto, pid_slot)
   }
 
   /// Spawns a child actor with an explicit supervisor and naming strategy.
   pub fn spawn_with_supervisor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    props: InternalProps<M, MailboxOf<R>>,
+    props: InternalProps<M, MailboxOf<AR>>,
     child_naming: ChildNaming,
-  ) -> Result<PriorityActorRef<M, MailboxOf<R>>, SpawnError<M>> {
-    let InternalProps {
-      options,
-      map_system,
-      handler,
-    } = props;
+    pid_slot: ArcShared<RwLock<Option<Pid>>>,
+  ) -> Result<PriorityActorRef<M, MailboxOf<AR>>, SpawnError<M>> {
+    let InternalProps { options, map_system, handler } = props;
 
-    let mailbox_runtime = self.system.mailbox_runtime_shared.with_ref(|mailbox| mailbox.clone());
-    let mailbox_runtime_shared = self.system.mailbox_runtime_shared.clone();
-    let context = SchedulerSpawnContext {
-      mailbox_runtime,
-      mailbox_runtime_shared,
+    let mailbox_factory = self.system.mailbox_factory_shared.with_ref(|mailbox| mailbox.clone());
+    let mailbox_factory_shared = self.system.mailbox_factory_shared.clone();
+    let context = ActorSchedulerSpawnContext {
+      mailbox_factory,
+      mailbox_factory_shared,
       map_system,
       mailbox_options: options,
       handler,
       child_naming,
+      process_registry: self.system.process_registry(),
+      actor_pid_slot: pid_slot,
     };
     self.system.scheduler.spawn_actor(supervisor, context)
+  }
+
+  pub fn process_registry(
+    &self,
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<M, MailboxOf<AR>>, ArcShared<PriorityEnvelope<M>>>> {
+    self.system.process_registry()
   }
 
   #[deprecated(since = "3.1.0", note = "dispatch_next / run_until を使用してください")]

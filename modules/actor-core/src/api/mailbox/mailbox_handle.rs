@@ -1,6 +1,6 @@
-use crate::api::mailbox::mailbox_signal::MailboxSignal;
-use crate::api::mailbox::Mailbox;
 use cellex_utils_core_rs::{Element, QueueError};
+
+use crate::api::mailbox::{mailbox_signal::MailboxSignal, Mailbox};
 
 /// Shared interface exposed by mailbox handles that can be managed by the runtime scheduler.
 pub trait MailboxHandle<M>: Mailbox<M> + Clone

@@ -1,5 +1,4 @@
-use core::future::Ready;
-use core::time::Duration;
+use core::{future::Ready, time::Duration};
 
 use cellex_actor_core_rs::api::actor_system::Timer;
 

@@ -1,12 +1,9 @@
-use super::behavior_failure::BehaviorFailure;
-use super::default_behavior_failure::DefaultBehaviorFailure;
-use alloc::borrow::Cow;
-use alloc::format;
-use alloc::string::String;
+use alloc::{borrow::Cow, format, string::String};
+use core::{any::Any, fmt, ptr};
+
 use cellex_utils_core_rs::sync::ArcShared;
-use core::any::Any;
-use core::fmt;
-use core::ptr;
+
+use super::{behavior_failure::BehaviorFailure, default_behavior_failure::DefaultBehaviorFailure};
 
 /// Wrapper passed to supervisors when actor execution fails.
 #[derive(Clone)]
@@ -19,9 +16,7 @@ impl ActorFailure {
   #[must_use]
   pub fn new(inner: impl BehaviorFailure) -> Self {
     let shared = ArcShared::new(inner);
-    Self {
-      inner: shared.into_dyn(|value| value as &dyn BehaviorFailure),
-    }
+    Self { inner: shared.into_dyn(|value| value as &dyn BehaviorFailure) }
   }
 
   /// Creates an [`ActorFailure`] from an existing shared pointer.

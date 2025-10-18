@@ -40,9 +40,7 @@ where
   pub fn new(capacity: usize) -> Self {
     let storage = ArcShared::new(ArcStateCell::new(RingBuffer::new(capacity)));
     let backend = ArcShared::new(RingStorageBackend::new(storage));
-    Self {
-      inner: RingQueue::new(backend),
-    }
+    Self { inner: RingQueue::new(backend) }
   }
 
   /// Sets the dynamic expansion mode and returns self (builder pattern)
@@ -131,9 +129,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

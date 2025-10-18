@@ -1,22 +1,27 @@
 extern crate std;
 
-use super::LocalMailboxRuntime;
-use alloc::rc::Rc;
-use alloc::vec::Vec;
-use cellex_actor_core_rs::api::actor::Props;
-use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
-use cellex_actor_core_rs::api::actor_system::{ActorSystem, ActorSystemConfig};
-use core::cell::RefCell;
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll};
-use futures::task::{waker, ArcWake};
+use alloc::{rc::Rc, vec::Vec};
+use core::{
+  cell::RefCell,
+  future::Future,
+  pin::Pin,
+  task::{Context, Poll},
+};
 use std::sync::{Arc, Condvar, Mutex};
+
+use cellex_actor_core_rs::api::{
+  actor::Props,
+  actor_runtime::GenericActorRuntime,
+  actor_system::{ActorSystem, ActorSystemConfig},
+};
+use futures::task::{waker, ArcWake};
+
+use super::LocalMailboxRuntime;
 
 fn block_on<F: Future>(mut future: F) -> F::Output {
   struct WaitCell {
     state: Mutex<bool>,
-    cvar: Condvar,
+    cvar:  Condvar,
   }
 
   impl ArcWake for WaitCell {
@@ -27,32 +32,29 @@ fn block_on<F: Future>(mut future: F) -> F::Output {
     }
   }
 
-  let cell = Arc::new(WaitCell {
-    state: Mutex::new(false),
-    cvar: Condvar::new(),
-  });
+  let cell = Arc::new(WaitCell { state: Mutex::new(false), cvar: Condvar::new() });
   let waker = waker(cell.clone());
   let mut cx = Context::from_waker(&waker);
   // Safety: we never move `future` after pinning.
   let mut pinned = unsafe { Pin::new_unchecked(&mut future) };
   loop {
     match pinned.as_mut().poll(&mut cx) {
-      Poll::Ready(output) => break output,
-      Poll::Pending => {
+      | Poll::Ready(output) => break output,
+      | Poll::Pending => {
         let mut ready = cell.state.lock().unwrap();
         while !*ready {
           ready = cell.cvar.wait(ready).unwrap();
         }
         *ready = false;
-      }
+      },
     }
   }
 }
 
 #[test]
 fn typed_actor_system_dispatch_next_processes_message() {
-  let mailbox_runtime = LocalMailboxRuntime::default();
-  let actor_runtime = GenericActorRuntime::new(mailbox_runtime);
+  let mailbox_factory = LocalMailboxRuntime::default();
+  let actor_runtime = GenericActorRuntime::new(mailbox_factory);
   let mut system: ActorSystem<u32, _> =
     ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
 

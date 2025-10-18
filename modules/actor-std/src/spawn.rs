@@ -1,5 +1,6 @@
-use cellex_actor_core_rs::api::actor_system::Spawn;
 use core::future::Future;
+
+use cellex_actor_core_rs::api::actor_system::Spawn;
 
 /// Shared spawn adapter built on top of `tokio::spawn`.
 pub struct TokioSpawner;

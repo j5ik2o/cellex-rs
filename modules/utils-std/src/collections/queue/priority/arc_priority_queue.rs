@@ -1,7 +1,8 @@
-use crate::ArcRingQueue;
 use cellex_utils_core_rs::{
   PriorityMessage, PriorityQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, PRIORITY_LEVELS,
 };
+
+use crate::ArcRingQueue;
 
 /// Priority queue
 ///
@@ -23,12 +24,8 @@ impl<E> ArcPriorityQueue<E> {
   ///
   /// A new priority queue instance
   pub fn new(capacity_per_level: usize) -> Self {
-    let levels = (0..PRIORITY_LEVELS)
-      .map(|_| ArcRingQueue::new(capacity_per_level))
-      .collect();
-    Self {
-      inner: PriorityQueue::new(levels),
-    }
+    let levels = (0..PRIORITY_LEVELS).map(|_| ArcRingQueue::new(capacity_per_level)).collect();
+    Self { inner: PriorityQueue::new(levels) }
   }
 
   /// Returns an immutable reference to the priority level array

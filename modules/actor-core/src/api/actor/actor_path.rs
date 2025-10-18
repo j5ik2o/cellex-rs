@@ -1,10 +1,12 @@
-use crate::api::actor::actor_id::ActorId;
 use alloc::vec::Vec;
 use core::fmt;
 
+use crate::api::actor::actor_id::ActorId;
+
 /// Hierarchical path of an actor.
 ///
-/// Represents actor location in a hierarchical structure, holding the path from root as a sequence of segments.
+/// Represents actor location in a hierarchical structure, holding the path from root as a sequence
+/// of segments.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ActorPath {
   segments: Vec<ActorId>,

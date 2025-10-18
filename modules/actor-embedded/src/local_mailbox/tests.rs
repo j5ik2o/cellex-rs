@@ -1,11 +1,9 @@
 extern crate std;
 
-use super::*;
 use core::task::{Context, Poll};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::Wake;
+use std::{future::Future, pin::Pin, sync::Arc, task::Wake};
+
+use super::*;
 
 fn noop_waker() -> core::task::Waker {
   struct NoopWake;
@@ -74,8 +72,8 @@ fn local_mailbox_preserves_messages_post_wake() {
 
 #[test]
 fn runtime_builder_produces_working_mailbox() {
-  let mailbox_runtime = LocalMailboxRuntime::new();
-  let (mailbox, sender) = mailbox_runtime.unbounded::<u16>();
+  let mailbox_factory = LocalMailboxRuntime::new();
+  let (mailbox, sender) = mailbox_factory.unbounded::<u16>();
 
   sender.try_send(11).unwrap();
   let future = mailbox.recv();

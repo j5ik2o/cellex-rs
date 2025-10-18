@@ -1,11 +1,12 @@
-use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
-use crate::api::mailbox::mailbox_handle::MailboxHandle;
-use crate::api::mailbox::mailbox_options::MailboxOptions;
-use crate::api::mailbox::mailbox_producer::MailboxProducer;
-use crate::api::mailbox::mailbox_signal::MailboxSignal;
-use crate::api::mailbox::MailboxPair;
-use crate::api::messaging::MetadataStorageMode;
 use cellex_utils_core_rs::{Element, QueueRw};
+
+use crate::api::{
+  mailbox::{
+    mailbox_concurrency::MailboxConcurrency, mailbox_handle::MailboxHandle, mailbox_options::MailboxOptions,
+    mailbox_producer::MailboxProducer, mailbox_signal::MailboxSignal, MailboxPair,
+  },
+  messaging::MetadataStorageMode,
+};
 
 /// Factory trait for creating mailboxes.
 ///

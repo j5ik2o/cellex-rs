@@ -1,26 +1,27 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashMap;
-
 use core::task::Poll;
+use std::collections::HashMap;
 
 use cellex_utils_core_rs::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };
 use tokio_util::time::delay_queue::{DelayQueue as InnerDelayQueue, Key as InnerKey};
 
-/// Implementation that wraps `tokio_util::time::DelayQueue` to satisfy the `DeadlineTimer` abstraction.
+/// Implementation that wraps `tokio_util::time::DelayQueue` to satisfy the `DeadlineTimer`
+/// abstraction.
 ///
-/// Maintains forward and reverse conversion tables to avoid exposing the internal keys of DelayQueue externally.
-/// Consistently exchanges `DeadlineTimerKey` with the core layer.
-/// Used as a common foundation for deadline-based processing on the Tokio runtime, including `ReceiveTimeout`.
+/// Maintains forward and reverse conversion tables to avoid exposing the internal keys of
+/// DelayQueue externally. Consistently exchanges `DeadlineTimerKey` with the core layer.
+/// Used as a common foundation for deadline-based processing on the Tokio runtime, including
+/// `ReceiveTimeout`.
 #[derive(Debug)]
 pub struct TokioDeadlineTimer<Item> {
-  inner: InnerDelayQueue<Item>,
+  inner:     InnerDelayQueue<Item>,
   allocator: DeadlineTimerKeyAllocator,
-  forward: HashMap<DeadlineTimerKey, InnerKey>,
-  reverse: HashMap<InnerKey, DeadlineTimerKey>,
+  forward:   HashMap<DeadlineTimerKey, InnerKey>,
+  reverse:   HashMap<InnerKey, DeadlineTimerKey>,
 }
 
 impl<Item> TokioDeadlineTimer<Item> {
@@ -37,12 +38,7 @@ impl<Item> TokioDeadlineTimer<Item> {
   }
 
   fn with_inner(inner: InnerDelayQueue<Item>) -> Self {
-    Self {
-      inner,
-      allocator: DeadlineTimerKeyAllocator::new(),
-      forward: HashMap::new(),
-      reverse: HashMap::new(),
-    }
+    Self { inner, allocator: DeadlineTimerKeyAllocator::new(), forward: HashMap::new(), reverse: HashMap::new() }
   }
 
   fn release_key_mapping(&mut self, inner_key: &InnerKey) -> Option<DeadlineTimerKey> {
@@ -94,7 +90,7 @@ impl<Item> DeadlineTimer for TokioDeadlineTimer<Item> {
     cx: &mut core::task::Context<'_>,
   ) -> Poll<Result<DeadlineTimerExpired<Self::Item>, Self::Error>> {
     match self.inner.poll_expired(cx) {
-      Poll::Ready(Some(expired)) => {
+      | Poll::Ready(Some(expired)) => {
         let inner_key = expired.key();
         let item = expired.into_inner();
         if let Some(key) = self.release_key_mapping(&inner_key) {
@@ -102,9 +98,9 @@ impl<Item> DeadlineTimer for TokioDeadlineTimer<Item> {
         } else {
           Poll::Ready(Err(DeadlineTimerError::KeyNotFound))
         }
-      }
-      Poll::Ready(None) => Poll::Ready(Err(DeadlineTimerError::Closed)),
-      Poll::Pending => Poll::Pending,
+      },
+      | Poll::Ready(None) => Poll::Ready(Err(DeadlineTimerError::Closed)),
+      | Poll::Pending => Poll::Pending,
     }
   }
 }

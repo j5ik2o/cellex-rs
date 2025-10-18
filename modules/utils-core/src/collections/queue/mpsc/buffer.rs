@@ -24,9 +24,9 @@ use crate::collections::{QueueError, QueueSize};
 /// ```
 #[derive(Debug, Clone)]
 pub struct MpscBuffer<T> {
-  buffer: VecDeque<T>,
+  buffer:   VecDeque<T>,
   capacity: Option<usize>,
-  closed: bool,
+  closed:   bool,
 }
 
 impl<T> MpscBuffer<T> {
@@ -54,11 +54,7 @@ impl<T> MpscBuffer<T> {
   #[must_use]
   #[allow(clippy::missing_const_for_fn)]
   pub fn new(capacity: Option<usize>) -> Self {
-    Self {
-      buffer: VecDeque::new(),
-      capacity,
-      closed: false,
-    }
+    Self { buffer: VecDeque::new(), capacity, closed: false }
   }
 
   /// Returns the current number of elements in the buffer.
@@ -102,8 +98,8 @@ impl<T> MpscBuffer<T> {
   #[must_use]
   pub const fn capacity(&self) -> QueueSize {
     match self.capacity {
-      Some(limit) => QueueSize::limited(limit),
-      None => QueueSize::limitless(),
+      | Some(limit) => QueueSize::limited(limit),
+      | None => QueueSize::limitless(),
     }
   }
 

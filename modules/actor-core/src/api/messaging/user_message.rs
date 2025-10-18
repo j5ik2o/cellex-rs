@@ -1,15 +1,12 @@
-use crate::api::messaging::MessageMetadata;
-use crate::api::messaging::MetadataStorageMode;
-use crate::internal::message::discard_metadata;
-use crate::internal::message::store_metadata;
-use crate::internal::message::MetadataKey;
 use core::mem::{forget, ManuallyDrop};
+
+use crate::api::messaging::{metadata_storage_record::MetadataStorageRecord, MessageMetadata, MetadataStorageMode};
 
 /// Wrapper that holds a user message and metadata.
 #[derive(Debug, Clone)]
 pub struct UserMessage<U> {
-  message: ManuallyDrop<U>,
-  metadata_key: Option<MetadataKey>,
+  message:  ManuallyDrop<U>,
+  metadata: Option<MetadataStorageRecord>,
 }
 
 impl<U> UserMessage<U> {
@@ -18,10 +15,7 @@ impl<U> UserMessage<U> {
   /// # Arguments
   /// * `message` - User message
   pub fn new(message: U) -> Self {
-    Self {
-      message: ManuallyDrop::new(message),
-      metadata_key: None,
-    }
+    Self { message: ManuallyDrop::new(message), metadata: None }
   }
 
   /// Creates a new `UserMessage` with message and metadata.
@@ -31,17 +25,14 @@ impl<U> UserMessage<U> {
   /// # Arguments
   /// * `message` - User message
   /// * `metadata` - Message metadata
-  pub fn with_metadata<C>(message: U, metadata: MessageMetadata<C>) -> Self
+  pub fn with_metadata<Mode>(message: U, metadata: MessageMetadata<Mode>) -> Self
   where
-    C: MetadataStorageMode, {
+    Mode: MetadataStorageMode, {
     if metadata.is_empty() {
       Self::new(message)
     } else {
-      let key = store_metadata(metadata);
-      Self {
-        message: ManuallyDrop::new(message),
-        metadata_key: Some(key),
-      }
+      let record = Mode::into_record(metadata);
+      Self { message: ManuallyDrop::new(message), metadata: Some(record) }
     }
   }
 
@@ -53,23 +44,18 @@ impl<U> UserMessage<U> {
     &*self.message
   }
 
-  /// Gets the metadata key.
-  ///
-  /// # Returns
-  /// `Some(MetadataKey)` if metadata exists, `None` otherwise
-  pub fn metadata_key(&self) -> Option<MetadataKey> {
-    self.metadata_key
-  }
-
   /// Decomposes into message and metadata key.
   ///
   /// # Returns
-  /// Tuple of `(message, metadata key)`
-  pub fn into_parts(mut self) -> (U, Option<MetadataKey>) {
-    let key = self.metadata_key.take();
+  /// Tuple of `(message, metadata)`
+  pub fn into_parts<Mode>(mut self) -> (U, Option<MessageMetadata<Mode>>)
+  where
+    Mode: MetadataStorageMode, {
+    let record = self.metadata.take();
     let message = unsafe { ManuallyDrop::take(&mut self.message) };
     forget(self);
-    (message, key)
+    let metadata = record.and_then(Mode::from_record);
+    (message, metadata)
   }
 }
 
@@ -81,9 +67,6 @@ impl<U> From<U> for UserMessage<U> {
 
 impl<U> Drop for UserMessage<U> {
   fn drop(&mut self) {
-    if let Some(key) = self.metadata_key.take() {
-      discard_metadata(key);
-    }
     unsafe {
       ManuallyDrop::drop(&mut self.message);
     }

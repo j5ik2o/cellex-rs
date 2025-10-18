@@ -1,6 +1,8 @@
 use alloc::boxed::Box;
-use core::any::{Any, TypeId};
-use core::fmt::{self, Debug};
+use core::{
+  any::{Any, TypeId},
+  fmt::{self, Debug},
+};
 
 use super::dyn_message_value::DynMessageValue;
 
@@ -33,8 +35,8 @@ impl DynMessage {
   where
     T: DynMessageValue + 'static, {
     match self.inner.downcast::<T>() {
-      Ok(boxed) => Ok(*boxed),
-      Err(inner) => Err(Self { inner }),
+      | Ok(boxed) => Ok(*boxed),
+      | Err(inner) => Err(Self { inner }),
     }
   }
 

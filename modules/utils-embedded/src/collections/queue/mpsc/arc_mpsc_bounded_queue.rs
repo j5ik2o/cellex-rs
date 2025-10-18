@@ -1,9 +1,10 @@
-use crate::sync::{ArcShared, ArcStateCell};
 use cellex_utils_core_rs::{
   Element, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
   RingBufferBackend,
 };
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
+
+use crate::sync::{ArcShared, ArcStateCell};
 
 /// `Arc`-based bounded MPSC queue with configurable mutex backend
 ///
@@ -29,9 +30,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 
@@ -63,12 +62,8 @@ where
   /// let queue: ArcMpscBoundedQueue<i32> = ArcMpscBoundedQueue::new(10);
   /// ```
   pub fn new(capacity: usize) -> Self {
-    let storage = ArcShared::new(RingBufferBackend::new(ArcStateCell::new(MpscBuffer::new(Some(
-      capacity,
-    )))));
-    Self {
-      inner: MpscQueue::new(storage),
-    }
+    let storage = ArcShared::new(RingBufferBackend::new(ArcStateCell::new(MpscBuffer::new(Some(capacity)))));
+    Self { inner: MpscQueue::new(storage) }
   }
 }
 

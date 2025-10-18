@@ -1,18 +1,19 @@
-use core::convert::Infallible;
-use core::marker::PhantomData;
-use core::num::NonZeroUsize;
+use core::{convert::Infallible, marker::PhantomData, num::NonZeroUsize};
 
-use cellex_actor_core_rs::api::actor::shutdown_token::ShutdownToken;
-use cellex_actor_core_rs::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use cellex_actor_core_rs::api::actor_system::ActorSystemRunner;
-use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
-use cellex_actor_core_rs::api::messaging::DynMessage;
-use cellex_actor_core_rs::internal::scheduler::{drive_ready_queue_worker, ReadyQueueWorker};
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_actor_core_rs::api::{
+  actor::shutdown_token::ShutdownToken,
+  actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+  actor_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+  actor_system::ActorSystemRunner,
+  mailbox::PriorityEnvelope,
+  messaging::DynMessage,
+};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use futures::future::select_all;
-use tokio::signal;
-use tokio::task::{self, JoinHandle};
+use tokio::{
+  signal,
+  task::{self, JoinHandle},
+};
 
 /// Handle for managing the actor system in the Tokio execution environment
 ///
@@ -20,9 +21,9 @@ use tokio::task::{self, JoinHandle};
 pub struct TokioSystemHandle<U>
 where
   U: Element, {
-  join: tokio::task::JoinHandle<Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>>,
+  join:     tokio::task::JoinHandle<Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>>,
   shutdown: ShutdownToken,
-  _marker: PhantomData<U>,
+  _marker:  PhantomData<U>,
 }
 
 impl<U> TokioSystemHandle<U>
@@ -36,19 +37,15 @@ where
   ///
   /// # Returns
   /// A new `TokioSystemHandle` for managing the actor system
-  pub fn start_local<R>(runner: ActorSystemRunner<U, R>) -> Self
+  pub fn start_local<AR>(runner: ActorSystemRunner<U, AR>) -> Self
   where
     U: cellex_utils_std_rs::Element + 'static,
-    R: ActorRuntime + 'static,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-    MailboxSignalOf<R>: Clone, {
+    AR: ActorRuntime + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+    MailboxSignalOf<AR>: Clone, {
     let shutdown = runner.shutdown_token();
     let join = task::spawn_local(async move { run_runner(runner).await });
-    Self {
-      join,
-      shutdown,
-      _marker: PhantomData,
-    }
+    Self { join, shutdown, _marker: PhantomData }
   }
 
   /// Returns the system's shutdown token
@@ -100,14 +97,14 @@ where
   }
 }
 
-async fn run_runner<U, R>(
-  runner: ActorSystemRunner<U, R>,
+async fn run_runner<U, AR>(
+  runner: ActorSystemRunner<U, AR>,
 ) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>
 where
   U: Element + 'static,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
   if !runner.supports_ready_queue() {
     return runner.run_forever().await;
   }
@@ -124,23 +121,21 @@ where
   run_ready_queue_workers(runner, worker_count).await
 }
 
-async fn run_ready_queue_workers<U, R>(
-  runner: ActorSystemRunner<U, R>,
+async fn run_ready_queue_workers<U, AR>(
+  runner: ActorSystemRunner<U, AR>,
   worker_count: NonZeroUsize,
 ) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>>
 where
   U: Element + 'static,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
   let shutdown = runner.shutdown_token();
   let mut worker_handles = Vec::with_capacity(worker_count.get());
 
   for _ in 0..worker_count.get() {
-    let worker = runner
-      .ready_queue_worker()
-      .expect("ReadyQueue worker must be available when support is reported");
-    worker_handles.push(spawn_worker_task::<R>(worker, shutdown.clone()));
+    let worker = runner.ready_queue_worker().expect("ReadyQueue worker must be available when support is reported");
+    worker_handles.push(spawn_worker_task::<AR>(worker, shutdown.clone()));
   }
 
   let mut worker_handles = worker_handles;
@@ -153,7 +148,7 @@ where
     let (result, _index, mut remaining) = select_all(worker_handles).await;
 
     match result {
-      Ok(Ok(())) => {
+      | Ok(Ok(())) => {
         if shutdown.is_triggered() {
           if remaining.is_empty() {
             return Err(QueueError::Disconnected);
@@ -162,14 +157,13 @@ where
           continue;
         }
 
-        let worker = runner
-          .ready_queue_worker()
-          .expect("ReadyQueue worker must be obtainable while scheduler remains active");
-        remaining.push(spawn_worker_task::<R>(worker, shutdown.clone()));
+        let worker =
+          runner.ready_queue_worker().expect("ReadyQueue worker must be obtainable while scheduler remains active");
+        remaining.push(spawn_worker_task::<AR>(worker, shutdown.clone()));
         worker_handles = remaining;
-      }
-      Ok(Err(err)) => return Err(err),
-      Err(join_err) => {
+      },
+      | Ok(Err(err)) => return Err(err),
+      | Err(join_err) => {
         if join_err.is_cancelled() && shutdown.is_triggered() {
           if remaining.is_empty() {
             return Err(QueueError::Disconnected);
@@ -182,30 +176,30 @@ where
           std::panic::resume_unwind(join_err.into_panic());
         }
         return Err(QueueError::Disconnected);
-      }
+      },
     }
   }
 }
 
-fn spawn_worker_task<R>(
-  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<R>>>,
+fn spawn_worker_task<AR>(
+  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>,
   shutdown: ShutdownToken,
 ) -> JoinHandle<Result<(), QueueError<PriorityEnvelope<DynMessage>>>>
 where
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
-  task::spawn_local(async move { ready_queue_worker_loop::<R>(worker, shutdown).await })
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
+  task::spawn_local(async move { ready_queue_worker_loop::<AR>(worker, shutdown).await })
 }
 
-async fn ready_queue_worker_loop<R>(
-  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<R>>>,
+async fn ready_queue_worker_loop<AR>(
+  worker: ArcShared<dyn ReadyQueueWorker<DynMessage, MailboxOf<AR>>>,
   shutdown: ShutdownToken,
 ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
 where
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
   let shutdown_for_wait = shutdown.clone();
   drive_ready_queue_worker(
     worker,

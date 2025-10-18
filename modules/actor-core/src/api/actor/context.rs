@@ -1,39 +1,41 @@
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_ref::ActorRef;
-use crate::api::actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture};
-use crate::api::actor::props::Props;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::extensions::Extension;
-use crate::api::extensions::ExtensionId;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use crate::api::messaging::{MessageEnvelope, MessageMetadata, MessageSender};
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::internal::context::ActorContext;
-use crate::RuntimeBound;
 use alloc::boxed::Box;
-use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
-use cellex_utils_core_rs::{Element, QueueError, DEFAULT_PRIORITY};
-use core::future::Future;
-use core::marker::PhantomData;
-use core::time::Duration;
+use core::{future::Future, marker::PhantomData, time::Duration};
+
+use cellex_utils_core_rs::{
+  sync::{ArcShared, SharedBound},
+  Element, QueueError, DEFAULT_PRIORITY,
+};
+use spin::RwLock;
+
+use crate::{
+  api::{
+    actor::{
+      actor_failure::ActorFailure,
+      actor_ref::{ActorRef, PriorityActorRef},
+      ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
+      props::Props,
+    },
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    extensions::{Extension, ExtensionId, Extensions},
+    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    process::{pid::Pid, process_registry::ProcessRegistry},
+    supervision::{failure::FailureInfo, supervisor::Supervisor},
+  },
+  RuntimeBound,
+};
 
 mod context_log_level;
 mod context_logger;
 mod message_adapter_ref;
 mod message_metadata_responder;
 
-use crate::api::actor::actor_id::ActorId;
-use crate::api::actor::actor_path::ActorPath;
 pub use context_log_level::ContextLogLevel;
 pub use context_logger::ContextLogger;
 pub use message_adapter_ref::MessageAdapterRef;
 pub use message_metadata_responder::MessageMetadataResponder;
+
+use crate::api::actor::{actor_context::ActorContext, actor_id::ActorId, actor_path::ActorPath};
 
 #[cfg(target_has_atomic = "ptr")]
 pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
@@ -44,51 +46,46 @@ pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U;
 /// Typed actor execution context wrapper.
 /// 'r: lifetime of the mutable reference to ActorContext
 /// 'ctx: lifetime parameter of ActorContext itself
-pub struct Context<'r, 'ctx, U, R>
+pub struct Context<'r, 'ctx, U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode, {
-  pub(super) inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<R>, dyn Supervisor<DynMessage>>,
-  pub(super) metadata: Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<R>>>,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode, {
+  pub(super) inner:      &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
+  pub(super) metadata:   Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<AR>>>,
   pub(super) extensions: Extensions,
-  pub(super) _marker: PhantomData<U>,
+  pub(super) _marker:    PhantomData<U>,
 }
 
 /// Type alias for context during setup.
 pub type SetupContext<'ctx, U, R> = Context<'ctx, 'ctx, U, R>;
 
-impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
+impl<'r, 'ctx, U, AR> Context<'r, 'ctx, U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<R>, dyn Supervisor<DynMessage>>) -> Self {
+  pub(super) fn new(inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>) -> Self {
     let extensions = inner.extensions();
-    Self {
-      inner,
-      metadata: None,
-      extensions,
-      _marker: PhantomData,
-    }
+    Self { inner, metadata: None, extensions, _marker: PhantomData }
   }
 }
 
-impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
+impl<'r, 'ctx, U, AR> Context<'r, 'ctx, U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Determines if receive timeout is supported.
   #[must_use]
@@ -107,32 +104,27 @@ where
   }
 }
 
-impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
+impl<'r, 'ctx, U, AR> Context<'r, 'ctx, U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Gets the metadata accompanying the current message.
   #[must_use]
-  pub fn message_metadata(&self) -> Option<&MessageMetadata<MailboxConcurrencyOf<R>>> {
+  pub fn message_metadata(&self) -> Option<&MessageMetadata<MailboxConcurrencyOf<AR>>> {
     self.metadata.as_ref()
   }
 
   pub(crate) fn with_metadata(
-    inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<R>, dyn Supervisor<DynMessage>>,
-    metadata: MessageMetadata<MailboxConcurrencyOf<R>>,
+    inner: &'r mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>>,
+    metadata: MessageMetadata<MailboxConcurrencyOf<AR>>,
   ) -> Self {
     let extensions = inner.extensions();
-    Self {
-      inner,
-      metadata: Some(metadata),
-      extensions,
-      _marker: PhantomData,
-    }
+    Self { inner, metadata: Some(metadata), extensions, _marker: PhantomData }
   }
 
   /// Returns the shared extension registry.
@@ -167,6 +159,21 @@ where
     self.inner.watchers()
   }
 
+  /// Gets the PID representing this actor.
+  #[must_use]
+  pub fn self_pid(&self) -> &Pid {
+    self.inner.pid()
+  }
+
+  /// Returns the process registry handle for PID resolution.
+  #[must_use]
+  pub fn process_registry(
+    &self,
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  {
+    self.inner.process_registry()
+  }
+
   /// Gets the logger for this actor.
   #[must_use]
   pub fn log(&self) -> ContextLogger {
@@ -184,40 +191,44 @@ where
   }
 
   /// Gets a mutable reference to the internal context.
-  pub fn inner(&mut self) -> &mut ActorContext<'ctx, DynMessage, MailboxOf<R>, dyn Supervisor<DynMessage>> {
+  pub fn inner(&mut self) -> &mut ActorContext<'ctx, DynMessage, MailboxOf<AR>, dyn Supervisor<DynMessage>> {
     self.inner
   }
 }
 
-impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
+impl<'r, 'ctx, U, AR> Context<'r, 'ctx, U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Spawns a child actor and returns an `ActorRef`.
-  pub fn spawn_child<V>(&mut self, props: Props<V, R>) -> ActorRef<V, R>
+  pub fn spawn_child<V>(&mut self, props: Props<V, AR>) -> ActorRef<V, AR>
   where
     V: Element, {
     let (internal_props, supervisor_cfg) = props.into_parts();
-    let actor_ref = self
-      .inner
-      .spawn_child_from_props(Box::new(supervisor_cfg.as_supervisor::<DynMessage>()), internal_props);
-    ActorRef::new(actor_ref)
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.process_registry();
+    let actor_ref = self.inner.spawn_child_from_props(
+      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
+      internal_props,
+      pid_slot.clone(),
+    );
+    ActorRef::new(actor_ref, pid_slot, Some(registry))
   }
 }
 
-impl<'r, 'ctx, U, R> Context<'r, 'ctx, U, R>
+impl<'r, 'ctx, U, AR> Context<'r, 'ctx, U, AR>
 where
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Sends a message to itself.
   pub fn send_to_self(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
@@ -242,12 +253,14 @@ where
 
   /// Gets a reference to itself.
   #[must_use]
-  pub fn self_ref(&self) -> ActorRef<U, R> {
-    ActorRef::new(self.inner.self_ref())
+  pub fn self_ref(&self) -> ActorRef<U, AR> {
+    let registry = self.process_registry();
+    let pid_slot = ArcShared::new(RwLock::new(Some(self.self_pid().clone())));
+    ActorRef::new(self.inner.self_ref(), pid_slot, Some(registry))
   }
 
   /// Creates an adapter that converts external message types to internal message types.
-  pub fn message_adapter<Ext, F>(&self, f: F) -> MessageAdapterRef<Ext, U, R>
+  pub fn message_adapter<Ext, F>(&self, f: F) -> MessageAdapterRef<Ext, U, AR>
   where
     Ext: Element,
     F: Fn(Ext) -> U + SharedBound + 'static, {
@@ -255,47 +268,49 @@ where
     MessageAdapterRef::new(self.self_ref(), adapter)
   }
 
-  pub(crate) fn self_dispatcher(&self) -> MessageSender<U, MailboxConcurrencyOf<R>>
+  pub(crate) fn self_dispatcher(&self) -> MessageSender<U, MailboxConcurrencyOf<AR>>
   where
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     self.self_ref().to_dispatcher()
   }
 
   /// Requests a message with sender information.
   pub fn request<V>(
     &mut self,
-    target: &ActorRef<V, R>,
+    target: &ActorRef<V, AR>,
     message: V,
   ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     V: Element,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_sender(self.self_dispatcher());
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone());
     target.tell_with_metadata(message, metadata)
   }
 
   /// Requests a message with specified sender information.
   pub fn request_with_sender<V, S>(
     &mut self,
-    target: &ActorRef<V, R>,
+    target: &ActorRef<V, AR>,
     message: V,
-    sender: &ActorRef<S, R>,
+    sender: &ActorRef<S, AR>,
   ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
     V: Element,
     S: Element,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_sender(sender.to_dispatcher());
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(sender.to_dispatcher());
     target.tell_with_metadata(message, metadata)
   }
 
   /// Forwards a message while preserving the original metadata.
   pub fn forward<V>(
     &mut self,
-    target: &ActorRef<V, R>,
+    target: &ActorRef<V, AR>,
     message: V,
   ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
@@ -308,70 +323,76 @@ where
   pub fn respond<Resp>(&mut self, message: Resp) -> AskResult<()>
   where
     Resp: Element,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let metadata = self.message_metadata().cloned().ok_or(AskError::MissingResponder)?;
     metadata.respond_with(self, message)
   }
 
   /// Sends an inquiry to the target actor and returns a Future that waits for a response.
-  pub fn ask<V, Resp, F>(&mut self, target: &ActorRef<V, R>, factory: F) -> AskResult<AskFuture<Resp>>
+  pub fn ask<V, Resp, F>(&mut self, target: &ActorRef<V, AR>, factory: F) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
     Resp: Element,
-    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<R>>) -> V,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
+    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> V,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new()
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
       .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(future),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(future),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
   /// Sends an inquiry with timeout and returns a Future that waits for a response.
   pub fn ask_with_timeout<V, Resp, F, TFut>(
     &mut self,
-    target: &ActorRef<V, R>,
+    target: &ActorRef<V, AR>,
     factory: F,
     timeout: TFut,
   ) -> AskResult<AskTimeoutFuture<Resp, TFut>>
   where
     V: Element,
     Resp: Element,
-    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<R>>) -> V,
+    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> V,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
     let message = factory(responder_for_message);
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new()
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
       .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
   /// Sends an inquiry to the target actor and returns a Future that waits for a response.
-  pub fn request_future<V, Resp>(&mut self, target: &ActorRef<V, R>, message: V) -> AskResult<AskFuture<Resp>>
+  pub fn request_future<V, Resp>(&mut self, target: &ActorRef<V, AR>, message: V) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
     Resp: Element,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new()
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
       .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     target.tell_with_metadata(message, metadata)?;
     Ok(future)
   }
@@ -379,7 +400,7 @@ where
   /// Sends an inquiry with timeout and returns a Future that waits for a response.
   pub fn request_future_with_timeout<V, Resp, TFut>(
     &mut self,
-    target: &ActorRef<V, R>,
+    target: &ActorRef<V, AR>,
     message: V,
     timeout: TFut,
   ) -> AskResult<AskTimeoutFuture<Resp, TFut>>
@@ -387,16 +408,18 @@ where
     V: Element,
     Resp: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<R>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
-    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<R>>();
-    let metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new()
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
       .with_sender(self.self_dispatcher())
-      .with_responder(responder);
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
     match target.tell_with_metadata(message, metadata) {
-      Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
-      Err(err) => Err(AskError::from(err)),
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 }

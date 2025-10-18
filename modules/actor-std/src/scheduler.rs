@@ -1,86 +1,85 @@
-use std::boxed::Box;
-use std::vec::Vec;
+use std::{boxed::Box, vec::Vec};
 
-use cellex_actor_core_rs::api::actor::actor_ref::PriorityActorRef;
-use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
-use cellex_actor_core_rs::api::extensions::Extensions;
-use cellex_actor_core_rs::api::mailbox::MailboxFactory;
-use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
-use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
-use cellex_actor_core_rs::api::supervision::escalation::{FailureEventHandler, FailureEventListener};
-use cellex_actor_core_rs::api::supervision::failure::FailureInfo;
-use cellex_actor_core_rs::api::supervision::supervisor::Supervisor;
-use cellex_actor_core_rs::api::supervision::telemetry::TelemetryObservationConfig;
-use cellex_actor_core_rs::internal::guardian::{AlwaysRestart, GuardianStrategy};
-use cellex_actor_core_rs::internal::scheduler::{
-  ActorScheduler, ReadyQueueScheduler, ReadyQueueWorker, SchedulerBuilder, SchedulerSpawnContext, SpawnError,
+use cellex_actor_core_rs::api::{
+  actor::{actor_ref::PriorityActorRef, SpawnError},
+  actor_runtime::GenericActorRuntime,
+  actor_scheduler::{
+    ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext, ReadyQueueScheduler, ReadyQueueWorker,
+  },
+  actor_system::map_system::MapSystemShared,
+  extensions::Extensions,
+  failure_telemetry::FailureTelemetryShared,
+  guardian::{AlwaysRestart, GuardianStrategy},
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  metrics::MetricsSinkShared,
+  receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
+  supervision::{
+    escalation::{FailureEventHandler, FailureEventListener},
+    failure::FailureInfo,
+    supervisor::Supervisor,
+    telemetry::TelemetryObservationConfig,
+  },
 };
-use cellex_actor_core_rs::shared::failure_telemetry::FailureTelemetryShared;
-use cellex_actor_core_rs::shared::map_system::MapSystemShared;
-use cellex_actor_core_rs::shared::receive_timeout::{
-  ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
-};
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use tokio::task::yield_now;
 
 /// Tokio 用スケジューララッパー。
 ///
-/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`] を内包しつつ、`tokio::task::yield_now` による協調切り替えを行う。
-pub struct TokioScheduler<M, R, Strat = AlwaysRestart>
+/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`]
+/// を内包しつつ、`tokio::task::yield_now` による協調切り替えを行う。
+pub struct TokioScheduler<M, MF, Strat = AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>, {
-  inner: ReadyQueueScheduler<M, R, Strat>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>, {
+  inner: ReadyQueueScheduler<M, MF, Strat>,
 }
 
-impl<M, R> TokioScheduler<M, R, AlwaysRestart>
+impl<M, MF> TokioScheduler<M, MF, AlwaysRestart>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
+  MF: MailboxFactory + Clone + 'static,
 {
   /// ReadyQueue スケジューラを用いた既定構成を作成する。
-  pub fn new(mailbox_runtime: R, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::new(mailbox_runtime, extensions),
-    }
+  pub fn new(mailbox_factory: MF, extensions: Extensions) -> Self {
+    Self { inner: ReadyQueueScheduler::new(mailbox_factory, extensions) }
   }
 }
 
-impl<M, R, Strat> TokioScheduler<M, R, Strat>
+impl<M, MF, Strat> TokioScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  Strat: GuardianStrategy<M, MF>,
 {
   /// カスタム GuardianStrategy を適用した構成を作成する。
-  pub fn with_strategy(mailbox_runtime: R, strategy: Strat, extensions: Extensions) -> Self {
-    Self {
-      inner: ReadyQueueScheduler::with_strategy(mailbox_runtime, strategy, extensions),
-    }
+  pub fn with_strategy(mailbox_factory: MF, strategy: Strat, extensions: Extensions) -> Self {
+    Self { inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions) }
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl<M, R, Strat> ActorScheduler<M, R> for TokioScheduler<M, R, Strat>
+impl<M, MF, Strat> ActorScheduler<M, MF> for TokioScheduler<M, MF, Strat>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
-  Strat: GuardianStrategy<M, R>,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
+  Strat: GuardianStrategy<M, MF>,
 {
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<M>>,
-    context: SchedulerSpawnContext<M, R>,
-  ) -> Result<PriorityActorRef<M, R>, SpawnError<M>> {
+    context: ActorSchedulerSpawnContext<M, MF>,
+  ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, R>>) {
-    self.inner.set_receive_timeout_factory(factory);
+  fn set_receive_timeout_scheduler_factory_shared(
+    &mut self,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  ) {
+    self.inner.set_receive_timeout_scheduler_factory_shared(factory);
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
@@ -103,7 +102,7 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
-  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
@@ -132,26 +131,27 @@ where
     Ok(())
   }
 
-  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, R>>> {
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<M, MF>>> {
     Some(self.inner.worker_handle())
   }
 }
 
 /// Tokio 用スケジューラビルダーを生成するユーティリティ。
-pub fn tokio_scheduler_builder<M, R>() -> SchedulerBuilder<M, R>
+pub fn tokio_scheduler_builder<M, MF>() -> ActorSchedulerHandleBuilder<M, MF>
 where
   M: Element,
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
-  SchedulerBuilder::new(|mailbox_runtime, extensions| {
-    Box::new(TokioScheduler::<M, R, AlwaysRestart>::new(mailbox_runtime, extensions))
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
+  ActorSchedulerHandleBuilder::new(|mailbox_factory, extensions| {
+    Box::new(TokioScheduler::<M, MF, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }
 
 use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};
 
-/// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `GenericActorRuntime` に適用する。
+/// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `GenericActorRuntime`
+/// に適用する。
 pub trait TokioActorRuntimeExt {
   /// スケジューラを Tokio 実装へ差し替える。
   fn with_tokio_scheduler(self) -> GenericActorRuntime<TokioMailboxRuntime>;
@@ -159,10 +159,8 @@ pub trait TokioActorRuntimeExt {
 
 impl TokioActorRuntimeExt for GenericActorRuntime<TokioMailboxRuntime> {
   fn with_tokio_scheduler(self) -> GenericActorRuntime<TokioMailboxRuntime> {
-    self
-      .with_scheduler_builder(tokio_scheduler_builder())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
-        TokioReceiveTimeoutDriver::new(),
-      )))
+    self.with_scheduler_builder(tokio_scheduler_builder()).with_receive_timeout_driver(Some(
+      ReceiveTimeoutSchedulerFactoryProviderShared::new(TokioReceiveTimeoutDriver::new()),
+    ))
   }
 }

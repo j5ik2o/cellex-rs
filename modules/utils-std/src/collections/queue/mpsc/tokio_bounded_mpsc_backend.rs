@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 
 /// Tokio-based backend for bounded MPSC queues.
 pub struct TokioBoundedMpscBackend<T> {
-  sender: mpsc::Sender<T>,
+  sender:   mpsc::Sender<T>,
   receiver: Mutex<mpsc::Receiver<T>>,
   capacity: usize,
 }
@@ -14,11 +14,7 @@ pub struct TokioBoundedMpscBackend<T> {
 impl<T> TokioBoundedMpscBackend<T> {
   pub fn new(capacity: usize) -> Self {
     let (sender, receiver) = mpsc::channel(capacity);
-    Self {
-      sender,
-      receiver: Mutex::new(receiver),
-      capacity,
-    }
+    Self { sender, receiver: Mutex::new(receiver), capacity }
   }
 
   fn with_receiver<R>(&self, f: impl FnOnce(&mut mpsc::Receiver<T>) -> R) -> R {
@@ -29,9 +25,7 @@ impl<T> TokioBoundedMpscBackend<T> {
 
 impl<T> fmt::Debug for TokioBoundedMpscBackend<T> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("TokioBoundedMpscBackend")
-      .field("capacity", &self.capacity)
-      .finish()
+    f.debug_struct("TokioBoundedMpscBackend").field("capacity", &self.capacity).finish()
   }
 }
 
@@ -41,23 +35,23 @@ where
 {
   fn try_send(&self, element: T) -> Result<(), QueueError<T>> {
     match self.sender.try_send(element) {
-      Ok(()) => Ok(()),
-      Err(mpsc::error::TrySendError::Closed(value)) => Err(QueueError::Closed(value)),
-      Err(mpsc::error::TrySendError::Full(value)) => Err(QueueError::Full(value)),
+      | Ok(()) => Ok(()),
+      | Err(mpsc::error::TrySendError::Closed(value)) => Err(QueueError::Closed(value)),
+      | Err(mpsc::error::TrySendError::Full(value)) => Err(QueueError::Full(value)),
     }
   }
 
   fn try_recv(&self) -> Result<Option<T>, QueueError<T>> {
     self.with_receiver(|receiver| match receiver.try_recv() {
-      Ok(value) => Ok(Some(value)),
-      Err(mpsc::error::TryRecvError::Empty) => {
+      | Ok(value) => Ok(Some(value)),
+      | Err(mpsc::error::TryRecvError::Empty) => {
         if self.sender.is_closed() {
           Err(QueueError::Disconnected)
         } else {
           Ok(None)
         }
-      }
-      Err(mpsc::error::TryRecvError::Disconnected) => Err(QueueError::Disconnected),
+      },
+      | Err(mpsc::error::TryRecvError::Disconnected) => Err(QueueError::Disconnected),
     })
   }
 

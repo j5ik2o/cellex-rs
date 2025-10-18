@@ -1,6 +1,7 @@
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::supervisor::SupervisorDirective;
+use crate::api::{
+  actor::actor_failure::BehaviorFailure,
+  supervision::supervisor::{Supervisor, SupervisorDirective},
+};
 
 /// No-op supervisor implementation.
 ///

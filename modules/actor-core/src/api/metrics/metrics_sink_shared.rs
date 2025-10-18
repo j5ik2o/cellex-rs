@@ -1,5 +1,6 @@
-use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 use core::fmt;
+
+use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
 
 use super::metrics_sink::MetricsSink;
 
@@ -15,9 +16,7 @@ impl MetricsSinkShared {
   where
     S: MetricsSink + SharedBound + 'static, {
     let shared = ArcShared::new(sink);
-    Self {
-      inner: shared.into_dyn(|inner| inner as &dyn MetricsSink),
-    }
+    Self { inner: shared.into_dyn(|inner| inner as &dyn MetricsSink) }
   }
 
   /// 既存の共有シンクをラップする。
@@ -40,9 +39,7 @@ impl MetricsSinkShared {
 
 impl Clone for MetricsSinkShared {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

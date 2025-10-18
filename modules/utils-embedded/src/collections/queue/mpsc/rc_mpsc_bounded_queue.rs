@@ -28,8 +28,8 @@ use crate::sync::RcShared;
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::RcMpscBoundedQueue;
 /// use cellex_utils_core_rs::QueueRw;
+/// use cellex_utils_embedded_rs::RcMpscBoundedQueue;
 ///
 /// let queue = RcMpscBoundedQueue::new(10);
 /// queue.offer(42).unwrap();
@@ -56,9 +56,7 @@ impl<E> RcMpscBoundedQueue<E> {
   /// ```
   pub fn new(capacity: usize) -> Self {
     let storage = RcShared::new(RingBufferBackend::new(RefCell::new(MpscBuffer::new(Some(capacity)))));
-    Self {
-      inner: MpscQueue::new(storage),
-    }
+    Self { inner: MpscQueue::new(storage) }
   }
 }
 

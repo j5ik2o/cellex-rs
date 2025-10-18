@@ -1,6 +1,6 @@
+use futures::{executor::block_on, join};
+
 use super::ArcLocalCountDownLatch;
-use futures::executor::block_on;
-use futures::join;
 
 #[test]
 fn latch_waits_for_completion() {

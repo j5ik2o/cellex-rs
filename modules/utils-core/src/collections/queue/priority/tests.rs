@@ -1,14 +1,19 @@
 extern crate alloc;
 
-use super::{PriorityMessage, PriorityQueue};
-use alloc::rc::Rc;
-use alloc::vec::Vec;
+use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
-use crate::collections::queue::mpsc::{MpscBuffer, MpscHandle, MpscQueue, RingBufferBackend};
-use crate::collections::queue::{QueueBase, QueueReader, QueueRw, QueueWriter};
-use crate::collections::{QueueError, QueueSize};
-use crate::sync::Shared;
+use super::{PriorityMessage, PriorityQueue};
+use crate::{
+  collections::{
+    queue::{
+      mpsc::{MpscBuffer, MpscHandle, MpscQueue, RingBufferBackend},
+      QueueBase, QueueReader, QueueRw, QueueWriter,
+    },
+    QueueError, QueueSize,
+  },
+  sync::Shared,
+};
 
 #[derive(Debug, Clone)]
 struct TestQueue(MpscQueue<RcHandle<u32>, u32>);

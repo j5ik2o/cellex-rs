@@ -1,12 +1,7 @@
 #![cfg_attr(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"), no_std)]
 #![cfg_attr(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"), no_main)]
 
-#[cfg(all(
-  target_arch = "arm",
-  target_os = "none",
-  feature = "rp2350-board",
-  not(feature = "embedded_arc")
-))]
+#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board", not(feature = "embedded_arc")))]
 compile_error!(
   "rp2350_behaviors_greeter 例をビルドするには `embedded_arc` および `rp2350-board` フィーチャが必要です。"
 );
@@ -17,25 +12,23 @@ extern crate alloc;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use alloc_cortex_m::CortexMHeap;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use cortex_m::{asm, interrupt};
-#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use embedded_hal::digital::v2::OutputPin;
-#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use panic_halt as _;
-#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use rp235x_hal::{self as hal, clocks::init_clocks_and_plls, gpio::PinState, pac, sio::Sio, watchdog::Watchdog, Clock};
-
-#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use hal::entry;
-
-#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_embedded_rs::ArcMailboxRuntime;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_utils_embedded_rs::{ArcCsStateCell, StateCell};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
+use cortex_m::{asm, interrupt};
+#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
+use embedded_hal::digital::v2::OutputPin;
+#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
+use hal::entry;
+#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
+use panic_halt as _;
+#[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
+use rp235x_hal::{self as hal, clocks::init_clocks_and_plls, gpio::PinState, pac, sio::Sio, watchdog::Watchdog, Clock};
 
 #[derive(Clone, Copy, Debug)]
 enum Command {
@@ -64,17 +57,10 @@ fn main() -> ! {
   let mut pac = pac::Peripherals::take().unwrap();
   let mut watchdog = Watchdog::new(pac.WATCHDOG);
 
-  let clocks = init_clocks_and_plls(
-    12_000_000,
-    pac.XOSC,
-    pac.CLOCKS,
-    pac.PLL_SYS,
-    pac.PLL_USB,
-    &mut pac.RESETS,
-    &mut watchdog,
-  )
-  .ok()
-  .unwrap();
+  let clocks =
+    init_clocks_and_plls(12_000_000, pac.XOSC, pac.CLOCKS, pac.PLL_SYS, pac.PLL_USB, &mut pac.RESETS, &mut watchdog)
+      .ok()
+      .unwrap();
 
   let sio = Sio::new(pac.SIO);
   let pins = hal::gpio::Pins::new(pac.IO_BANK0, pac.PADS_BANK0, sio.gpio_bank0, &mut pac.RESETS);
@@ -103,7 +89,7 @@ fn main() -> ! {
       let message_led = setup_led.clone();
       let mut greeted = 0usize;
       Ok(Behaviors::receive_message(move |msg: Command| match msg {
-        Command::Greet(name) => {
+        | Command::Greet(name) => {
           blink_message(&message_led, &BlinkPattern::short_pulse(), clock_hz);
           greeted = greeted.wrapping_add(1);
           let name_len = name.len().min(6) as u8;
@@ -111,16 +97,16 @@ fn main() -> ! {
             blink_repeated(&message_led, name_len as usize, 80, 80, clock_hz);
           }
           Ok(Behaviors::same())
-        }
-        Command::Report => {
+        },
+        | Command::Report => {
           let flashes = core::cmp::max(greeted, 1);
           blink_repeated(&message_led, flashes, 180, 120, clock_hz);
           Ok(Behaviors::same())
-        }
-        Command::Stop => {
+        },
+        | Command::Stop => {
           blink_message(&message_led, &BlinkPattern::shutdown(), clock_hz);
           Ok(Behaviors::stopped())
-        }
+        },
       }))
     })
   });
@@ -141,7 +127,7 @@ fn main() -> ! {
 
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 struct BlinkPattern {
-  on_ms: u32,
+  on_ms:  u32,
   off_ms: u32,
   repeat: usize,
 }

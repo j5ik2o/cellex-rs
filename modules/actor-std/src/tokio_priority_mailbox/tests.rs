@@ -1,20 +1,15 @@
-use super::*;
 use cellex_utils_std_rs::{QueueSize, DEFAULT_PRIORITY};
+
+use super::*;
 
 #[test]
 fn priority_runtime_orders_messages() {
   let factory = TokioPriorityMailboxRuntime::default();
   let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
-  sender
-    .send_with_priority(10, DEFAULT_PRIORITY)
-    .expect("send low priority");
-  sender
-    .send_control_with_priority(99, DEFAULT_PRIORITY + 7)
-    .expect("send high priority");
-  sender
-    .send_control_with_priority(20, DEFAULT_PRIORITY + 3)
-    .expect("send medium priority");
+  sender.send_with_priority(10, DEFAULT_PRIORITY).expect("send low priority");
+  sender.send_control_with_priority(99, DEFAULT_PRIORITY + 7).expect("send high priority");
+  sender.send_control_with_priority(20, DEFAULT_PRIORITY + 3).expect("send medium priority");
 
   let first = mailbox.inner().queue().poll().unwrap().unwrap();
   let second = mailbox.inner().queue().poll().unwrap().unwrap();
@@ -30,9 +25,7 @@ fn priority_sender_defaults_work() {
   let factory = TokioPriorityMailboxRuntime::new(4).with_regular_capacity(4);
   let (mailbox, sender) = factory.mailbox::<u8>(MailboxOptions::default());
 
-  sender
-    .send(PriorityEnvelope::with_default_priority(5))
-    .expect("send default priority");
+  sender.send(PriorityEnvelope::with_default_priority(5)).expect("send default priority");
 
   let envelope = mailbox.inner().queue().poll().unwrap().unwrap();
   let (_, priority) = envelope.into_parts();
@@ -44,12 +37,8 @@ fn control_queue_preempts_regular_messages() {
   let factory = TokioPriorityMailboxRuntime::default();
   let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
-  sender
-    .send_with_priority(1, DEFAULT_PRIORITY)
-    .expect("enqueue regular message");
-  sender
-    .send_control_with_priority(99, DEFAULT_PRIORITY + 5)
-    .expect("enqueue control message");
+  sender.send_with_priority(1, DEFAULT_PRIORITY).expect("enqueue regular message");
+  sender.send_control_with_priority(99, DEFAULT_PRIORITY + 5).expect("enqueue control message");
 
   let first = mailbox.inner().queue().poll().unwrap().unwrap();
   let second = mailbox.inner().queue().poll().unwrap().unwrap();
@@ -66,16 +55,10 @@ fn priority_mailbox_capacity_split() {
 
   assert!(!mailbox.capacity().is_limitless());
 
-  sender
-    .send_control_with_priority(1, DEFAULT_PRIORITY + 2)
-    .expect("control enqueue");
+  sender.send_control_with_priority(1, DEFAULT_PRIORITY + 2).expect("control enqueue");
   sender.send_with_priority(2, DEFAULT_PRIORITY).expect("regular enqueue");
-  sender
-    .send_with_priority(3, DEFAULT_PRIORITY)
-    .expect("second regular enqueue");
+  sender.send_with_priority(3, DEFAULT_PRIORITY).expect("second regular enqueue");
 
-  let err = sender
-    .try_send_with_priority(4, DEFAULT_PRIORITY)
-    .expect_err("regular capacity reached");
+  let err = sender.try_send_with_priority(4, DEFAULT_PRIORITY).expect_err("regular capacity reached");
   assert!(matches!(&*err, QueueError::Full(_)));
 }

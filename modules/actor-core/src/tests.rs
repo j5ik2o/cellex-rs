@@ -1,9 +1,12 @@
-use super::*;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::messaging::DynMessage;
 use alloc::format;
+
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
+
+use super::*;
+use crate::api::{
+  mailbox::{PriorityEnvelope, SystemMessage},
+  messaging::DynMessage,
+};
 
 /// PriorityEnvelope の制御チャネル設定を確認するユニットテスト。
 #[test]

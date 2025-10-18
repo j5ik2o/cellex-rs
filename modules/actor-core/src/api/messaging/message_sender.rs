@@ -1,18 +1,21 @@
-use crate::api::mailbox::MailboxConcurrency;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::ThreadSafe;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MessageEnvelope;
-use crate::internal::message::InternalMessageSender;
-use cellex_utils_core_rs::{Element, QueueError};
 use core::marker::PhantomData;
+
+use cellex_utils_core_rs::{Element, QueueError};
+
+use crate::{
+  api::{
+    mailbox::{MailboxConcurrency, PriorityEnvelope, ThreadSafe},
+    messaging::{DynMessage, MessageEnvelope},
+  },
+  internal::message::InternalMessageSender,
+};
 
 /// Type-safe dispatcher. Wraps the internal dispatcher and automatically envelopes user messages.
 #[derive(Clone)]
 pub struct MessageSender<M, C: MailboxConcurrency = ThreadSafe>
 where
   M: Element, {
-  inner: InternalMessageSender<C>,
+  inner:   InternalMessageSender<C>,
   _marker: PhantomData<fn(M)>,
 }
 
@@ -36,10 +39,7 @@ where
   /// # Arguments
   /// * `inner` - Internal message sender
   pub(crate) fn new(inner: InternalMessageSender<C>) -> Self {
-    Self {
-      inner,
-      _marker: PhantomData,
-    }
+    Self { inner, _marker: PhantomData }
   }
 
   /// Creates a typed `MessageSender` from an internal sender.

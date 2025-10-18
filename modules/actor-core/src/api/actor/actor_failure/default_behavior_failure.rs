@@ -1,25 +1,20 @@
+use alloc::{borrow::Cow, format, string::String};
+use core::{any::Any, fmt};
+
 use super::behavior_failure::BehaviorFailure;
-use alloc::borrow::Cow;
-use alloc::format;
-use alloc::string::String;
-use core::any::Any;
-use core::fmt;
 
 /// Default implementation of [`BehaviorFailure`].
 #[derive(Clone, Debug)]
 pub struct DefaultBehaviorFailure {
   message: Cow<'static, str>,
-  debug: Option<String>,
+  debug:   Option<String>,
 }
 
 impl DefaultBehaviorFailure {
   /// Creates a failure representation from a message.
   #[must_use]
   pub fn from_message(message: impl Into<Cow<'static, str>>) -> Self {
-    Self {
-      message: message.into(),
-      debug: None,
-    }
+    Self { message: message.into(), debug: None }
   }
 
   /// Creates a failure representation from an error type implementing [`fmt::Display`].
@@ -27,10 +22,7 @@ impl DefaultBehaviorFailure {
   pub fn from_error<E>(error: E) -> Self
   where
     E: fmt::Display + fmt::Debug, {
-    Self {
-      message: Cow::Owned(format!("{error}")),
-      debug: Some(format!("{error:?}")),
-    }
+    Self { message: Cow::Owned(format!("{error}")), debug: Some(format!("{error:?}")) }
   }
 
   /// Fallback used when the panic payload type is unknown.
@@ -38,7 +30,7 @@ impl DefaultBehaviorFailure {
   pub fn from_unknown_panic(payload: &(dyn Any + Send)) -> Self {
     Self {
       message: Cow::Owned(String::from("panic: unknown payload")),
-      debug: Some(format!("panic payload type_id: {:?}", payload.type_id())),
+      debug:   Some(format!("panic payload type_id: {:?}", payload.type_id())),
     }
   }
 

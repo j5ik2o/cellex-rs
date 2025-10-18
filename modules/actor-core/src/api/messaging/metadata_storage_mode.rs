@@ -1,6 +1,7 @@
-use crate::api::mailbox::MailboxConcurrency;
-use crate::api::messaging::metadata_storage_record::MetadataStorageRecord;
-use crate::api::messaging::MessageMetadata;
+use crate::api::{
+  mailbox::MailboxConcurrency,
+  messaging::{metadata_storage_record::MetadataStorageRecord, MessageMetadata},
+};
 
 /// Marker trait describing how message metadata is persisted for a given mailbox concurrency mode.
 pub trait MetadataStorageMode: MailboxConcurrency {

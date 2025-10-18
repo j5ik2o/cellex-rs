@@ -1,5 +1,6 @@
-use super::WaitGroup;
 use tokio::join;
+
+use super::WaitGroup;
 
 #[tokio::test]
 async fn wait_group_completes() {

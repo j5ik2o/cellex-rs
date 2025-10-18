@@ -1,13 +1,12 @@
 extern crate alloc;
 
 use alloc::rc::Rc;
-use core::cell::RefCell;
-use core::fmt;
+use core::{cell::RefCell, fmt};
 
-use crate::collections::queue::mpsc::backend::RingBufferBackend;
-use crate::collections::queue::mpsc::traits::MpscHandle;
-use crate::collections::queue::mpsc::{MpscBuffer, MpscQueue};
-use crate::collections::QueueError;
+use crate::collections::{
+  queue::mpsc::{backend::RingBufferBackend, traits::MpscHandle, MpscBuffer, MpscQueue},
+  QueueError,
+};
 
 struct RcBackendHandle<T>(Rc<RingBufferBackend<RefCell<MpscBuffer<T>>>>);
 

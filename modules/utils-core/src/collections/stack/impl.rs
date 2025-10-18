@@ -1,7 +1,8 @@
-use super::traits::{StackBackend, StackBase, StackHandle, StackMut};
+use super::{
+  traits::{StackBackend, StackBase, StackHandle, StackMut},
+  StackError,
+};
 use crate::collections::QueueSize;
-
-use super::StackError;
 
 /// Stack facade that delegates operations to [`StackBackend`].
 ///
@@ -46,10 +47,7 @@ where
   /// A new [`Stack`] instance
   #[must_use]
   pub const fn new(backend: H) -> Self {
-    Self {
-      backend,
-      _marker: core::marker::PhantomData,
-    }
+    Self { backend, _marker: core::marker::PhantomData }
   }
 
   /// Gets a reference to the backend handle.
@@ -157,10 +155,7 @@ where
   /// Clones the backend handle to create a new instance that references
   /// the same stack.
   fn clone(&self) -> Self {
-    Self {
-      backend: self.backend.clone(),
-      _marker: core::marker::PhantomData,
-    }
+    Self { backend: self.backend.clone(), _marker: core::marker::PhantomData }
   }
 }
 

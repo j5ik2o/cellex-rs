@@ -1,0 +1,4 @@
+disallowed-types = [
+  { path = "std::sync::Arc", reason = "Use ArcShared within production code", replacement = "cellex_utils_core_rs::sync::ArcShared" },
+  { path = "std::rc::Rc", reason = "Use ArcShared within production code", replacement = "cellex_utils_core_rs::sync::ArcShared" },
+]

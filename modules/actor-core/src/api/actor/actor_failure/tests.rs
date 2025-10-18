@@ -1,8 +1,8 @@
-use super::*;
+use alloc::{boxed::Box, string::String};
 
 use ::core::fmt;
-use alloc::boxed::Box;
-use alloc::string::String;
+
+use super::*;
 
 #[derive(Debug)]
 struct SampleError;
@@ -20,11 +20,7 @@ fn actor_failure_from_error_exposes_behavior_failure() {
   let description = failure.description();
   assert!(description.contains("sample error"));
 
-  let inner = failure
-    .behavior()
-    .as_any()
-    .downcast_ref::<DefaultBehaviorFailure>()
-    .expect("default failure");
+  let inner = failure.behavior().as_any().downcast_ref::<DefaultBehaviorFailure>().expect("default failure");
   assert_eq!(inner.description(), description);
   assert!(inner.debug_details().unwrap().contains("SampleError"));
 }

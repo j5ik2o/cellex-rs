@@ -1,42 +1,129 @@
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
+
 use super::Context;
-use crate::api::actor::ask::{AskError, AskResult};
-use crate::api::actor_runtime::MailboxOf;
-use crate::api::actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::messaging::MetadataStorageMode;
-use crate::api::messaging::{MessageEnvelope, MessageMetadata};
-use crate::RuntimeBound;
-use cellex_utils_core_rs::Element;
+use crate::{
+  api::{
+    actor::ask::{AskError, AskResult},
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
+    process::{
+      dead_letter::{DeadLetter, DeadLetterReason},
+      process_registry::ProcessResolution,
+    },
+  },
+  RuntimeBound,
+};
 
 /// Trait allowing message metadata to respond to the original sender.
-pub trait MessageMetadataResponder<R>
+pub trait MessageMetadataResponder<AR>
 where
-  R: ActorRuntime,
-  MailboxOf<R>: MailboxFactory + Clone + 'static, {
+  AR: ActorRuntime,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static, {
   /// Sends a response message back to the original sender.
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element;
 }
 
-impl<R> MessageMetadataResponder<R> for MessageMetadata<MailboxConcurrencyOf<R>>
+impl<AR> MessageMetadataResponder<AR> for MessageMetadata<MailboxConcurrencyOf<AR>>
 where
-  R: ActorRuntime + 'static,
-  MailboxOf<R>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-  MailboxSignalOf<R>: Clone + RuntimeBound + 'static,
-  MailboxConcurrencyOf<R>: MetadataStorageMode,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+  MailboxSignalOf<AR>: Clone + RuntimeBound + 'static,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, R>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element, {
-    let dispatcher = self.dispatcher_for::<Resp>().ok_or(AskError::MissingResponder)?;
-    let dispatch_metadata = MessageMetadata::<MailboxConcurrencyOf<R>>::new().with_sender(ctx.self_dispatcher());
+    if let Some(dispatcher) = self.dispatcher_for::<Resp>() {
+      let dispatch_metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+        .with_sender(ctx.self_dispatcher())
+        .with_sender_pid(ctx.self_pid().clone());
+      let envelope = MessageEnvelope::user_with_metadata(message, dispatch_metadata);
+      return dispatcher.dispatch_envelope(envelope).map_err(AskError::from);
+    }
+
+    let target_pid = self.responder_pid().or_else(|| self.sender_pid()).cloned().ok_or(AskError::MissingResponder)?;
+    let dispatch_metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(ctx.self_dispatcher())
+      .with_sender_pid(ctx.self_pid().clone());
     let envelope = MessageEnvelope::user_with_metadata(message, dispatch_metadata);
-    dispatcher.dispatch_envelope(envelope).map_err(AskError::from)
+    respond_via_pid(ctx, target_pid, envelope)
+  }
+}
+
+fn respond_via_pid<'r, 'ctx, Resp, U, AR>(
+  ctx: &mut Context<'r, 'ctx, U, AR>,
+  pid: crate::api::process::pid::Pid,
+  envelope: MessageEnvelope<Resp>,
+) -> AskResult<()>
+where
+  Resp: Element,
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode, {
+  let registry = ctx.process_registry();
+  match registry.with_ref(|registry| registry.resolve_pid(&pid)) {
+    | ProcessResolution::Local(handle) => {
+      let dyn_message = DynMessage::new(envelope);
+      let send_result = handle
+        .with_ref(|actor_ref| actor_ref.clone())
+        .try_send_envelope(PriorityEnvelope::with_default_priority(dyn_message));
+      match send_result {
+        | Ok(()) => Ok(()),
+        | Err(QueueError::Full(envelope)) | Err(QueueError::OfferError(envelope)) => {
+          let shared = ArcShared::new(envelope);
+          registry.with_ref(|registry| {
+            registry.publish_dead_letter(DeadLetter::new(
+              pid.clone(),
+              shared.clone(),
+              DeadLetterReason::DeliveryRejected,
+            ));
+          });
+          let _ = shared.try_unwrap();
+          Err(AskError::SendFailed(QueueError::Disconnected))
+        },
+        | Err(QueueError::Closed(envelope)) => {
+          let shared = ArcShared::new(envelope);
+          registry.with_ref(|registry| {
+            registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated));
+          });
+          let _ = shared.try_unwrap();
+          Err(AskError::SendFailed(QueueError::Disconnected))
+        },
+        | Err(QueueError::Disconnected) => Err(AskError::SendFailed(QueueError::Disconnected)),
+      }
+    },
+    | ProcessResolution::Remote => {
+      let dyn_message = DynMessage::new(envelope);
+      let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
+      let shared = ArcShared::new(priority_envelope);
+      registry.with_ref(|registry| {
+        registry.publish_dead_letter(DeadLetter::new(
+          pid.clone(),
+          shared.clone(),
+          DeadLetterReason::NetworkUnreachable,
+        ));
+      });
+      let _ = shared.try_unwrap();
+      Err(AskError::MissingResponder)
+    },
+    | ProcessResolution::Unresolved => {
+      let dyn_message = DynMessage::new(envelope);
+      let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
+      let shared = ArcShared::new(priority_envelope);
+      registry.with_ref(|registry| {
+        registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::UnregisteredPid));
+      });
+      let _ = shared.try_unwrap();
+      Err(AskError::MissingResponder)
+    },
   }
 }

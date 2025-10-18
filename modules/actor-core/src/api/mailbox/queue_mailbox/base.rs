@@ -1,32 +1,28 @@
-use super::recv::QueueMailboxRecv;
-use crate::api::mailbox::mailbox_handle::MailboxHandle;
-use crate::api::mailbox::mailbox_producer::MailboxProducer;
-use crate::api::mailbox::mailbox_signal::MailboxSignal;
-use crate::api::mailbox::queue_mailbox_producer::QueueMailboxProducer;
-use crate::api::mailbox::Mailbox;
-use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
-use crate::internal::scheduler::ReadyQueueHandle;
 use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
+
+use super::recv::QueueMailboxRecv;
+use crate::api::{
+  actor_scheduler::ReadyQueueHandle,
+  mailbox::{
+    mailbox_handle::MailboxHandle, mailbox_producer::MailboxProducer, mailbox_signal::MailboxSignal,
+    queue_mailbox_producer::QueueMailboxProducer, Mailbox,
+  },
+  metrics::{MetricsEvent, MetricsSinkShared},
+};
 
 /// Mailbox implementation backed by a generic queue and notification signal.
 pub struct QueueMailbox<Q, S> {
-  pub(super) queue: Q,
-  pub(super) signal: S,
-  pub(super) closed: cellex_utils_core_rs::Flag,
-  pub(super) metrics_sink: Option<MetricsSinkShared>,
+  pub(super) queue:          Q,
+  pub(super) signal:         S,
+  pub(super) closed:         cellex_utils_core_rs::Flag,
+  pub(super) metrics_sink:   Option<MetricsSinkShared>,
   pub(super) scheduler_hook: Option<ReadyQueueHandle>,
 }
 
 impl<Q, S> QueueMailbox<Q, S> {
   /// Creates a new queue mailbox.
   pub fn new(queue: Q, signal: S) -> Self {
-    Self {
-      queue,
-      signal,
-      closed: cellex_utils_core_rs::Flag::default(),
-      metrics_sink: None,
-      scheduler_hook: None,
-    }
+    Self { queue, signal, closed: cellex_utils_core_rs::Flag::default(), metrics_sink: None, scheduler_hook: None }
   }
 
   /// Gets a reference to the internal queue.
@@ -45,10 +41,10 @@ impl<Q, S> QueueMailbox<Q, S> {
     Q: Clone,
     S: Clone, {
     QueueMailboxProducer {
-      queue: self.queue.clone(),
-      signal: self.signal.clone(),
-      closed: self.closed.clone(),
-      metrics_sink: self.metrics_sink.clone(),
+      queue:          self.queue.clone(),
+      signal:         self.signal.clone(),
+      closed:         self.closed.clone(),
+      metrics_sink:   self.metrics_sink.clone(),
       scheduler_hook: self.scheduler_hook.clone(),
     }
   }
@@ -77,10 +73,10 @@ where
 {
   fn clone(&self) -> Self {
     Self {
-      queue: self.queue.clone(),
-      signal: self.signal.clone(),
-      closed: self.closed.clone(),
-      metrics_sink: self.metrics_sink.clone(),
+      queue:          self.queue.clone(),
+      signal:         self.signal.clone(),
+      closed:         self.closed.clone(),
+      metrics_sink:   self.metrics_sink.clone(),
       scheduler_hook: self.scheduler_hook.clone(),
     }
   }
@@ -142,19 +138,19 @@ where
 
   fn try_send(&self, message: M) -> Result<(), Self::SendError> {
     match self.queue.offer(message) {
-      Ok(()) => {
+      | Ok(()) => {
         self.signal.notify();
         self.record_enqueue();
         if let Some(hook) = &self.scheduler_hook {
           hook.notify_ready();
         }
         Ok(())
-      }
-      Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
+      },
+      | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
         self.closed.set(true);
         Err(err)
-      }
-      Err(err) => Err(err),
+      },
+      | Err(err) => Err(err),
     }
   }
 

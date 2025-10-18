@@ -1,188 +1,231 @@
-use crate::api::actor_runtime::ActorRuntime;
-use crate::api::actor_runtime::MailboxOf;
-use crate::api::actor_runtime::MailboxQueueOf;
-use crate::api::actor_runtime::MailboxSignalOf;
-use crate::api::extensions::Extension;
-use crate::api::extensions::Extensions;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::shared::failure_telemetry::FailureTelemetryBuilderShared;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use cellex_utils_core_rs::ArcShared;
 use core::num::NonZeroUsize;
 
+use cellex_utils_core_rs::ArcShared;
+
+use crate::api::{
+  actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+  extensions::{Extension, Extensions},
+  failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared},
+  mailbox::PriorityEnvelope,
+  messaging::DynMessage,
+  metrics::MetricsSinkShared,
+  process::pid::{NodeId, SystemId},
+  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+  supervision::{escalation::FailureEventListener, telemetry::TelemetryObservationConfig},
+};
+
 /// Configuration options applied when constructing an [`ActorSystem`].
-pub struct ActorSystemConfig<R>
+pub struct ActorSystemConfig<AR>
 where
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
   /// Listener invoked when failures bubble up to the root guardian.
-  failure_event_listener: Option<FailureEventListener>,
+  failure_event_listener_opt: Option<FailureEventListener>,
   /// Receive-timeout scheduler factory used by all actors spawned in the system.
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>>,
+  receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
   /// Metrics sink shared across the actor runtime.
-  metrics_sink: Option<MetricsSinkShared>,
+  metrics_sink_shared_opt: Option<MetricsSinkShared>,
   /// Telemetry invoked when failures reach the root guardian.
-  failure_telemetry: Option<FailureTelemetryShared>,
+  failure_telemetry_shared_opt: Option<FailureTelemetryShared>,
   /// Builder used to create telemetry implementations。
-  failure_telemetry_builder: Option<FailureTelemetryBuilderShared>,
+  failure_telemetry_builder_shared_opt: Option<FailureTelemetryBuilderShared>,
   /// Observation configuration applied to telemetry calls。
-  failure_observation_config: Option<TelemetryObservationConfig>,
+  failure_observation_config_opt: Option<TelemetryObservationConfig>,
   /// Extension registry configured for the actor system.
   extensions: Extensions,
   /// Default ReadyQueue worker count supplied by configuration.
-  ready_queue_worker_count: Option<NonZeroUsize>,
+  ready_queue_worker_count_opt: Option<NonZeroUsize>,
+  /// Identifier assigned to the actor system for PID construction.
+  system_id: SystemId,
+  /// Optional node identifier associated with the actor system instance.
+  node_id_opt: Option<NodeId>,
 }
 
-impl<R> Default for ActorSystemConfig<R>
+impl<AR> Default for ActorSystemConfig<AR>
 where
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
 {
   fn default() -> Self {
     Self {
-      failure_event_listener: None,
-      receive_timeout_factory: None,
-      metrics_sink: None,
-      failure_telemetry: None,
-      failure_telemetry_builder: None,
-      failure_observation_config: None,
+      failure_event_listener_opt: None,
+      receive_timeout_scheduler_factory_shared_opt: None,
+      metrics_sink_shared_opt: None,
+      failure_telemetry_shared_opt: None,
+      failure_telemetry_builder_shared_opt: None,
+      failure_observation_config_opt: None,
       extensions: Extensions::new(),
-      ready_queue_worker_count: None,
+      ready_queue_worker_count_opt: None,
+      system_id: SystemId::new("cellex"),
+      node_id_opt: None,
     }
   }
 }
 
-impl<R> ActorSystemConfig<R>
+impl<AR> ActorSystemConfig<AR>
 where
-  R: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
 {
   /// Sets the failure event listener.
-  pub fn with_failure_event_listener(mut self, listener: Option<FailureEventListener>) -> Self {
-    self.failure_event_listener = listener;
+  pub fn with_failure_event_listener_opt(mut self, listener: Option<FailureEventListener>) -> Self {
+    self.failure_event_listener_opt = listener;
     self
   }
 
   /// Sets the receive-timeout factory.
-  pub fn with_receive_timeout_factory(
+  pub fn with_receive_timeout_scheduler_factory_shared_opt(
     mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
   ) -> Self {
-    self.receive_timeout_factory = factory;
+    self.receive_timeout_scheduler_factory_shared_opt = factory;
     self
   }
 
   /// Sets the metrics sink.
-  pub fn with_metrics_sink(mut self, sink: Option<MetricsSinkShared>) -> Self {
-    self.metrics_sink = sink;
+  pub fn with_metrics_sink_shared_opt(mut self, sink: Option<MetricsSinkShared>) -> Self {
+    self.metrics_sink_shared_opt = sink;
     self
   }
 
   /// Sets the failure telemetry implementation.
-  pub fn with_failure_telemetry(mut self, telemetry: Option<FailureTelemetryShared>) -> Self {
-    self.failure_telemetry = telemetry;
+  pub fn with_failure_telemetry_shared_opt(mut self, telemetry: Option<FailureTelemetryShared>) -> Self {
+    self.failure_telemetry_shared_opt = telemetry;
     self
   }
 
   /// Sets the failure telemetry builder implementation.
-  pub fn with_failure_telemetry_builder(mut self, builder: Option<FailureTelemetryBuilderShared>) -> Self {
-    self.failure_telemetry_builder = builder;
+  pub fn with_failure_telemetry_builder_shared_opt(mut self, builder: Option<FailureTelemetryBuilderShared>) -> Self {
+    self.failure_telemetry_builder_shared_opt = builder;
     self
   }
 
   /// Sets telemetry observation configuration.
-  pub fn with_failure_observation_config(mut self, config: Option<TelemetryObservationConfig>) -> Self {
-    self.failure_observation_config = config;
+  pub fn with_failure_observation_config_opt(mut self, config: Option<TelemetryObservationConfig>) -> Self {
+    self.failure_observation_config_opt = config;
     self
   }
 
   /// Sets the default ReadyQueue worker count.
-  pub fn with_ready_queue_worker_count(mut self, worker_count: Option<NonZeroUsize>) -> Self {
-    self.ready_queue_worker_count = worker_count;
+  pub fn with_ready_queue_worker_count_opt(mut self, worker_count: Option<NonZeroUsize>) -> Self {
+    self.ready_queue_worker_count_opt = worker_count;
     self
+  }
+
+  /// Sets the system identifier used for PID construction.
+  #[must_use]
+  pub fn with_system_id(mut self, system_id: SystemId) -> Self {
+    self.system_id = system_id;
+    self
+  }
+
+  /// Sets the node identifier associated with this actor system.
+  #[must_use]
+  pub fn with_node_id_opt(mut self, node_id: Option<NodeId>) -> Self {
+    self.node_id_opt = node_id;
+    self
+  }
+
+  /// Convenience helper to set a concrete node identifier.
+  #[must_use]
+  pub fn with_node_id(self, node_id: NodeId) -> Self {
+    self.with_node_id_opt(Some(node_id))
   }
 
   /// Sets the metrics sink using a concrete shared handle.
   #[must_use]
   pub fn with_metrics_sink_shared(mut self, sink: MetricsSinkShared) -> Self {
-    self.metrics_sink = Some(sink);
+    self.metrics_sink_shared_opt = Some(sink);
     self
   }
 
   /// Mutable setter for the failure event listener.
-  pub fn set_failure_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    self.failure_event_listener = listener;
+  pub fn set_failure_event_listener_opt(&mut self, listener: Option<FailureEventListener>) {
+    self.failure_event_listener_opt = listener;
   }
 
   /// Mutable setter for the receive-timeout factory.
-  pub fn set_receive_timeout_factory(
+  pub fn set_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
   ) {
-    self.receive_timeout_factory = factory;
+    self.receive_timeout_scheduler_factory_shared_opt = factory;
   }
 
   /// Mutable setter for the metrics sink.
-  pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink;
+  pub fn set_metrics_sink_shared_opt(&mut self, sink: Option<MetricsSinkShared>) {
+    self.metrics_sink_shared_opt = sink;
   }
 
   /// Mutable setter for the failure telemetry implementation.
-  pub fn set_failure_telemetry(&mut self, telemetry: Option<FailureTelemetryShared>) {
-    self.failure_telemetry = telemetry;
+  pub fn set_failure_telemetry_shared_opt(&mut self, telemetry: Option<FailureTelemetryShared>) {
+    self.failure_telemetry_shared_opt = telemetry;
   }
 
   /// Mutable setter for the failure telemetry builder.
-  pub fn set_failure_telemetry_builder(&mut self, builder: Option<FailureTelemetryBuilderShared>) {
-    self.failure_telemetry_builder = builder;
+  pub fn set_failure_telemetry_builder_shared_opt(&mut self, builder: Option<FailureTelemetryBuilderShared>) {
+    self.failure_telemetry_builder_shared_opt = builder;
   }
 
   /// Mutable setter for telemetry observation config.
-  pub fn set_failure_observation_config(&mut self, config: Option<TelemetryObservationConfig>) {
-    self.failure_observation_config = config;
+  pub fn set_failure_observation_config_opt(&mut self, config: Option<TelemetryObservationConfig>) {
+    self.failure_observation_config_opt = config;
   }
 
   /// Mutable setter for the default ReadyQueue worker count.
-  pub fn set_ready_queue_worker_count(&mut self, worker_count: Option<NonZeroUsize>) {
-    self.ready_queue_worker_count = worker_count;
+  pub fn set_ready_queue_worker_count_opt(&mut self, worker_count: Option<NonZeroUsize>) {
+    self.ready_queue_worker_count_opt = worker_count;
   }
 
-  pub(crate) fn failure_event_listener(&self) -> Option<FailureEventListener> {
-    self.failure_event_listener.clone()
+  /// Mutable setter for the system identifier.
+  pub fn set_system_id(&mut self, system_id: SystemId) {
+    self.system_id = system_id;
   }
 
-  pub(crate) fn receive_timeout_scheduler_factory_shared(
+  /// Mutable setter for the node identifier.
+  pub fn set_node_id_opt(&mut self, node_id: Option<NodeId>) {
+    self.node_id_opt = node_id;
+  }
+
+  pub(crate) fn failure_event_listener_opt(&self) -> Option<FailureEventListener> {
+    self.failure_event_listener_opt.clone()
+  }
+
+  pub(crate) fn receive_timeout_scheduler_factory_shared_opt(
     &self,
-  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<R>>> {
-    self.receive_timeout_factory.clone()
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>> {
+    self.receive_timeout_scheduler_factory_shared_opt.clone()
   }
 
-  pub(crate) fn metrics_sink_shared(&self) -> Option<MetricsSinkShared> {
-    self.metrics_sink.clone()
+  pub(crate) fn metrics_sink_shared_opt(&self) -> Option<MetricsSinkShared> {
+    self.metrics_sink_shared_opt.clone()
   }
 
-  pub(crate) fn failure_telemetry_shared(&self) -> Option<FailureTelemetryShared> {
-    self.failure_telemetry.clone()
+  pub(crate) fn failure_telemetry_shared_opt(&self) -> Option<FailureTelemetryShared> {
+    self.failure_telemetry_shared_opt.clone()
   }
 
-  pub(crate) fn failure_telemetry_builder_shared(&self) -> Option<FailureTelemetryBuilderShared> {
-    self.failure_telemetry_builder.clone()
+  pub(crate) fn failure_telemetry_builder_shared_opt(&self) -> Option<FailureTelemetryBuilderShared> {
+    self.failure_telemetry_builder_shared_opt.clone()
   }
 
-  pub(crate) fn failure_observation_config(&self) -> Option<TelemetryObservationConfig> {
-    self.failure_observation_config.clone()
+  pub(crate) fn failure_observation_config_opt(&self) -> Option<TelemetryObservationConfig> {
+    self.failure_observation_config_opt.clone()
   }
 
-  pub(crate) fn ready_queue_worker_count(&self) -> Option<NonZeroUsize> {
-    self.ready_queue_worker_count
+  pub(crate) fn ready_queue_worker_count_opt(&self) -> Option<NonZeroUsize> {
+    self.ready_queue_worker_count_opt
+  }
+
+  pub(crate) fn system_id(&self) -> &SystemId {
+    &self.system_id
+  }
+
+  pub(crate) fn node_id_opt(&self) -> Option<NodeId> {
+    self.node_id_opt.clone()
   }
 
   /// Replaces the extension registry in the configuration.

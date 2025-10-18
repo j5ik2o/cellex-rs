@@ -1,6 +1,5 @@
 use super::*;
-use crate::api::actor::actor_failure::ActorFailure;
-use crate::api::actor::actor_failure::DefaultBehaviorFailure;
+use crate::api::actor::actor_failure::{ActorFailure, DefaultBehaviorFailure};
 
 #[test]
 fn failure_info_escalate_preserves_failure() {

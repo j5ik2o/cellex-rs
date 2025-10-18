@@ -1,6 +1,7 @@
 //! Collection types module
 //!
-//! This module provides collection types such as queues and stacks that are usable in `no_std` environments.
+//! This module provides collection types such as queues and stacks that are usable in `no_std`
+//! environments.
 
 /// Queue collections
 ///

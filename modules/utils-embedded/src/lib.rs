@@ -49,8 +49,9 @@
 
 //! Utility library for embedded environments.
 //!
-//! This crate provides concurrency and synchronization primitives that work in `no_std` environments.
-//! It is designed to enable runtimes like `actor-embedded` to operate without the standard library.
+//! This crate provides concurrency and synchronization primitives that work in `no_std`
+//! environments. It is designed to enable runtimes like `actor-embedded` to operate without the
+//! standard library.
 //!
 //! # Key Features
 //!
@@ -119,7 +120,6 @@ pub use cellex_utils_core_rs::{
   QueueWriter, RingBackend, RingBuffer, RingQueue, RingStorageBackend, Shared, Stack, StackBackend, StackHandle,
   StackStorage, StackStorageBackend, StateCell, TimerDeadline, DEFAULT_CAPACITY, DEFAULT_PRIORITY, PRIORITY_LEVELS,
 };
-
 pub use collections::*;
 #[cfg(feature = "arc")]
 pub use concurrent::{
@@ -150,6 +150,14 @@ pub use timing::ManualDeadlineTimer;
 /// let stack: RcStack<i32> = RcStack::new();
 /// ```
 pub mod prelude {
+  pub use cellex_utils_core_rs::{
+    DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
+    MpscHandle, PriorityMessage, QueueBase, QueueError, QueueReader, QueueRw, QueueRwHandle, QueueSize, QueueStorage,
+    QueueWriter, RingBackend, RingBuffer, RingQueue, RingStorageBackend, Shared, Stack, StackBackend, StackBase,
+    StackBuffer, StackError, StackHandle, StackMut, StackStorage, StackStorageBackend, StateCell, TimerDeadline,
+    DEFAULT_CAPACITY, DEFAULT_PRIORITY, PRIORITY_LEVELS,
+  };
+
   pub use super::ManualDeadlineTimer;
   #[cfg(feature = "arc")]
   pub use super::{
@@ -170,13 +178,6 @@ pub mod prelude {
   pub use super::{RcMpscBoundedQueue, RcMpscUnboundedQueue, RcPriorityQueue, RcRingQueue, RcStack};
   #[cfg(feature = "rc")]
   pub use super::{RcShared, RcStateCell};
-  pub use cellex_utils_core_rs::{
-    DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
-    MpscHandle, PriorityMessage, QueueBase, QueueError, QueueReader, QueueRw, QueueRwHandle, QueueSize, QueueStorage,
-    QueueWriter, RingBackend, RingBuffer, RingQueue, RingStorageBackend, Shared, Stack, StackBackend, StackBase,
-    StackBuffer, StackError, StackHandle, StackMut, StackStorage, StackStorageBackend, StateCell, TimerDeadline,
-    DEFAULT_CAPACITY, DEFAULT_PRIORITY, PRIORITY_LEVELS,
-  };
 }
 
 #[cfg(test)]

@@ -1,12 +1,13 @@
 #![cfg(feature = "arc")]
 
-use alloc::boxed::Box;
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
-use core::sync::atomic::{AtomicUsize, Ordering};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
-use embassy_sync::signal::Signal;
+use embassy_sync::{
+  blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
+  signal::Signal,
+};
 
 /// Backend implementation for async barrier using `Arc`
 ///
@@ -21,8 +22,8 @@ pub struct ArcAsyncBarrierBackend<RM>
 where
   RM: RawMutex, {
   remaining: Arc<AtomicUsize>,
-  initial: usize,
-  signal: Arc<Signal<RM, ()>>,
+  initial:   usize,
+  signal:    Arc<Signal<RM, ()>>,
 }
 
 impl<RM> Clone for ArcAsyncBarrierBackend<RM>
@@ -30,11 +31,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      remaining: self.remaining.clone(),
-      initial: self.initial,
-      signal: self.signal.clone(),
-    }
+    Self { remaining: self.remaining.clone(), initial: self.initial, signal: self.signal.clone() }
   }
 }
 
@@ -45,11 +42,7 @@ where
 {
   fn new(count: usize) -> Self {
     assert!(count > 0, "AsyncBarrier must have positive count");
-    Self {
-      remaining: Arc::new(AtomicUsize::new(count)),
-      initial: count,
-      signal: Arc::new(Signal::new()),
-    }
+    Self { remaining: Arc::new(AtomicUsize::new(count)), initial: count, signal: Arc::new(Signal::new()) }
   }
 
   async fn wait(&self) {

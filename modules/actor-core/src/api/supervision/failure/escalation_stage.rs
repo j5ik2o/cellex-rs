@@ -26,8 +26,8 @@ impl EscalationStage {
   /// Number of propagations. Returns 0 for `Initial`.
   pub fn hops(self) -> u8 {
     match self {
-      EscalationStage::Initial => 0,
-      EscalationStage::Escalated { hops } => hops,
+      | EscalationStage::Initial => 0,
+      | EscalationStage::Escalated { hops } => hops,
     }
   }
 
@@ -47,11 +47,11 @@ impl EscalationStage {
   /// or a new instance with `hops` incremented by 1 for `Escalated`.
   pub fn escalate(self) -> Self {
     match self {
-      EscalationStage::Initial => EscalationStage::Escalated { hops: 1 },
-      EscalationStage::Escalated { hops } => {
+      | EscalationStage::Initial => EscalationStage::Escalated { hops: 1 },
+      | EscalationStage::Escalated { hops } => {
         let next = hops.saturating_add(1);
         EscalationStage::Escalated { hops: next }
-      }
+      },
     }
   }
 }

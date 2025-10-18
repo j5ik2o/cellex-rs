@@ -1,7 +1,10 @@
 use alloc::boxed::Box;
+use core::{
+  marker::PhantomData,
+  ops::{Deref, DerefMut},
+};
+
 use async_trait::async_trait;
-use core::marker::PhantomData;
-use core::ops::{Deref, DerefMut};
 
 /// Handle that wraps a guard object
 ///
@@ -152,10 +155,7 @@ where
   pub fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      backend: B::new(value),
-      _marker: PhantomData,
-    }
+    Self { backend: B::new(value), _marker: PhantomData }
   }
 
   /// Creates a `Synchronized` from an existing backend.
@@ -165,10 +165,7 @@ where
   /// * `backend` - Backend instance to use
   #[must_use]
   pub const fn from_backend(backend: B) -> Self {
-    Self {
-      backend,
-      _marker: PhantomData,
-    }
+    Self { backend, _marker: PhantomData }
   }
 
   /// Gets a reference to the internal backend.
@@ -274,10 +271,7 @@ where
   pub fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      backend: B::new(value),
-      _marker: PhantomData,
-    }
+    Self { backend: B::new(value), _marker: PhantomData }
   }
 
   /// Creates a `SynchronizedRw` from an existing backend.
@@ -287,10 +281,7 @@ where
   /// * `backend` - Backend instance to use
   #[must_use]
   pub const fn from_backend(backend: B) -> Self {
-    Self {
-      backend,
-      _marker: PhantomData,
-    }
+    Self { backend, _marker: PhantomData }
   }
 
   /// Gets a reference to the internal backend.

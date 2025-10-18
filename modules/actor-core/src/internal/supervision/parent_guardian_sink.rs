@@ -1,45 +1,41 @@
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::MailboxProducer;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::SystemMessage;
-use crate::api::supervision::escalation::EscalationSink;
-use crate::api::supervision::failure::FailureInfo;
-use crate::shared::map_system::MapSystemShared;
 use cellex_utils_core_rs::Element;
 
+use crate::api::{
+  actor::actor_ref::PriorityActorRef,
+  actor_system::map_system::MapSystemShared,
+  mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  supervision::{escalation::EscalationSink, failure::FailureInfo},
+};
+
 /// Sink that forwards `SystemMessage::Escalate` to parent Guardian.
-pub(crate) struct ParentGuardianSink<M, R>
+pub(crate) struct ParentGuardianSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
-  control_ref: PriorityActorRef<M, R>,
-  map_system: MapSystemShared<M>,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
+  control_ref: PriorityActorRef<M, MF>,
+  map_system:  MapSystemShared<M>,
 }
 
-impl<M, R> ParentGuardianSink<M, R>
+impl<M, MF> ParentGuardianSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
-  pub(crate) const fn new(control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) -> Self {
-    Self {
-      control_ref,
-      map_system,
-    }
+  pub(crate) const fn new(control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) -> Self {
+    Self { control_ref, map_system }
   }
 }
 
-impl<M, R> EscalationSink<M, R> for ParentGuardianSink<M, R>
+impl<M, MF> EscalationSink<M, MF> for ParentGuardianSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   fn handle(&mut self, info: FailureInfo, already_handled: bool) -> Result<(), FailureInfo> {
     if already_handled {

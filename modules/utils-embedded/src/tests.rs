@@ -1,6 +1,7 @@
 #[cfg(feature = "arc")]
 mod critical_section {
   use core::sync::atomic::{AtomicBool, Ordering};
+
   use critical_section::{Impl, RawRestoreState};
 
   struct TestCriticalSection;
@@ -10,10 +11,7 @@ mod critical_section {
 
   unsafe impl Impl for TestCriticalSection {
     unsafe fn acquire() -> RawRestoreState {
-      while LOCK
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_err()
-      {}
+      while LOCK.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {}
       ()
     }
 
@@ -23,10 +21,7 @@ mod critical_section {
   }
 
   pub(crate) fn init_arc_critical_section() {
-    if INIT
-      .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-      .is_ok()
-    {
+    if INIT.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
       critical_section::set_impl!(TestCriticalSection);
     }
   }

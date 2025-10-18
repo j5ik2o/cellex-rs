@@ -6,16 +6,17 @@ extern crate alloc;
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use cellex_actor_core_rs::api::mailbox::PriorityEnvelope;
-use cellex_actor_core_rs::api::mailbox::SingleThread;
-use cellex_actor_core_rs::api::mailbox::ThreadSafe;
-use cellex_actor_core_rs::api::messaging::{
-  DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode,
+use std::hint::black_box;
+
+use cellex_actor_core_rs::{
+  api::{
+    mailbox::{PriorityEnvelope, SingleThread, ThreadSafe},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+  },
+  internal::message::InternalMessageSender,
 };
-use cellex_actor_core_rs::internal::message::{take_metadata, InternalMessageSender};
 use cellex_utils_core_rs::sync::ArcShared;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use std::hint::black_box;
 
 #[cfg(target_has_atomic = "ptr")]
 type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
@@ -53,17 +54,14 @@ fn bench_side_table(c: &mut Criterion) {
 fn bench_mode<C>(group: &mut criterion::BenchmarkGroup<'_, criterion::measurement::WallTime>, label: &str)
 where
   C: MetadataStorageMode, {
-  group.bench_function(BenchmarkId::new(label, "side_table"), |b| {
+  group.bench_function(BenchmarkId::new(label, "local_store"), |b| {
     b.iter(|| {
       let metadata = sample_metadata::<u32, C>();
       let envelope = MessageEnvelope::user_with_metadata(black_box(42_u32), metadata);
       if let MessageEnvelope::User(user) = envelope {
-        let (message, key) = user.into_parts();
+        let (message, metadata) = user.into_parts::<C>();
         black_box(message);
-        if let Some(key) = key {
-          let metadata = take_metadata::<C>(key).expect("metadata present");
-          black_box(metadata);
-        }
+        black_box(metadata);
       }
     });
   });
@@ -83,7 +81,7 @@ struct InlineUserMessage<U, C>
 where
   U: Element,
   C: MetadataStorageMode, {
-  message: U,
+  message:  U,
   metadata: Option<MessageMetadata<C>>,
 }
 
@@ -93,10 +91,7 @@ where
   C: MetadataStorageMode,
 {
   fn with_metadata(message: U, metadata: MessageMetadata<C>) -> Self {
-    Self {
-      message,
-      metadata: Some(metadata),
-    }
+    Self { message, metadata: Some(metadata) }
   }
 
   fn into_parts(self) -> (U, Option<MessageMetadata<C>>) {

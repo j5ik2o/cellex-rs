@@ -33,8 +33,8 @@ use crate::sync::RcShared;
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::RcMpscUnboundedQueue;
 /// use cellex_utils_core_rs::QueueRw;
+/// use cellex_utils_embedded_rs::RcMpscUnboundedQueue;
 ///
 /// let queue = RcMpscUnboundedQueue::new();
 /// queue.offer(1).unwrap();
@@ -61,9 +61,7 @@ impl<E> RcMpscUnboundedQueue<E> {
   /// ```
   pub fn new() -> Self {
     let storage = RcShared::new(RingBufferBackend::new(RefCell::new(MpscBuffer::new(None))));
-    Self {
-      inner: MpscQueue::new(storage),
-    }
+    Self { inner: MpscQueue::new(storage) }
   }
 }
 

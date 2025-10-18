@@ -88,6 +88,12 @@ run_std() {
 
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-std-rs"
   run_cargo test -p cellex-actor-std-rs
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-remote-core-rs"
+  run_cargo test -p cellex-remote-core-rs
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-cluster-core-rs"
+  run_cargo test -p cellex-cluster-core-rs
 }
 
 run_embedded() {

@@ -1,8 +1,10 @@
 extern crate alloc;
 
-use super::{ArcLocalSynchronized, ArcLocalSynchronizedRw};
 use alloc::vec;
+
 use futures::executor::block_on;
+
+use super::{ArcLocalSynchronized, ArcLocalSynchronizedRw};
 
 #[test]
 fn arc_mutex_backend_behaviour() {

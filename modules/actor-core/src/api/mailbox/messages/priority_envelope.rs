@@ -1,13 +1,13 @@
-use crate::api::mailbox::messages::priority_channel::PriorityChannel;
-use crate::api::mailbox::messages::system_message::SystemMessage;
 use cellex_utils_core_rs::{Element, PriorityMessage, DEFAULT_PRIORITY};
 
+use crate::api::mailbox::messages::{priority_channel::PriorityChannel, system_message::SystemMessage};
+
 /// Envelope type that stores priority and channel information for messages.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PriorityEnvelope<M> {
-  message: M,
-  priority: i8,
-  channel: PriorityChannel,
+  message:        M,
+  priority:       i8,
+  channel:        PriorityChannel,
   system_message: Option<SystemMessage>,
 }
 
@@ -19,12 +19,7 @@ impl<M> PriorityEnvelope<M> {
 
   /// Creates an envelope with the provided priority and channel.
   pub fn with_channel(message: M, priority: i8, channel: PriorityChannel) -> Self {
-    Self {
-      message,
-      priority,
-      channel,
-      system_message: None,
-    }
+    Self { message, priority, channel, system_message: None }
   }
 
   /// Creates a control-channel envelope with the provided priority.
@@ -70,9 +65,9 @@ impl<M> PriorityEnvelope<M> {
   /// Maps the underlying message while preserving priority metadata.
   pub fn map<N>(self, f: impl FnOnce(M) -> N) -> PriorityEnvelope<N> {
     PriorityEnvelope {
-      message: f(self.message),
-      priority: self.priority,
-      channel: self.channel,
+      message:        f(self.message),
+      priority:       self.priority,
+      channel:        self.channel,
       system_message: self.system_message,
     }
   }

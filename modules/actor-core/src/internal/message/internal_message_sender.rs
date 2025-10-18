@@ -1,16 +1,19 @@
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::mailbox::MailboxConcurrency;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::mailbox::ThreadSafe;
-use crate::api::messaging::DynMessage;
-use crate::RuntimeBound;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
 use core::marker::PhantomData;
+
+use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
+
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    mailbox::{MailboxConcurrency, MailboxFactory, PriorityEnvelope, ThreadSafe},
+    messaging::DynMessage,
+  },
+  RuntimeBound,
+};
 
 #[cfg(target_has_atomic = "ptr")]
 type DropHookFn = dyn Fn() + Send + Sync;
@@ -24,12 +27,13 @@ type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<D
 #[cfg(not(target_has_atomic = "ptr"))]
 type SendFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
 
-/// Internal dispatcher that abstracts the sending destination. Used for ask responses and similar purposes.
+/// Internal dispatcher that abstracts the sending destination. Used for ask responses and similar
+/// purposes.
 #[derive(Clone)]
 pub struct InternalMessageSender<C: MailboxConcurrency = ThreadSafe> {
-  inner: ArcShared<SendFn>,
+  inner:     ArcShared<SendFn>,
   drop_hook: Option<ArcShared<DropHookFn>>,
-  _marker: PhantomData<C>,
+  _marker:   PhantomData<C>,
 }
 
 impl<C> core::fmt::Debug for InternalMessageSender<C>
@@ -45,19 +49,20 @@ impl<C> InternalMessageSender<C>
 where
   C: MailboxConcurrency,
 {
-  /// Creates an `InternalMessageSender` from an internal actor reference for a factory that uses this concurrency mode.
+  /// Creates an `InternalMessageSender` from an internal actor reference for a factory that uses
+  /// this concurrency mode.
   ///
   /// # Arguments
   /// * `actor_ref` - Actor reference to send to
-  pub(crate) fn from_factory_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_factory_ref<MF>(actor_ref: PriorityActorRef<DynMessage, MF>) -> Self
   where
-    R: MailboxFactory<Concurrency = C> + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static, {
+    MF: MailboxFactory<Concurrency = C> + Clone + 'static,
+    MF::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MF::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
-    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(
-      move |message, priority| sender.try_send_with_priority(message, priority),
-    )))
+    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message, priority| {
+      sender.try_send_with_priority(message, priority)
+    })))
   }
 
   /// Creates a new `InternalMessageSender` with the specified send function.
@@ -65,11 +70,7 @@ where
   /// # Arguments
   /// * `inner` - Function that executes message sending
   pub fn new(inner: ArcShared<SendFn>) -> Self {
-    Self {
-      inner,
-      drop_hook: None,
-      _marker: PhantomData,
-    }
+    Self { inner, drop_hook: None, _marker: PhantomData }
   }
 
   /// Creates an `InternalMessageSender` with a drop hook (internal API).
@@ -78,11 +79,7 @@ where
   /// * `inner` - Function that executes message sending
   /// * `drop_hook` - Hook function executed on drop
   pub(crate) fn with_drop_hook(inner: ArcShared<SendFn>, drop_hook: ArcShared<DropHookFn>) -> Self {
-    Self {
-      inner,
-      drop_hook: Some(drop_hook),
-      _marker: PhantomData,
-    }
+    Self { inner, drop_hook: Some(drop_hook), _marker: PhantomData }
   }
 
   /// Sends a message with default priority.
@@ -127,14 +124,14 @@ where
 impl InternalMessageSender {
   /// Thread-safe helper retained for existing call sites.
   #[allow(dead_code)]
-  pub(crate) fn from_internal_ref<R>(actor_ref: PriorityActorRef<DynMessage, R>) -> Self
+  pub(crate) fn from_internal_ref<MF>(actor_ref: PriorityActorRef<DynMessage, MF>) -> Self
   where
-    R: MailboxFactory + Clone + 'static,
-    R::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
-    R::Signal: Clone + RuntimeBound + 'static, {
+    MF: MailboxFactory + Clone + 'static,
+    MF::Queue<PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MF::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
-    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(
-      move |message, priority| sender.try_send_with_priority(message, priority),
-    )))
+    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message, priority| {
+      sender.try_send_with_priority(message, priority)
+    })))
   }
 }

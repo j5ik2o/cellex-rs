@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 
 /// Tokio-based backend for unbounded MPSC queues.
 pub struct TokioUnboundedMpscBackend<T> {
-  sender: mpsc::UnboundedSender<T>,
+  sender:   mpsc::UnboundedSender<T>,
   receiver: Mutex<mpsc::UnboundedReceiver<T>>,
 }
 
@@ -19,10 +19,7 @@ impl<T> Default for TokioUnboundedMpscBackend<T> {
 impl<T> TokioUnboundedMpscBackend<T> {
   pub fn new() -> Self {
     let (sender, receiver) = mpsc::unbounded_channel();
-    Self {
-      sender,
-      receiver: Mutex::new(receiver),
-    }
+    Self { sender, receiver: Mutex::new(receiver) }
   }
 
   fn with_receiver<R>(&self, f: impl FnOnce(&mut mpsc::UnboundedReceiver<T>) -> R) -> R {
@@ -47,15 +44,15 @@ where
 
   fn try_recv(&self) -> Result<Option<T>, QueueError<T>> {
     self.with_receiver(|receiver| match receiver.try_recv() {
-      Ok(value) => Ok(Some(value)),
-      Err(mpsc::error::TryRecvError::Empty) => {
+      | Ok(value) => Ok(Some(value)),
+      | Err(mpsc::error::TryRecvError::Empty) => {
         if self.sender.is_closed() {
           Err(QueueError::Disconnected)
         } else {
           Ok(None)
         }
-      }
-      Err(mpsc::error::TryRecvError::Disconnected) => Err(QueueError::Disconnected),
+      },
+      | Err(mpsc::error::TryRecvError::Disconnected) => Err(QueueError::Disconnected),
     })
   }
 

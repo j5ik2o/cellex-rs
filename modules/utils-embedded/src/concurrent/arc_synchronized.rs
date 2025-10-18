@@ -1,15 +1,16 @@
 #![cfg(feature = "arc")]
 
-use alloc::boxed::Box;
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 
 use cellex_utils_core_rs::{
   async_trait, Synchronized as CoreSynchronized, SynchronizedMutexBackend, SynchronizedRw as CoreSynchronizedRw,
   SynchronizedRwBackend,
 };
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
-use embassy_sync::mutex::{Mutex, MutexGuard};
-use embassy_sync::rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use embassy_sync::{
+  blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
+  mutex::{Mutex, MutexGuard},
+  rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 /// Backend implementation for mutex-based synchronization using `Arc`
 ///
@@ -41,9 +42,7 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      inner: Arc::new(Mutex::new(value)),
-    }
+    Self { inner: Arc::new(Mutex::new(value)) }
   }
 
   async fn lock(&self) -> Self::Guard<'_> {
@@ -85,9 +84,7 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      inner: Arc::new(RwLock::new(value)),
-    }
+    Self { inner: Arc::new(RwLock::new(value)) }
   }
 
   async fn read(&self) -> Self::ReadGuard<'_> {

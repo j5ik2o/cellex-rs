@@ -1,50 +1,52 @@
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener};
-use crate::api::supervision::failure::FailureEvent;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::telemetry::default_failure_telemetry_shared;
-use crate::api::supervision::telemetry::FailureSnapshot;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
-use cellex_utils_core_rs::Element;
 use core::marker::PhantomData;
 #[cfg(feature = "std")]
 use std::time::Instant;
+
+use cellex_utils_core_rs::Element;
+
+use crate::api::{
+  failure_telemetry::FailureTelemetryShared,
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  supervision::{
+    escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener},
+    failure::{FailureEvent, FailureInfo},
+    telemetry::{default_failure_telemetry_shared, FailureSnapshot, TelemetryObservationConfig},
+  },
+};
 /// `EscalationSink` implementation for root guardian.
 ///
 /// Handles failures at the root level of the actor system.
 /// Ultimately processes failures that cannot be escalated further.
-pub struct RootEscalationSink<M, R>
+pub struct RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
-  event_handler: Option<FailureEventHandler>,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
+  event_handler:  Option<FailureEventHandler>,
   event_listener: Option<FailureEventListener>,
-  telemetry: FailureTelemetryShared,
-  observation: TelemetryObservationConfig,
-  _marker: PhantomData<(M, R)>,
+  telemetry:      FailureTelemetryShared,
+  observation:    TelemetryObservationConfig,
+  _marker:        PhantomData<(M, MF)>,
 }
 
-impl<M, R> RootEscalationSink<M, R>
+impl<M, MF> RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   /// Creates a new `RootEscalationSink`.
   ///
   /// By default, no handler or listener is configured.
   pub fn new() -> Self {
     Self {
-      event_handler: None,
+      event_handler:  None,
       event_listener: None,
-      telemetry: default_failure_telemetry_shared(),
-      observation: TelemetryObservationConfig::default(),
-      _marker: PhantomData,
+      telemetry:      default_failure_telemetry_shared(),
+      observation:    TelemetryObservationConfig::default(),
+      _marker:        PhantomData,
     }
   }
 
@@ -87,24 +89,24 @@ where
   }
 }
 
-impl<M, R> Default for RootEscalationSink<M, R>
+impl<M, MF> Default for RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<M, R> EscalationSink<M, R> for RootEscalationSink<M, R>
+impl<M, MF> EscalationSink<M, MF> for RootEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   /// Processes failure information at root level.
   ///

@@ -1,9 +1,10 @@
 use std::sync::Mutex;
 
-use crate::sync::ArcShared;
 use cellex_utils_core_rs::{
   QueueSize, Stack, StackBase, StackBuffer, StackError, StackMut, StackStorage, StackStorageBackend,
 };
+
+use crate::sync::ArcShared;
 
 type ArcStackStorage<T> = ArcShared<StackStorageBackend<ArcShared<Mutex<StackBuffer<T>>>>>;
 
@@ -25,9 +26,7 @@ impl<T> ArcStack<T> {
   pub fn new() -> Self {
     let storage = ArcShared::new(Mutex::new(StackBuffer::new()));
     let backend: ArcStackStorage<T> = ArcShared::new(StackStorageBackend::new(storage));
-    Self {
-      inner: Stack::new(backend),
-    }
+    Self { inner: Stack::new(backend) }
   }
 
   /// Creates an `ArcStack` with the specified capacity

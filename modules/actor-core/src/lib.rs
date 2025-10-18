@@ -76,17 +76,16 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use crate::api::mailbox::SystemMessage;
-use cellex_utils_core_rs::QueueError;
 use core::time::Duration;
+
+use cellex_utils_core_rs::QueueError;
+
+use crate::api::mailbox::SystemMessage;
 
 /// Public API for actors
 pub mod api;
 /// Internal implementation details
 pub mod internal;
-/// Shared utilities and types
-pub mod shared;
-
 /// Marker trait capturing the synchronization guarantees required by runtime-dependent types.
 #[cfg(target_has_atomic = "ptr")]
 pub trait RuntimeBound: Send + Sync {}
@@ -125,10 +124,10 @@ where
   F: FnMut(M), {
   loop {
     match mailbox.recv().await {
-      Ok(message) => handler(message),
-      Err(QueueError::Disconnected) => break,
-      Err(QueueError::Closed(message)) => handler(message),
-      Err(_) => break,
+      | Ok(message) => handler(message),
+      | Err(QueueError::Disconnected) => break,
+      | Err(QueueError::Closed(message)) => handler(message),
+      | Err(_) => break,
     }
     timer.sleep(Duration::from_millis(0)).await;
   }

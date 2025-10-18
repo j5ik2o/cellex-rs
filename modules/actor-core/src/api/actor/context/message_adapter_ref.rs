@@ -1,33 +1,35 @@
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+
 use super::AdapterFn;
-use crate::api::actor::actor_ref::ActorRef;
-use crate::api::actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::{Element, QueueError};
+use crate::api::{
+  actor::actor_ref::ActorRef,
+  actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
+  mailbox::PriorityEnvelope,
+  messaging::DynMessage,
+};
 
 /// Reference to a message adapter.
 #[derive(Clone)]
-pub struct MessageAdapterRef<Ext, U, R>
+pub struct MessageAdapterRef<Ext, U, AR>
 where
   Ext: Element,
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone, {
-  target: ActorRef<U, R>,
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone, {
+  target:  ActorRef<U, AR>,
   adapter: ArcShared<AdapterFn<Ext, U>>,
 }
 
-impl<Ext, U, R> MessageAdapterRef<Ext, U, R>
+impl<Ext, U, AR> MessageAdapterRef<Ext, U, AR>
 where
   Ext: Element,
   U: Element,
-  R: ActorRuntime + 'static,
-  MailboxQueueOf<R, PriorityEnvelope<DynMessage>>: Clone,
-  MailboxSignalOf<R>: Clone,
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
 {
-  pub(crate) fn new(target: ActorRef<U, R>, adapter: ArcShared<AdapterFn<Ext, U>>) -> Self {
+  pub(crate) fn new(target: ActorRef<U, AR>, adapter: ArcShared<AdapterFn<Ext, U>>) -> Self {
     Self { target, adapter }
   }
 
@@ -45,7 +47,7 @@ where
 
   /// Gets a reference to the target actor.
   #[must_use]
-  pub fn target(&self) -> &ActorRef<U, R> {
+  pub fn target(&self) -> &ActorRef<U, AR> {
     &self.target
   }
 }

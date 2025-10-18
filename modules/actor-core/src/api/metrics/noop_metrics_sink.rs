@@ -1,5 +1,4 @@
-use super::metrics_event::MetricsEvent;
-use super::metrics_sink::MetricsSink;
+use super::{metrics_event::MetricsEvent, metrics_sink::MetricsSink};
 
 /// 何も記録しないノップ実装。
 #[derive(Clone, Default)]

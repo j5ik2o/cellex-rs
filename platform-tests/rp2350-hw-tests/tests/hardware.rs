@@ -3,9 +3,8 @@
 
 use defmt::*;
 use defmt_rtt as _;
-use panic_probe as _;
-
 use defmt_test::tests;
+use panic_probe as _;
 use rp235x_hal as hal;
 
 #[tests]

@@ -1,6 +1,6 @@
+use futures::{executor::block_on, join};
+
 use super::ArcLocalWaitGroup;
-use futures::executor::block_on;
-use futures::join;
 
 #[test]
 fn wait_group_completes() {

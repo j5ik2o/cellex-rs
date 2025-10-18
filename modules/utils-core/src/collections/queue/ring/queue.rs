@@ -31,10 +31,7 @@ where
   /// New `RingQueue` instance
   #[must_use]
   pub const fn new(backend: H) -> Self {
-    Self {
-      backend,
-      _marker: PhantomData,
-    }
+    Self { backend, _marker: PhantomData }
   }
 
   /// Returns a reference to the backend handle.
@@ -57,7 +54,8 @@ where
 
   /// Sets the dynamic mode of the queue.
   ///
-  /// When dynamic mode is enabled, the queue automatically expands when elements are added beyond capacity.
+  /// When dynamic mode is enabled, the queue automatically expands when elements are added beyond
+  /// capacity.
   ///
   /// # Arguments
   ///
@@ -68,7 +66,8 @@ where
 
   /// Builder method that sets dynamic mode and returns this queue.
   ///
-  /// When dynamic mode is enabled, the queue automatically expands when elements are added beyond capacity.
+  /// When dynamic mode is enabled, the queue automatically expands when elements are added beyond
+  /// capacity.
   ///
   /// # Arguments
   ///
@@ -111,7 +110,8 @@ where
   ///
   /// # Errors
   ///
-  /// This method currently does not return any errors, but the signature allows for future error handling.
+  /// This method currently does not return any errors, but the signature allows for future error
+  /// handling.
   pub fn poll(&self) -> Result<Option<E>, QueueError<E>> {
     self.backend.backend().poll()
   }
@@ -136,10 +136,7 @@ where
   ///
   /// Clone of this queue
   fn clone(&self) -> Self {
-    Self {
-      backend: self.backend.clone(),
-      _marker: PhantomData,
-    }
+    Self { backend: self.backend.clone(), _marker: PhantomData }
   }
 }
 
@@ -203,7 +200,8 @@ where
   ///
   /// # Errors
   ///
-  /// This method currently does not return any errors, but the signature allows for future error handling.
+  /// This method currently does not return any errors, but the signature allows for future error
+  /// handling.
   fn poll_mut(&mut self) -> Result<Option<E>, QueueError<E>> {
     self.poll()
   }
@@ -248,7 +246,8 @@ where
   ///
   /// # Errors
   ///
-  /// This method currently does not return any errors, but the signature allows for future error handling.
+  /// This method currently does not return any errors, but the signature allows for future error
+  /// handling.
   fn poll(&self) -> Result<Option<E>, QueueError<E>> {
     self.poll()
   }

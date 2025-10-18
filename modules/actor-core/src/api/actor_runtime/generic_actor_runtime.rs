@@ -1,93 +1,99 @@
-use crate::api::actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf};
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::messaging::DynMessage;
-use crate::api::metrics::MetricsSinkShared;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::internal::mailbox::PriorityMailboxSpawnerHandle;
-use crate::internal::runtime_state::GenericActorRuntimeState;
-use crate::internal::scheduler::{NoopReceiveTimeoutSchedulerFactoryProvider, SchedulerBuilder};
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared;
-use crate::shared::receive_timeout::ReceiveTimeoutSchedulerFactoryShared;
-use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::{sync::ArcShared, Element};
 
-/// Helper alias mapping a runtime bundle back to its mailbox runtime.
-pub(crate) type BundleMailbox<R> = MailboxOf<GenericActorRuntime<R>>;
+use crate::{
+  api::{
+    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_scheduler::ActorSchedulerHandleBuilder,
+    mailbox::{MailboxFactory, PriorityEnvelope},
+    messaging::DynMessage,
+    metrics::MetricsSinkShared,
+    receive_timeout::{
+      NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
+      ReceiveTimeoutSchedulerFactoryShared,
+    },
+    supervision::escalation::{FailureEventHandler, FailureEventListener},
+  },
+  internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
+};
 
-/// Runtime bundle that decorates a mailbox runtime with ActorSystem-specific capabilities.
+/// Helper alias mapping a runtime bundle back to its use
+/// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+pub(crate) type BundleMailbox<MF> = MailboxOf<GenericActorRuntime<MF>>;
+
+/// Runtime bundle that decorates a use cellex_actor_core_rs::api::mailbox::MailboxRuntime; with
+/// ActorSystem-specific capabilities.
 #[derive(Clone)]
-pub struct GenericActorRuntime<R>
+pub struct GenericActorRuntime<MF>
 where
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone, {
-  core: GenericActorRuntimeState<R>,
-  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<R>>>,
-  receive_timeout_driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>>,
-  root_event_listener: Option<FailureEventListener>,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Signal: Clone, {
+  core:                    GenericActorRuntimeState<MF>,
+  receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<MF>>>,
+  receive_timeout_driver:  Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<MF>>>,
+  root_event_listener:     Option<FailureEventListener>,
   root_escalation_handler: Option<FailureEventHandler>,
-  metrics_sink: Option<MetricsSinkShared>,
+  metrics_sink:            Option<MetricsSinkShared>,
 }
 
-impl<R> GenericActorRuntime<R>
+impl<MF> GenericActorRuntime<MF>
 where
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Signal: Clone,
 {
-  /// Creates a new bundle for the supplied mailbox runtime.
+  /// Creates a new bundle for the supplied use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
-  pub fn new(actor_runtime: R) -> Self {
+  pub fn new(actor_runtime: MF) -> Self {
     Self {
-      core: GenericActorRuntimeState::new(actor_runtime),
+      core:                    GenericActorRuntimeState::new(actor_runtime),
       receive_timeout_factory: None,
-      receive_timeout_driver: Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
+      receive_timeout_driver:  Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
         NoopReceiveTimeoutSchedulerFactoryProvider::default(),
       )),
-      root_event_listener: None,
+      root_event_listener:     None,
       root_escalation_handler: None,
-      metrics_sink: None,
+      metrics_sink:            None,
     }
   }
 
-  /// Returns a reference to the wrapped mailbox runtime.
+  /// Returns a reference to the wrapped use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
-  pub fn mailbox_runtime(&self) -> &R {
-    self.core.mailbox_runtime()
+  pub fn mailbox_factory(&self) -> &MF {
+    self.core.mailbox_factory()
   }
 
-  /// Consumes the bundle and yields the underlying mailbox runtime.
+  /// Consumes the bundle and yields the underlying use
+  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
-  pub fn into_mailbox_runtime(self) -> R {
+  pub fn into_mailbox_factory(self) -> MF {
     let Self { core, .. } = self;
-    core.into_mailbox_runtime()
+    core.into_mailbox_factory()
   }
 
-  /// Borrows the shared handle to the mailbox runtime.
+  /// Borrows the shared handle to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
-  pub fn mailbox_runtime_shared(&self) -> ArcShared<R> {
-    self.core.mailbox_runtime_shared()
+  pub fn mailbox_factory_shared(&self) -> ArcShared<MF> {
+    self.core.mailbox_factory_shared()
   }
 
   /// Returns the configured mailbox-level receive-timeout factory, if any.
   #[must_use]
-  pub fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<R>>> {
+  pub fn receive_timeout_factory(&self) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<MF>>> {
     self.receive_timeout_factory.clone()
   }
 
   /// Returns the receive-timeout driver associated with the bundle.
   #[must_use]
-  pub fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>> {
+  pub fn receive_timeout_driver(&self) -> Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<MF>>> {
     self.receive_timeout_driver.clone()
   }
 
   /// Overrides the receive-timeout factory using a mailbox-level factory.
   #[must_use]
-  pub fn with_receive_timeout_factory(
+  pub fn with_receive_timeout_scheduler_factory_shared(
     mut self,
-    factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<R>>,
+    factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<MF>>,
   ) -> Self {
     self.receive_timeout_factory = Some(factory);
     self
@@ -97,7 +103,7 @@ where
   #[must_use]
   pub fn with_receive_timeout_driver(
     mut self,
-    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>>,
+    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<MF>>>,
   ) -> Self {
     self.receive_timeout_driver = driver;
     self
@@ -106,7 +112,7 @@ where
   /// Mutably replaces the receive-timeout driver.
   pub fn set_receive_timeout_driver(
     &mut self,
-    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<R>>>,
+    driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<MF>>>,
   ) {
     self.receive_timeout_driver = driver;
   }
@@ -115,11 +121,8 @@ where
   #[must_use]
   pub fn receive_timeout_driver_factory(
     &self,
-  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<R>>> {
-    self
-      .receive_timeout_driver
-      .as_ref()
-      .map(|driver| driver.build_factory())
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<MF>>> {
+    self.receive_timeout_driver.as_ref().map(|driver| driver.build_factory())
   }
 
   /// Returns the configured root failure event listener.
@@ -170,54 +173,57 @@ where
 
   /// Builds a priority mailbox spawner scoped to the bundle configuration.
   #[must_use]
-  pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, BundleMailbox<R>>
+  pub fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, BundleMailbox<MF>>
   where
     M: Element,
-    BundleMailbox<R>: MailboxFactory,
-    <BundleMailbox<R> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
-    <BundleMailbox<R> as MailboxFactory>::Signal: Clone, {
-    PriorityMailboxSpawnerHandle::new(self.mailbox_runtime_shared()).with_metrics_sink(self.metrics_sink.clone())
+    BundleMailbox<MF>: MailboxFactory,
+    <BundleMailbox<MF> as MailboxFactory>::Queue<PriorityEnvelope<M>>: Clone,
+    <BundleMailbox<MF> as MailboxFactory>::Signal: Clone, {
+    PriorityMailboxSpawnerHandle::new(self.mailbox_factory_shared()).with_metrics_sink(self.metrics_sink.clone())
   }
 
   /// Overrides the scheduler builder with a concrete value.
   #[must_use]
-  pub fn with_scheduler_builder(mut self, builder: SchedulerBuilder<DynMessage, R>) -> Self {
+  pub fn with_scheduler_builder(mut self, builder: ActorSchedulerHandleBuilder<DynMessage, MF>) -> Self {
     self.core.set_scheduler_builder(ArcShared::new(builder));
     self
   }
 
   /// Overrides the scheduler builder using a shared handle.
   #[must_use]
-  pub fn with_scheduler_builder_shared(mut self, builder: ArcShared<SchedulerBuilder<DynMessage, R>>) -> Self {
+  pub fn with_scheduler_builder_shared(
+    mut self,
+    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>>,
+  ) -> Self {
     self.core.set_scheduler_builder(builder);
     self
   }
 
   /// Returns the scheduler builder currently configured for the bundle.
   #[must_use]
-  pub fn scheduler_builder(&self) -> ArcShared<SchedulerBuilder<DynMessage, R>> {
+  pub fn scheduler_builder(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, MF>> {
     self.core.scheduler_builder()
   }
 }
 
-impl<R> ActorRuntime for GenericActorRuntime<R>
+impl<MF> ActorRuntime for GenericActorRuntime<MF>
 where
-  R: MailboxFactory + Clone + 'static,
-  R::Queue<PriorityEnvelope<DynMessage>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory + Clone + 'static,
+  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Signal: Clone,
 {
-  type MailboxFactory = R;
+  type MailboxFactory = MF;
 
   fn mailbox_factory(&self) -> &Self::MailboxFactory {
-    GenericActorRuntime::mailbox_runtime(self)
+    GenericActorRuntime::mailbox_factory(self)
   }
 
   fn into_mailbox_factory(self) -> Self::MailboxFactory {
-    GenericActorRuntime::into_mailbox_runtime(self)
+    GenericActorRuntime::into_mailbox_factory(self)
   }
 
   fn mailbox_factory_shared(&self) -> ArcShared<Self::MailboxFactory> {
-    GenericActorRuntime::mailbox_runtime_shared(self)
+    GenericActorRuntime::mailbox_factory_shared(self)
   }
 
   fn receive_timeout_scheduler_factory_shared_opt(
@@ -236,7 +242,7 @@ where
     self,
     factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>,
   ) -> Self {
-    GenericActorRuntime::with_receive_timeout_factory(self, factory)
+    GenericActorRuntime::with_receive_timeout_scheduler_factory_shared(self, factory)
   }
 
   fn with_receive_timeout_scheduler_factory_provider_shared_opt(
@@ -282,18 +288,18 @@ where
     GenericActorRuntime::priority_mailbox_spawner(self)
   }
 
-  fn with_scheduler_builder(self, builder: SchedulerBuilder<DynMessage, Self::MailboxFactory>) -> Self {
+  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>) -> Self {
     GenericActorRuntime::with_scheduler_builder(self, builder)
   }
 
   fn with_scheduler_builder_shared(
     self,
-    builder: ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>>,
+    builder: ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>>,
   ) -> Self {
     GenericActorRuntime::with_scheduler_builder_shared(self, builder)
   }
 
-  fn scheduler_builder_shared(&self) -> ArcShared<SchedulerBuilder<DynMessage, Self::MailboxFactory>> {
+  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<DynMessage, Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
 }

@@ -1,13 +1,14 @@
-use alloc::boxed::Box;
-use alloc::rc::Rc;
+use alloc::{boxed::Box, rc::Rc};
 
 use cellex_utils_core_rs::{
   async_trait, Synchronized as CoreSynchronized, SynchronizedMutexBackend, SynchronizedRw as CoreSynchronizedRw,
   SynchronizedRwBackend,
 };
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use embassy_sync::mutex::{Mutex, MutexGuard};
-use embassy_sync::rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use embassy_sync::{
+  blocking_mutex::raw::NoopRawMutex,
+  mutex::{Mutex, MutexGuard},
+  rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 /// `Rc` + `Mutex` synchronization backend.
 ///
@@ -38,9 +39,7 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      inner: Rc::new(Mutex::new(value)),
-    }
+    Self { inner: Rc::new(Mutex::new(value)) }
   }
 
   /// Acquires the lock and returns a guard.
@@ -53,8 +52,9 @@ where
 
 /// `Rc` + `RwLock` read/write synchronization backend.
 ///
-/// Implements a synchronization primitive that provides multiple readers or single writer access in `no_std` environments.
-/// Uses Embassy's `RwLock` to achieve asynchronous read/write access to values.
+/// Implements a synchronization primitive that provides multiple readers or single writer access in
+/// `no_std` environments. Uses Embassy's `RwLock` to achieve asynchronous read/write access to
+/// values.
 ///
 /// # Features
 ///
@@ -84,9 +84,7 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self {
-      inner: Rc::new(RwLock::new(value)),
-    }
+    Self { inner: Rc::new(RwLock::new(value)) }
   }
 
   /// Acquires a read lock and returns a read guard.
@@ -107,13 +105,14 @@ where
 
 /// Type alias for `Rc`-based exclusive synchronization type.
 ///
-/// Synchronization primitive usable in `no_std` environments that provides exclusive access control.
-/// Uses the same lock for both reads and writes.
+/// Synchronization primitive usable in `no_std` environments that provides exclusive access
+/// control. Uses the same lock for both reads and writes.
 pub type Synchronized<T> = CoreSynchronized<RcMutexBackend<T>, T>;
 
 /// Type alias for `Rc`-based read/write synchronization type.
 ///
-/// Synchronization primitive usable in `no_std` environments that provides multiple readers or single writer access.
+/// Synchronization primitive usable in `no_std` environments that provides multiple readers or
+/// single writer access.
 pub type SynchronizedRw<T> = CoreSynchronizedRw<RcRwLockBackend<T>, T>;
 
 #[cfg(test)]

@@ -1,9 +1,10 @@
+use alloc::vec::Vec;
+use core::marker::PhantomData;
+
 use crate::collections::{
   element::Element,
   queue::{QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter},
 };
-use alloc::vec::Vec;
-use core::marker::PhantomData;
 
 #[cfg(test)]
 #[allow(clippy::disallowed_types)]
@@ -49,7 +50,7 @@ pub trait PriorityMessage: Element {
 pub struct PriorityQueue<Q, E>
 where
   Q: QueueRw<E>, {
-  levels: Vec<Q>,
+  levels:  Vec<Q>,
   _marker: PhantomData<E>,
 }
 
@@ -61,8 +62,8 @@ where
   ///
   /// # Arguments
   ///
-  /// * `levels` - Vector of queues corresponding to each priority level.
-  ///   Index 0 is lowest priority, last index is highest priority
+  /// * `levels` - Vector of queues corresponding to each priority level. Index 0 is lowest
+  ///   priority, last index is highest priority
   ///
   /// # Panics
   ///
@@ -70,10 +71,7 @@ where
   #[must_use]
   pub fn new(levels: Vec<Q>) -> Self {
     assert!(!levels.is_empty(), "PriorityQueue requires at least one level");
-    Self {
-      levels,
-      _marker: PhantomData,
-    }
+    Self { levels, _marker: PhantomData }
   }
 
   /// Gets immutable references to queues at each level
@@ -156,8 +154,8 @@ where
     E: PriorityMessage, {
     for queue in self.levels.iter().rev() {
       match queue.poll()? {
-        Some(item) => return Ok(Some(item)),
-        None => continue,
+        | Some(item) => return Ok(Some(item)),
+        | None => continue,
       }
     }
     Ok(None)
@@ -182,8 +180,8 @@ where
     let mut total = 0usize;
     for queue in &self.levels {
       match queue.len() {
-        QueueSize::Limitless => return QueueSize::limitless(),
-        QueueSize::Limited(value) => total += value,
+        | QueueSize::Limitless => return QueueSize::limitless(),
+        | QueueSize::Limited(value) => total += value,
       }
     }
     QueueSize::limited(total)
@@ -199,8 +197,8 @@ where
     let mut total = 0usize;
     for queue in &self.levels {
       match queue.capacity() {
-        QueueSize::Limitless => return QueueSize::limitless(),
-        QueueSize::Limited(value) => total += value,
+        | QueueSize::Limitless => return QueueSize::limitless(),
+        | QueueSize::Limited(value) => total += value,
       }
     }
     QueueSize::limited(total)
@@ -212,10 +210,7 @@ where
   Q: QueueRw<E> + Clone,
 {
   fn clone(&self) -> Self {
-    Self {
-      levels: self.levels.clone(),
-      _marker: PhantomData,
-    }
+    Self { levels: self.levels.clone(), _marker: PhantomData }
   }
 }
 

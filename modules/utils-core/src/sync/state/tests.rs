@@ -1,8 +1,9 @@
 extern crate alloc;
 
-use super::*;
 use alloc::rc::Rc;
 use core::cell::{Ref, RefCell, RefMut};
+
+use super::*;
 
 struct RcState<T>(Rc<RefCell<T>>);
 

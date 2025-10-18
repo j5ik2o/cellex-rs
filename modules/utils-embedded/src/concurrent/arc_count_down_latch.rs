@@ -1,12 +1,13 @@
 #![cfg(feature = "arc")]
 
-use alloc::boxed::Box;
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 
 use cellex_utils_core_rs::{async_trait, CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
-use embassy_sync::mutex::Mutex;
-use embassy_sync::signal::Signal;
+use embassy_sync::{
+  blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
+  mutex::Mutex,
+  signal::Signal,
+};
 
 /// Backend implementation for countdown latch using `Arc`
 ///
@@ -19,7 +20,7 @@ use embassy_sync::signal::Signal;
 pub struct ArcCountDownLatchBackend<RM>
 where
   RM: RawMutex, {
-  count: Arc<Mutex<RM, usize>>,
+  count:  Arc<Mutex<RM, usize>>,
   signal: Arc<Signal<RM, ()>>,
 }
 
@@ -28,10 +29,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      count: self.count.clone(),
-      signal: self.signal.clone(),
-    }
+    Self { count: self.count.clone(), signal: self.signal.clone() }
   }
 }
 
@@ -41,10 +39,7 @@ where
   RM: RawMutex + Send + Sync,
 {
   fn new(count: usize) -> Self {
-    Self {
-      count: Arc::new(Mutex::new(count)),
-      signal: Arc::new(Signal::new()),
-    }
+    Self { count: Arc::new(Mutex::new(count)), signal: Arc::new(Signal::new()) }
   }
 
   async fn count_down(&self) {

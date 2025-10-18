@@ -8,15 +8,20 @@ use core::ops::{Deref, DerefMut};
 ///
 /// # Design Philosophy
 ///
-/// - **Abstraction**: Hides implementation details, enabling the same code to work across different runtime environments
-/// - **Flexibility**: Allows choosing appropriate implementation for the environment (e.g., `Rc<RefCell<T>>` for single-threaded, `Arc<Mutex<T>>` for multi-threaded)
-/// - **Type Safety**: Leverages Generic Associated Types (GAT) to guarantee type safety at compile time
+/// - **Abstraction**: Hides implementation details, enabling the same code to work across different
+///   runtime environments
+/// - **Flexibility**: Allows choosing appropriate implementation for the environment (e.g.,
+///   `Rc<RefCell<T>>` for single-threaded, `Arc<Mutex<T>>` for multi-threaded)
+/// - **Type Safety**: Leverages Generic Associated Types (GAT) to guarantee type safety at compile
+///   time
 ///
 /// # Example Implementation
 ///
 /// ```rust
-/// use std::rc::Rc;
-/// use std::cell::{RefCell, Ref, RefMut};
+/// use std::{
+///   cell::{Ref, RefCell, RefMut},
+///   rc::Rc,
+/// };
 /// # use core::ops::{Deref, DerefMut};
 /// # pub trait StateCell<T>: Clone {
 /// #   type Ref<'a>: Deref<Target = T> where Self: 'a, T: 'a;
@@ -30,26 +35,34 @@ use core::ops::{Deref, DerefMut};
 /// struct RcState<T>(Rc<RefCell<T>>);
 ///
 /// impl<T> Clone for RcState<T> {
-///     fn clone(&self) -> Self {
-///         Self(self.0.clone())
-///     }
+///   fn clone(&self) -> Self {
+///     Self(self.0.clone())
+///   }
 /// }
 ///
 /// impl<T> StateCell<T> for RcState<T> {
-///     type Ref<'a> = Ref<'a, T> where Self: 'a, T: 'a;
-///     type RefMut<'a> = RefMut<'a, T> where Self: 'a, T: 'a;
+///   type Ref<'a>
+///     = Ref<'a, T>
+///   where
+///     Self: 'a,
+///     T: 'a;
+///   type RefMut<'a>
+///     = RefMut<'a, T>
+///   where
+///     Self: 'a,
+///     T: 'a;
 ///
-///     fn new(value: T) -> Self {
-///         Self(Rc::new(RefCell::new(value)))
-///     }
+///   fn new(value: T) -> Self {
+///     Self(Rc::new(RefCell::new(value)))
+///   }
 ///
-///     fn borrow(&self) -> Self::Ref<'_> {
-///         self.0.borrow()
-///     }
+///   fn borrow(&self) -> Self::Ref<'_> {
+///     self.0.borrow()
+///   }
 ///
-///     fn borrow_mut(&self) -> Self::RefMut<'_> {
-///         self.0.borrow_mut()
-///     }
+///   fn borrow_mut(&self) -> Self::RefMut<'_> {
+///     self.0.borrow_mut()
+///   }
 /// }
 /// ```
 pub trait StateCell<T>: Clone {
@@ -67,7 +80,8 @@ pub trait StateCell<T>: Clone {
   ///
   /// Functions as an RAII type implementing `DerefMut<Target = T>` that automatically
   /// releases the lock when it goes out of scope. Depending on the runtime implementation,
-  /// different types such as `RefMut<'a, T>`, `MutexGuard<'a, T>`, `RwLockWriteGuard<'a, T>` are used.
+  /// different types such as `RefMut<'a, T>`, `MutexGuard<'a, T>`, `RwLockWriteGuard<'a, T>` are
+  /// used.
   type RefMut<'a>: DerefMut<Target = T>
   where
     Self: 'a,
@@ -146,7 +160,8 @@ pub trait StateCell<T>: Clone {
   ///
   /// # Arguments
   ///
-  /// * `f` - Closure that receives an immutable reference to the state and returns a value of type `R`
+  /// * `f` - Closure that receives an immutable reference to the state and returns a value of type
+  ///   `R`
   ///
   /// # Returns
   ///

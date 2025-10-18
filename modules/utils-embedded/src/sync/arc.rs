@@ -5,11 +5,12 @@ use alloc::sync::Arc;
 
 use cellex_utils_core_rs::{
   MpscBackend, MpscBuffer, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingBuffer, RingBufferStorage,
-  RingHandle, StackBackend, StackHandle,
+  RingHandle, Shared, StackBackend, StackHandle, StateCell,
 };
-use cellex_utils_core_rs::{Shared, StateCell};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
-use embassy_sync::mutex::{Mutex, MutexGuard};
+use embassy_sync::{
+  blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex},
+  mutex::{Mutex, MutexGuard},
+};
 
 /// `Arc`-based shared reference type for embedded environments.
 ///
@@ -63,6 +64,7 @@ impl<T: ?Sized> ArcShared<T> {
   ///
   /// ```
   /// use alloc::sync::Arc;
+  ///
   /// use cellex_utils_embedded_rs::sync::ArcShared;
   ///
   /// let arc = Arc::new(42);
@@ -214,9 +216,7 @@ where
   /// assert_eq!(*cell.borrow(), 42);
   /// ```
   pub fn new(value: T) -> Self {
-    Self {
-      inner: Arc::new(Mutex::new(value)),
-    }
+    Self { inner: Arc::new(Mutex::new(value)) }
   }
 
   /// Creates a new `ArcStateCell` from an existing `Arc<Mutex<RM, T>>`.
@@ -227,9 +227,9 @@ where
   ///
   /// ```
   /// use alloc::sync::Arc;
-  /// use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-  /// use embassy_sync::mutex::Mutex;
+  ///
   /// use cellex_utils_embedded_rs::sync::ArcStateCell;
+  /// use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
   ///
   /// let arc = Arc::new(Mutex::<NoopRawMutex, _>::new(42));
   /// let cell = ArcStateCell::from_arc(arc);
@@ -255,10 +255,7 @@ where
   }
 
   fn lock(&self) -> MutexGuard<'_, RM, T> {
-    self
-      .inner
-      .try_lock()
-      .unwrap_or_else(|_| panic!("ArcStateCell: concurrent access detected"))
+    self.inner.try_lock().unwrap_or_else(|_| panic!("ArcStateCell: concurrent access detected"))
   }
 }
 
@@ -267,9 +264,7 @@ where
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 

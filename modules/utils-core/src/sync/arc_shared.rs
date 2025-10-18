@@ -2,7 +2,6 @@
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-
 use core::ptr;
 
 use super::{Shared, SharedDyn};

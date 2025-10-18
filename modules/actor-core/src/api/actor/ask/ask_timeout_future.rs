@@ -1,23 +1,22 @@
-use super::ask_error::AskError;
-use super::ask_future::AskFuture;
-use super::AskResult;
+use core::{
+  future::Future,
+  pin::Pin,
+  task::{Context, Poll},
+};
+
 use cellex_utils_core_rs::Element;
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll};
+
+use super::{ask_error::AskError, ask_future::AskFuture, AskResult};
 
 /// `AskFuture` wrapper with timeout control.
 pub struct AskTimeoutFuture<Resp, TFut> {
-  ask: Option<AskFuture<Resp>>,
+  ask:     Option<AskFuture<Resp>>,
   timeout: Option<TFut>,
 }
 
 impl<Resp, TFut> AskTimeoutFuture<Resp, TFut> {
   pub(super) const fn new(ask: AskFuture<Resp>, timeout: TFut) -> Self {
-    Self {
-      ask: Some(ask),
-      timeout: Some(timeout),
-    }
+    Self { ask: Some(ask), timeout: Some(timeout) }
   }
 }
 
@@ -31,12 +30,12 @@ where
   fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
     if let Some(ask) = self.ask.as_mut() {
       match Pin::new(ask).poll(cx) {
-        Poll::Ready(result) => {
+        | Poll::Ready(result) => {
           self.ask = None;
           self.timeout = None;
           return Poll::Ready(result);
-        }
-        Poll::Pending => {}
+        },
+        | Poll::Pending => {},
       }
     }
 

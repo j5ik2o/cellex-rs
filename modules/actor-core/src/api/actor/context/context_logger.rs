@@ -1,21 +1,18 @@
-use super::context_log_level::ContextLogLevel;
-use crate::api::actor::actor_id::ActorId;
-use crate::api::actor::actor_path::ActorPath;
 use alloc::string::String;
+
+use super::context_log_level::ContextLogLevel;
+use crate::api::actor::{actor_id::ActorId, actor_path::ActorPath};
 
 /// Structure that manages actor log output.
 #[derive(Clone)]
 pub struct ContextLogger {
-  actor_id: ActorId,
+  actor_id:   ActorId,
   actor_path: ActorPath,
 }
 
 impl ContextLogger {
   pub(crate) fn new(actor_id: ActorId, actor_path: &ActorPath) -> Self {
-    Self {
-      actor_id,
-      actor_path: actor_path.clone(),
-    }
+    Self { actor_id, actor_path: actor_path.clone() }
   }
 
   /// Gets the actor ID of the log source.
@@ -72,35 +69,35 @@ impl ContextLogger {
 
     #[cfg(feature = "tracing")]
     match level {
-      ContextLogLevel::Trace => tracing::event!(
+      | ContextLogLevel::Trace => tracing::event!(
         target: "nexus::actor",
         tracing::Level::TRACE,
         actor_id = %self.actor_id,
         actor_path = %self.actor_path,
         message = %text
       ),
-      ContextLogLevel::Debug => tracing::event!(
+      | ContextLogLevel::Debug => tracing::event!(
         target: "nexus::actor",
         tracing::Level::DEBUG,
         actor_id = %self.actor_id,
         actor_path = %self.actor_path,
         message = %text
       ),
-      ContextLogLevel::Info => tracing::event!(
+      | ContextLogLevel::Info => tracing::event!(
         target: "nexus::actor",
         tracing::Level::INFO,
         actor_id = %self.actor_id,
         actor_path = %self.actor_path,
         message = %text
       ),
-      ContextLogLevel::Warn => tracing::event!(
+      | ContextLogLevel::Warn => tracing::event!(
         target: "nexus::actor",
         tracing::Level::WARN,
         actor_id = %self.actor_id,
         actor_path = %self.actor_path,
         message = %text
       ),
-      ContextLogLevel::Error => tracing::event!(
+      | ContextLogLevel::Error => tracing::event!(
         target: "nexus::actor",
         tracing::Level::ERROR,
         actor_id = %self.actor_id,

@@ -1,6 +1,8 @@
-use super::*;
-use cellex_utils_core_rs::{QueueBase, RingBuffer};
 use std::sync::Mutex;
+
+use cellex_utils_core_rs::{QueueBase, RingBuffer};
+
+use super::*;
 
 #[test]
 fn arc_shared_try_unwrap_behavior() {

@@ -1,8 +1,9 @@
 #[cfg(feature = "embassy_executor")]
 mod sample {
+  use core::sync::atomic::{AtomicU32, Ordering};
+
   use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, Props};
   use cellex_actor_embedded_rs::{define_embassy_dispatcher, embassy_actor_runtime, EmbassyActorRuntime};
-  use core::sync::atomic::{AtomicU32, Ordering};
   use embassy_executor::Executor;
   use static_cell::StaticCell;
 

@@ -1,45 +1,42 @@
-use super::{CustomEscalationSink, ParentGuardianSink};
-use crate::api::actor::actor_ref::PriorityActorRef;
-use crate::api::mailbox::MailboxFactory;
-use crate::api::mailbox::PriorityEnvelope;
-use crate::api::supervision::escalation::EscalationSink;
-use crate::api::supervision::escalation::FailureEventHandler;
-use crate::api::supervision::escalation::FailureEventListener;
-use crate::api::supervision::escalation::RootEscalationSink;
-use crate::api::supervision::failure::FailureInfo;
-use crate::api::supervision::telemetry::TelemetryObservationConfig;
-use crate::shared::failure_telemetry::FailureTelemetryShared;
-use crate::shared::map_system::MapSystemShared;
 use cellex_utils_core_rs::{Element, QueueError};
 
+use super::{CustomEscalationSink, ParentGuardianSink};
+use crate::api::{
+  actor::actor_ref::PriorityActorRef,
+  actor_system::map_system::MapSystemShared,
+  failure_telemetry::FailureTelemetryShared,
+  mailbox::{MailboxFactory, PriorityEnvelope},
+  supervision::{
+    escalation::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink},
+    failure::FailureInfo,
+    telemetry::TelemetryObservationConfig,
+  },
+};
+
 /// Composes multiple sinks and applies them in order.
-pub(crate) struct CompositeEscalationSink<M, R>
+pub(crate) struct CompositeEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone, {
-  parent_guardian: Option<ParentGuardianSink<M, R>>,
-  custom: Option<CustomEscalationSink<M, R>>,
-  root: Option<RootEscalationSink<M, R>>,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone, {
+  parent_guardian: Option<ParentGuardianSink<M, MF>>,
+  custom:          Option<CustomEscalationSink<M, MF>>,
+  root:            Option<RootEscalationSink<M, MF>>,
 }
 
-impl<M, R> CompositeEscalationSink<M, R>
+impl<M, MF> CompositeEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   pub(crate) fn new() -> Self {
-    Self {
-      parent_guardian: None,
-      custom: None,
-      root: Some(RootEscalationSink::<M, R>::new()),
-    }
+    Self { parent_guardian: None, custom: None, root: Some(RootEscalationSink::<M, MF>::new()) }
   }
 
-  pub(crate) fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, R>, map_system: MapSystemShared<M>) {
+  pub(crate) fn set_parent_guardian(&mut self, control_ref: PriorityActorRef<M, MF>, map_system: MapSystemShared<M>) {
     self.parent_guardian = Some(ParentGuardianSink::new(control_ref, map_system));
   }
 
@@ -53,7 +50,7 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_event_handler(handler);
     } else {
-      let mut sink = RootEscalationSink::<M, R>::new();
+      let mut sink = RootEscalationSink::<M, MF>::new();
       sink.set_event_handler(handler);
       self.root = Some(sink);
     }
@@ -63,7 +60,7 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_event_listener(listener);
     } else if let Some(listener) = listener {
-      let mut sink = RootEscalationSink::<M, R>::new();
+      let mut sink = RootEscalationSink::<M, MF>::new();
       sink.set_event_listener(Some(listener));
       self.root = Some(sink);
     }
@@ -73,7 +70,7 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_telemetry(telemetry);
     } else {
-      let mut sink = RootEscalationSink::<M, R>::new();
+      let mut sink = RootEscalationSink::<M, MF>::new();
       sink.set_telemetry(telemetry);
       self.root = Some(sink);
     }
@@ -83,31 +80,31 @@ where
     if let Some(root) = self.root.as_mut() {
       root.set_observation_config(config);
     } else {
-      let mut sink = RootEscalationSink::<M, R>::new();
+      let mut sink = RootEscalationSink::<M, MF>::new();
       sink.set_observation_config(config);
       self.root = Some(sink);
     }
   }
 }
 
-impl<M, R> Default for CompositeEscalationSink<M, R>
+impl<M, MF> Default for CompositeEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<M, R> EscalationSink<M, R> for CompositeEscalationSink<M, R>
+impl<M, MF> EscalationSink<M, MF> for CompositeEscalationSink<M, MF>
 where
   M: Element,
-  R: MailboxFactory,
-  R::Queue<PriorityEnvelope<M>>: Clone,
-  R::Signal: Clone,
+  MF: MailboxFactory,
+  MF::Queue<PriorityEnvelope<M>>: Clone,
+  MF::Signal: Clone,
 {
   fn handle(&mut self, info: FailureInfo, already_handled: bool) -> Result<(), FailureInfo> {
     let mut handled = already_handled;
@@ -115,21 +112,21 @@ where
 
     if let Some(parent) = self.parent_guardian.as_mut() {
       match parent.handle(last_failure.clone(), handled) {
-        Ok(()) => handled = true,
-        Err(unhandled) => {
+        | Ok(()) => handled = true,
+        | Err(unhandled) => {
           last_failure = unhandled;
           handled = false;
-        }
+        },
       }
     }
 
     if let Some(custom) = self.custom.as_mut() {
       match custom.handle(last_failure.clone(), handled) {
-        Ok(()) => handled = true,
-        Err(unhandled) => {
+        | Ok(()) => handled = true,
+        | Err(unhandled) => {
           last_failure = unhandled;
           handled = false;
-        }
+        },
       }
     }
 

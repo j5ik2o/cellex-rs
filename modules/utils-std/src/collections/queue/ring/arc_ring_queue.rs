@@ -30,9 +30,7 @@ impl<E> ArcRingQueue<E> {
   pub fn new(capacity: usize) -> Self {
     let storage = ArcShared::new(Mutex::new(RingBuffer::new(capacity)));
     let backend: ArcRingStorage<E> = ArcShared::new(RingStorageBackend::new(storage));
-    Self {
-      inner: RingQueue::new(backend),
-    }
+    Self { inner: RingQueue::new(backend) }
   }
 
   /// Sets dynamic expansion mode and returns the queue (builder pattern)

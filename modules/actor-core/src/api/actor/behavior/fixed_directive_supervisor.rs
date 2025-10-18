@@ -1,7 +1,7 @@
-use crate::api::actor::actor_failure::BehaviorFailure;
-use crate::api::actor::behavior::supervisor_strategy::SupervisorStrategy;
-use crate::api::supervision::supervisor::Supervisor;
-use crate::api::supervision::supervisor::SupervisorDirective;
+use crate::api::{
+  actor::{actor_failure::BehaviorFailure, behavior::supervisor_strategy::SupervisorStrategy},
+  supervision::supervisor::{Supervisor, SupervisorDirective},
+};
 
 pub struct FixedDirectiveSupervisor {
   directive: SupervisorDirective,
@@ -9,9 +9,7 @@ pub struct FixedDirectiveSupervisor {
 
 impl FixedDirectiveSupervisor {
   pub fn new(strategy: SupervisorStrategy) -> Self {
-    Self {
-      directive: strategy.into(),
-    }
+    Self { directive: strategy.into() }
   }
 }
 

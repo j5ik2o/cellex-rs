@@ -21,7 +21,7 @@ pub enum StackError<T> {
 impl<T> From<StackError<T>> for QueueError<T> {
   fn from(err: StackError<T>) -> Self {
     match err {
-      StackError::Full(value) => QueueError::Full(value),
+      | StackError::Full(value) => QueueError::Full(value),
     }
   }
 }
@@ -31,7 +31,8 @@ impl<T> From<StackError<T>> for QueueError<T> {
 /// # Overview
 ///
 /// `StackBuffer` is a data structure that manages elements in Last-In-First-Out order.
-/// An optional capacity limit can be set, and adding operations return errors if the limit is exceeded.
+/// An optional capacity limit can be set, and adding operations return errors if the limit is
+/// exceeded.
 ///
 /// # Examples
 ///
@@ -46,7 +47,7 @@ impl<T> From<StackError<T>> for QueueError<T> {
 /// ```
 #[derive(Debug, Clone)]
 pub struct StackBuffer<T> {
-  items: Vec<T>,
+  items:    Vec<T>,
   capacity: Option<usize>,
 }
 
@@ -67,10 +68,7 @@ impl<T> StackBuffer<T> {
   /// ```
   #[must_use]
   pub const fn new() -> Self {
-    Self {
-      items: Vec::new(),
-      capacity: None,
-    }
+    Self { items: Vec::new(), capacity: None }
   }
 
   /// Creates a new `StackBuffer` with the specified capacity limit.
@@ -97,10 +95,7 @@ impl<T> StackBuffer<T> {
   /// ```
   #[must_use]
   pub fn with_capacity(capacity: usize) -> Self {
-    Self {
-      items: Vec::with_capacity(capacity),
-      capacity: Some(capacity),
-    }
+    Self { items: Vec::with_capacity(capacity), capacity: Some(capacity) }
   }
 
   /// Gets the stack's capacity limit.
@@ -121,14 +116,15 @@ impl<T> StackBuffer<T> {
   #[must_use]
   pub const fn capacity(&self) -> QueueSize {
     match self.capacity {
-      Some(limit) => QueueSize::limited(limit),
-      None => QueueSize::limitless(),
+      | Some(limit) => QueueSize::limited(limit),
+      | None => QueueSize::limitless(),
     }
   }
 
   /// Sets the stack's capacity limit.
   ///
-  /// If the new capacity is less than the current number of elements, the stack is truncated to the new capacity.
+  /// If the new capacity is less than the current number of elements, the stack is truncated to the
+  /// new capacity.
   ///
   /// # Arguments
   ///

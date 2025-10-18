@@ -1,7 +1,10 @@
-use super::*;
-use crate::error::{DeserializationError, SerializationError};
-use crate::message::SerializedMessage;
 use alloc::vec::Vec;
+
+use super::*;
+use crate::{
+  error::{DeserializationError, SerializationError},
+  message::SerializedMessage,
+};
 
 #[derive(Clone, Debug)]
 struct EchoSerializer;
@@ -45,9 +48,7 @@ fn binds_and_resolves_serializer() {
   let resolved = router.resolve_serializer("example.Type").expect("resolve");
   assert_eq!(resolved.serializer_id(), SerializerId::new(42));
 
-  let message = resolved
-    .serialize_with_type_name_opt(b"hello", Some("example.Type"))
-    .expect("serialize");
+  let message = resolved.serialize_with_type_name_opt(b"hello", Some("example.Type")).expect("serialize");
   assert_eq!(message.payload, b"hello");
 }
 

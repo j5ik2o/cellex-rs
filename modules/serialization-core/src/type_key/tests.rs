@@ -26,8 +26,5 @@ fn overrides_key_when_specified() {
 
 #[test]
 fn exposes_default_serializer_when_requested() {
-  assert_eq!(
-    <WithSerializer as TypeKey>::default_serializer(),
-    Some(SerializerId::new(99))
-  );
+  assert_eq!(<WithSerializer as TypeKey>::default_serializer(), Some(SerializerId::new(99)));
 }

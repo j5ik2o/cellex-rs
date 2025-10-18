@@ -1,6 +1,7 @@
-use crate::api::mailbox::mailbox_concurrency::MailboxConcurrency;
-use crate::api::messaging::MessageMetadata;
-use crate::api::messaging::{MetadataStorageMode, MetadataStorageRecord};
+use crate::api::{
+  mailbox::mailbox_concurrency::MailboxConcurrency,
+  messaging::{MessageMetadata, MetadataStorageMode, MetadataStorageRecord},
+};
 
 /// Single-threaded mailbox mode without additional synchronization requirements.
 #[derive(Debug, Clone, Copy, Default)]
@@ -15,8 +16,8 @@ impl MetadataStorageMode for SingleThread {
 
   fn from_record(record: MetadataStorageRecord) -> Option<MessageMetadata<Self>> {
     match record {
-      MetadataStorageRecord::SingleThread(metadata) => Some(metadata),
-      MetadataStorageRecord::ThreadSafe(_) => None,
+      | MetadataStorageRecord::SingleThread(metadata) => Some(metadata),
+      | MetadataStorageRecord::ThreadSafe(_) => None,
     }
   }
 }

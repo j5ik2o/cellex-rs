@@ -1,5 +1,6 @@
-use cellex_utils_core_rs::sync::SharedBound;
 use core::any::Any;
+
+use cellex_utils_core_rs::sync::SharedBound;
 use portable_atomic::{AtomicI32, Ordering};
 
 /// Identifier type assigned to each [`Extension`].
