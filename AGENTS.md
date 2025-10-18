@@ -9,6 +9,7 @@
 - **実装方針**:
     - 既存の多くの実装を参考にして、一貫性のあるコードを書くこと
     - protoactor-go(@docs/sources/protoactor-go)の実装を参考にすること（Goの実装からRustイディオムに変換）
+    - pekko/akkaもよく話題でるの、https://github.com/apache/pekko を参照すること
 - 旧実装は `docs/sources/nexus-actor-rs/` に参照用として退避済み。再設計中は参照のみとし、新コードは Shared 抽象／async モデル案に基づいて構築する
 - ランタイム本体で `#[cfg(feature = "std")]` による機能分岐を入れないこと（テストコード内での使用は許容）
 - **後方互換性**: 後方互換は不要（破壊的変更を恐れずに最適な設計を追求すること）
@@ -19,6 +20,7 @@
 - mod.rs禁止。2018モジュールを使え
 - 単体テストは hoge.rs に対して hoge/tests.rs に記述すること
 - 1ファイルに複数構造体、複数traitを記述しないこと
+- 作業後に`./scripts/ci.sh all`を実行し、エラーがないことを確認すること
 
 ## [RULE] 再エクスポート規約
 
