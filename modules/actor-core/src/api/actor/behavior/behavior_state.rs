@@ -4,11 +4,11 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use crate::api::{
   actor::{
+    actor_context::ActorContext,
     actor_failure::ActorFailure,
     behavior::{
       behavior_directive::BehaviorDirective, supervisor_strategy_config::SupervisorStrategyConfig, ReceiveFn, SignalFn,
     },
-    context::Context,
   },
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::PriorityEnvelope,
@@ -41,7 +41,7 @@ where
 
   pub fn handle(
     &mut self,
-    ctx: &mut Context<'_, '_, U, AR>,
+    ctx: &mut ActorContext<'_, '_, U, AR>,
     message: U,
   ) -> Result<BehaviorDirective<U, AR>, ActorFailure> {
     (self.handler)(ctx, message)

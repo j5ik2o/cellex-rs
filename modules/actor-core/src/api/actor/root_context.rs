@@ -57,7 +57,8 @@ where
   pub fn spawn(&mut self, props: Props<U, AR>) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
-    let (internal_props, supervisor_cfg) = props.into_parts();
+    let (internal_props, supervisor_cfg): (crate::internal::actor::InternalProps<MailboxOf<AR>>, _) =
+      props.into_parts();
     let pid_slot = ArcShared::new(RwLock::new(None));
     let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
@@ -80,7 +81,8 @@ where
   pub fn spawn_prefix(&mut self, props: Props<U, AR>, prefix: &str) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
-    let (internal_props, supervisor_cfg) = props.into_parts();
+    let (internal_props, supervisor_cfg): (crate::internal::actor::InternalProps<MailboxOf<AR>>, _) =
+      props.into_parts();
     let pid_slot = ArcShared::new(RwLock::new(None));
     let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(
@@ -101,7 +103,8 @@ where
   pub fn spawn_named(&mut self, props: Props<U, AR>, name: &str) -> Result<ActorRef<U, AR>, SpawnError<DynMessage>>
   where
     DynMessage: Element, {
-    let (internal_props, supervisor_cfg) = props.into_parts();
+    let (internal_props, supervisor_cfg): (crate::internal::actor::InternalProps<MailboxOf<AR>>, _) =
+      props.into_parts();
     let pid_slot = ArcShared::new(RwLock::new(None));
     let registry = self.inner.process_registry();
     let actor_ref = self.inner.spawn_with_supervisor(

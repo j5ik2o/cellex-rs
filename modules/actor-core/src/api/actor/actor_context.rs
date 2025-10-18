@@ -1,89 +1,136 @@
-#![allow(missing_docs)]
+use alloc::boxed::Box;
+use core::{future::Future, marker::PhantomData, time::Duration};
 
-use alloc::{boxed::Box, vec, vec::Vec};
-use core::{cell::RefCell, time::Duration};
-
-use cellex_utils_core_rs::{sync::ArcShared, QueueError};
+use cellex_utils_core_rs::{
+  sync::{ArcShared, SharedBound},
+  Element, QueueError, DEFAULT_PRIORITY,
+};
 use spin::RwLock;
 
 use crate::{
   api::{
-    actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, ChildNaming},
-    actor_system::map_system::MapSystemShared,
+    actor::{
+      actor_failure::ActorFailure,
+      actor_ref::{ActorRef, PriorityActorRef},
+      ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
+      props::Props,
+    },
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
-    messaging::DynMessage,
+    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
     process::{pid::Pid, process_registry::ProcessRegistry},
-    receive_timeout::ReceiveTimeoutScheduler,
-    supervision::supervisor::Supervisor,
+    supervision::failure::FailureInfo,
   },
-  internal::{actor::InternalProps, context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
+  RuntimeBound,
 };
 
-/// Context for actors to operate on themselves and child actors.
-pub struct ActorContext<'a, MF>
+mod context_log_level;
+mod context_logger;
+mod dyn_actor_context;
+mod message_adapter_ref;
+mod message_metadata_responder;
+
+pub use context_log_level::ContextLogLevel;
+pub use context_logger::ContextLogger;
+pub use dyn_actor_context::DynActorContext;
+pub use message_adapter_ref::MessageAdapterRef;
+pub use message_metadata_responder::MessageMetadataResponder;
+
+use crate::api::actor::{actor_id::ActorId, actor_path::ActorPath};
+
+#[cfg(target_has_atomic = "ptr")]
+pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
+
+#[cfg(not(target_has_atomic = "ptr"))]
+pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U;
+
+/// Typed actor execution context wrapper.
+/// 'r: lifetime of the mutable reference to ActorContext
+/// 'ctx: lifetime parameter of ActorContext itself
+pub struct ActorContext<'r, 'ctx, U, AR>
 where
-  MF: MailboxFactory + Clone, {
-  mailbox_factory:  &'a MF,
-  mailbox_spawner:  PriorityMailboxSpawnerHandle<DynMessage, MF>,
-  sender:           &'a MF::Producer<PriorityEnvelope<DynMessage>>,
-  supervisor:       &'a mut dyn Supervisor<DynMessage>,
-  #[allow(dead_code)]
-  pending_spawns:   &'a mut Vec<ChildSpawnSpec<MF>>,
-  #[allow(dead_code)]
-  map_system:       MapSystemShared<DynMessage>,
-  actor_path:       ActorPath,
-  actor_id:         ActorId,
-  pid:              Pid,
-  process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>>,
-  watchers:         &'a mut Vec<ActorId>,
-  current_priority: Option<i8>,
-  receive_timeout:  Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
-  extensions:       Extensions,
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode, {
+  pub(super) inner:      &'r mut DynActorContext<'ctx, MailboxOf<AR>>,
+  pub(super) metadata:   Option<crate::api::messaging::MessageMetadata<MailboxConcurrencyOf<AR>>>,
+  pub(super) extensions: Extensions,
+  pub(super) _marker:    PhantomData<U>,
 }
 
-impl<'a, MF> ActorContext<'a, MF>
+/// Type alias for context during setup.
+pub type SetupContext<'ctx, U, R> = ActorContext<'ctx, 'ctx, U, R>;
+
+impl<'r, 'ctx, U, AR> ActorContext<'r, 'ctx, U, AR>
 where
-  MF: MailboxFactory + Clone,
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  #[allow(clippy::too_many_arguments)]
-  pub(crate) fn new(
-    mailbox_factory: &'a MF,
-    mailbox_spawner: PriorityMailboxSpawnerHandle<DynMessage, MF>,
-    sender: &'a MF::Producer<PriorityEnvelope<DynMessage>>,
-    supervisor: &'a mut dyn Supervisor<DynMessage>,
-    pending_spawns: &'a mut Vec<ChildSpawnSpec<MF>>,
-    map_system: MapSystemShared<DynMessage>,
-    actor_path: ActorPath,
-    actor_id: ActorId,
-    pid: Pid,
-    process_registry: ArcShared<
-      ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>,
-    >,
-    watchers: &'a mut Vec<ActorId>,
-    receive_timeout: Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
-    extensions: Extensions,
-  ) -> Self {
-    Self {
-      mailbox_factory,
-      mailbox_spawner,
-      sender,
-      supervisor,
-      pending_spawns,
-      map_system,
-      actor_path,
-      actor_id,
-      pid,
-      process_registry,
-      watchers,
-      current_priority: None,
-      receive_timeout,
-      extensions,
-    }
+  pub(crate) fn new(inner: &'r mut DynActorContext<'ctx, MailboxOf<AR>>) -> Self {
+    let extensions = inner.extensions();
+    Self { inner, metadata: None, extensions, _marker: PhantomData }
+  }
+}
+
+impl<'r, 'ctx, U, AR> ActorContext<'r, 'ctx, U, AR>
+where
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
+{
+  /// Determines if receive timeout is supported.
+  #[must_use]
+  pub fn has_receive_timeout_support(&self) -> bool {
+    self.inner.has_receive_timeout_scheduler()
   }
 
-  /// Returns a clone of the extension registry.
+  /// Sets the receive timeout.
+  pub fn set_receive_timeout(&mut self, duration: Duration) -> bool {
+    self.inner.set_receive_timeout(duration)
+  }
+
+  /// Cancels the receive timeout.
+  pub fn cancel_receive_timeout(&mut self) -> bool {
+    self.inner.cancel_receive_timeout()
+  }
+}
+
+impl<'r, 'ctx, U, AR> ActorContext<'r, 'ctx, U, AR>
+where
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
+{
+  /// Gets the metadata accompanying the current message.
+  #[must_use]
+  pub fn message_metadata(&self) -> Option<&MessageMetadata<MailboxConcurrencyOf<AR>>> {
+    self.metadata.as_ref()
+  }
+
+  pub(crate) fn with_metadata(
+    inner: &'r mut DynActorContext<'ctx, MailboxOf<AR>>,
+    metadata: MessageMetadata<MailboxConcurrencyOf<AR>>,
+  ) -> Self {
+    let extensions = inner.extensions();
+    Self { inner, metadata: Some(metadata), extensions, _marker: PhantomData }
+  }
+
+  /// Returns the shared extension registry.
+  #[must_use]
   pub fn extensions(&self) -> Extensions {
     self.extensions.clone()
   }
@@ -96,164 +143,292 @@ where
     self.extensions.with::<E, _, _>(id, f)
   }
 
-  pub fn mailbox_factory(&self) -> &MF {
-    self.mailbox_factory
-  }
-
-  pub(crate) fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<DynMessage, MF> {
-    &self.mailbox_spawner
-  }
-
-  pub(crate) fn supervisor(&mut self) -> &mut dyn Supervisor<DynMessage> {
-    self.supervisor
-  }
-
+  /// Gets the actor ID of this actor.
+  #[must_use]
   pub fn actor_id(&self) -> ActorId {
-    self.actor_id
+    self.inner.actor_id()
   }
 
+  /// Gets the actor path of this actor.
+  #[must_use]
   pub fn actor_path(&self) -> &ActorPath {
-    &self.actor_path
+    self.inner.actor_path()
   }
 
+  /// Gets the list of actor IDs watching this actor.
+  #[must_use]
   pub fn watchers(&self) -> &[ActorId] {
-    self.watchers.as_slice()
+    self.inner.watchers()
   }
 
-  pub fn pid(&self) -> &Pid {
-    &self.pid
+  /// Returns the current processing priority if the actor is executing within a priority context.
+  #[must_use]
+  pub fn current_priority(&self) -> Option<i8> {
+    self.inner.current_priority()
   }
 
+  /// Gets the PID representing this actor.
+  #[must_use]
+  pub fn self_pid(&self) -> &Pid {
+    self.inner.pid()
+  }
+
+  /// Returns the process registry handle for PID resolution.
+  #[must_use]
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>> {
-    self.process_registry.clone()
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  {
+    self.inner.process_registry()
   }
 
+  /// Gets the logger for this actor.
+  #[must_use]
+  pub fn log(&self) -> ContextLogger {
+    ContextLogger::new(self.actor_id(), self.actor_path())
+  }
+
+  /// Registers a watcher.
   pub fn register_watcher(&mut self, watcher: ActorId) {
-    if !self.watchers.contains(&watcher) {
-      self.watchers.push(watcher);
-    }
+    self.inner.register_watcher(watcher);
   }
 
+  /// Unregisters a watcher.
   pub fn unregister_watcher(&mut self, watcher: ActorId) {
-    if let Some(index) = self.watchers.iter().position(|w| *w == watcher) {
-      self.watchers.swap_remove(index);
-    }
+    self.inner.unregister_watcher(watcher);
   }
 
-  pub(crate) fn self_ref(&self) -> PriorityActorRef<DynMessage, MF>
+  /// Gets a mutable reference to the internal context.
+  pub fn inner(&mut self) -> &mut DynActorContext<'ctx, MailboxOf<AR>> {
+    self.inner
+  }
+}
+
+impl<'r, 'ctx, U, AR> ActorContext<'r, 'ctx, U, AR>
+where
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
+{
+  /// Spawns a child actor and returns an `ActorRef`.
+  pub fn spawn_child<V>(&mut self, props: Props<V, AR>) -> ActorRef<V, AR>
   where
-    MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
-    MF::Signal: Clone,
-    MF::Producer<PriorityEnvelope<DynMessage>>: Clone, {
-    PriorityActorRef::new(self.sender.clone())
+    V: Element, {
+    let (internal_props, supervisor_cfg): (crate::internal::actor::InternalProps<MailboxOf<AR>>, _) =
+      props.into_parts();
+    let pid_slot = ArcShared::new(RwLock::new(None));
+    let registry = self.process_registry();
+    let actor_ref = self.inner.spawn_child_from_props(
+      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
+      internal_props,
+      pid_slot.clone(),
+    );
+    ActorRef::new(actor_ref, pid_slot, Some(registry))
+  }
+}
+
+impl<'r, 'ctx, U, AR> ActorContext<'r, 'ctx, U, AR>
+where
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxOf<AR>: MailboxFactory + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
+{
+  /// Sends a message to itself.
+  pub fn send_to_self(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+    let dyn_message = DynMessage::new(MessageEnvelope::user(message));
+    self.inner.send_to_self_with_priority(dyn_message, DEFAULT_PRIORITY)
   }
 
-  #[allow(dead_code)]
-  fn enqueue_spawn(
-    &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
-    options: MailboxOptions,
-    map_system: MapSystemShared<DynMessage>,
-    handler: Box<ActorHandlerFn<DynMessage, MF>>,
-    pid_slot: ArcShared<RwLock<Option<Pid>>>,
-  ) -> PriorityActorRef<DynMessage, MF> {
-    let (mailbox, sender) = self.mailbox_spawner.spawn_mailbox(options);
-    let actor_ref = PriorityActorRef::new(sender.clone());
-    let watchers = vec![self.actor_id];
-    self.pending_spawns.push(ChildSpawnSpec {
-      mailbox,
-      sender,
-      supervisor,
-      handler,
-      mailbox_spawner: self.mailbox_spawner.clone(),
-      watchers,
-      map_system,
-      parent_path: self.actor_path.clone(),
-      extensions: self.extensions.clone(),
-      child_naming: ChildNaming::Auto,
-      pid_slot,
-    });
-    actor_ref
+  /// Sends a system message to itself.
+  pub fn send_system_to_self(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+    let envelope = PriorityEnvelope::from_system(message).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
+    self.inner.send_envelope_to_self(envelope)
   }
 
-  pub(crate) fn spawn_child_from_props(
-    &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
-    props: InternalProps<MF>,
-    pid_slot: ArcShared<RwLock<Option<Pid>>>,
-  ) -> PriorityActorRef<DynMessage, MF>
+  /// Reports a failure to the guardian using the supervision channel.
+  pub fn fail<E>(&self, error: E) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
   where
-    MF: MailboxFactory + Clone + 'static, {
-    let InternalProps { options, map_system, handler } = props;
-    self.enqueue_spawn(supervisor, options, map_system, handler, pid_slot)
+    E: core::fmt::Display + core::fmt::Debug + Send + 'static, {
+    let failure = ActorFailure::from_error(error);
+    let info = FailureInfo::from_failure(self.actor_id(), self.actor_path().clone(), failure);
+    self.send_system_to_self(SystemMessage::Escalate(info))
   }
 
-  pub fn current_priority(&self) -> Option<i8> {
-    self.current_priority
+  /// Gets a reference to itself.
+  #[must_use]
+  pub fn self_ref(&self) -> ActorRef<U, AR> {
+    let registry = self.process_registry();
+    let pid_slot = ArcShared::new(RwLock::new(Some(self.self_pid().clone())));
+    ActorRef::new(self.inner.self_ref(), pid_slot, Some(registry))
   }
 
-  pub fn send_to_self_with_priority(
-    &self,
-    message: DynMessage,
-    priority: i8,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    self.sender.try_send(PriorityEnvelope::new(message, priority))
+  /// Creates an adapter that converts external message types to internal message types.
+  pub fn message_adapter<Ext, F>(&self, f: F) -> MessageAdapterRef<Ext, U, AR>
+  where
+    Ext: Element,
+    F: Fn(Ext) -> U + SharedBound + 'static, {
+    let adapter = ArcShared::new(f).into_dyn(|func| func as &AdapterFn<Ext, U>);
+    MessageAdapterRef::new(self.self_ref(), adapter)
   }
 
-  pub fn send_control_to_self(
-    &self,
-    message: DynMessage,
-    priority: i8,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    self.sender.try_send(PriorityEnvelope::control(message, priority))
+  pub(crate) fn self_dispatcher(&self) -> MessageSender<U, MailboxConcurrencyOf<AR>>
+  where
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    self.self_ref().to_dispatcher()
   }
 
-  pub fn send_envelope_to_self(
-    &self,
-    envelope: PriorityEnvelope<DynMessage>,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    self.sender.try_send(envelope)
+  /// Requests a message with sender information.
+  pub fn request<V>(
+    &mut self,
+    target: &ActorRef<V, AR>,
+    message: V,
+  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  where
+    V: Element,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone());
+    target.tell_with_metadata(message, metadata)
   }
 
-  pub(crate) fn enter_priority(&mut self, priority: i8) {
-    self.current_priority = Some(priority);
+  /// Requests a message with specified sender information.
+  pub fn request_with_sender<V, S>(
+    &mut self,
+    target: &ActorRef<V, AR>,
+    message: V,
+    sender: &ActorRef<S, AR>,
+  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  where
+    V: Element,
+    S: Element,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(sender.to_dispatcher());
+    target.tell_with_metadata(message, metadata)
   }
 
-  pub(crate) fn exit_priority(&mut self) {
-    self.current_priority = None;
+  /// Forwards a message while preserving the original metadata.
+  pub fn forward<V>(
+    &mut self,
+    target: &ActorRef<V, AR>,
+    message: V,
+  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  where
+    V: Element, {
+    let metadata = self.message_metadata().cloned().unwrap_or_default();
+    target.tell_with_metadata(message, metadata)
   }
 
-  pub fn has_receive_timeout_scheduler(&self) -> bool {
-    self.receive_timeout.is_some()
+  /// Responds to the sender of the current message.
+  pub fn respond<Resp>(&mut self, message: Resp) -> AskResult<()>
+  where
+    Resp: Element,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let metadata = self.message_metadata().cloned().ok_or(AskError::MissingResponder)?;
+    metadata.respond_with(self, message)
   }
 
-  pub fn set_receive_timeout(&mut self, duration: Duration) -> bool {
-    if let Some(cell) = self.receive_timeout {
-      cell.borrow_mut().set(duration);
-      true
-    } else {
-      false
+  /// Sends an inquiry to the target actor and returns a Future that waits for a response.
+  pub fn ask<V, Resp, F>(&mut self, target: &ActorRef<V, AR>, factory: F) -> AskResult<AskFuture<Resp>>
+  where
+    V: Element,
+    Resp: Element,
+    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> V,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let responder_for_message = MessageSender::new(responder.internal());
+    let message = factory(responder_for_message);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
+    match target.tell_with_metadata(message, metadata) {
+      | Ok(()) => Ok(future),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
-  pub fn cancel_receive_timeout(&mut self) -> bool {
-    if let Some(cell) = self.receive_timeout {
-      cell.borrow_mut().cancel();
-      true
-    } else {
-      false
+  /// Sends an inquiry with timeout and returns a Future that waits for a response.
+  pub fn ask_with_timeout<V, Resp, F, TFut>(
+    &mut self,
+    target: &ActorRef<V, AR>,
+    factory: F,
+    timeout: TFut,
+  ) -> AskResult<AskTimeoutFuture<Resp, TFut>>
+  where
+    V: Element,
+    Resp: Element,
+    F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> V,
+    TFut: Future<Output = ()> + Unpin,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let timeout_future = timeout;
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let responder_for_message = MessageSender::new(responder.internal());
+    let message = factory(responder_for_message);
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
+    match target.tell_with_metadata(message, metadata) {
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 
-  pub(crate) fn notify_receive_timeout_activity(&mut self, influence: bool) {
-    if !influence {
-      return;
-    }
+  /// Sends an inquiry to the target actor and returns a Future that waits for a response.
+  pub fn request_future<V, Resp>(&mut self, target: &ActorRef<V, AR>, message: V) -> AskResult<AskFuture<Resp>>
+  where
+    V: Element,
+    Resp: Element,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
+    target.tell_with_metadata(message, metadata)?;
+    Ok(future)
+  }
 
-    if let Some(cell) = self.receive_timeout {
-      cell.borrow_mut().notify_activity();
+  /// Sends an inquiry with timeout and returns a Future that waits for a response.
+  pub fn request_future_with_timeout<V, Resp, TFut>(
+    &mut self,
+    target: &ActorRef<V, AR>,
+    message: V,
+    timeout: TFut,
+  ) -> AskResult<AskTimeoutFuture<Resp, TFut>>
+  where
+    V: Element,
+    Resp: Element,
+    TFut: Future<Output = ()> + Unpin,
+    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    let timeout_future = timeout;
+    let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
+    let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
+      .with_sender(self.self_dispatcher())
+      .with_sender_pid(self.self_pid().clone())
+      .with_responder(responder)
+      .with_responder_pid(self.self_pid().clone());
+    match target.tell_with_metadata(message, metadata) {
+      | Ok(()) => Ok(ask_with_timeout(future, timeout_future)),
+      | Err(err) => Err(AskError::from(err)),
     }
   }
 }

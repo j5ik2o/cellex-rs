@@ -1,6 +1,7 @@
 //! Actor API aggregation module.
 
-mod actor_context;
+/// Actor execution context
+pub mod actor_context;
 /// Actor failure information
 pub mod actor_failure;
 mod actor_id;
@@ -12,8 +13,6 @@ pub mod ask;
 /// Actor behavior definitions
 pub mod behavior;
 mod child_naming;
-/// Actor execution context
-pub mod context;
 /// Actor spawn properties
 mod props;
 /// Root context for top-level actors
@@ -28,7 +27,7 @@ mod spawn_error;
 mod tests;
 mod timer;
 
-pub use actor_context::ActorContext;
+pub use actor_context::DynActorContext;
 pub use actor_id::ActorId;
 pub use actor_path::ActorPath;
 pub use child_naming::ChildNaming;
@@ -40,8 +39,11 @@ pub use timer::Timer;
 use crate::api::actor::actor_failure::ActorFailure;
 
 /// Type alias representing the dynamically-dispatched actor handler invoked by schedulers.
-pub type TypedActorHandlerFn<U, AR> = dyn for<'r, 'ctx> FnMut(&mut crate::api::actor::context::Context<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure>
+pub type TypedActorHandlerFn<U, AR> = dyn for<'r, 'ctx> FnMut(
+    &mut crate::api::actor::actor_context::ActorContext<'r, 'ctx, U, AR>,
+    U,
+  ) -> Result<(), ActorFailure>
   + 'static;
 
 pub(crate) type ActorHandlerFn<M, MF> =
-  dyn for<'ctx> FnMut(&mut ActorContext<'ctx, MF>, M) -> Result<(), ActorFailure> + 'static;
+  dyn for<'ctx> FnMut(&mut DynActorContext<'ctx, MF>, M) -> Result<(), ActorFailure> + 'static;

@@ -6,7 +6,7 @@ use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared};
 use crate::{
   api::{
     actor::{
-      actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorContext, ActorHandlerFn, ActorId, ActorPath,
+      actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, DynActorContext,
       SpawnError,
     },
     actor_scheduler::ReadyQueueHandle,
@@ -291,7 +291,7 @@ where
     pending_specs: &mut Vec<ChildSpawnSpec<MF>>,
   ) -> Result<(), ActorFailure> {
     let receive_timeout = self.receive_timeout_scheduler.as_ref();
-    let mut ctx = ActorContext::new(
+    let mut ctx = DynActorContext::new(
       &self.mailbox_factory,
       self.mailbox_spawner.clone(),
       &self.sender,

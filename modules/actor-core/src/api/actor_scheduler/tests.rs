@@ -29,8 +29,8 @@ use crate::api::supervision::supervisor::SupervisorDirective;
 use crate::{
   api::{
     actor::{
-      actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior, context::Context,
-      shutdown_token::ShutdownToken, ActorContext, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
+      actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
+      shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, DynActorContext, Props, SpawnError,
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::{
@@ -219,18 +219,18 @@ where
   MF: MailboxFactory + Clone + 'static,
   MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
-  F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, M, SchedulerTestRuntime<MF>>, MessageEnvelope<M>) + 'static, {
+  F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, M, SchedulerTestRuntime<MF>>, MessageEnvelope<M>) + 'static, {
   Box::new(move |ctx, message| {
     let envelope = message.downcast::<MessageEnvelope<M>>().expect("unexpected message type delivered to test handler");
     match envelope {
       | MessageEnvelope::User(user) => {
         let (msg, metadata) = user.into_parts::<MailboxConcurrencyOf<SchedulerTestRuntime<MF>>>();
         let metadata = metadata.unwrap_or_default();
-        let mut typed_ctx = Context::with_metadata(ctx, metadata);
+        let mut typed_ctx = ActorContext::with_metadata(ctx, metadata);
         f(&mut typed_ctx, MessageEnvelope::user(msg));
       },
       | MessageEnvelope::System(sys) => {
-        let mut typed_ctx = Context::new(ctx);
+        let mut typed_ctx = ActorContext::new(ctx);
         f(&mut typed_ctx, MessageEnvelope::System(sys));
       },
     }
@@ -244,7 +244,7 @@ where
   MF: MailboxFactory + Clone + 'static,
   MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
   MF::Signal: Clone,
-  F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, Message, SchedulerTestRuntime<MF>>, Message) + 'static, {
+  F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, Message, SchedulerTestRuntime<MF>>, Message) + 'static, {
   handler_from_fn::<Message, MF, _>(move |ctx, envelope| match envelope {
     | MessageEnvelope::User(user) => {
       let (msg, _) = user.into_parts::<MailboxConcurrencyOf<SchedulerTestRuntime<MF>>>();

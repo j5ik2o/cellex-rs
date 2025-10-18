@@ -4,9 +4,9 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 use spin::Mutex;
 
 use super::{
+  actor_context::ActorContext,
   actor_failure::ActorFailure,
   behavior::{ActorAdapter, Behavior},
-  context::Context,
 };
 use crate::{
   api::{
@@ -49,13 +49,13 @@ where
   /// * `handler` - Handler function to process user messages
   pub fn new<F>(handler: F) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
+    F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
     let handler_cell = ArcShared::new(Mutex::new(handler));
     Self::with_behavior({
       let handler_cell = handler_cell.clone();
       move || {
         let handler_cell = handler_cell.clone();
-        Behavior::stateless(move |ctx: &mut Context<'_, '_, U, AR>, msg: U| {
+        Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
           let mut guard = handler_cell.lock();
           (guard)(ctx, msg)
         })
@@ -70,7 +70,7 @@ where
   pub fn with_behavior<F>(behavior_factory: F) -> Self
   where
     F: Fn() -> Behavior<U, AR> + 'static, {
-    Self::with_behavior_and_system::<_, fn(&mut Context<'_, '_, U, AR>, SystemMessage)>(behavior_factory, None)
+    Self::with_behavior_and_system::<_, fn(&mut ActorContext<'_, '_, U, AR>, SystemMessage)>(behavior_factory, None)
   }
 
   /// Creates a new `Props` with user message handler and system message handler.
@@ -80,15 +80,15 @@ where
   /// * `system_handler` - Handler function to process system messages (optional)
   pub fn with_system_handler<F, G>(user_handler: F, system_handler: Option<G>) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static,
-    G: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
+    F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static,
+    G: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
     let handler_cell = ArcShared::new(Mutex::new(user_handler));
     Self::with_behavior_and_system(
       {
         let handler_cell = handler_cell.clone();
         move || {
           let handler_cell = handler_cell.clone();
-          Behavior::stateless(move |ctx: &mut Context<'_, '_, U, AR>, msg: U| {
+          Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
             let mut guard = handler_cell.lock();
             (guard)(ctx, msg)
           })
@@ -109,7 +109,7 @@ where
   pub fn with_behavior_and_system<F, S>(behavior_factory: F, system_handler: Option<S>) -> Self
   where
     F: Fn() -> Behavior<U, AR> + 'static,
-    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
+    S: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
     Self::with_behavior_and_system_with_options(MailboxOptions::default(), behavior_factory, system_handler)
   }
 
@@ -120,7 +120,7 @@ where
   ) -> Self
   where
     F: Fn() -> Behavior<U, AR> + 'static,
-    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
+    S: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
     let behavior_factory =
       ArcShared::new(behavior_factory).into_dyn(|factory| factory as &(dyn Fn() -> Behavior<U, AR> + 'static));
     let adapter = ActorAdapter::new(behavior_factory.clone(), system_handler);

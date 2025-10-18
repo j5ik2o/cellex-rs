@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 
-use super::{actor_failure::ActorFailure, context::Context, signal::Signal};
+use super::{actor_context::ActorContext, actor_failure::ActorFailure, signal::Signal};
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::{PriorityEnvelope, SystemMessage},
@@ -34,13 +34,14 @@ pub(crate) use supervise_builder::SuperviseBuilder;
 pub use supervisor_strategy::SupervisorStrategy;
 pub use supervisor_strategy_config::SupervisorStrategyConfig;
 
-pub(super) type ReceiveFn<U, R> =
-  dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure> + 'static;
-pub(super) type SystemHandlerFn<U, R> = dyn for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, R>, SystemMessage) + 'static;
+pub(super) type ReceiveFn<U, R> = dyn for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, R>, U) -> Result<BehaviorDirective<U, R>, ActorFailure>
+  + 'static;
+pub(super) type SystemHandlerFn<U, R> =
+  dyn for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, R>, SystemMessage) + 'static;
 pub(super) type SignalFn<U, R> =
-  dyn for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static;
+  dyn for<'r, 'ctx> Fn(&mut ActorContext<'r, 'ctx, U, R>, Signal) -> BehaviorDirective<U, R> + 'static;
 pub(super) type SetupFn<U, R> =
-  dyn for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static;
+  dyn for<'r, 'ctx> Fn(&mut ActorContext<'r, 'ctx, U, R>) -> Result<Behavior<U, R>, ActorFailure> + 'static;
 
 /// Typed Behavior representation. Equivalent to Akka/Pekko Typed's `Behavior`.
 pub enum Behavior<U, AR>
@@ -74,9 +75,8 @@ where
   #[must_use]
   pub fn receive<F>(mut handler: F) -> Self
   where
-    F:
-      for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure> + 'static,
-  {
+    F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure>
+      + 'static, {
     Self::Receive(BehaviorState::new(Box::new(move |ctx, msg| handler(ctx, msg)), SupervisorStrategyConfig::default()))
   }
 
@@ -84,7 +84,7 @@ where
   #[must_use]
   pub fn stateless<F>(mut handler: F) -> Self
   where
-    F: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
+    F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
     Self::receive(move |ctx, msg| {
       handler(ctx, msg)?;
       Ok(BehaviorDirective::Same)
@@ -108,7 +108,7 @@ where
   /// Executes setup processing to generate Behavior.
   pub fn setup<F>(init: F) -> Self
   where
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
+    F: for<'r, 'ctx> Fn(&mut ActorContext<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
     let handler = ArcShared::new(init).into_dyn(|inner| inner as &SetupFn<U, AR>);
     Self::Setup { init: Some(handler), signal: None }
   }
@@ -124,7 +124,7 @@ where
   /// Adds a signal handler.
   pub fn receive_signal<F>(self, handler: F) -> Self
   where
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, AR>, Signal) -> BehaviorDirective<U, AR> + 'static, {
+    F: for<'r, 'ctx> Fn(&mut ActorContext<'r, 'ctx, U, AR>, Signal) -> BehaviorDirective<U, AR> + 'static, {
     let handler = ArcShared::new(handler).into_dyn(|inner| inner as &SignalFn<U, AR>);
     self.attach_signal_arc(Some(handler))
   }

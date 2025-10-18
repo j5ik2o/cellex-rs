@@ -5,7 +5,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use super::{Behavior, BehaviorDirective, Signal, SignalFn, SupervisorStrategyConfig, SystemHandlerFn};
 use crate::api::{
-  actor::{actor_failure::ActorFailure, context::Context},
+  actor::{actor_context::ActorContext, actor_failure::ActorFailure},
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   actor_system::map_system::MapSystemShared,
   mailbox::{PriorityEnvelope, SystemMessage},
@@ -35,7 +35,7 @@ where
   /// Creates a new `ActorAdapter`.
   pub fn new<S>(behavior_factory: ArcShared<dyn Fn() -> Behavior<U, AR> + 'static>, system_handler: Option<S>) -> Self
   where
-    S: for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
+    S: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
     let behavior = behavior_factory();
     Self {
       behavior_factory,
@@ -45,7 +45,7 @@ where
   }
 
   /// Processes a user message.
-  pub fn handle_user(&mut self, ctx: &mut Context<'_, '_, U, AR>, message: U) -> Result<(), ActorFailure> {
+  pub fn handle_user(&mut self, ctx: &mut ActorContext<'_, '_, U, AR>, message: U) -> Result<(), ActorFailure> {
     self.ensure_initialized(ctx)?;
     while matches!(self.behavior, Behavior::Setup { .. }) {
       self.ensure_initialized(ctx)?;
@@ -66,7 +66,7 @@ where
   /// Processes a system message.
   pub fn handle_system(
     &mut self,
-    ctx: &mut Context<'_, '_, U, AR>,
+    ctx: &mut ActorContext<'_, '_, U, AR>,
     message: SystemMessage,
   ) -> Result<(), ActorFailure> {
     self.ensure_initialized(ctx)?;
@@ -99,7 +99,7 @@ where
     self.behavior.supervisor_config()
   }
 
-  fn ensure_initialized(&mut self, ctx: &mut Context<'_, '_, U, AR>) -> Result<(), ActorFailure> {
+  fn ensure_initialized(&mut self, ctx: &mut ActorContext<'_, '_, U, AR>) -> Result<(), ActorFailure> {
     while matches!(self.behavior, Behavior::Setup { .. }) {
       let (init, signal) = match mem::replace(&mut self.behavior, Behavior::stopped()) {
         | Behavior::Setup { init, signal } => (init, signal),
@@ -124,7 +124,7 @@ where
   }
 
   #[allow(dead_code)]
-  fn handle_signal(&mut self, ctx: &mut Context<'_, '_, U, AR>, signal: Signal) -> Result<(), ActorFailure> {
+  fn handle_signal(&mut self, ctx: &mut ActorContext<'_, '_, U, AR>, signal: Signal) -> Result<(), ActorFailure> {
     if let Some(handler) = self.current_signal_handler() {
       match handler(ctx, signal) {
         | BehaviorDirective::Same => {},
@@ -134,7 +134,7 @@ where
     Ok(())
   }
 
-  fn transition(&mut self, next: Behavior<U, AR>, ctx: &mut Context<'_, '_, U, AR>) -> Result<(), ActorFailure> {
+  fn transition(&mut self, next: Behavior<U, AR>, ctx: &mut ActorContext<'_, '_, U, AR>) -> Result<(), ActorFailure> {
     let previous_handler = self.current_signal_handler();
     self.behavior = next;
     self.ensure_initialized(ctx)?;

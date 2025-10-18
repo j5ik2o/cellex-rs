@@ -30,10 +30,10 @@ use super::{
 use crate::{
   api::{
     actor::{
+      actor_context::{ActorContext, MessageAdapterRef},
       actor_ref::ActorRef,
       ask::{ask_with_timeout, AskError},
       behavior::{Behavior, Behaviors},
-      context::{Context, MessageAdapterRef},
       props::Props,
       signal::Signal,
       ActorId,
@@ -381,7 +381,7 @@ where
 fn test_supervise_builder_sets_strategy() {
   let props = Props::with_behavior(|| {
     Behaviors::supervise(Behavior::stateless(
-      |_: &mut Context<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, _: u32| Ok(()),
+      |_: &mut ActorContext<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, _: u32| Ok(()),
     ))
     .with_strategy(SupervisorStrategy::Restart)
   });
@@ -504,7 +504,7 @@ fn actor_context_accesses_registered_extension() {
   assert_eq!(root.extension::<CounterExtension, _, _>(extension_id, |ext| ext.value()), Some(0));
 
   let props = Props::with_behavior(move || {
-    Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, msg: u32| {
+    Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, u32, GenericActorRuntime<TestMailboxFactory>>, msg: u32| {
       let _ = msg;
       ctx
         .extension::<CounterExtension, _, _>(extension_id, |ext| {
@@ -559,7 +559,7 @@ fn test_typed_actor_handles_system_stop() {
   let stopped: Rc<RefCell<bool>> = Rc::new(RefCell::new(false));
   let stopped_clone = stopped.clone();
 
-  let system_handler = move |_: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| {
+  let system_handler = move |_: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| {
     if matches!(sys_msg, SystemMessage::Stop) {
       *stopped_clone.borrow_mut() = true;
     }
@@ -624,7 +624,7 @@ fn test_typed_actor_handles_watch_unwatch() {
   let watchers_count: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
   let watchers_count_clone = watchers_count.clone();
 
-  let system_handler = Some(|ctx: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
+  let system_handler = Some(|ctx: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
     | SystemMessage::Watch(watcher) => {
       ctx.register_watcher(watcher);
     },
@@ -639,7 +639,7 @@ fn test_typed_actor_handles_watch_unwatch() {
       let watchers_factory = watchers_count_clone.clone();
       move || {
         let watchers_clone = watchers_factory.clone();
-        Behavior::stateless(move |ctx: &mut Context<'_, '_, u32, _>, _msg: u32| {
+        Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, u32, _>, _msg: u32| {
           *watchers_clone.borrow_mut() = ctx.watchers().len();
           Ok(())
         })
@@ -689,7 +689,7 @@ fn test_typed_actor_stateful_behavior_with_system_message() {
   let failures = Rc::new(RefCell::new(0u32));
 
   let failures_clone = failures.clone();
-  let system_handler = move |_ctx: &mut Context<'_, '_, u32, _>, sys_msg: SystemMessage| {
+  let system_handler = move |_ctx: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| {
     if matches!(sys_msg, SystemMessage::Suspend) {
       *failures_clone.borrow_mut() += 1;
     }
@@ -700,7 +700,7 @@ fn test_typed_actor_stateful_behavior_with_system_message() {
       let count_factory = count.clone();
       move || {
         let count_clone = count_factory.clone();
-        Behavior::stateless(move |_ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+        Behavior::stateless(move |_ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
           *count_clone.borrow_mut() += msg;
           Ok(())
         })
@@ -741,7 +741,7 @@ fn test_behaviors_receive_self_loop() {
     let log_factory = log.clone();
     move || {
       let log_clone = log_factory.clone();
-      Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+      Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
         log_clone.borrow_mut().push(msg);
         if msg < 2 {
           ctx.self_ref().tell(msg + 1).expect("self tell");
@@ -808,16 +808,18 @@ fn test_parent_spawns_child_with_distinct_message_type() {
     let child_log_factory = child_log_for_parent.clone();
     move || {
       let child_log_parent = child_log_factory.clone();
-      Behaviors::receive(move |ctx: &mut Context<'_, '_, ParentMessage, _>, msg: ParentMessage| {
+      Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, ParentMessage, _>, msg: ParentMessage| {
         let name = msg.0;
         let child_props = Props::with_behavior({
           let child_log_factory = child_log_parent.clone();
           move || {
             let child_log_for_child = child_log_factory.clone();
-            Behaviors::receive(move |_child_ctx: &mut Context<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
-              child_log_for_child.borrow_mut().push(child_msg.text.clone());
-              Ok(Behaviors::same())
-            })
+            Behaviors::receive(
+              move |_child_ctx: &mut ActorContext<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
+                child_log_for_child.borrow_mut().push(child_msg.text.clone());
+                Ok(Behaviors::same())
+              },
+            )
           }
         });
         let child_ref = ctx.spawn_child(child_props);
@@ -852,7 +854,7 @@ fn test_message_adapter_converts_external_message() {
     move || {
       let log_clone = log_factory.clone();
       let adapter_slot_clone = adapter_slot_factory.clone();
-      Behaviors::receive(move |ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+      Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
         log_clone.borrow_mut().push(msg);
         if adapter_slot_clone.borrow().is_none() {
           let adapter = ctx.message_adapter(|text: String| text.len() as u32);
@@ -893,7 +895,7 @@ fn test_parent_actor_spawns_child() {
     move || {
       let child_log_parent = child_log_factory.clone();
       let child_ref_holder_local = child_ref_holder_factory.clone();
-      Behavior::stateless(move |ctx: &mut Context<'_, '_, u32, _>, msg: u32| {
+      Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
         if child_ref_holder_local.borrow().is_none() {
           let child_log_for_child = child_log_parent.clone();
           let child_props = Props::new(move |_, child_msg: u32| {

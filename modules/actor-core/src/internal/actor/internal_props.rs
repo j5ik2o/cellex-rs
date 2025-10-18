@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 use cellex_utils_core_rs::Element;
 
 use crate::api::{
-  actor::{actor_failure::ActorFailure, context::Context, ActorContext, ActorHandlerFn},
+  actor::{actor_context::ActorContext, actor_failure::ActorFailure, ActorHandlerFn, DynActorContext},
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
@@ -29,7 +29,7 @@ where
   pub fn new(
     options: MailboxOptions,
     map_system: MapSystemShared<DynMessage>,
-    handler: impl for<'ctx> FnMut(&mut ActorContext<'ctx, MF>, DynMessage) -> Result<(), ActorFailure> + 'static,
+    handler: impl for<'ctx> FnMut(&mut DynActorContext<'ctx, MF>, DynMessage) -> Result<(), ActorFailure> + 'static,
   ) -> Self {
     Self { options, map_system, handler: Box::new(handler) }
   }
@@ -55,11 +55,11 @@ where
       | MessageEnvelope::User(user) => {
         let (message, metadata) = user.into_parts::<MailboxConcurrencyOf<AR>>();
         let metadata = metadata.unwrap_or_default();
-        let mut typed_ctx = Context::with_metadata(ctx, metadata);
+        let mut typed_ctx = ActorContext::with_metadata(ctx, metadata);
         adapter.handle_user(&mut typed_ctx, message)
       },
       | MessageEnvelope::System(message) => {
-        let mut typed_ctx = Context::new(ctx);
+        let mut typed_ctx = ActorContext::new(ctx);
         adapter.handle_system(&mut typed_ctx, message)
       },
     }

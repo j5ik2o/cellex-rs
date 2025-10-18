@@ -1,6 +1,6 @@
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
 
-use super::Context;
+use super::ActorContext;
 use crate::{
   api::{
     actor::ask::{AskError, AskResult},
@@ -21,7 +21,7 @@ where
   AR: ActorRuntime,
   MailboxOf<AR>: MailboxFactory + Clone + 'static, {
   /// Sends a response message back to the original sender.
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut ActorContext<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element;
@@ -35,7 +35,7 @@ where
   MailboxSignalOf<AR>: Clone + RuntimeBound + 'static,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
-  fn respond_with<Resp, U>(&self, ctx: &mut Context<'_, '_, U, AR>, message: Resp) -> AskResult<()>
+  fn respond_with<Resp, U>(&self, ctx: &mut ActorContext<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,
     U: Element, {
@@ -57,7 +57,7 @@ where
 }
 
 fn respond_via_pid<'r, 'ctx, Resp, U, AR>(
-  ctx: &mut Context<'r, 'ctx, U, AR>,
+  ctx: &mut ActorContext<'r, 'ctx, U, AR>,
   pid: crate::api::process::pid::Pid,
   envelope: MessageEnvelope<Resp>,
 ) -> AskResult<()>

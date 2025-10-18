@@ -2,7 +2,7 @@ use cellex_utils_core_rs::Element;
 
 use super::{Behavior, BehaviorDirective};
 use crate::api::{
-  actor::{actor_failure::ActorFailure, behavior::supervise_builder::SuperviseBuilder, context::Context},
+  actor::{actor_context::ActorContext, actor_failure::ActorFailure, behavior::supervise_builder::SuperviseBuilder},
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::PriorityEnvelope,
   messaging::{DynMessage, MetadataStorageMode},
@@ -21,9 +21,8 @@ impl Behaviors {
     MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
     MailboxSignalOf<AR>: Clone,
     MailboxConcurrencyOf<AR>: MetadataStorageMode,
-    F:
-      for<'r, 'ctx> FnMut(&mut Context<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure> + 'static,
-  {
+    F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<BehaviorDirective<U, AR>, ActorFailure>
+      + 'static, {
     Behavior::receive(handler)
   }
 
@@ -92,7 +91,7 @@ impl Behaviors {
     MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
     MailboxSignalOf<AR>: Clone,
     MailboxConcurrencyOf<AR>: MetadataStorageMode,
-    F: for<'r, 'ctx> Fn(&mut Context<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
+    F: for<'r, 'ctx> Fn(&mut ActorContext<'r, 'ctx, U, AR>) -> Result<Behavior<U, AR>, ActorFailure> + 'static, {
     Behavior::setup(init)
   }
 }

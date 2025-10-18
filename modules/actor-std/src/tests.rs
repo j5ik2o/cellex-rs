@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use cellex_actor_core_rs::{
   actor_loop,
   api::{
-    actor::{context::Context, ActorId, ChildNaming, Props},
+    actor::{actor_context::ActorContext, ActorId, ChildNaming, Props},
     actor_runtime::GenericActorRuntime,
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
@@ -97,7 +97,7 @@ async fn run_receive_timeout_triggers() {
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(
-    move |ctx: &mut Context<'_, '_, u32, TokioActorRuntime>, msg| {
+    move |ctx: &mut ActorContext<'_, '_, u32, TokioActorRuntime>, msg| {
       if msg == 1 {
         ctx.set_receive_timeout(Duration::from_millis(10));
       }
@@ -105,7 +105,7 @@ async fn run_receive_timeout_triggers() {
     },
     Some({
       let timeout_clone = timeout_log.clone();
-      move |_: &mut Context<'_, '_, u32, TokioActorRuntime>, sys: SystemMessage| {
+      move |_: &mut ActorContext<'_, '_, u32, TokioActorRuntime>, sys: SystemMessage| {
         if matches!(sys, SystemMessage::ReceiveTimeout) {
           timeout_clone.lock().unwrap().push(sys);
         }
