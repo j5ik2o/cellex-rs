@@ -13,7 +13,6 @@ use futures::executor::block_on;
 use super::*;
 use crate::{
   api::{
-    actor::actor_ref::PriorityActorRef,
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_system::map_system::MapSystemShared,
     mailbox::{MailboxOptions, PriorityEnvelope, SystemMessage},
@@ -26,8 +25,6 @@ use crate::{
   },
   internal::{actor::InternalProps, guardian::AlwaysRestart},
 };
-
-type TestRegistry = ProcessRegistry<PriorityActorRef<DynMessage, TestMailboxFactory>, PriorityEnvelope<DynMessage>>;
 
 #[cfg(feature = "std")]
 #[derive(Debug, Clone)]
@@ -101,7 +98,7 @@ fn process_registry_registers_and_deregisters_actor() {
 
   drop(root);
   let pid = captured.borrow().clone().expect("pid captured");
-  let resolution = registry.with_ref(|registry: &TestRegistry| registry.resolve_pid(&pid));
+  let resolution = registry.with_ref(|registry| registry.resolve_pid(&pid));
   assert!(matches!(resolution, ProcessResolution::Local(_)));
 
   let map_clone = map_system.clone();
@@ -114,7 +111,7 @@ fn process_registry_registers_and_deregisters_actor() {
   block_on(root.dispatch_next()).ok();
   drop(root);
 
-  let resolution_after = registry.with_ref(|registry: &TestRegistry| registry.resolve_pid(&pid));
+  let resolution_after = registry.with_ref(|registry| registry.resolve_pid(&pid));
   assert!(matches!(resolution_after, ProcessResolution::Unresolved));
 }
 

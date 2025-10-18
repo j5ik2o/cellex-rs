@@ -1,7 +1,35 @@
-use alloc::{borrow::Cow, fmt, string::ToString};
-use core::hash::{Hash, Hasher};
+use alloc::{borrow::Cow, string::ToString};
+use core::{
+  fmt,
+  hash::{Hash, Hasher},
+  str::FromStr,
+};
 
-use crate::api::actor::ActorPath;
+use crate::api::actor::{ActorId, ActorPath};
+
+/// Errors that can occur while parsing a PID URI.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PidParseError {
+  /// The URI is missing the `scheme://` delimiter or scheme component.
+  MissingScheme,
+  /// The URI does not contain a system identifier segment.
+  MissingSystem,
+  /// The node component contains an invalid port number.
+  InvalidPort,
+  /// One of the path segments could not be parsed into an [`ActorId`].
+  InvalidPathSegment,
+}
+
+impl fmt::Display for PidParseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      | Self::MissingScheme => f.write_str("missing scheme"),
+      | Self::MissingSystem => f.write_str("missing system identifier"),
+      | Self::InvalidPort => f.write_str("invalid node port"),
+      | Self::InvalidPathSegment => f.write_str("invalid path segment"),
+    }
+  }
+}
 
 /// Identifier of the actor system namespace.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -142,6 +170,80 @@ impl Pid {
   pub fn scheme(&self) -> &str {
     &self.scheme
   }
+
+  /// Parses a PID from its URI representation.
+  pub fn parse(input: &str) -> Result<Self, PidParseError> {
+    input.parse()
+  }
+}
+
+impl FromStr for Pid {
+  type Err = PidParseError;
+
+  fn from_str(input: &str) -> Result<Self, Self::Err> {
+    let (scheme_part, remainder) = input.split_once("://").ok_or(PidParseError::MissingScheme)?;
+    if scheme_part.is_empty() {
+      return Err(PidParseError::MissingScheme);
+    }
+
+    let (before_tag, tag_part) = match remainder.split_once('#') {
+      | Some((head, tail)) => (head, Some(tail)),
+      | None => (remainder, None),
+    };
+
+    let (system_and_node, path_str) = match before_tag.split_once('/') {
+      | Some((head, tail)) => (head, tail),
+      | None => (before_tag, ""),
+    };
+
+    if system_and_node.is_empty() {
+      return Err(PidParseError::MissingSystem);
+    }
+
+    let (system_str, node_opt) = match system_and_node.split_once('@') {
+      | Some((system, node)) => (system, Some(node)),
+      | None => (system_and_node, None),
+    };
+
+    if system_str.is_empty() {
+      return Err(PidParseError::MissingSystem);
+    }
+
+    let node = node_opt
+      .filter(|node| !node.is_empty())
+      .map(|node_part| {
+        let (host, port_str_opt) = node_part.split_once(':').map_or((node_part, None), |(h, p)| (h, Some(p)));
+        let host = host.to_string();
+        let port = match port_str_opt {
+          | Some(port_str) if !port_str.is_empty() => {
+            port_str.parse::<u16>().map(Some).map_err(|_| PidParseError::InvalidPort)
+          },
+          | Some(_) => Err(PidParseError::InvalidPort),
+          | None => Ok(None),
+        }?;
+        Ok(NodeId::new(host, port))
+      })
+      .transpose()?;
+
+    let mut path = ActorPath::new();
+    for segment in path_str.split('/') {
+      if segment.is_empty() {
+        continue;
+      }
+      let id = segment.parse::<usize>().map_err(|_| PidParseError::InvalidPathSegment)?;
+      path = path.push_child(ActorId(id));
+    }
+
+    let tag = tag_part.filter(|tag_str| !tag_str.is_empty()).map(|tag_str| PidTag::new(tag_str.to_string()));
+
+    Ok(Pid {
+      scheme: Cow::Owned(scheme_part.to_string()),
+      system: SystemId::new(system_str.to_string()),
+      node,
+      path,
+      tag,
+    })
+  }
 }
 
 impl PartialEq for Pid {
@@ -196,5 +298,41 @@ mod tests {
 
     assert_eq!(pid.to_string(), "actor://cellex@node1:2552/1/2#v1");
     assert_eq!(pid.path(), &path);
+  }
+
+  #[test]
+  fn parse_pid_from_uri() {
+    let pid = Pid::parse("actor://cellex@node1:2552/1/2#v1").expect("parse pid");
+    assert_eq!(pid.scheme(), "actor");
+    assert_eq!(pid.system().to_string(), "cellex");
+    assert_eq!(pid.node().unwrap().host(), "node1");
+    assert_eq!(pid.node().unwrap().port(), Some(2552));
+    assert_eq!(pid.tag().unwrap().to_string(), "v1");
+    let mut expected_path = ActorPath::new();
+    expected_path = expected_path.push_child(ActorId(1));
+    expected_path = expected_path.push_child(ActorId(2));
+    assert_eq!(pid.path(), &expected_path);
+  }
+
+  #[test]
+  fn parse_pid_without_node_or_tag() {
+    let pid = Pid::parse("actor://cellex/42").expect("parse pid");
+    assert!(pid.node().is_none());
+    assert!(pid.tag().is_none());
+    let mut path = ActorPath::new();
+    path = path.push_child(ActorId(42));
+    assert_eq!(pid.path(), &path);
+  }
+
+  #[test]
+  fn parse_pid_invalid_segment_fails() {
+    let err = Pid::parse("actor://cellex/foo").expect_err("should fail");
+    assert_eq!(err, PidParseError::InvalidPathSegment);
+  }
+
+  #[test]
+  fn parse_pid_invalid_port_fails() {
+    let err = Pid::parse("actor://cellex@node:notaport/1").expect_err("should fail");
+    assert_eq!(err, PidParseError::InvalidPort);
   }
 }
