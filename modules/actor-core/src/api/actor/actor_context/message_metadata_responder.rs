@@ -6,7 +6,7 @@ use crate::{
     actor::ask::{AskError, AskResult},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     mailbox::{MailboxFactory, PriorityEnvelope},
-    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
+    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
       process_registry::ProcessResolution,
@@ -31,7 +31,7 @@ impl<AR> MessageMetadataResponder<AR> for MessageMetadata<MailboxConcurrencyOf<A
 where
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
   MailboxSignalOf<AR>: Clone + RuntimeBound + 'static,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
@@ -66,13 +66,13 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   let registry = ctx.process_registry();
   match registry.with_ref(|registry| registry.resolve_pid(&pid)) {
     | ProcessResolution::Local(handle) => {
-      let dyn_message = DynMessage::new(envelope);
+      let dyn_message = AnyMessage::new(envelope);
       let send_result = handle
         .with_ref(|actor_ref| actor_ref.clone())
         .try_send_envelope(PriorityEnvelope::with_default_priority(dyn_message));
@@ -102,7 +102,7 @@ where
       }
     },
     | ProcessResolution::Remote => {
-      let dyn_message = DynMessage::new(envelope);
+      let dyn_message = AnyMessage::new(envelope);
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
       let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {
@@ -116,7 +116,7 @@ where
       Err(AskError::MissingResponder)
     },
     | ProcessResolution::Unresolved => {
-      let dyn_message = DynMessage::new(envelope);
+      let dyn_message = AnyMessage::new(envelope);
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
       let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {

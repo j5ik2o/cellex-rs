@@ -13,7 +13,7 @@ use crate::{
   api::{
     actor_scheduler::ActorSchedulerHandleBuilder,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
     supervision::escalation::{FailureEventHandler, FailureEventListener},
@@ -68,13 +68,13 @@ pub trait ActorRuntime: Clone {
   /// Returns the receive-timeout scheduler factory configured for this runtime.
   fn receive_timeout_scheduler_factory_shared_opt(
     &self,
-  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>>;
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>>;
 
   /// Overrides the receive-timeout scheduler factory using the base use
   /// cellex_actor_core_rs::api::mailbox::MailboxRuntime; type.
   fn with_receive_timeout_scheduler_factory_shared(
     self,
-    factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>,
+    factory: ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>,
   ) -> Self
   where
     Self: Sized;

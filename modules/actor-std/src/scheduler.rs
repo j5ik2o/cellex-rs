@@ -11,7 +11,7 @@ use cellex_actor_core_rs::api::{
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
   supervision::{
@@ -60,21 +60,21 @@ where
 impl<MF, Strat> ActorScheduler<MF> for TokioScheduler<MF, Strat>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
   Strat: GuardianStrategy<MF>,
 {
   fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     context: ActorSchedulerSpawnContext<MF>,
-  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
+  ) -> Result<PriorityActorRef<AnyMessage, MF>, SpawnError<AnyMessage>> {
     self.inner.spawn_actor(supervisor, context)
   }
 
   fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
     self.inner.set_receive_timeout_scheduler_factory_shared(factory);
   }
@@ -101,15 +101,15 @@ where
 
   fn set_parent_guardian(
     &mut self,
-    control_ref: PriorityActorRef<DynMessage, MF>,
-    map_system: MapSystemShared<DynMessage>,
+    control_ref: PriorityActorRef<AnyMessage, MF>,
+    map_system: MapSystemShared<AnyMessage>,
   ) {
     ReadyQueueScheduler::set_parent_guardian(&mut self.inner, control_ref, map_system);
   }
 
   fn on_escalation(
     &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static>,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static>,
   ) {
     ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
@@ -122,11 +122,11 @@ where
     self.inner.actor_count()
   }
 
-  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.drain_ready()
   }
 
-  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await?;
     yield_now().await;
     Ok(())
@@ -141,7 +141,7 @@ where
 pub fn tokio_scheduler_builder<MF>() -> ActorSchedulerHandleBuilder<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   ActorSchedulerHandleBuilder::new(|mailbox_factory, extensions| {
     Box::new(TokioScheduler::<MF, AlwaysRestart>::new(mailbox_factory, extensions))

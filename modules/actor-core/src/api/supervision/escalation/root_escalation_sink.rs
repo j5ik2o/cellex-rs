@@ -5,7 +5,7 @@ use std::time::Instant;
 use crate::api::{
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   supervision::{
     escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener},
     failure::{FailureEvent, FailureInfo},
@@ -19,7 +19,7 @@ use crate::api::{
 pub struct RootEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   event_handler:  Option<FailureEventHandler>,
   event_listener: Option<FailureEventListener>,
@@ -31,7 +31,7 @@ where
 impl<MF> RootEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   /// Creates a new `RootEscalationSink`.
@@ -89,7 +89,7 @@ where
 impl<MF> Default for RootEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   fn default() -> Self {
@@ -97,10 +97,10 @@ where
   }
 }
 
-impl<MF> EscalationSink<DynMessage, MF> for RootEscalationSink<MF>
+impl<MF> EscalationSink<AnyMessage, MF> for RootEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   /// Processes failure information at root level.

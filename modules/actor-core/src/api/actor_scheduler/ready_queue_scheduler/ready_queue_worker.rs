@@ -4,17 +4,17 @@ use futures::future::{select, Either, LocalBoxFuture};
 use crate::api::{
   actor::shutdown_token::ShutdownToken,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// Worker interface exposing ReadyQueue operations for driver-level scheduling.
 pub trait ReadyQueueWorker<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   /// Processes one ready actor (if any). Returns `Some(true)` if progress was made.
-  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>>;
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<AnyMessage>>>;
 
   /// Returns a future that resolves when any actor becomes ready.
   fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>>;
@@ -32,10 +32,10 @@ pub async fn drive_ready_queue_worker<MF, Y, YF, S, SF>(
   shutdown: ShutdownToken,
   mut yield_now: Y,
   mut wait_for_shutdown: S,
-) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
   Y: FnMut() -> YF,
   YF: core::future::Future<Output = ()>,

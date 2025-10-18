@@ -12,7 +12,7 @@ use crate::api::{
   },
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::PriorityEnvelope,
-  messaging::{DynMessage, MetadataStorageMode},
+  messaging::{AnyMessage, MetadataStorageMode},
 };
 
 /// Struct that holds the internal state of Behavior.
@@ -20,7 +20,7 @@ pub struct BehaviorState<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   handler:               Box<ReceiveFn<U, AR>>,
   pub(super) supervisor: SupervisorStrategyConfig,
@@ -31,7 +31,7 @@ impl<U, AR> BehaviorState<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {

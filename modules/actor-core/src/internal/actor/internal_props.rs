@@ -7,29 +7,29 @@ use crate::api::{
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
-  messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
+  messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
 };
 
 pub(crate) struct InternalProps<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   pub options:    MailboxOptions,
-  pub map_system: MapSystemShared<DynMessage>,
-  pub handler:    Box<ActorHandlerFn<DynMessage, MF>>,
+  pub map_system: MapSystemShared<AnyMessage>,
+  pub handler:    Box<ActorHandlerFn<AnyMessage, MF>>,
 }
 
 impl<MF> InternalProps<MF>
 where
   MF: MailboxFactory + Clone,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   pub fn new(
     options: MailboxOptions,
-    map_system: MapSystemShared<DynMessage>,
-    handler: impl for<'ctx> FnMut(&mut DynActorContext<'ctx, MF>, DynMessage) -> Result<(), ActorFailure> + 'static,
+    map_system: MapSystemShared<AnyMessage>,
+    handler: impl for<'ctx> FnMut(&mut DynActorContext<'ctx, MF>, AnyMessage) -> Result<(), ActorFailure> + 'static,
   ) -> Self {
     Self { options, map_system, handler: Box::new(handler) }
   }
@@ -37,14 +37,14 @@ where
 
 pub(crate) fn internal_props_from_adapter<U, AR>(
   options: MailboxOptions,
-  map_system: MapSystemShared<DynMessage>,
+  map_system: MapSystemShared<AnyMessage>,
   mut adapter: crate::api::actor::behavior::ActorAdapter<U, AR>,
 ) -> InternalProps<MailboxOf<AR>>
 where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   InternalProps::new(options, map_system, move |ctx, message| {

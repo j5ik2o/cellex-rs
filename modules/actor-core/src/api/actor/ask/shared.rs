@@ -3,7 +3,7 @@ use core::cell::UnsafeCell;
 use cellex_utils_core_rs::QueueError;
 use portable_atomic::{AtomicU8, Ordering};
 
-use crate::api::{mailbox::PriorityEnvelope, messaging::DynMessage};
+use crate::api::{mailbox::PriorityEnvelope, messaging::AnyMessage};
 
 #[cfg(not(target_has_atomic = "ptr"))]
 mod local_waker {
@@ -40,10 +40,10 @@ pub(crate) type SharedWaker = local_waker::LocalWaker;
 
 #[cfg(target_has_atomic = "ptr")]
 pub(crate) type DispatchFn =
-  dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
+  dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + Send + Sync;
 
 #[cfg(not(target_has_atomic = "ptr"))]
-pub(crate) type DispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
+pub(crate) type DispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>;
 
 #[cfg(target_has_atomic = "ptr")]
 pub(crate) type DropHookFn = dyn Fn() + Send + Sync;

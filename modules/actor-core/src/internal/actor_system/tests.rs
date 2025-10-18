@@ -20,7 +20,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     guardian::AlwaysRestart,
     mailbox::{MailboxOptions, PriorityEnvelope, SystemMessage},
-    messaging::{DynMessage, MessageEnvelope, MessageMetadata},
+    messaging::{AnyMessage, MessageEnvelope, MessageMetadata},
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
       pid::{NodeId, Pid, SystemId},
@@ -45,14 +45,14 @@ fn actor_system_spawns_and_processes_messages() {
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
   let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
-  let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
+  let map_system = MapSystemShared::new(|_: SystemMessage| AnyMessage::new(Message::System));
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
 
   let _process_registry = system.process_registry();
   let mut root = system.root_context();
   let actor_ref = root
-    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |_, msg: DynMessage| {
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |_, msg: AnyMessage| {
       let Ok(message) = msg.downcast::<Message>() else {
         panic!("unexpected message type");
       };
@@ -64,7 +64,7 @@ fn actor_system_spawns_and_processes_messages() {
     }))
     .expect("spawn actor");
 
-  actor_ref.try_send_with_priority(DynMessage::new(Message::User(7)), DEFAULT_PRIORITY).expect("send message");
+  actor_ref.try_send_with_priority(AnyMessage::new(Message::User(7)), DEFAULT_PRIORITY).expect("send message");
 
   block_on(root.dispatch_next()).expect("dispatch");
 
@@ -83,14 +83,14 @@ fn process_registry_registers_and_deregisters_actor() {
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
   let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
-  let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
+  let map_system = MapSystemShared::new(|_: SystemMessage| AnyMessage::new(Message::System));
   let captured: Rc<RefCell<Option<Pid>>> = Rc::new(RefCell::new(None));
   let captured_clone = captured.clone();
 
   let registry = system.process_registry();
   let mut root = system.root_context();
   let actor_ref = root
-    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: DynMessage| {
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: AnyMessage| {
       if let Ok(TestMsg::CapturePid) = msg.downcast::<TestMsg>() {
         captured_clone.borrow_mut().replace(ctx.pid().clone());
       }
@@ -98,7 +98,7 @@ fn process_registry_registers_and_deregisters_actor() {
     }))
     .expect("spawn actor");
 
-  actor_ref.try_send_with_priority(DynMessage::new(TestMsg::CapturePid), DEFAULT_PRIORITY).expect("send capture");
+  actor_ref.try_send_with_priority(AnyMessage::new(TestMsg::CapturePid), DEFAULT_PRIORITY).expect("send capture");
 
   block_on(root.dispatch_next()).expect("dispatch capture");
 
@@ -136,7 +136,7 @@ fn responder_pid_allows_response_delivery() {
   let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory);
   let mut system: InternalActorSystem<_, AlwaysRestart> = InternalActorSystem::new(actor_runtime);
 
-  let map_system = MapSystemShared::new(|_: SystemMessage| DynMessage::new(Message::System));
+  let map_system = MapSystemShared::new(|_: SystemMessage| AnyMessage::new(Message::System));
   let probe_pid: Rc<RefCell<Option<Pid>>> = Rc::new(RefCell::new(None));
   let probe_pid_clone = probe_pid.clone();
   let responses: Rc<RefCell<Vec<TestMsg>>> = Rc::new(RefCell::new(Vec::new()));
@@ -145,7 +145,7 @@ fn responder_pid_allows_response_delivery() {
   let process_registry = system.process_registry();
   let mut root = system.root_context();
   let probe_ref = root
-    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: DynMessage| {
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: AnyMessage| {
       if let Ok(envelope) = msg.downcast::<MessageEnvelope<TestMsg>>() {
         match envelope {
           | MessageEnvelope::User(user) => {
@@ -168,7 +168,7 @@ fn responder_pid_allows_response_delivery() {
     .expect("spawn probe");
 
   let target_ref = root
-    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: DynMessage| {
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: AnyMessage| {
       if let Ok(envelope) = msg.downcast::<MessageEnvelope<TestMsg>>() {
         match envelope {
           | MessageEnvelope::User(user) => {
@@ -178,7 +178,7 @@ fn responder_pid_allows_response_delivery() {
                 if let Some(responder_pid) = metadata.responder_pid().cloned() {
                   ctx.process_registry().with_ref(|registry| {
                     if let ProcessResolution::Local(handle) = registry.resolve_pid(&responder_pid) {
-                      let response = DynMessage::new(MessageEnvelope::user(TestMsg::Response(99)));
+                      let response = AnyMessage::new(MessageEnvelope::user(TestMsg::Response(99)));
                       let priority = PriorityEnvelope::with_default_priority(response);
                       let _ = handle.with_ref(|actor_ref| actor_ref.clone()).try_send_envelope(priority);
                     }
@@ -226,19 +226,19 @@ fn actor_ref_emits_dead_letter_on_unregistered_pid() {
   let process_registry = system.process_registry();
   let observed_reasons = ArcShared::new(RwLock::new(Vec::<DeadLetterReason>::new()));
   let observed_clone = observed_reasons.clone();
-  let listener = ArcShared::new(move |letter: &DeadLetter<ArcShared<PriorityEnvelope<DynMessage>>>| {
+  let listener = ArcShared::new(move |letter: &DeadLetter<ArcShared<PriorityEnvelope<AnyMessage>>>| {
     observed_clone.write().push(letter.reason.clone());
   })
-  .into_dyn(|f| f as &DeadLetterListener<ArcShared<PriorityEnvelope<DynMessage>>>);
+  .into_dyn(|f| f as &DeadLetterListener<ArcShared<PriorityEnvelope<AnyMessage>>>);
   process_registry.with_ref(|registry| registry.subscribe_dead_letters(listener));
 
   let mut root = system.root_context();
   let map_system =
-    MapSystemShared::new(|sys: SystemMessage| DynMessage::new(MessageEnvelope::<u32>::System(sys.clone())));
+    MapSystemShared::new(|sys: SystemMessage| AnyMessage::new(MessageEnvelope::<u32>::System(sys.clone())));
   let captured_pid = ArcShared::new(RwLock::new(None));
   let captured_pid_clone = captured_pid.clone();
   let actor_ref_raw = root
-    .spawn(InternalProps::new(MailboxOptions::default(), map_system, move |ctx, msg: DynMessage| {
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system, move |ctx, msg: AnyMessage| {
       if let Ok(envelope) = msg.downcast::<MessageEnvelope<u32>>() {
         if let MessageEnvelope::User(_) = envelope {
           captured_pid_clone.write().replace(ctx.pid().clone());
@@ -283,17 +283,17 @@ fn actor_ref_records_network_unreachable_for_remote_pid() {
   let process_registry = system.process_registry();
   let observed = ArcShared::new(RwLock::new(Vec::<DeadLetterReason>::new()));
   let observed_clone = observed.clone();
-  let listener = ArcShared::new(move |letter: &DeadLetter<ArcShared<PriorityEnvelope<DynMessage>>>| {
+  let listener = ArcShared::new(move |letter: &DeadLetter<ArcShared<PriorityEnvelope<AnyMessage>>>| {
     observed_clone.write().push(letter.reason.clone());
   })
-  .into_dyn(|f| f as &DeadLetterListener<ArcShared<PriorityEnvelope<DynMessage>>>);
+  .into_dyn(|f| f as &DeadLetterListener<ArcShared<PriorityEnvelope<AnyMessage>>>);
   process_registry.with_ref(|registry| registry.subscribe_dead_letters(listener));
 
   let mut root = system.root_context();
   let map_system =
-    MapSystemShared::new(|sys: SystemMessage| DynMessage::new(MessageEnvelope::<u32>::System(sys.clone())));
+    MapSystemShared::new(|sys: SystemMessage| AnyMessage::new(MessageEnvelope::<u32>::System(sys.clone())));
   let actor_ref_raw = root
-    .spawn(InternalProps::new(MailboxOptions::default(), map_system, |_ctx, _msg: DynMessage| Ok(())))
+    .spawn(InternalProps::new(MailboxOptions::default(), map_system, |_ctx, _msg: AnyMessage| Ok(())))
     .expect("spawn actor");
   let pid_slot = ArcShared::new(RwLock::new(None));
   let typed_ref: crate::api::actor::actor_ref::ActorRef<u32, TestRuntime> =

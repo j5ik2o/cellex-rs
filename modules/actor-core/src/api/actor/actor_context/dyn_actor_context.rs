@@ -12,7 +12,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::ReceiveTimeoutScheduler,
     supervision::supervisor::Supervisor,
@@ -25,18 +25,18 @@ pub struct DynActorContext<'a, MF>
 where
   MF: MailboxFactory + Clone, {
   mailbox_factory:  &'a MF,
-  mailbox_spawner:  PriorityMailboxSpawnerHandle<DynMessage, MF>,
-  sender:           &'a MF::Producer<PriorityEnvelope<DynMessage>>,
-  supervisor:       &'a mut dyn Supervisor<DynMessage>,
+  mailbox_spawner:  PriorityMailboxSpawnerHandle<AnyMessage, MF>,
+  sender:           &'a MF::Producer<PriorityEnvelope<AnyMessage>>,
+  supervisor:       &'a mut dyn Supervisor<AnyMessage>,
   #[allow(dead_code)]
   pending_spawns:   &'a mut Vec<ChildSpawnSpec<MF>>,
   #[allow(dead_code)]
-  map_system:       MapSystemShared<DynMessage>,
+  map_system:       MapSystemShared<AnyMessage>,
   actor_path:       ActorPath,
   actor_id:         ActorId,
   pid:              Pid,
   process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>>,
+    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
   watchers:         &'a mut Vec<ActorId>,
   current_priority: Option<i8>,
   receive_timeout:  Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
@@ -50,16 +50,16 @@ where
   #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
     mailbox_factory: &'a MF,
-    mailbox_spawner: PriorityMailboxSpawnerHandle<DynMessage, MF>,
-    sender: &'a MF::Producer<PriorityEnvelope<DynMessage>>,
-    supervisor: &'a mut dyn Supervisor<DynMessage>,
+    mailbox_spawner: PriorityMailboxSpawnerHandle<AnyMessage, MF>,
+    sender: &'a MF::Producer<PriorityEnvelope<AnyMessage>>,
+    supervisor: &'a mut dyn Supervisor<AnyMessage>,
     pending_spawns: &'a mut Vec<ChildSpawnSpec<MF>>,
-    map_system: MapSystemShared<DynMessage>,
+    map_system: MapSystemShared<AnyMessage>,
     actor_path: ActorPath,
     actor_id: ActorId,
     pid: Pid,
     process_registry: ArcShared<
-      ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>,
+      ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>,
     >,
     watchers: &'a mut Vec<ActorId>,
     receive_timeout: Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
@@ -100,11 +100,11 @@ where
     self.mailbox_factory
   }
 
-  pub(crate) fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<DynMessage, MF> {
+  pub(crate) fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<AnyMessage, MF> {
     &self.mailbox_spawner
   }
 
-  pub(crate) fn supervisor(&mut self) -> &mut dyn Supervisor<DynMessage> {
+  pub(crate) fn supervisor(&mut self) -> &mut dyn Supervisor<AnyMessage> {
     self.supervisor
   }
 
@@ -126,7 +126,7 @@ where
 
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>> {
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>> {
     self.process_registry.clone()
   }
 
@@ -142,23 +142,23 @@ where
     }
   }
 
-  pub(crate) fn self_ref(&self) -> PriorityActorRef<DynMessage, MF>
+  pub(crate) fn self_ref(&self) -> PriorityActorRef<AnyMessage, MF>
   where
-    MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
     MF::Signal: Clone,
-    MF::Producer<PriorityEnvelope<DynMessage>>: Clone, {
+    MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
     PriorityActorRef::new(self.sender.clone())
   }
 
   #[allow(dead_code)]
   fn enqueue_spawn(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     options: MailboxOptions,
-    map_system: MapSystemShared<DynMessage>,
-    handler: Box<ActorHandlerFn<DynMessage, MF>>,
+    map_system: MapSystemShared<AnyMessage>,
+    handler: Box<ActorHandlerFn<AnyMessage, MF>>,
     pid_slot: ArcShared<RwLock<Option<Pid>>>,
-  ) -> PriorityActorRef<DynMessage, MF> {
+  ) -> PriorityActorRef<AnyMessage, MF> {
     let (mailbox, sender) = self.mailbox_spawner.spawn_mailbox(options);
     let actor_ref = PriorityActorRef::new(sender.clone());
     let watchers = vec![self.actor_id];
@@ -180,10 +180,10 @@ where
 
   pub(crate) fn spawn_child_from_props(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     props: InternalProps<MF>,
     pid_slot: ArcShared<RwLock<Option<Pid>>>,
-  ) -> PriorityActorRef<DynMessage, MF>
+  ) -> PriorityActorRef<AnyMessage, MF>
   where
     MF: MailboxFactory + Clone + 'static, {
     let InternalProps { options, map_system, handler } = props;
@@ -196,24 +196,24 @@ where
 
   pub fn send_to_self_with_priority(
     &self,
-    message: DynMessage,
+    message: AnyMessage,
     priority: i8,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.sender.try_send(PriorityEnvelope::new(message, priority))
   }
 
   pub fn send_control_to_self(
     &self,
-    message: DynMessage,
+    message: AnyMessage,
     priority: i8,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.sender.try_send(PriorityEnvelope::control(message, priority))
   }
 
   pub fn send_envelope_to_self(
     &self,
-    envelope: PriorityEnvelope<DynMessage>,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+    envelope: PriorityEnvelope<AnyMessage>,
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.sender.try_send(envelope)
   }
 

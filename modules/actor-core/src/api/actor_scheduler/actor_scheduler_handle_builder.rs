@@ -15,7 +15,7 @@ use crate::api::{
   extensions::Extensions,
   guardian::GuardianStrategy,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// Factory wrapper used to construct scheduler instances with consistent runtime configuration.
@@ -23,7 +23,7 @@ use crate::api::{
 pub struct ActorSchedulerHandleBuilder<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   factory: ArcShared<ActorSchedulerHandleFactoryFn<MF>>,
 }
@@ -31,7 +31,7 @@ where
 impl<MF> ActorSchedulerHandleBuilder<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   #[cfg(any(test, feature = "test-support"))]
@@ -58,7 +58,7 @@ where
 impl<MF> ActorSchedulerHandleBuilder<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   /// Returns a builder configured to create ready-queue-based schedulers.

@@ -7,7 +7,7 @@ use crate::api::{
   actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ChildNaming},
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   process::{pid::Pid, process_registry::ProcessRegistry},
 };
 
@@ -15,7 +15,7 @@ use crate::api::{
 pub struct ActorSchedulerSpawnContext<MF>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   /// use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used to create queue-backed actor
   /// mailboxes.
@@ -24,16 +24,16 @@ where
   /// that require `ArcShared` access.
   pub mailbox_factory_shared: ArcShared<MF>,
   /// Mapping utilities used to translate system messages for the target actor type.
-  pub map_system:             MapSystemShared<DynMessage>,
+  pub map_system:             MapSystemShared<AnyMessage>,
   /// Mailbox configuration parameters applied during actor creation.
   pub mailbox_options:        MailboxOptions,
   /// Handler invoked to execute the actor's behavior.
-  pub handler:                Box<ActorHandlerFn<DynMessage, MF>>,
+  pub handler:                Box<ActorHandlerFn<AnyMessage, MF>>,
   /// Naming strategy to apply when registering the child actor.
   pub child_naming:           ChildNaming,
   /// Process registry used to register and resolve actor PIDs.
   pub process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MF>, ArcShared<PriorityEnvelope<DynMessage>>>>,
+    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
   /// Slot where the assigned PID will be recorded.
   pub actor_pid_slot:         ArcShared<RwLock<Option<Pid>>>,
 }

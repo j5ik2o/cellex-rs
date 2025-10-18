@@ -6,7 +6,7 @@ use super::{actor_context::ActorContext, actor_failure::ActorFailure, signal::Si
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::{PriorityEnvelope, SystemMessage},
-  messaging::{DynMessage, MetadataStorageMode},
+  messaging::{AnyMessage, MetadataStorageMode},
 };
 
 mod actor_adapter;
@@ -48,7 +48,7 @@ pub enum Behavior<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   /// Message receiving state
   Receive(BehaviorState<U, AR>),
@@ -67,7 +67,7 @@ impl<U, AR> Behavior<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {

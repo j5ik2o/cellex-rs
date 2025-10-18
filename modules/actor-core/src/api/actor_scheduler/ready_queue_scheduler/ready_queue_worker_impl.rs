@@ -7,7 +7,7 @@ use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
   guardian::GuardianStrategy,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 pub(crate) struct ReadyQueueWorkerImpl<MF, Strat>
@@ -32,7 +32,7 @@ where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<MF>,
 {
-  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>> {
+  fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut ctx = self.context.lock();
     ctx.process_ready_once()
   }

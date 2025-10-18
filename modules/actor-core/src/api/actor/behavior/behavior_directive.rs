@@ -4,7 +4,7 @@ use crate::api::{
   actor::behavior::Behavior,
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::PriorityEnvelope,
-  messaging::{DynMessage, MetadataStorageMode},
+  messaging::{AnyMessage, MetadataStorageMode},
 };
 
 /// State transition directive after user message processing.
@@ -12,7 +12,7 @@ pub enum BehaviorDirective<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   /// Maintain the same Behavior

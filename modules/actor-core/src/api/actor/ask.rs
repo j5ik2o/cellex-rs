@@ -16,7 +16,7 @@ use core::future::Future;
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use crate::{
-  api::messaging::{DynMessage, MessageEnvelope, MessageSender, MetadataStorageMode},
+  api::messaging::{AnyMessage, MessageEnvelope, MessageSender, MetadataStorageMode},
   internal::message::InternalMessageSender,
 };
 
@@ -38,7 +38,7 @@ where
   let dispatch_state = shared.clone();
   let drop_state = shared;
 
-  let dispatch = ArcShared::new(move |message: DynMessage, _priority: i8| {
+  let dispatch = ArcShared::new(move |message: AnyMessage, _priority: i8| {
     let Ok(envelope) = message.downcast::<MessageEnvelope<Resp>>() else {
       return Err(QueueError::Disconnected);
     };

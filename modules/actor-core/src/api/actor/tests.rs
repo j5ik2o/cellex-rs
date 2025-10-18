@@ -42,7 +42,7 @@ use crate::{
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
     extensions::{next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension},
     mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
-    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender},
+    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender},
     supervision::{escalation::FailureEventListener, failure::FailureEvent},
     test_support::TestMailboxFactory,
   },
@@ -164,7 +164,7 @@ mod receive_timeout_injection {
     actor_runtime::ActorRuntime,
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
     mailbox::PriorityEnvelope,
-    messaging::DynMessage,
+    messaging::AnyMessage,
     receive_timeout::{
       ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
       ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
@@ -193,11 +193,11 @@ mod receive_timeout_injection {
     fn notify_activity(&mut self) {}
   }
 
-  impl ReceiveTimeoutSchedulerFactory<DynMessage, TestMailboxFactory> for CountingFactory {
+  impl ReceiveTimeoutSchedulerFactory<AnyMessage, TestMailboxFactory> for CountingFactory {
     fn create(
       &self,
-      _sender: <TestMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<DynMessage>>,
-      _map_system: MapSystemShared<DynMessage>,
+      _sender: <TestMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<AnyMessage>>,
+      _map_system: MapSystemShared<AnyMessage>,
     ) -> Box<dyn ReceiveTimeoutScheduler> {
       self.calls.fetch_add(1, Ordering::SeqCst);
       Box::new(CountingScheduler)
@@ -217,7 +217,7 @@ mod receive_timeout_injection {
   }
 
   impl ReceiveTimeoutSchedulerFactoryProvider<TestMailboxFactory> for CountingDriver {
-    fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<DynMessage, TestMailboxFactory> {
+    fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, TestMailboxFactory> {
       self.driver_calls.fetch_add(1, Ordering::SeqCst);
       ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(self.factory_calls.clone()))
     }
@@ -356,10 +356,10 @@ impl Extension for CounterExtension {
 }
 
 #[cfg(target_has_atomic = "ptr")]
-type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
+type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + Send + Sync;
 
 #[cfg(not(target_has_atomic = "ptr"))]
-type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
+type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>;
 
 #[cfg(target_has_atomic = "ptr")]
 type TestDropHookFn = dyn Fn() + Send + Sync;
@@ -371,7 +371,7 @@ fn noop_sender<M>() -> MessageSender<M, ThreadSafe>
 where
   M: Element, {
   let dispatch_impl: Arc<NoopDispatchFn> =
-    Arc::new(|_message: DynMessage, _priority: i8| -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> { Ok(()) });
+    Arc::new(|_message: AnyMessage, _priority: i8| -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> { Ok(()) });
   let dispatch = ArcShared::from_arc_for_testing_dont_use_production(dispatch_impl);
   let internal = InternalMessageSender::new(dispatch);
   MessageSender::new(internal)
@@ -483,7 +483,7 @@ fn spawn_actor_with_counter_extension<AR>(
 ) -> (ActorSystem<u32, AR, AlwaysRestart>, ExtensionId, ArcShared<CounterExtension>)
 where
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   let extension = CounterExtension::new();
   let extension_id = extension.extension_id();
@@ -1074,7 +1074,7 @@ mod metrics_injection {
     actor_system::{ActorSystem, ActorSystemConfig},
     failure_telemetry::FailureTelemetryShared,
     mailbox::MailboxFactory,
-    messaging::DynMessage,
+    messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
     test_support::TestMailboxFactory,
@@ -1112,20 +1112,20 @@ mod metrics_injection {
   impl<MF> ActorScheduler<MF> for RecordingScheduler<MF>
   where
     MF: MailboxFactory + Clone + 'static,
-    MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
     MF::Signal: Clone,
   {
     fn spawn_actor(
       &mut self,
-      _supervisor: Box<dyn Supervisor<DynMessage>>,
+      _supervisor: Box<dyn Supervisor<AnyMessage>>,
       _context: ActorSchedulerSpawnContext<MF>,
-    ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
+    ) -> Result<PriorityActorRef<AnyMessage, MF>, SpawnError<AnyMessage>> {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
     fn set_receive_timeout_scheduler_factory_shared(
       &mut self,
-      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+      _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
     ) {
     }
 
@@ -1152,15 +1152,15 @@ mod metrics_injection {
 
     fn set_parent_guardian(
       &mut self,
-      _control_ref: PriorityActorRef<DynMessage, MF>,
-      _map_system: MapSystemShared<DynMessage>,
+      _control_ref: PriorityActorRef<AnyMessage, MF>,
+      _map_system: MapSystemShared<AnyMessage>,
     ) {
     }
 
     fn on_escalation(
       &mut self,
       _handler: Box<
-        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
           + 'static,
       >,
     ) {
@@ -1174,11 +1174,11 @@ mod metrics_injection {
       0
     }
 
-    fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+    fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
       Ok(false)
     }
 
-    async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+    async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
       Ok(())
     }
   }
@@ -1201,7 +1201,7 @@ mod metrics_injection {
       ActorSystemConfig::default().with_metrics_sink_shared(config_sink);
 
     let _system =
-      ActorSystem::<DynMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
+      ActorSystem::<AnyMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
 
     assert_eq!(*recorded.lock().unwrap(), Some(config_ptr));
   }
@@ -1222,7 +1222,7 @@ mod metrics_injection {
     let config: ActorSystemConfig<GenericActorRuntime<TestMailboxFactory>> = ActorSystemConfig::default();
 
     let _system =
-      ActorSystem::<DynMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
+      ActorSystem::<AnyMessage, GenericActorRuntime<TestMailboxFactory>>::new_with_actor_runtime(actor_runtime, config);
 
     assert_eq!(*recorded.lock().unwrap(), Some(runtime_ptr));
   }

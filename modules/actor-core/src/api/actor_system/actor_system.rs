@@ -16,7 +16,7 @@ use crate::{
     failure_telemetry::TelemetryContext,
     guardian::AlwaysRestart,
     mailbox::PriorityEnvelope,
-    messaging::DynMessage,
+    messaging::AnyMessage,
     process::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
@@ -33,7 +33,7 @@ pub struct ActorSystem<U, AR, Strat = AlwaysRestart>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>, {
   inner:                    InternalActorSystem<AR, Strat>,
@@ -49,7 +49,7 @@ impl<U, AR> ActorSystem<U, AR>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
 {
   /// Creates a new actor system with an explicit runtime and configuration.
@@ -151,7 +151,7 @@ impl<U, AR, Strat> ActorSystem<U, AR, Strat>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>,
 {
@@ -228,7 +228,7 @@ where
   ///
   /// # Returns
   /// `Ok(())` on normal completion, `Err` on queue error
-  pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
     self.inner.run_until(should_continue).await
@@ -240,7 +240,7 @@ where
   ///
   /// # Returns
   /// `Infallible` (does not terminate normally) or queue error
-  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.run_forever().await
   }
 
@@ -250,13 +250,13 @@ where
   ///
   /// # Returns
   /// `Ok(())` on normal completion, `Err` on queue error
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await
   }
 
   /// Synchronously processes messages accumulated in the Ready queue, repeating until empty.
   /// Does not wait for new messages to arrive.
-  pub fn run_until_idle(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn run_until_idle(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let shutdown = self.shutdown.clone();
     self.inner.run_until_idle(|| !shutdown.is_triggered())
   }
@@ -277,7 +277,7 @@ where
   #[must_use]
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
   {
     self.inner.process_registry()
   }

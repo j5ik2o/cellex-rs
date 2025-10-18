@@ -22,7 +22,7 @@ use crate::api::{
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
@@ -96,9 +96,9 @@ where
   /// Spawns an actor and registers its mailbox with the ready queue.
   pub fn spawn_actor_internal(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     context: ActorSchedulerSpawnContext<MF>,
-  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
+  ) -> Result<PriorityActorRef<AnyMessage, MF>, SpawnError<AnyMessage>> {
     let (actor_ref, index) = {
       let mut ctx = self.context.lock();
       ctx.spawn_actor(supervisor, context)?
@@ -119,7 +119,7 @@ where
   /// Configures the receive-timeout factory shared by all scheduled actors.
   pub fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
     let mut ctx = self.context.lock();
     ctx.set_receive_timeout_scheduler_factory_shared(factory);
@@ -146,8 +146,8 @@ where
   /// Wires the parent guardian controls needed for supervising newly spawned actors.
   pub fn set_parent_guardian(
     &mut self,
-    control_ref: PriorityActorRef<DynMessage, MF>,
-    map_system: MapSystemShared<DynMessage>,
+    control_ref: PriorityActorRef<AnyMessage, MF>,
+    map_system: MapSystemShared<AnyMessage>,
   ) {
     let mut ctx = self.context.lock();
     ctx.set_parent_guardian(control_ref, map_system);
@@ -168,7 +168,7 @@ where
   /// Attaches a callback to react to escalation events raised by child actors.
   pub fn on_escalation<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static, {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static, {
     let mut ctx = self.context.lock();
     ctx.on_escalation(handler);
   }
@@ -186,13 +186,13 @@ where
   }
 
   /// Processes queued ready actors and reports whether more work remains.
-  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut ctx = self.context.lock();
     ctx.drain_ready()
   }
 
   /// Drives the scheduler loop until the provided predicate returns `false`.
-  pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
     while should_continue() {
@@ -202,14 +202,14 @@ where
   }
 
   /// Continuously dispatches work until an error causes the loop to terminate.
-  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       self.dispatch_next().await?;
     }
   }
 
   /// Dispatches the next ready actor, waiting for mailbox signals when queues are empty.
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       {
         let mut ctx = self.context.lock();
@@ -252,15 +252,15 @@ where
 {
   fn spawn_actor(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     context: ActorSchedulerSpawnContext<MF>,
-  ) -> Result<PriorityActorRef<DynMessage, MF>, SpawnError<DynMessage>> {
+  ) -> Result<PriorityActorRef<AnyMessage, MF>, SpawnError<AnyMessage>> {
     ReadyQueueScheduler::spawn_actor_internal(self, supervisor, context)
   }
 
   fn set_receive_timeout_scheduler_factory_shared(
     &mut self,
-    factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MF>>,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   ) {
     ReadyQueueScheduler::set_receive_timeout_scheduler_factory_shared(self, factory)
   }
@@ -279,8 +279,8 @@ where
 
   fn set_parent_guardian(
     &mut self,
-    control_ref: PriorityActorRef<DynMessage, MF>,
-    map_system: MapSystemShared<DynMessage>,
+    control_ref: PriorityActorRef<AnyMessage, MF>,
+    map_system: MapSystemShared<AnyMessage>,
   ) {
     ReadyQueueScheduler::set_parent_guardian(self, control_ref, map_system)
   }
@@ -295,7 +295,7 @@ where
 
   fn on_escalation(
     &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static>,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static>,
   ) {
     ReadyQueueScheduler::on_escalation(self, handler)
   }
@@ -308,11 +308,11 @@ where
     ReadyQueueScheduler::actor_count(self)
   }
 
-  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<DynMessage>>> {
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     ReadyQueueScheduler::drain_ready(self)
   }
 
-  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     ReadyQueueScheduler::dispatch_next(self).await
   }
 

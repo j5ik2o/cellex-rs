@@ -15,7 +15,7 @@ use crate::{
     extensions::Extensions,
     guardian::GuardianStrategy,
     mailbox::{MailboxFactory, PriorityEnvelope},
-    messaging::DynMessage,
+    messaging::AnyMessage,
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
@@ -25,7 +25,7 @@ use crate::{
 pub(crate) struct InternalRootContext<'a, AR, Strat>
 where
   AR: ActorRuntime + Clone + 'static,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<MailboxOf<AR>>, {
   pub(super) system: &'a mut InternalActorSystem<AR, Strat>,
@@ -34,7 +34,7 @@ where
 impl<'a, AR, Strat> InternalRootContext<'a, AR, Strat>
 where
   AR: ActorRuntime + Clone + 'static,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
   Strat: GuardianStrategy<MailboxOf<AR>>,
 {
@@ -42,7 +42,7 @@ where
   pub fn spawn(
     &mut self,
     props: InternalProps<MailboxOf<AR>>,
-  ) -> Result<PriorityActorRef<DynMessage, MailboxOf<AR>>, SpawnError<DynMessage>> {
+  ) -> Result<PriorityActorRef<AnyMessage, MailboxOf<AR>>, SpawnError<AnyMessage>> {
     let pid_slot = ArcShared::new(RwLock::new(None));
     self.spawn_with_supervisor(Box::new(NoopSupervisor), props, ChildNaming::Auto, pid_slot)
   }
@@ -50,11 +50,11 @@ where
   /// Spawns a child actor with an explicit supervisor and naming strategy.
   pub fn spawn_with_supervisor(
     &mut self,
-    supervisor: Box<dyn Supervisor<DynMessage>>,
+    supervisor: Box<dyn Supervisor<AnyMessage>>,
     props: InternalProps<MailboxOf<AR>>,
     child_naming: ChildNaming,
     pid_slot: ArcShared<RwLock<Option<Pid>>>,
-  ) -> Result<PriorityActorRef<DynMessage, MailboxOf<AR>>, SpawnError<DynMessage>> {
+  ) -> Result<PriorityActorRef<AnyMessage, MailboxOf<AR>>, SpawnError<AnyMessage>> {
     let InternalProps { options, map_system, handler } = props;
 
     let mailbox_factory = self.system.mailbox_factory_shared.with_ref(|mailbox| mailbox.clone());
@@ -74,18 +74,18 @@ where
 
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
   {
     self.system.process_registry()
   }
 
   #[deprecated(since = "3.1.0", note = "dispatch_next / run_until を使用してください")]
-  pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     while self.system.scheduler.drain_ready()? {}
     Ok(())
   }
 
-  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.system.scheduler.dispatch_next().await
   }
 

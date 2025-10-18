@@ -9,7 +9,7 @@ use crate::api::{
   actor_system::ActorSystem,
   guardian::AlwaysRestart,
   mailbox::PriorityEnvelope,
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// Execution runner for the actor system.
@@ -19,7 +19,7 @@ pub struct ActorSystemRunner<U, AR, Strat = AlwaysRestart>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>, {
   pub(crate) system:                   ActorSystem<U, AR, Strat>,
@@ -31,7 +31,7 @@ impl<U, AR, Strat> ActorSystemRunner<U, AR, Strat>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>,
 {
@@ -79,7 +79,7 @@ where
   ///
   /// # Returns
   /// `Infallible` (does not terminate normally) or queue error
-  pub async fn run_forever(mut self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn run_forever(mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.system.run_forever().await
   }
 
@@ -89,7 +89,7 @@ where
   ///
   /// # Returns
   /// `Infallible` (does not terminate normally) or queue error
-  pub async fn into_future(self) -> Result<Infallible, QueueError<PriorityEnvelope<DynMessage>>> {
+  pub async fn into_future(self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.run_forever().await
   }
 

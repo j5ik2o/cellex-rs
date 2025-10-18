@@ -5,7 +5,7 @@ use cellex_utils_core_rs::DEFAULT_PRIORITY;
 use super::*;
 use crate::api::{
   mailbox::{PriorityEnvelope, SystemMessage},
-  messaging::DynMessage,
+  messaging::AnyMessage,
 };
 
 /// PriorityEnvelope の制御チャネル設定を確認するユニットテスト。
@@ -28,10 +28,10 @@ fn priority_envelope_map_preserves_metadata() {
   assert_eq!(envelope.message(), "ping-mapped");
 }
 
-/// DynMessage が型情報を保持しつつダウンキャスト可能なことを確認。
+/// AnyMessage が型情報を保持しつつダウンキャスト可能なことを確認。
 #[test]
 fn dyn_message_downcast_recovers_value() {
-  let message = DynMessage::new(42_u32);
+  let message = AnyMessage::new(42_u32);
 
   assert_eq!(message.type_id(), core::any::TypeId::of::<u32>());
 }
@@ -40,7 +40,7 @@ fn dyn_message_downcast_recovers_value() {
 #[test]
 fn dyn_message_is_send_sync_static() {
   fn assert_bounds<T: Send + Sync + 'static>() {}
-  assert_bounds::<DynMessage>();
+  assert_bounds::<AnyMessage>();
 }
 
 #[cfg(target_has_atomic = "ptr")]

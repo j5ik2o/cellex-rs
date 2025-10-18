@@ -18,7 +18,7 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
-    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::failure::FailureInfo,
   },
@@ -53,7 +53,7 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   pub(super) inner:      &'r mut DynActorContext<'ctx, MailboxOf<AR>>,
@@ -70,7 +70,7 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
@@ -85,7 +85,7 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
@@ -111,7 +111,7 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
@@ -177,7 +177,7 @@ where
   #[must_use]
   pub fn process_registry(
     &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<DynMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<DynMessage>>>>
+  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
   {
     self.inner.process_registry()
   }
@@ -209,7 +209,7 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
@@ -222,7 +222,7 @@ where
     let pid_slot = ArcShared::new(RwLock::new(None));
     let registry = self.process_registry();
     let actor_ref = self.inner.spawn_child_from_props(
-      Box::new(supervisor_cfg.as_supervisor::<DynMessage>()),
+      Box::new(supervisor_cfg.as_supervisor::<AnyMessage>()),
       internal_props,
       pid_slot.clone(),
     );
@@ -235,24 +235,24 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Sends a message to itself.
-  pub fn send_to_self(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    let dyn_message = DynMessage::new(MessageEnvelope::user(message));
+  pub fn send_to_self(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
+    let dyn_message = AnyMessage::new(MessageEnvelope::user(message));
     self.inner.send_to_self_with_priority(dyn_message, DEFAULT_PRIORITY)
   }
 
   /// Sends a system message to itself.
-  pub fn send_system_to_self(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> {
-    let envelope = PriorityEnvelope::from_system(message).map(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)));
+  pub fn send_system_to_self(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
+    let envelope = PriorityEnvelope::from_system(message).map(|sys| AnyMessage::new(MessageEnvelope::<U>::System(sys)));
     self.inner.send_envelope_to_self(envelope)
   }
 
   /// Reports a failure to the guardian using the supervision channel.
-  pub fn fail<E>(&self, error: E) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  pub fn fail<E>(&self, error: E) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     E: core::fmt::Display + core::fmt::Debug + Send + 'static, {
     let failure = ActorFailure::from_error(error);
@@ -279,7 +279,7 @@ where
 
   pub(crate) fn self_dispatcher(&self) -> MessageSender<U, MailboxConcurrencyOf<AR>>
   where
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     self.self_ref().to_dispatcher()
   }
@@ -289,10 +289,10 @@ where
     &mut self,
     target: &ActorRef<V, AR>,
     message: V,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     V: Element,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
       .with_sender(self.self_dispatcher())
@@ -306,11 +306,11 @@ where
     target: &ActorRef<V, AR>,
     message: V,
     sender: &ActorRef<S, AR>,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     V: Element,
     S: Element,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(sender.to_dispatcher());
     target.tell_with_metadata(message, metadata)
@@ -321,7 +321,7 @@ where
     &mut self,
     target: &ActorRef<V, AR>,
     message: V,
-  ) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>
+  ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     V: Element, {
     let metadata = self.message_metadata().cloned().unwrap_or_default();
@@ -332,7 +332,7 @@ where
   pub fn respond<Resp>(&mut self, message: Resp) -> AskResult<()>
   where
     Resp: Element,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let metadata = self.message_metadata().cloned().ok_or(AskError::MissingResponder)?;
     metadata.respond_with(self, message)
@@ -344,7 +344,7 @@ where
     V: Element,
     Resp: Element,
     F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> V,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let responder_for_message = MessageSender::new(responder.internal());
@@ -372,7 +372,7 @@ where
     Resp: Element,
     F: FnOnce(MessageSender<Resp, MailboxConcurrencyOf<AR>>) -> V,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
@@ -394,7 +394,7 @@ where
   where
     V: Element,
     Resp: Element,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new()
@@ -417,7 +417,7 @@ where
     V: Element,
     Resp: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone + RuntimeBound + 'static,
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
     let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();

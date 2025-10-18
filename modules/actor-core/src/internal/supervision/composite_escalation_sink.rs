@@ -6,7 +6,7 @@ use crate::api::{
   actor_system::map_system::MapSystemShared,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   supervision::{
     escalation::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink},
     failure::FailureInfo,
@@ -18,7 +18,7 @@ use crate::api::{
 pub(crate) struct CompositeEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   parent_guardian: Option<ParentGuardianSink<MF>>,
   custom:          Option<CustomEscalationSink<MF>>,
@@ -28,7 +28,7 @@ where
 impl<MF> CompositeEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   pub(crate) fn new() -> Self {
@@ -37,15 +37,15 @@ where
 
   pub(crate) fn set_parent_guardian(
     &mut self,
-    control_ref: PriorityActorRef<DynMessage, MF>,
-    map_system: MapSystemShared<DynMessage>,
+    control_ref: PriorityActorRef<AnyMessage, MF>,
+    map_system: MapSystemShared<AnyMessage>,
   ) {
     self.parent_guardian = Some(ParentGuardianSink::new(control_ref, map_system));
   }
 
   pub(crate) fn set_custom_handler<F>(&mut self, handler: F)
   where
-    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + 'static, {
+    F: FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static, {
     self.custom = Some(CustomEscalationSink::new(handler));
   }
 
@@ -93,7 +93,7 @@ where
 impl<MF> Default for CompositeEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   fn default() -> Self {
@@ -101,10 +101,10 @@ where
   }
 }
 
-impl<MF> EscalationSink<DynMessage, MF> for CompositeEscalationSink<MF>
+impl<MF> EscalationSink<AnyMessage, MF> for CompositeEscalationSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   fn handle(&mut self, info: FailureInfo, already_handled: bool) -> Result<(), FailureInfo> {

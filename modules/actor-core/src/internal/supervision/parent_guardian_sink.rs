@@ -2,7 +2,7 @@ use crate::api::{
   actor::actor_ref::PriorityActorRef,
   actor_system::map_system::MapSystemShared,
   mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   supervision::{escalation::EscalationSink, failure::FailureInfo},
 };
 
@@ -10,30 +10,30 @@ use crate::api::{
 pub(crate) struct ParentGuardianSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
-  control_ref: PriorityActorRef<DynMessage, MF>,
-  map_system:  MapSystemShared<DynMessage>,
+  control_ref: PriorityActorRef<AnyMessage, MF>,
+  map_system:  MapSystemShared<AnyMessage>,
 }
 
 impl<MF> ParentGuardianSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   pub(crate) const fn new(
-    control_ref: PriorityActorRef<DynMessage, MF>,
-    map_system: MapSystemShared<DynMessage>,
+    control_ref: PriorityActorRef<AnyMessage, MF>,
+    map_system: MapSystemShared<AnyMessage>,
   ) -> Self {
     Self { control_ref, map_system }
   }
 }
 
-impl<MF> EscalationSink<DynMessage, MF> for ParentGuardianSink<MF>
+impl<MF> EscalationSink<AnyMessage, MF> for ParentGuardianSink<MF>
 where
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
   fn handle(&mut self, info: FailureInfo, already_handled: bool) -> Result<(), FailureInfo> {

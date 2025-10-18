@@ -5,7 +5,7 @@ use crate::api::{
   actor::behavior::supervisor_strategy::SupervisorStrategy,
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   mailbox::PriorityEnvelope,
-  messaging::{DynMessage, MetadataStorageMode},
+  messaging::{AnyMessage, MetadataStorageMode},
 };
 
 /// Builder for setting supervisor strategy.
@@ -13,7 +13,7 @@ pub struct SuperviseBuilder<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   pub(crate) behavior: Behavior<U, AR>,
 }
@@ -22,7 +22,7 @@ impl<U, AR> SuperviseBuilder<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {

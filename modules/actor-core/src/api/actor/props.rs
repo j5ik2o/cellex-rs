@@ -13,7 +13,7 @@ use crate::{
     actor::behavior::SupervisorStrategyConfig,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope, SystemMessage},
-    messaging::{DynMessage, MetadataStorageMode},
+    messaging::{AnyMessage, MetadataStorageMode},
   },
   internal::actor::{internal_props_from_adapter, InternalProps},
 };
@@ -26,7 +26,7 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   inner:      InternalProps<MailboxOf<AR>>,
@@ -39,7 +39,7 @@ where
   U: Element,
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {

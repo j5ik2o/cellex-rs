@@ -9,7 +9,7 @@ use crate::api::{
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   actor_system::map_system::MapSystemShared,
   mailbox::{PriorityEnvelope, SystemMessage},
-  messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
+  messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
 };
 
 /// Adapter that bridges Behavior to untyped runtime.
@@ -17,7 +17,7 @@ pub struct ActorAdapter<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   behavior_factory:          ArcShared<dyn Fn() -> Behavior<U, AR> + 'static>,
   pub(super) behavior:       Behavior<U, AR>,
@@ -28,7 +28,7 @@ impl<U, AR> ActorAdapter<U, AR>
 where
   U: Element,
   AR: ActorRuntime + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<DynMessage>>: Clone,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
@@ -90,8 +90,8 @@ where
 
   /// Creates a SystemMessage mapper for Guardian/Scheduler.
   #[must_use]
-  pub fn create_map_system() -> MapSystemShared<DynMessage> {
-    MapSystemShared::new(|sys| DynMessage::new(MessageEnvelope::<U>::System(sys)))
+  pub fn create_map_system() -> MapSystemShared<AnyMessage> {
+    MapSystemShared::new(|sys| AnyMessage::new(MessageEnvelope::<U>::System(sys)))
   }
 
   /// Gets supervisor configuration (internal API).

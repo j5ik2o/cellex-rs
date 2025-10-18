@@ -11,7 +11,7 @@ use std::hint::black_box;
 use cellex_actor_core_rs::{
   api::{
     mailbox::{PriorityEnvelope, SingleThread, ThreadSafe},
-    messaging::{DynMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
   },
   internal::message::InternalMessageSender,
 };
@@ -19,10 +19,10 @@ use cellex_utils_core_rs::sync::ArcShared;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
 #[cfg(target_has_atomic = "ptr")]
-type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>> + Send + Sync;
+type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + Send + Sync;
 
 #[cfg(not(target_has_atomic = "ptr"))]
-type NoopDispatchFn = dyn Fn(DynMessage, i8) -> Result<(), QueueError<PriorityEnvelope<DynMessage>>>;
+type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>;
 use cellex_utils_core_rs::{Element, QueueError};
 
 fn noop_sender<M, C>() -> MessageSender<M, C>

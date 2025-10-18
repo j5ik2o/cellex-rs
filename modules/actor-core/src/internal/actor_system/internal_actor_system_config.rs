@@ -3,7 +3,7 @@ use crate::api::{
   extensions::Extensions,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{MailboxFactory, PriorityEnvelope},
-  messaging::DynMessage,
+  messaging::AnyMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
@@ -18,14 +18,14 @@ pub struct InternalActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone, {
   /// Listener invoked for failures reaching the root guardian.
   pub(crate) root_event_listener:     Option<FailureEventListener>,
   /// Escalation handler invoked when failures bubble to the root guardian.
   pub(crate) root_escalation_handler: Option<FailureEventHandler>,
   /// Receive-timeout scheduler factory applied to newly spawned actors.
-  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<AR>>>,
+  pub(crate) receive_timeout_factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<AR>>>,
   /// Metrics sink shared across the actor runtime.
   pub(crate) metrics_sink:            Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
@@ -44,7 +44,7 @@ impl<AR> Default for InternalActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
-  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  <MailboxOf<AR> as MailboxFactory>::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
 {
   fn default() -> Self {

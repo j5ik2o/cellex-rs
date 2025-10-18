@@ -43,7 +43,7 @@ use crate::{
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
-    messaging::{DynMessage, MessageEnvelope, MetadataStorageMode},
+    messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::{
       pid::{Pid, SystemId},
@@ -82,13 +82,13 @@ enum Message {
 }
 
 #[cfg(feature = "std")]
-fn dyn_user(value: u32) -> DynMessage {
-  DynMessage::new(MessageEnvelope::<Message>::user(Message::User(value)))
+fn dyn_user(value: u32) -> AnyMessage {
+  AnyMessage::new(MessageEnvelope::<Message>::user(Message::User(value)))
 }
 
 #[cfg(feature = "std")]
-fn dyn_system(message: SystemMessage) -> DynMessage {
-  DynMessage::new(MessageEnvelope::<Message>::System(message))
+fn dyn_system(message: SystemMessage) -> AnyMessage {
+  AnyMessage::new(MessageEnvelope::<Message>::System(message))
 }
 
 #[cfg(feature = "std")]
@@ -136,13 +136,13 @@ where
 
   fn receive_timeout_scheduler_factory_shared_opt(
     &self,
-  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>> {
+  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>> {
     None
   }
 
   fn with_receive_timeout_scheduler_factory_shared(
     self,
-    _factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, MailboxOf<Self>>,
+    _factory: ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>,
   ) -> Self {
     self
   }
@@ -213,11 +213,11 @@ where
 }
 
 #[cfg(feature = "std")]
-fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<DynMessage, MF>>
+fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<AnyMessage, MF>>
 where
   M: Element,
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
   F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, M, SchedulerTestRuntime<MF>>, MessageEnvelope<M>) + 'static, {
   Box::new(move |ctx, message| {
@@ -239,10 +239,10 @@ where
 }
 
 #[cfg(feature = "std")]
-fn handler_from_message<MF, F>(mut f: F) -> Box<ActorHandlerFn<DynMessage, MF>>
+fn handler_from_message<MF, F>(mut f: F) -> Box<ActorHandlerFn<AnyMessage, MF>>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
   F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, Message, SchedulerTestRuntime<MF>>, Message) + 'static, {
   handler_from_fn::<Message, MF, _>(move |ctx, envelope| match envelope {
@@ -260,14 +260,14 @@ where
 fn spawn_with_runtime<MF>(
   scheduler: &mut dyn ActorScheduler<MF>,
   mailbox_factory: MF,
-  supervisor: Box<dyn Supervisor<DynMessage>>,
+  supervisor: Box<dyn Supervisor<AnyMessage>>,
   options: MailboxOptions,
-  map_system: MapSystemShared<DynMessage>,
-  handler: Box<ActorHandlerFn<DynMessage, MF>>,
-) -> Result<PriorityActorRef<DynMessage, MF>, QueueError<PriorityEnvelope<DynMessage>>>
+  map_system: MapSystemShared<AnyMessage>,
+  handler: Box<ActorHandlerFn<AnyMessage, MF>>,
+) -> Result<PriorityActorRef<AnyMessage, MF>, QueueError<PriorityEnvelope<AnyMessage>>>
 where
   MF: MailboxFactory + Clone + 'static,
-  MF::Queue<PriorityEnvelope<DynMessage>>: Clone,
+  MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
   let process_registry = ArcShared::new(ProcessRegistry::new(SystemId::new("test"), None));
@@ -702,8 +702,8 @@ fn scheduler_escalation_handler_delivers_to_parent() {
   let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
     ReadyQueueScheduler::with_strategy(mailbox_factory.clone(), AlwaysEscalate, Extensions::new());
 
-  let (parent_mailbox, parent_sender) = mailbox_factory.build_default_mailbox::<PriorityEnvelope<DynMessage>>();
-  let parent_ref: PriorityActorRef<DynMessage, TestMailboxFactory> = PriorityActorRef::new(parent_sender);
+  let (parent_mailbox, parent_sender) = mailbox_factory.build_default_mailbox::<PriorityEnvelope<AnyMessage>>();
+  let parent_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(parent_sender);
   scheduler.set_parent_guardian(parent_ref.clone(), MapSystemShared::new(|sys| dyn_system(sys)));
 
   let should_panic = Rc::new(Cell::new(true));
@@ -1044,7 +1044,7 @@ fn drive_ready_queue_worker_processes_actions() {
   }
 
   impl ReadyQueueWorker<TestMailboxFactory> for DummyWorker {
-    fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<DynMessage>>> {
+    fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<AnyMessage>>> {
       let mut state = self.state.lock().unwrap();
       let (actions, wait_future, finished) = &mut *state;
       if let Some(action) = actions.pop_front() {
