@@ -91,7 +91,7 @@ where
 
   /// Overrides the receive-timeout factory using a mailbox-level factory.
   #[must_use]
-  pub fn with_receive_timeout_factory(
+  pub fn with_receive_timeout_scheduler_factory_shared(
     mut self,
     factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, BundleMailbox<MF>>,
   ) -> Self {
@@ -239,7 +239,7 @@ where
     self,
     factory: ReceiveTimeoutSchedulerFactoryShared<DynMessage, Self::MailboxFactory>,
   ) -> Self {
-    GenericActorRuntime::with_receive_timeout_factory(self, factory)
+    GenericActorRuntime::with_receive_timeout_scheduler_factory_shared(self, factory)
   }
 
   fn with_receive_timeout_scheduler_factory_provider_shared_opt(

@@ -12,8 +12,8 @@ async fn run_tokio_actor_runtime_processes_messages(worker_count: NonZeroUsize) 
   let failure_hub = FailureEventHub::new();
   let actor_runtime: TokioActorRuntime = tokio_actor_runtime();
   let config = ActorSystemConfig::default()
-    .with_failure_event_listener(Some(failure_hub.listener()))
-    .with_ready_queue_worker_count(Some(worker_count));
+    .with_failure_event_listener_opt(Some(failure_hub.listener()))
+    .with_ready_queue_worker_count_opt(Some(worker_count));
   let mut system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
 
   let state: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
@@ -54,8 +54,8 @@ async fn run_tokio_system_handle_can_be_aborted(worker_count: NonZeroUsize) {
       let failure_hub = FailureEventHub::new();
       let actor_runtime: TokioActorRuntime = tokio_actor_runtime();
       let config = ActorSystemConfig::default()
-        .with_failure_event_listener(Some(failure_hub.listener()))
-        .with_ready_queue_worker_count(Some(worker_count));
+        .with_failure_event_listener_opt(Some(failure_hub.listener()))
+        .with_ready_queue_worker_count_opt(Some(worker_count));
 
       let runner = {
         let system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(actor_runtime, config);

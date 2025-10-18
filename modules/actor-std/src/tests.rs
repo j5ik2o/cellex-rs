@@ -83,7 +83,7 @@ async fn run_typed_actor_system_handles_user_messages() {
 async fn run_receive_timeout_triggers() {
   let mailbox_factory = TokioMailboxRuntime;
   let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
-  config.set_receive_timeout_factory(Some(ReceiveTimeoutSchedulerFactoryShared::new(
+  config.set_receive_timeout_scheduler_factory_shared_opt(Some(ReceiveTimeoutSchedulerFactoryShared::new(
     TokioReceiveTimeoutSchedulerFactory::new(),
   )));
   let mut system: ActorSystem<u32, _> =

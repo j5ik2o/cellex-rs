@@ -208,7 +208,10 @@ where
     self.drain_ready_cycle()
   }
 
-  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
+  pub fn set_receive_timeout_scheduler_factory_shared_opt(
+    &mut self,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  ) {
     self.receive_timeout_factory = factory.clone();
     for actor in &mut self.actors {
       actor.configure_receive_timeout_factory(factory.clone());

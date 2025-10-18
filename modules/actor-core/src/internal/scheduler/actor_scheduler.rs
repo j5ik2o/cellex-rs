@@ -39,7 +39,10 @@ where
   ) -> Result<PriorityActorRef<M, MF>, SpawnError<M>>;
 
   /// Installs a factory used to create receive-timeout drivers for child actors.
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>);
+  fn set_receive_timeout_scheduler_factory_shared(
+    &mut self,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  );
 
   /// Registers a metrics sink that records scheduler queue statistics.
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>);

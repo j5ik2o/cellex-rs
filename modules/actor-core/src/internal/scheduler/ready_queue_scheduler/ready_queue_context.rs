@@ -11,6 +11,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     failure_telemetry::FailureTelemetryShared,
     mailbox::{MailboxFactory, PriorityEnvelope},
+    metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{
       escalation::{FailureEventHandler, FailureEventListener},
@@ -118,11 +119,14 @@ where
     self.core.take_escalations()
   }
 
-  pub(super) fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
-    self.core.set_receive_timeout_factory(factory)
+  pub(super) fn set_receive_timeout_scheduler_factory_shared(
+    &mut self,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  ) {
+    self.core.set_receive_timeout_scheduler_factory_shared_opt(factory)
   }
 
-  pub(super) fn set_metrics_sink(&mut self, sink: Option<crate::api::metrics::MetricsSinkShared>) {
+  pub(super) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.core.set_metrics_sink(sink)
   }
 

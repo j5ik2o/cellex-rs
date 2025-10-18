@@ -46,13 +46,13 @@ where
     &self.mailbox_factory
   }
 
-  /// Returns a shared handle to the use [MailboxFactory];.
+  /// Returns a shared handle to the use [`MailboxFactory`];.
   #[must_use]
   pub(crate) fn mailbox_factory_shared(&self) -> ArcShared<MF> {
     self.mailbox_factory.clone()
   }
 
-  /// Consumes this state and returns the use [MailboxFactory];.
+  /// Consumes this state and returns the use [`MailboxFactory`];.
   ///
   /// If the shared handle has other references, clones the runtime.
   #[must_use]

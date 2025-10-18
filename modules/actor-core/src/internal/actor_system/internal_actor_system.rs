@@ -78,7 +78,7 @@ where
     scheduler.set_root_escalation_handler(root_escalation_handler);
     scheduler.set_root_failure_telemetry(root_failure_telemetry);
     scheduler.set_root_observation_config(root_observation_config);
-    scheduler.set_receive_timeout_factory(receive_timeout_factory);
+    scheduler.set_receive_timeout_scheduler_factory_shared(receive_timeout_factory);
     scheduler.set_metrics_sink(metrics_sink.clone());
     Self { scheduler, actor_runtime_shared, mailbox_factory_shared, extensions, metrics_sink, _strategy: PhantomData }
   }

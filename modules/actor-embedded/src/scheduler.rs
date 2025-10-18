@@ -66,8 +66,8 @@ where
     self.inner.spawn_actor(supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
-    self.inner.set_receive_timeout_factory(factory);
+  fn set_receive_timeout_scheduler_factory_shared_opt(&mut self, factory: Option<ReceiveTimeoutFactoryShared<M, R>>) {
+    self.inner.set_receive_timeout_scheduler_factory_shared_opt(factory);
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {

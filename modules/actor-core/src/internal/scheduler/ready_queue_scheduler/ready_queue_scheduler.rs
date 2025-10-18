@@ -123,9 +123,12 @@ where
   }
 
   /// Configures the receive-timeout factory shared by all scheduled actors.
-  pub fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
+  pub fn set_receive_timeout_scheduler_factory_shared(
+    &mut self,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  ) {
     let mut ctx = self.context.lock();
-    ctx.set_receive_timeout_factory(factory);
+    ctx.set_receive_timeout_scheduler_factory_shared(factory);
   }
 
   /// Installs a metrics sink tracking queue length and scheduling statistics.
@@ -258,8 +261,11 @@ where
     ReadyQueueScheduler::spawn_actor_internal(self, supervisor, context)
   }
 
-  fn set_receive_timeout_factory(&mut self, factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>) {
-    ReadyQueueScheduler::set_receive_timeout_factory(self, factory)
+  fn set_receive_timeout_scheduler_factory_shared(
+    &mut self,
+    factory: Option<ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
+  ) {
+    ReadyQueueScheduler::set_receive_timeout_scheduler_factory_shared(self, factory)
   }
 
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {

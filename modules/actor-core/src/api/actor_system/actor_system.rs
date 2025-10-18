@@ -69,22 +69,22 @@ where
     let extensions = extensions_handle;
 
     let receive_timeout_factory = config
-      .receive_timeout_scheduler_factory_shared()
+      .receive_timeout_scheduler_factory_shared_opt()
       .or(actor_runtime.receive_timeout_scheduler_factory_shared_opt())
       .or_else(|| {
         actor_runtime.receive_timeout_scheduler_factory_provider_shared_opt().map(|driver| driver.build_factory())
       });
-    let root_event_listener = config.failure_event_listener().or(root_listener_from_runtime);
-    let metrics_sink = config.metrics_sink_shared().or(metrics_from_runtime);
-    let telemetry_builder = config.failure_telemetry_builder_shared();
+    let root_event_listener = config.failure_event_listener_opt().or(root_listener_from_runtime);
+    let metrics_sink = config.metrics_sink_shared_opt().or(metrics_from_runtime);
+    let telemetry_builder = config.failure_telemetry_builder_shared_opt();
     let root_failure_telemetry = if let Some(builder) = telemetry_builder {
       let ctx = TelemetryContext::new(metrics_sink.clone(), extensions.clone());
       builder.build(&ctx)
     } else {
-      config.failure_telemetry_shared().unwrap_or_else(default_failure_telemetry_shared)
+      config.failure_telemetry_shared_opt().unwrap_or_else(default_failure_telemetry_shared)
     };
 
-    let mut observation_config = config.failure_observation_config().unwrap_or_default();
+    let mut observation_config = config.failure_observation_config_opt().unwrap_or_default();
     if let Some(sink) = metrics_sink.clone() {
       if observation_config.metrics_sink().is_none() {
         observation_config.set_metrics_sink(Some(sink));
@@ -108,7 +108,7 @@ where
     };
 
     let ready_queue_worker_count = config
-      .ready_queue_worker_count()
+      .ready_queue_worker_count_opt()
       // SAFETY: NonZeroUsize::new(1) is always Some(1)
       .unwrap_or_else(|| unsafe { NonZeroUsize::new_unchecked(1) });
 
@@ -125,7 +125,7 @@ where
   pub fn new_with_actor_runtime_and_event_stream<E>(actor_runtime: AR, event_stream: &E) -> Self
   where
     E: FailureEventStream, {
-    let config = ActorSystemConfig::default().with_failure_event_listener(Some(event_stream.listener()));
+    let config = ActorSystemConfig::default().with_failure_event_listener_opt(Some(event_stream.listener()));
     Self::new_with_actor_runtime(actor_runtime, config)
   }
 

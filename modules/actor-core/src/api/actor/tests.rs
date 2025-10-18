@@ -112,7 +112,7 @@ mod ready_queue_worker_configuration {
     let mailbox_factory = TestMailboxFactory::unbounded();
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone());
     let worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
-    let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(worker_count));
+    let config = ActorSystemConfig::default().with_ready_queue_worker_count_opt(Some(worker_count));
 
     let system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
     let runner = system.into_runner();
@@ -125,7 +125,7 @@ mod ready_queue_worker_configuration {
     let mailbox_factory = TestMailboxFactory::unbounded();
     let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory);
     let worker_count = NonZeroUsize::new(4).expect("non-zero worker count");
-    let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(worker_count));
+    let config = ActorSystemConfig::default().with_ready_queue_worker_count_opt(Some(worker_count));
 
     let system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
     let updated = NonZeroUsize::new(6).expect("non-zero worker count");
@@ -145,7 +145,7 @@ mod builder_api {
     let worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
 
     let system: ActorSystem<u32, _> = ActorSystem::builder(actor_runtime)
-      .configure(|config| config.set_ready_queue_worker_count(Some(worker_count)))
+      .configure(|config| config.set_ready_queue_worker_count_opt(Some(worker_count)))
       .build();
     let runner = system.into_runner();
 
@@ -269,7 +269,7 @@ mod receive_timeout_injection {
         driver_calls.clone(),
         driver_factory_calls.clone(),
       ))))
-      .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
+      .with_receive_timeout_scheduler_factory_shared(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
 
@@ -296,13 +296,14 @@ mod receive_timeout_injection {
         driver_calls.clone(),
         driver_factory_calls.clone(),
       ))))
-      .with_receive_timeout_factory(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
+      .with_receive_timeout_scheduler_factory_shared(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
 
-    let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default().with_receive_timeout_factory(Some(
-      ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(config_factory_calls.clone())),
-    ));
+    let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default()
+      .with_receive_timeout_scheduler_factory_shared_opt(Some(ReceiveTimeoutSchedulerFactoryShared::new(
+        CountingFactory::new(config_factory_calls.clone()),
+      )));
 
     let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
     spawn_test_actor(&mut system);
@@ -397,7 +398,7 @@ fn test_supervise_stop_on_failure() {
   });
 
   let actor_runtime = GenericActorRuntime::new(TestMailboxFactory::unbounded());
-  let config = ActorSystemConfig::default().with_failure_event_listener(Some(listener));
+  let config = ActorSystemConfig::default().with_failure_event_listener_opt(Some(listener));
   let mut system: ActorSystem<u32, _, AlwaysRestart> = ActorSystem::new_with_actor_runtime(actor_runtime, config);
 
   let props = Props::with_behavior(|| {
@@ -1105,7 +1106,7 @@ mod metrics_injection {
       Err(SpawnError::Queue(QueueError::Disconnected))
     }
 
-    fn set_receive_timeout_factory(
+    fn set_receive_timeout_scheduler_factory_shared(
       &mut self,
       _factory: Option<crate::api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared<M, MF>>,
     ) {

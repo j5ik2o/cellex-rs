@@ -16,7 +16,7 @@ use crate::{
 /// Receives a priority mailbox and SystemMessage conversion function when creating actors,
 /// and assembles a runtime-specific `ReceiveTimeoutScheduler`.
 /// By configuring the system through `ActorSystemConfig::with_receive_timeout_factory` or
-/// `ActorSystemConfig::set_receive_timeout_factory` before constructing it,
+/// `ActorSystemConfig::set_receive_timeout_scheduler_factory_shared_opt` before constructing it,
 /// all actors can handle timeouts with the same policy.
 pub trait ReceiveTimeoutSchedulerFactory<M, MF>: SchedulerFactoryBound
 where
