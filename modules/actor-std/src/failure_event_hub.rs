@@ -47,7 +47,6 @@ impl FailureEventHub {
       listener(event.clone());
     }
   }
-
 }
 
 impl FailureEventStream for FailureEventHub {
