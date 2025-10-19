@@ -1,5 +1,6 @@
 #![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 
 use super::{NodeId, Pid, PidParseError, PidTag, SystemId};
 use crate::{

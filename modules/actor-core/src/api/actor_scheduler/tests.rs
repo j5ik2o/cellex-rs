@@ -360,7 +360,7 @@ fn immediate_scheduler_builder_dispatches() {
 
   spawn_with_runtime(
     scheduler.as_mut(),
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(|sys| dyn_system(sys)),
@@ -433,7 +433,7 @@ fn actor_context_exposes_parent_watcher() {
 
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(|sys| dyn_system(sys)),
@@ -467,7 +467,7 @@ fn scheduler_dispatches_high_priority_first() {
 
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(|sys| dyn_system(sys)),
@@ -519,12 +519,12 @@ fn scheduler_prioritizes_system_messages() {
 
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(|sys| dyn_system(sys)),
     handler_from_message(move |_, msg| {
-      log_clone.borrow_mut().push(msg.clone());
+      log_clone.borrow_mut().push(msg);
     }),
   )
   .unwrap();
@@ -550,7 +550,7 @@ fn priority_actor_ref_sends_system_messages() {
 
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(|sys| dyn_system(sys)),

@@ -20,7 +20,7 @@ fn priority_table_matches_expected_values() {
     (SystemMessage::Restart, base + 11),
     (SystemMessage::Suspend, base + 9),
     (SystemMessage::Resume, base + 9),
-    (SystemMessage::Escalate(failure_info.clone()), base + 13),
+    (SystemMessage::Escalate(failure_info), base + 13),
     (SystemMessage::ReceiveTimeout, base + 8),
   ];
 

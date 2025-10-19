@@ -1,3 +1,5 @@
+#![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
 use std::sync::{Arc, Mutex};
 
 use crate::api::{

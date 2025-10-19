@@ -1,4 +1,5 @@
 #![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
 #![cfg(feature = "std")]
 
 use std::{
@@ -63,7 +64,7 @@ fn tracing_failure_telemetry_emits_error_log() {
   let metadata = FailureMetadata::default();
   let path = ActorPath::new();
   let failure = ActorFailure::from_message("log check");
-  let info = FailureInfo::new_with_metadata(ActorId(7), path, failure, metadata.clone())
+  let info = FailureInfo::new_with_metadata(ActorId(7), path, failure, metadata)
     .with_stage(EscalationStage::Escalated { hops: 3 });
   let snapshot = FailureSnapshot::from_failure_info(&info);
 

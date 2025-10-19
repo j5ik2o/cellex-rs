@@ -50,7 +50,7 @@ fn guardian_sends_restart_message() {
   let parent_id = ActorId(1);
   let parent_path = ActorPath::new();
   let (actor_id, _path) =
-    guardian.register_child(ref_control.clone(), system_mapper(), Some(parent_id), &parent_path).unwrap();
+    guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
   let first_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(extract_system(first_envelope.into_parts().0), SystemMessage::Watch(parent_id));
@@ -83,7 +83,7 @@ fn guardian_sends_stop_message() {
   let parent_id = ActorId(7);
   let parent_path = ActorPath::new();
   let (actor_id, _path) =
-    guardian.register_child(ref_control.clone(), system_mapper(), Some(parent_id), &parent_path).unwrap();
+    guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
   let watch_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(extract_system(watch_envelope.into_parts().0), SystemMessage::Watch(parent_id));
@@ -103,7 +103,7 @@ fn guardian_emits_unwatch_on_remove() {
   let parent_id = ActorId(3);
   let parent_path = ActorPath::new();
   let (actor_id, _path) =
-    guardian.register_child(ref_control.clone(), system_mapper(), Some(parent_id), &parent_path).unwrap();
+    guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
   // consume watch message
   let _ = mailbox.queue().poll().unwrap().unwrap();
@@ -134,7 +134,7 @@ fn guardian_strategy_receives_behavior_failure() {
   let captured = Arc::new(Mutex::new(Vec::new()));
   let mut guardian: Guardian<TestMailboxFactory, CaptureStrategy> = Guardian::new(CaptureStrategy(captured.clone()));
   let parent_path = ActorPath::new();
-  let (actor_id, _) = guardian.register_child(ref_control.clone(), system_mapper(), None, &parent_path).unwrap();
+  let (actor_id, _) = guardian.register_child(ref_control, system_mapper(), None, &parent_path).unwrap();
 
   guardian.notify_failure(actor_id, ActorFailure::from_message("child boom")).expect("notify succeeds");
 
@@ -152,7 +152,7 @@ fn guardian_rejects_duplicate_names() {
   let parent_path = ActorPath::new();
   guardian
     .register_child_with_naming(
-      ref_control.clone(),
+      ref_control,
       system_mapper(),
       None,
       &parent_path,
