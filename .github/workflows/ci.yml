@@ -21,7 +21,7 @@ jobs:
         with:
           toolchain: nightly
           components: rustfmt
-      - run: ./scripts/ci.sh lint
+      - run: ./scripts/ci-check.sh lint
   no-std:
     name: no-std
     runs-on: ubuntu-latest
@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - run: ./scripts/ci.sh no-std
+      - run: ./scripts/ci-check.sh no-std
   embedded:
     name: embedded
     runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - run: rustup target add thumbv6m-none-eabi thumbv8m.main-none-eabi
-      - run: ./scripts/ci.sh embedded
+      - run: ./scripts/ci-check.sh embedded
   std:
     name: std
     runs-on: ubuntu-latest
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - run: ./scripts/ci.sh std
+      - run: ./scripts/ci-checkj.sh std
   test:
     name: test
     runs-on: ubuntu-latest
@@ -58,4 +58,4 @@ jobs:
       - uses: actions/checkout@v5
       - uses: arduino/setup-protoc@v3
       - uses: dtolnay/rust-toolchain@stable
-      - run: ./scripts/ci.sh test
+      - run: ./scripts/ci-check.sh test
