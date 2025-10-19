@@ -20,6 +20,7 @@ members = [
 
 [workspace.metadata.dylint]
 libraries = [
+  { path = "lints/mod-file-lint" },
   { path = "lints/module-wiring-lint" },
   { path = "lints/tests-location-lint" },
 ]

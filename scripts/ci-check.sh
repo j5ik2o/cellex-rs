@@ -60,7 +60,7 @@ ensure_target_installed() {
 }
 
 run_lint() {
-  log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check (excluding module-wiring-lint)"
+  log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check"
   cargo "+${FMT_TOOLCHAIN}" fmt --all -- --check
 }
 
@@ -69,6 +69,7 @@ run_dylint() {
   toolchain="nightly-$(rustc +nightly -vV | awk '/^host:/{print $2}')"
 
   local lint_paths=(
+    "lints/mod-file-lint"
     "lints/module-wiring-lint"
     "lints/tests-location-lint"
   )
@@ -101,8 +102,8 @@ run_dylint() {
   local dylint_library_path
   dylint_library_path="$(IFS=:; echo "${lib_dirs[*]}")"
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata"
-  DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata
+  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace --lib mod_file_lint --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata"
+  DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace --lib mod_file_lint --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata
 }
 
 run_clippy() {
