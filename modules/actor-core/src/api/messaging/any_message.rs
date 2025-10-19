@@ -41,6 +41,7 @@ impl AnyMessage {
   }
 
   /// Attempts to downcast to type `T` through a shared reference.
+  #[must_use]
   pub fn downcast_ref<T>(&self) -> Option<&T>
   where
     T: AnyMessageValue + 'static, {
@@ -48,6 +49,7 @@ impl AnyMessage {
   }
 
   /// Attempts to downcast to type `T` through a mutable reference.
+  #[must_use]
   pub fn downcast_mut<T>(&mut self) -> Option<&mut T>
   where
     T: AnyMessageValue + 'static, {
@@ -55,6 +57,7 @@ impl AnyMessage {
   }
 
   /// Extracts the internal type-erased value.
+  #[must_use]
   pub fn into_any(self) -> Box<DynMessageInner> {
     self.inner
   }

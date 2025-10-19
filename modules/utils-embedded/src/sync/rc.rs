@@ -33,11 +33,12 @@ impl<T> RcShared<T> {
   }
 
   /// Creates a shared reference from an existing `Rc`.
-  pub fn from_rc(rc: Rc<T>) -> Self {
+  pub const fn from_rc(rc: Rc<T>) -> Self {
     Self(rc)
   }
 
   /// Extracts the inner `Rc`.
+  #[must_use]
   pub fn into_inner(self) -> Rc<T> {
     self.0
   }
@@ -129,11 +130,12 @@ impl<T> RcStateCell<T> {
   }
 
   /// Creates a state cell from an existing `Rc<RefCell<T>>`.
-  pub fn from_rc(rc: Rc<RefCell<T>>) -> Self {
+  pub const fn from_rc(rc: Rc<RefCell<T>>) -> Self {
     Self(rc)
   }
 
   /// Extracts the inner `Rc<RefCell<T>>`.
+  #[must_use]
   pub fn into_rc(self) -> Rc<RefCell<T>> {
     self.0
   }

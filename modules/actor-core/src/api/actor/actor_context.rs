@@ -42,6 +42,9 @@ use crate::{
   internal::actor_context::InternalActorContext,
 };
 
+type ActorRegistryShared<AR> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 #[cfg(target_has_atomic = "ptr")]
 pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
 
@@ -148,19 +151,19 @@ where
 
   /// Gets the actor ID of this actor.
   #[must_use]
-  pub fn actor_id(&self) -> ActorId {
+  pub const fn actor_id(&self) -> ActorId {
     self.inner.actor_id()
   }
 
   /// Gets the actor path of this actor.
   #[must_use]
-  pub fn actor_path(&self) -> &ActorPath {
+  pub const fn actor_path(&self) -> &ActorPath {
     self.inner.actor_path()
   }
 
   /// Gets the list of actor IDs watching this actor.
   #[must_use]
-  pub fn watchers(&self) -> &[ActorId] {
+  pub const fn watchers(&self) -> &[ActorId] {
     self.inner.watchers()
   }
 
@@ -172,16 +175,13 @@ where
 
   /// Gets the PID representing this actor.
   #[must_use]
-  pub fn self_pid(&self) -> &Pid {
+  pub const fn self_pid(&self) -> &Pid {
     self.inner.pid()
   }
 
   /// Returns the process registry handle for PID resolution.
   #[must_use]
-  pub fn process_registry(
-    &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
-  {
+  pub fn process_registry(&self) -> ActorRegistryShared<AR> {
     self.inner.process_registry()
   }
 

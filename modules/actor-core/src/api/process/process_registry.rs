@@ -48,7 +48,7 @@ pub struct ProcessRegistry<T, M> {
 impl<T, M> ProcessRegistry<T, M> {
   /// Creates a new process registry for the given system/node combination.
   #[must_use]
-  pub fn new(system: SystemId, node: Option<NodeId>) -> Self {
+  pub const fn new(system: SystemId, node: Option<NodeId>) -> Self {
     Self { system, node, processes: RwLock::new(BTreeMap::new()), dead_letters: RwLock::new(DeadLetterHub::new()) }
   }
 

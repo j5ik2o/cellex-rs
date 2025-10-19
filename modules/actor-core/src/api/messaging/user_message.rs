@@ -41,7 +41,7 @@ impl<U> UserMessage<U> {
   /// # Returns
   /// Reference to the user message
   pub fn message(&self) -> &U {
-    &*self.message
+    &self.message
   }
 
   /// Decomposes into message and metadata key.

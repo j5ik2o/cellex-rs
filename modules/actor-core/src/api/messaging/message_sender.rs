@@ -46,6 +46,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Internal message sender
+  #[must_use]
   pub fn from_internal(inner: InternalMessageSender<C>) -> Self {
     Self::new(inner)
   }
@@ -57,6 +58,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the destination refuses the message.
   pub fn dispatch_user(&self, message: M) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.dispatch_envelope(MessageEnvelope::user(message))
   }
@@ -68,6 +72,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the destination refuses the message.
   pub fn dispatch_envelope(
     &self,
     envelope: MessageEnvelope<M>,
@@ -84,6 +91,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the destination refuses the message.
   pub fn dispatch_with_priority(
     &self,
     envelope: MessageEnvelope<M>,

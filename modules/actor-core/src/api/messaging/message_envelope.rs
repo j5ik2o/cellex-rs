@@ -25,7 +25,7 @@ where
   ///
   /// # Arguments
   /// * `message` - User message
-  pub fn user(message: U) -> Self {
+  pub const fn user(message: U) -> Self {
     MessageEnvelope::User(UserMessage::new(message))
   }
 

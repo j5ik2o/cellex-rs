@@ -23,6 +23,11 @@ use crate::{
   RuntimeBound,
 };
 
+type ActorProcessRegistry<AR> =
+  ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>;
+type ActorRegistryShared<AR> = ArcShared<ActorProcessRegistry<AR>>;
+type ActorRegistrySharedRef<'a, AR> = Option<&'a ActorRegistryShared<AR>>;
+
 /// Typed actor reference.
 ///
 /// Used to send user messages and system messages to the mailbox,
@@ -38,9 +43,7 @@ where
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   inner:            PriorityActorRef<AnyMessage, MailboxOf<AR>>,
   pid_slot:         ArcShared<RwLock<Option<Pid>>>,
-  process_registry: Option<
-    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
-  >,
+  process_registry: Option<ActorRegistryShared<AR>>,
   _marker:          PhantomData<U>,
 }
 
@@ -57,9 +60,7 @@ where
   pub(crate) const fn new(
     inner: PriorityActorRef<AnyMessage, MailboxOf<AR>>,
     pid_slot: ArcShared<RwLock<Option<Pid>>>,
-    process_registry: Option<
-      ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
-    >,
+    process_registry: Option<ActorRegistryShared<AR>>,
   ) -> Self {
     Self { inner, pid_slot, process_registry, _marker: PhantomData }
   }
@@ -128,28 +129,21 @@ where
   fn dispatch_envelope_with_parts(
     inner: &PriorityActorRef<AnyMessage, MailboxOf<AR>>,
     pid_slot: &ArcShared<RwLock<Option<Pid>>>,
-    registry: Option<
-      &ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
-    >,
+    registry: ActorRegistrySharedRef<'_, AR>,
     envelope: PriorityEnvelope<AnyMessage>,
     unresolved_reason: DeadLetterReason,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let pid_opt = Self::current_pid_from_slot(pid_slot);
     if let (Some(registry), Some(pid)) = (registry, pid_opt.as_ref()) {
       let envelope_shared = ArcShared::new(envelope);
-      let resolution = registry.with_ref(
-        |registry: &ProcessRegistry<
-          PriorityActorRef<AnyMessage, MailboxOf<AR>>,
-          ArcShared<PriorityEnvelope<AnyMessage>>,
-        >| {
-          registry.resolve_or_dead_letter_with_remote(
-            pid,
-            envelope_shared.clone(),
-            unresolved_reason,
-            DeadLetterReason::NetworkUnreachable,
-          )
-        },
-      );
+      let resolution = registry.with_ref(|registry: &ActorProcessRegistry<AR>| {
+        registry.resolve_or_dead_letter_with_remote(
+          pid,
+          envelope_shared.clone(),
+          unresolved_reason,
+          DeadLetterReason::NetworkUnreachable,
+        )
+      });
       let Some(handle) = resolution else {
         return Err(QueueError::Disconnected);
       };
@@ -173,9 +167,7 @@ where
   fn dispatch_dyn_with_parts(
     inner: &PriorityActorRef<AnyMessage, MailboxOf<AR>>,
     pid_slot: &ArcShared<RwLock<Option<Pid>>>,
-    registry: Option<
-      &ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
-    >,
+    registry: ActorRegistrySharedRef<'_, AR>,
     message: AnyMessage,
     priority: i8,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
@@ -184,9 +176,7 @@ where
   }
 
   fn map_send_result(
-    registry: Option<
-      &ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
-    >,
+    registry: ActorRegistrySharedRef<'_, AR>,
     pid: Option<&Pid>,
     result: Result<(), QueueError<PriorityEnvelope<AnyMessage>>>,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
@@ -197,9 +187,7 @@ where
   }
 
   fn handle_send_error(
-    registry: Option<
-      &ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
-    >,
+    registry: ActorRegistrySharedRef<'_, AR>,
     pid: Option<&Pid>,
     error: QueueError<PriorityEnvelope<AnyMessage>>,
   ) -> QueueError<PriorityEnvelope<AnyMessage>> {
@@ -207,15 +195,10 @@ where
       | QueueError::Full(envelope) => {
         if let (Some(registry), Some(pid)) = (registry, pid) {
           let shared = ArcShared::new(envelope);
-          registry.with_ref(
-            |registry: &ProcessRegistry<
-              PriorityActorRef<AnyMessage, MailboxOf<AR>>,
-              ArcShared<PriorityEnvelope<AnyMessage>>,
-            >| {
-              let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::DeliveryRejected);
-              registry.publish_dead_letter(&letter);
-            },
-          );
+          registry.with_ref(|registry: &ActorProcessRegistry<AR>| {
+            let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::DeliveryRejected);
+            registry.publish_dead_letter(&letter);
+          });
           match Self::take_shared_envelope(shared) {
             | Some(envelope) => QueueError::Full(envelope),
             | None => QueueError::Disconnected,
@@ -227,15 +210,10 @@ where
       | QueueError::OfferError(envelope) => {
         if let (Some(registry), Some(pid)) = (registry, pid) {
           let shared = ArcShared::new(envelope);
-          registry.with_ref(
-            |registry: &ProcessRegistry<
-              PriorityActorRef<AnyMessage, MailboxOf<AR>>,
-              ArcShared<PriorityEnvelope<AnyMessage>>,
-            >| {
-              let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::DeliveryRejected);
-              registry.publish_dead_letter(&letter);
-            },
-          );
+          registry.with_ref(|registry: &ActorProcessRegistry<AR>| {
+            let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::DeliveryRejected);
+            registry.publish_dead_letter(&letter);
+          });
           match Self::take_shared_envelope(shared) {
             | Some(envelope) => QueueError::OfferError(envelope),
             | None => QueueError::Disconnected,
@@ -247,15 +225,10 @@ where
       | QueueError::Closed(envelope) => {
         if let (Some(registry), Some(pid)) = (registry, pid) {
           let shared = ArcShared::new(envelope);
-          registry.with_ref(
-            |registry: &ProcessRegistry<
-              PriorityActorRef<AnyMessage, MailboxOf<AR>>,
-              ArcShared<PriorityEnvelope<AnyMessage>>,
-            >| {
-              let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated);
-              registry.publish_dead_letter(&letter);
-            },
-          );
+          registry.with_ref(|registry: &ActorProcessRegistry<AR>| {
+            let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated);
+            registry.publish_dead_letter(&letter);
+          });
           match Self::take_shared_envelope(shared) {
             | Some(envelope) => QueueError::Closed(envelope),
             | None => QueueError::Disconnected,
@@ -280,6 +253,9 @@ where
   }
 
   /// Sends a message (Fire-and-Forget).
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the underlying mailbox rejects the message.
   pub fn tell(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let dyn_message = Self::wrap_user(message);
     let envelope = PriorityEnvelope::with_default_priority(dyn_message);
@@ -287,6 +263,9 @@ where
   }
 
   /// Sends a message with specified priority.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the underlying mailbox rejects the message.
   pub fn tell_with_priority(&self, message: U, priority: i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let dyn_message = Self::wrap_user(message);
     let envelope = PriorityEnvelope::new(dyn_message, priority);
@@ -294,6 +273,9 @@ where
   }
 
   /// Sends a system message.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the underlying mailbox rejects the message.
   pub fn send_system(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let envelope = PriorityEnvelope::from_system(message).map(|sys| AnyMessage::new(MessageEnvelope::<U>::System(sys)));
     self.dispatch_envelope_internal(envelope, DeadLetterReason::UnregisteredPid)
