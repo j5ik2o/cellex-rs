@@ -73,6 +73,7 @@ run_dylint() {
     "tests-location-lint:lints/tests-location-lint"
     "use-placement-lint:lints/use-placement-lint"
     "mod-reexport-lint:lints/mod-reexport-lint"
+    "rustdoc-lint:lints/rustdoc-lint"
   )
 
   local -a selected=()
