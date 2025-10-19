@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 extern crate alloc;
 
 use super::*;
