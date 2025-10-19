@@ -15,6 +15,7 @@ pub struct TestSignal {
 
 impl TestSignal {
   /// Creates a signal with a fresh backing state.
+  #[must_use]
   pub fn new() -> Self {
     Self::default()
   }

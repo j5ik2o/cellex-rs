@@ -7,6 +7,7 @@ pub struct SharedBackendHandle<T>(ArcShared<RingBufferBackend<RefCell<MpscBuffer
 
 impl<T> SharedBackendHandle<T> {
   /// Creates a new handle with an optional custom queue capacity.
+  #[must_use]
   pub fn new(capacity: Option<usize>) -> Self {
     let buffer = RefCell::new(MpscBuffer::new(capacity));
     let backend = RingBufferBackend::new(buffer);

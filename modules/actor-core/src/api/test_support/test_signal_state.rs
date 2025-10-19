@@ -7,17 +7,20 @@ pub struct TestSignalState {
 
 impl TestSignalState {
   /// Creates a state value with an explicit notification flag and stored waker.
-  pub fn new(notified: bool, waker: Option<core::task::Waker>) -> Self {
+  #[must_use]
+  pub const fn new(notified: bool, waker: Option<core::task::Waker>) -> Self {
     Self { notified, waker }
   }
 
   /// Returns whether the signal has been delivered.
-  pub fn notified(&self) -> bool {
+  #[must_use]
+  pub const fn notified(&self) -> bool {
     self.notified
   }
 
   /// Returns the waker currently waiting on the signal.
-  pub fn waker(&self) -> Option<&core::task::Waker> {
+  #[must_use]
+  pub const fn waker(&self) -> Option<&core::task::Waker> {
     self.waker.as_ref()
   }
 }
