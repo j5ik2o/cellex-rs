@@ -332,6 +332,9 @@ where
 
   /// Generates a response channel internally, sends `message`, and returns `AskFuture` (internal
   /// API).
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when sending the request fails.
   pub(crate) fn request_future<Resp>(&self, message: U) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element, {
@@ -342,6 +345,9 @@ where
   }
 
   /// Issues `ask` with specified sender actor reference (internal API).
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when sending the request fails.
   #[allow(dead_code)]
   pub(crate) fn request_future_from<Resp, S>(
     &self,
@@ -357,6 +363,9 @@ where
   }
 
   /// Issues `ask` with arbitrary dispatcher as sender (internal API).
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when sending the request fails.
   #[allow(dead_code)]
   pub(crate) fn request_future_with_dispatcher<Resp, S>(
     &self,
@@ -434,6 +443,9 @@ where
   }
 
   /// Constructs a message using a factory function and sends it with `ask` pattern.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when sending the request fails.
   pub fn ask_with<Resp, F>(&self, factory: F) -> AskResult<AskFuture<Resp>>
   where
     Resp: Element,
@@ -447,6 +459,9 @@ where
   }
 
   /// Issues `ask` using a factory function with timeout.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when sending the request fails.
   pub fn ask_with_timeout<Resp, F, TFut>(&self, factory: F, timeout: TFut) -> AskResult<AskTimeoutFuture<Resp, TFut>>
   where
     Resp: Element,

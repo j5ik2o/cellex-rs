@@ -30,7 +30,8 @@ pub enum SystemMessage {
 
 impl SystemMessage {
   /// Returns the recommended runtime priority for the system message.
-  pub fn priority(&self) -> i8 {
+  #[must_use]
+  pub const fn priority(&self) -> i8 {
     match self {
       | SystemMessage::Watch(_) | SystemMessage::Unwatch(_) => DEFAULT_PRIORITY + 5,
       | SystemMessage::Stop => DEFAULT_PRIORITY + 10,
