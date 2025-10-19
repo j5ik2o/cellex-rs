@@ -31,7 +31,7 @@ where
   pub(crate) metrics_sink_opt: Option<MetricsSinkShared>,
   /// Shared registry of actor system extensions.
   pub(crate) extensions: Extensions,
-  /// Telemetry invoked when failures reach the root guardian。
+  /// Telemetry invoked when failures reach the root guardian.
   pub(crate) root_failure_telemetry_shared: FailureTelemetryShared,
   /// Observation config applied to telemetry calls.
   pub(crate) root_observation_config: TelemetryObservationConfig,

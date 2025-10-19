@@ -2,8 +2,9 @@
 
 use alloc::{boxed::Box, sync::Arc};
 
+use async_trait::async_trait;
 use cellex_utils_core_rs::{
-  async_trait, Synchronized as CoreSynchronized, SynchronizedMutexBackend, SynchronizedRw as CoreSynchronizedRw,
+  Synchronized as CoreSynchronized, SynchronizedMutexBackend, SynchronizedRw as CoreSynchronizedRw,
   SynchronizedRwBackend,
 };
 use embassy_sync::{

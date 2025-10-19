@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-/// Telemetry に渡されるタグ（キー／バリュー）ペア。
+/// Key/value pair attached to telemetry events.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TelemetryTag {
   key:   Cow<'static, str>,
@@ -8,19 +8,19 @@ pub struct TelemetryTag {
 }
 
 impl TelemetryTag {
-  /// 新しいタグを生成する。
+  /// Creates a new telemetry tag.
   #[must_use]
   pub fn new(key: impl Into<Cow<'static, str>>, value: impl Into<Cow<'static, str>>) -> Self {
     Self { key: key.into(), value: value.into() }
   }
 
-  /// タグのキーを返す。
+  /// Returns the tag key.
   #[must_use]
   pub fn key(&self) -> &str {
     self.key.as_ref()
   }
 
-  /// タグの値を返す。
+  /// Returns the tag value.
   #[must_use]
   pub fn value(&self) -> &str {
     self.value.as_ref()

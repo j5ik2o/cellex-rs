@@ -28,9 +28,9 @@ where
   metrics_sink_shared_opt: Option<MetricsSinkShared>,
   /// Telemetry invoked when failures reach the root guardian.
   failure_telemetry_shared_opt: Option<FailureTelemetryShared>,
-  /// Builder used to create telemetry implementations。
+  /// Builder used to create telemetry implementations.
   failure_telemetry_builder_shared_opt: Option<FailureTelemetryBuilderShared>,
-  /// Observation configuration applied to telemetry calls。
+  /// Observation configuration applied to telemetry calls.
   failure_observation_config_opt: Option<TelemetryObservationConfig>,
   /// Extension registry configured for the actor system.
   extensions: Extensions,

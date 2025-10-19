@@ -16,17 +16,6 @@ mod tests;
 ///
 /// * `H` - Backend handle type implementing [`StackHandle`]
 /// * `T` - Type of elements stored in the stack
-///
-/// # Examples
-///
-/// ```ignore
-/// use cellex_utils_core_rs::{Stack, StackStorageBackend};
-///
-/// let backend = /* create StackHandle implementation */;
-/// let stack = Stack::new(backend);
-/// stack.push(42).unwrap();
-/// assert_eq!(stack.pop(), Some(42));
-/// ```
 #[derive(Debug)]
 pub struct Stack<H, T>
 where

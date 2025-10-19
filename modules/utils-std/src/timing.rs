@@ -1,6 +1,7 @@
-//! std ランタイムで利用するタイマー実装の束ね。
+//! Timer utilities bundled for the `std` runtime.
 //!
-//! 現状は `TokioDeadlineTimer` のみを公開し、`ReceiveTimeout` などの高レベル API から利用する。
+//! Currently only re-exports `TokioDeadlineTimer`, which powers higher-level APIs such as
+//! `ReceiveTimeout`.
 
 mod tokio_deadline_timer;
 

@@ -1,4 +1,4 @@
-//! Tokio 上で `ActorSystem::run_until` を起動する最小サンプル。
+//! Minimal example that drives `ActorSystem::run_until` on Tokio.
 
 use std::sync::{Arc, Mutex};
 

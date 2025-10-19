@@ -1,6 +1,6 @@
 use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
 
-/// Telemetry 呼び出しの観測設定。
+/// Configuration controlling telemetry observations.
 #[derive(Clone, Default, Debug)]
 pub struct TelemetryObservationConfig {
   metrics:       Option<MetricsSinkShared>,
@@ -8,42 +8,42 @@ pub struct TelemetryObservationConfig {
 }
 
 impl TelemetryObservationConfig {
-  /// 新しい設定を生成する。
+  /// Creates a new configuration instance.
   #[must_use]
   pub fn new() -> Self {
     Self::default()
   }
 
-  /// メトリクスシンクを設定する。
+  /// Sets the metrics sink used to record observations.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.metrics = sink;
   }
 
-  /// メトリクスシンクを持つ設定を返す（builder 用）。
+  /// Returns a configuration with the provided metrics sink set (builder-style).
   #[must_use]
   pub fn with_metrics_sink(mut self, sink: MetricsSinkShared) -> Self {
     self.metrics = Some(sink);
     self
   }
 
-  /// 現在のメトリクスシンクを参照する。
+  /// Returns the currently configured metrics sink, if any.
   #[must_use]
   pub fn metrics_sink(&self) -> Option<&MetricsSinkShared> {
     self.metrics.as_ref()
   }
 
-  /// 呼び出し時間計測の有効／無効を設定する。
+  /// Enables or disables recording of call duration.
   pub fn set_record_timing(&mut self, enabled: bool) {
     self.record_timing = enabled;
   }
 
-  /// 呼び出し時間を記録するかどうか。
+  /// Indicates whether call duration should be recorded.
   #[must_use]
   pub fn should_record_timing(&self) -> bool {
     self.record_timing
   }
 
-  /// Telemetry 呼び出し後に観測結果を記録する。
+  /// Records telemetry observations after a call completes.
   pub fn observe(&self, elapsed: Option<core::time::Duration>) {
     if let Some(metrics) = &self.metrics {
       metrics.with_ref(|sink| {

@@ -83,7 +83,7 @@ impl<T, M> ProcessRegistry<T, M> {
     self.processes.write().remove(&Self::pid_key(pid));
   }
 
-  /// Resolves a PID to a process handle, remote indicator、 or unresolved.
+  /// Resolves a PID to a process handle, remote indicator, or unresolved.
   pub fn resolve_pid(&self, pid: &Pid) -> ProcessResolution<T> {
     if pid.system() != &self.system {
       return ProcessResolution::Remote;

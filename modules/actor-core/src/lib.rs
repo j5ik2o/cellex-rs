@@ -11,17 +11,6 @@
 //! - Ask pattern (Request-Response)
 //! - Mailboxes and dispatchers
 //! - Event stream
-//!
-//! # Example Usage
-//! ```ignore
-//! use cellex_actor_core_rs::*;
-//!
-//! let behavior = Behaviors::receive(|ctx, msg: String| {
-//!     println!("Received: {}", msg);
-//!     Ok(Behaviors::same())
-//! });
-//! ```
-
 #![deny(missing_docs)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 #![deny(rustdoc::broken_intra_doc_links)]

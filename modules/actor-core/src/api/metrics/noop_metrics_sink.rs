@@ -1,6 +1,6 @@
 use super::{metrics_event::MetricsEvent, metrics_sink::MetricsSink};
 
-/// 何も記録しないノップ実装。
+/// No-op metrics sink that intentionally records nothing.
 #[derive(Clone, Default)]
 pub struct NoopMetricsSink;
 

@@ -9,13 +9,6 @@ use crate::api::{
 ///
 /// Supervisor strategy that always instructs actor restart regardless of error type.
 /// Suitable when expecting automatic recovery from temporary failures.
-///
-/// # Example Usage
-/// ```ignore
-/// let strategy = AlwaysRestart;
-/// // A guardian using this strategy will always attempt to restart
-/// // child actors when they fail
-/// ```
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AlwaysRestart;
 

@@ -1,4 +1,4 @@
-//! [`prost`] を利用した Protobuf シリアライザ実装。
+//! Protobuf serializer implementation backed by [`prost`].
 
 #![deny(missing_docs)]
 
@@ -12,21 +12,21 @@ use cellex_serialization_core_rs::{
 use cellex_utils_core_rs::sync::ArcShared;
 use prost::Message;
 
-/// `prost` 用に予約されたシリアライザ ID。
+/// Serializer ID reserved for the `prost` backend.
 pub const PROST_SERIALIZER_ID: SerializerId = SerializerId::new(2);
 
-/// `prost` をバックエンドとするシリアライザ。
+/// Serializer implementation backed by `prost`.
 #[derive(Debug, Clone, Default)]
 pub struct ProstSerializer;
 
 impl ProstSerializer {
-  /// 新しいインスタンスを生成します。
+  /// Creates a new serializer instance.
   #[must_use]
   pub const fn new() -> Self {
     Self
   }
 
-  /// 値をシリアライズして [`SerializedMessage`] を返します。
+  /// Encodes the given message and returns it as a [`SerializedMessage`].
   pub fn serialize_message<T>(
     &self,
     type_name: Option<&str>,
@@ -39,7 +39,7 @@ impl ProstSerializer {
     self.serialize_with_type_name_opt(buffer.as_slice(), type_name)
   }
 
-  /// メッセージを指定した型にデシリアライズします。
+  /// Decodes the payload into the requested message type.
   pub fn deserialize_message<T>(&self, message: &SerializedMessage) -> Result<T, DeserializationError>
   where
     T: Message + Default, {
@@ -61,7 +61,8 @@ impl Serializer for ProstSerializer {
     payload: &[u8],
     type_name: Option<&str>,
   ) -> Result<SerializedMessage, SerializationError> {
-    // Protobuf は型情報が無いと検証できないため、そのままバイナリを保持する。
+    // Validation requires the caller to supply the concrete message type, so the binary is stored
+    // as-is.
     let mut message = SerializedMessage::new(self.serializer_id(), payload.to_vec());
     if let Some(name) = type_name {
       message.set_type_name(name);
@@ -74,7 +75,7 @@ impl Serializer for ProstSerializer {
   }
 }
 
-/// 共有シリアライザインスタンスを生成します。
+/// Returns a shared serializer handle.
 #[must_use]
 pub fn shared_prost_serializer() -> ArcShared<ProstSerializer> {
   ArcShared::new(ProstSerializer::new())

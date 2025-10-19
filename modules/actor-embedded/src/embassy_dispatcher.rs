@@ -1,9 +1,9 @@
 #![cfg(feature = "embassy_executor")]
 
-/// Embassy 向けディスパッチタスクを定義するマクロ。
+/// Macro that defines a dispatcher task for Embassy executors.
 ///
-/// # 使い方
-/// ```
+/// # Usage
+/// ```rust
 /// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
 /// use cellex_actor_core_rs::{GenericActorRuntime, ActorSystem, ActorSystemConfig};
 /// use embassy_executor::Spawner;

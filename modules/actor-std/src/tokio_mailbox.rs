@@ -36,10 +36,10 @@ where
   inner: QueueMailboxProducer<TokioQueue<M>, NotifySignal>,
 }
 
-/// Factory that creates Tokio mailboxes
+/// Factory that creates Tokio mailboxes.
 ///
-/// Creates bounded and unbounded mailboxes.
-/// CAUTION: 型名が正しい。実装は型名にふさわしいものにすること。
+/// Provides constructors for bounded and unbounded mailboxes.
+/// CAUTION: keep the type name accurate and ensure the implementation matches it.
 #[derive(Clone, Debug, Default)]
 pub struct TokioMailboxRuntime;
 

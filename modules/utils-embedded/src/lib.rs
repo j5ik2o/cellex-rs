@@ -80,26 +80,6 @@
 //! - **`rc` feature**: `Rc`-based implementation (single-threaded, default)
 //! - **`arc` feature**: `Arc`-based implementation (multi-threaded support)
 //!
-//! # Usage Examples
-//!
-//! ```ignore
-//! use cellex_utils_embedded_rs::prelude::*;
-//!
-//! // Using AsyncBarrier
-//! let barrier = RcAsyncBarrier::new(2);
-//! let other = barrier.clone();
-//!
-//! // Using CountDownLatch
-//! let latch = RcCountDownLatch::new(3);
-//! latch.count_down().await;
-//!
-//! // Using WaitGroup
-//! let wg = RcWaitGroup::new();
-//! wg.add(2);
-//! wg.done();
-//! wg.wait().await;
-//! ```
-//!
 //! # Embassy Integration
 //!
 //! This crate integrates with the [Embassy](https://embassy.dev/) ecosystem and

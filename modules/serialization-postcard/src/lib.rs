@@ -1,4 +1,4 @@
-//! `postcard` ベースのシリアライザ実装。
+//! Serializer implementation backed by the `postcard` format.
 
 #![no_std]
 #![deny(missing_docs)]
@@ -17,21 +17,21 @@ use cellex_serialization_core_rs::{
 use cellex_utils_core_rs::sync::ArcShared;
 use serde::{de::DeserializeOwned, Serialize};
 
-/// `postcard` 用に予約されたシリアライザ ID。
+/// Serializer ID reserved for the `postcard` backend.
 pub const POSTCARD_SERIALIZER_ID: SerializerId = SerializerId::new(3);
 
-/// `postcard` をバックエンドとするシリアライザ。
+/// Serializer implementation backed by `postcard`.
 #[derive(Debug, Clone, Default)]
 pub struct PostcardSerializer;
 
 impl PostcardSerializer {
-  /// 新しいインスタンスを生成します。
+  /// Creates a new serializer instance.
   #[must_use]
   pub const fn new() -> Self {
     Self
   }
 
-  /// 値をシリアライズして [`SerializedMessage`] を返します。
+  /// Encodes the given value and returns it as a [`SerializedMessage`].
   pub fn serialize_message<T>(
     &self,
     type_name: Option<&str>,
@@ -43,7 +43,7 @@ impl PostcardSerializer {
     self.serialize_with_type_name_opt(payload.as_slice(), type_name)
   }
 
-  /// メッセージを指定した型にデシリアライズします。
+  /// Decodes the payload into the requested type.
   pub fn deserialize_message<T>(&self, message: &SerializedMessage) -> Result<T, DeserializationError>
   where
     T: DeserializeOwned, {
@@ -65,7 +65,8 @@ impl Serializer for PostcardSerializer {
     payload: &[u8],
     type_name: Option<&str>,
   ) -> Result<SerializedMessage, SerializationError> {
-    // postcard は型がないと検証できない。バイト列をそのまま保持する。
+    // Validation requires the caller to supply the concrete message type, so the binary is stored
+    // as-is.
     let mut message = SerializedMessage::new(self.serializer_id(), payload.to_vec());
     if let Some(name) = type_name {
       message.set_type_name(name);
@@ -78,7 +79,7 @@ impl Serializer for PostcardSerializer {
   }
 }
 
-/// 共有シリアライザインスタンスを生成します。
+/// Returns a shared serializer handle.
 #[must_use]
 pub fn shared_postcard_serializer() -> ArcShared<PostcardSerializer> {
   ArcShared::new(PostcardSerializer::new())

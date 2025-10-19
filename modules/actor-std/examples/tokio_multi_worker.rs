@@ -1,4 +1,4 @@
-//! ReadyQueue ワーカを 4 本起動し、Tokio 上でメッセージを並列処理するサンプル。
+//! Example that spins up four ReadyQueue workers to process messages in parallel on Tokio.
 
 use std::{
   num::NonZeroUsize,

@@ -56,14 +56,6 @@ where
   /// # Arguments
   ///
   /// * `capacity` - Maximum number of elements the queue can hold
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_embedded_rs::ArcMpscBoundedQueue;
-  ///
-  /// let queue: ArcMpscBoundedQueue<i32> = ArcMpscBoundedQueue::new(10);
-  /// ```
   pub fn new(capacity: usize) -> Self {
     let storage = ArcShared::new(RingBufferBackend::new(ArcStateCell::new(MpscBuffer::new(Some(capacity)))));
     Self { inner: MpscQueue::new(storage) }

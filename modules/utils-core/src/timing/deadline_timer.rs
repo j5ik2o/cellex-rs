@@ -214,19 +214,6 @@ pub struct DeadlineTimerExpired<Item> {
 ///
 /// * `Item` - The type of items managed by the timer
 /// * `Error` - The error type that may occur during timer operations
-///
-/// # Examples
-///
-/// ```ignore
-/// use cellex_utils_core_rs::{DeadlineTimer, TimerDeadline};
-/// use core::time::Duration;
-///
-/// fn schedule_timeout<T: DeadlineTimer>(timer: &mut T, item: T::Item) {
-///     let deadline = TimerDeadline::from_duration(Duration::from_secs(5));
-///     let key = timer.insert(item, deadline).expect("Failed to insert");
-///     // Save the key if needed for later cancellation or reset
-/// }
-/// ```
 pub trait DeadlineTimer {
   /// The type of elements held by the timer.
   type Item;
