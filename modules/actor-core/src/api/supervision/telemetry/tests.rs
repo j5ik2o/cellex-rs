@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 #![cfg(feature = "std")]
 
 use std::{

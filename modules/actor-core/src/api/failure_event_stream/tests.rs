@@ -1,8 +1,10 @@
+#![allow(clippy::disallowed_types)]
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use super::FailureEventStream;
+
 use crate::api::supervision::{escalation::FailureEventListener, failure::FailureEvent};
 
 /// In-memory implementation for testing only.

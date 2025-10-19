@@ -26,6 +26,6 @@ fn rc_stack_peek_ref() {
   let stack = RcStack::new();
   stack.push(5).unwrap();
   assert_eq!(stack.peek(), Some(5));
-  stack.pop();
+  let _ = stack.pop();
   assert_eq!(stack.peek(), None);
 }

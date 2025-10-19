@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
 
 use core::{

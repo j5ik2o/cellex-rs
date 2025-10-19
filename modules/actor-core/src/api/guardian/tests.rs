@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]

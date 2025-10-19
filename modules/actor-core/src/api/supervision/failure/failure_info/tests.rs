@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use super::*;
 use crate::api::actor::actor_failure::{ActorFailure, DefaultBehaviorFailure};
 

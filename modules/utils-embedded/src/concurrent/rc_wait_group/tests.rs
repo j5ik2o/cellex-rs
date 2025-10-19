@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use futures::{executor::block_on, join};
 
 use super::WaitGroup;

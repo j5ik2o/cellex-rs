@@ -1,6 +1,8 @@
+#![allow(clippy::disallowed_types)]
 use alloc::string::String;
 
 use super::MessageEnvelope;
+
 use crate::api::mailbox::messages::{PriorityChannel, SystemMessage};
 
 #[test]

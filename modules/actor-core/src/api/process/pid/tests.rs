@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
 
 use super::{NodeId, Pid, PidParseError, PidTag, SystemId};
