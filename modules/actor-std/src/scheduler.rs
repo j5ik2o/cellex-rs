@@ -24,6 +24,8 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;
 
+use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};
+
 /// Tokio 用スケジューララッパー。
 ///
 /// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`]
@@ -147,8 +149,6 @@ where
     Box::new(TokioScheduler::<MF, AlwaysRestart>::new(mailbox_factory, extensions))
   })
 }
-
-use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};
 
 /// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `GenericActorRuntime`
 /// に適用する。

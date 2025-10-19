@@ -6,6 +6,9 @@ use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, R
 
 use crate::sync::{ArcShared, ArcStateCell};
 
+#[cfg(test)]
+mod tests;
+
 /// `Arc`-based bounded MPSC queue with configurable mutex backend
 ///
 /// This queue provides Multi-Producer-Single-Consumer semantics with a fixed capacity,
@@ -122,6 +125,3 @@ where
     self.inner.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

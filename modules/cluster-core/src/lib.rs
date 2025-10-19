@@ -120,5 +120,3 @@ where
     self.hub.listener()(event);
   }
 }
-
-

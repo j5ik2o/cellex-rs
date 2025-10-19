@@ -49,22 +49,6 @@ impl<C> InternalMessageSender<C>
 where
   C: MailboxConcurrency,
 {
-  /// Creates an `InternalMessageSender` from an internal actor reference for a factory that uses
-  /// this concurrency mode.
-  ///
-  /// # Arguments
-  /// * `actor_ref` - Actor reference to send to
-  pub(crate) fn from_factory_ref<MF>(actor_ref: PriorityActorRef<AnyMessage, MF>) -> Self
-  where
-    MF: MailboxFactory<Concurrency = C> + Clone + 'static,
-    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MF::Signal: Clone + RuntimeBound + 'static, {
-    let sender = actor_ref.clone();
-    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message, priority| {
-      sender.try_send_with_priority(message, priority)
-    })))
-  }
-
   /// Creates a new `InternalMessageSender` with the specified send function.
   ///
   /// # Arguments

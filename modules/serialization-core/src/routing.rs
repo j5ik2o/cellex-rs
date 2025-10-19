@@ -10,6 +10,9 @@ use spin::RwLock;
 
 use crate::{id::SerializerId, registry::InMemorySerializerRegistry, serializer::Serializer};
 
+#[cfg(test)]
+mod tests;
+
 /// Errors that can occur when manipulating type bindings.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BindingError {
@@ -113,6 +116,3 @@ impl SerializationRouter {
     self.serializers.get(serializer_id)
   }
 }
-
-#[cfg(test)]
-mod tests;

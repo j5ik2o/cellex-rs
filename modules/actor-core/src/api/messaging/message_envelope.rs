@@ -5,6 +5,9 @@ use crate::api::{
   messaging::{MessageMetadata, MetadataStorageMode, UserMessage},
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Typed envelope that integrates user messages and system messages.
 #[derive(Debug, Clone)]
 pub enum MessageEnvelope<U> {
@@ -55,6 +58,3 @@ where
     MessageEnvelope::user(message).into_control_envelope(priority)
   }
 }
-
-#[cfg(test)]
-mod tests;

@@ -4,6 +4,9 @@ use cellex_utils_core_rs::{
 
 use crate::ArcRingQueue;
 
+#[cfg(test)]
+mod tests;
+
 /// Priority queue
 ///
 /// A priority queue that retrieves elements based on message priority.
@@ -148,6 +151,3 @@ where
     self.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

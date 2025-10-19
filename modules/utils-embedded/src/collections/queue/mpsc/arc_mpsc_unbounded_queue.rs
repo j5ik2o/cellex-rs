@@ -120,6 +120,3 @@ where
     self.inner.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

@@ -5,6 +5,9 @@ use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, R
 
 use crate::sync::{ArcShared, ArcStateCell};
 
+#[cfg(test)]
+mod tests;
+
 /// `Arc`-based stack with configurable mutex backend
 ///
 /// This stack provides LIFO (Last In, First Out) semantics using `Arc` for
@@ -252,6 +255,3 @@ where
     (**self).with_write(f)
   }
 }
-
-#[cfg(test)]
-mod tests;

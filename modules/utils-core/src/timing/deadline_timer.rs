@@ -11,6 +11,9 @@ use core::{
 #[cfg(not(target_has_atomic = "ptr"))]
 use critical_section::with;
 
+#[cfg(test)]
+mod tests;
+
 /// Key for identifying items registered in a DeadlineTimer.
 ///
 /// This key is used to uniquely identify each item registered in the timer.
@@ -415,6 +418,3 @@ impl Default for DeadlineTimerKeyAllocator {
     Self::new()
   }
 }
-
-#[cfg(test)]
-mod tests;

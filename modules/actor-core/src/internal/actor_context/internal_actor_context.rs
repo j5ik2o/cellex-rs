@@ -27,6 +27,7 @@ where
   mailbox_factory:  &'a MF,
   mailbox_spawner:  PriorityMailboxSpawnerHandle<AnyMessage, MF>,
   sender:           &'a MF::Producer<PriorityEnvelope<AnyMessage>>,
+  #[allow(dead_code)]
   supervisor:       &'a mut dyn Supervisor<AnyMessage>,
   #[allow(dead_code)]
   pending_spawns:   &'a mut Vec<ChildSpawnSpec<MF>>,
@@ -100,10 +101,12 @@ where
     self.mailbox_factory
   }
 
+  #[allow(dead_code)]
   pub(crate) fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<AnyMessage, MF> {
     &self.mailbox_spawner
   }
 
+  #[allow(dead_code)]
   pub(crate) fn supervisor(&mut self) -> &mut dyn Supervisor<AnyMessage> {
     self.supervisor
   }

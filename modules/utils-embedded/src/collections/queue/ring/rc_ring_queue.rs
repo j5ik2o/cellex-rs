@@ -7,6 +7,9 @@ use cellex_utils_core_rs::{
 
 use crate::sync::RcShared;
 
+#[cfg(test)]
+mod tests;
+
 /// `Rc`-based ring buffer storage type alias
 ///
 /// Reference-counted ring buffer storage using `RcShared` and `RefCell`.
@@ -161,6 +164,3 @@ impl<E> QueueRw<E> for RcRingQueue<E> {
     self.inner.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

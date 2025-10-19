@@ -2,6 +2,9 @@ use cellex_utils_core_rs::DEFAULT_PRIORITY;
 
 use crate::api::{actor::ActorId, supervision::failure::FailureInfo};
 
+#[cfg(test)]
+mod tests;
+
 /// Control message types inspired by protoactor-go's `SystemMessage` catalogue.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SystemMessage {
@@ -39,6 +42,3 @@ impl SystemMessage {
     }
   }
 }
-
-#[cfg(test)]
-mod tests;

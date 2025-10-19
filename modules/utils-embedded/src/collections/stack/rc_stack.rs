@@ -6,6 +6,9 @@ use cellex_utils_core_rs::{
 
 use crate::sync::RcShared;
 
+#[cfg(test)]
+mod tests;
+
 /// `Rc`-based stack storage type alias
 ///
 /// Reference-counted stack storage using `RcShared` and `RefCell`.
@@ -275,6 +278,3 @@ impl<T> StackStorage<T> for RcShared<RefCell<StackBuffer<T>>> {
     f(&mut self.borrow_mut())
   }
 }
-
-#[cfg(test)]
-mod tests;

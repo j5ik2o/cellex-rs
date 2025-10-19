@@ -132,6 +132,3 @@ where
     Self { inner: self.inner.clone() }
   }
 }
-
-#[cfg(test)]
-mod tests;

@@ -21,7 +21,6 @@ use crate::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
     },
-    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::actor_system::{InternalActorSystem, InternalActorSystemConfig},

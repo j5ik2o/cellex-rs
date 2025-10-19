@@ -9,6 +9,9 @@ use cellex_utils_core_rs::{
   StateCell,
 };
 
+#[cfg(test)]
+mod tests;
+
 /// `Rc`-based shared reference wrapper.
 ///
 /// Provides shared ownership using `Rc` in `no_std` environments.
@@ -181,6 +184,3 @@ impl<T> StateCell<T> for RcStateCell<T> {
     self.0.borrow_mut()
   }
 }
-
-#[cfg(test)]
-mod tests;

@@ -13,6 +13,9 @@ use super::{
 };
 use crate::api::actor::ActorPath;
 
+#[cfg(test)]
+mod tests;
+
 /// Result of resolving a PID within the registry.
 #[derive(Clone)]
 pub enum ProcessResolution<T> {
@@ -142,6 +145,3 @@ impl<T, M> Default for ProcessRegistry<T, M> {
     Self::new(SystemId::new("cellex"), None)
   }
 }
-
-#[cfg(test)]
-mod tests;

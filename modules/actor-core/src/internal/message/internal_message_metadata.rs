@@ -24,6 +24,7 @@ where
   /// # Arguments
   /// * `sender` - Sender's dispatcher (optional)
   /// * `responder` - Responder's dispatcher (optional)
+  #[allow(dead_code)]
   pub fn new(sender: Option<InternalMessageSender<C>>, responder: Option<InternalMessageSender<C>>) -> Self {
     Self { sender, responder, sender_pid: None, responder_pid: None }
   }
@@ -32,6 +33,7 @@ where
   ///
   /// # Returns
   /// `Some(&InternalMessageSender)` if sender exists, `None` otherwise
+  #[allow(dead_code)]
   pub fn sender(&self) -> Option<&InternalMessageSender<C>> {
     self.sender.as_ref()
   }
@@ -48,6 +50,7 @@ where
   ///
   /// # Returns
   /// `Some(&InternalMessageSender)` if responder exists, `None` otherwise
+  #[allow(dead_code)]
   pub fn responder(&self) -> Option<&InternalMessageSender<C>> {
     self.responder.as_ref()
   }

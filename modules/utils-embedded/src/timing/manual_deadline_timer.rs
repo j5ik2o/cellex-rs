@@ -8,6 +8,9 @@ use cellex_utils_core_rs::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug)]
 struct Entry<Item> {
   key:       DeadlineTimerKey,
@@ -142,6 +145,3 @@ impl<Item> DeadlineTimer for ManualDeadlineTimer<Item> {
     Poll::Pending
   }
 }
-
-#[cfg(test)]
-mod tests;

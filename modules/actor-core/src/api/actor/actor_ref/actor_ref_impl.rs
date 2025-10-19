@@ -62,16 +62,19 @@ where
   }
 
   /// Creates an `ActorRef` without an associated process registry.
+  #[allow(dead_code)]
   pub(crate) fn new_without_registry(inner: PriorityActorRef<AnyMessage, MailboxOf<AR>>) -> Self {
     Self::new(inner, ArcShared::new(RwLock::new(None)), None)
   }
 
   /// Returns the PID slot associated with this reference.
+  #[allow(dead_code)]
   pub(crate) fn pid_slot(&self) -> ArcShared<RwLock<Option<Pid>>> {
     self.pid_slot.clone()
   }
 
   /// Sets the PID for this reference.
+  #[allow(dead_code)]
   pub(crate) fn set_pid(&self, pid: Pid) {
     *self.pid_slot.write() = Some(pid);
   }
@@ -153,6 +156,7 @@ where
     Self::map_send_result(registry, pid_opt.as_ref(), send_result)
   }
 
+  #[allow(dead_code)]
   fn dispatch_dyn(&self, message: AnyMessage, priority: i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     Self::dispatch_dyn_with_parts(&self.inner, &self.pid_slot, self.process_registry.as_ref(), message, priority)
   }
