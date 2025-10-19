@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use alloc::{boxed::Box, string::String};
 
 use ::core::fmt;

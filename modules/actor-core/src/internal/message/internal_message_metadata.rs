@@ -25,7 +25,7 @@ where
   /// * `sender` - Sender's dispatcher (optional)
   /// * `responder` - Responder's dispatcher (optional)
   #[allow(dead_code)]
-  pub fn new(sender: Option<InternalMessageSender<C>>, responder: Option<InternalMessageSender<C>>) -> Self {
+  pub const fn new(sender: Option<InternalMessageSender<C>>, responder: Option<InternalMessageSender<C>>) -> Self {
     Self { sender, responder, sender_pid: None, responder_pid: None }
   }
 
@@ -34,7 +34,7 @@ where
   /// # Returns
   /// `Some(&InternalMessageSender)` if sender exists, `None` otherwise
   #[allow(dead_code)]
-  pub fn sender(&self) -> Option<&InternalMessageSender<C>> {
+  pub const fn sender(&self) -> Option<&InternalMessageSender<C>> {
     self.sender.as_ref()
   }
 
@@ -51,7 +51,7 @@ where
   /// # Returns
   /// `Some(&InternalMessageSender)` if responder exists, `None` otherwise
   #[allow(dead_code)]
-  pub fn responder(&self) -> Option<&InternalMessageSender<C>> {
+  pub const fn responder(&self) -> Option<&InternalMessageSender<C>> {
     self.responder.as_ref()
   }
 
@@ -94,12 +94,12 @@ where
   }
 
   /// Returns a reference to the sender PID if present.
-  pub fn sender_pid(&self) -> Option<&Pid> {
+  pub const fn sender_pid(&self) -> Option<&Pid> {
     self.sender_pid.as_ref()
   }
 
   /// Returns a reference to the responder PID if present.
-  pub fn responder_pid(&self) -> Option<&Pid> {
+  pub const fn responder_pid(&self) -> Option<&Pid> {
     self.responder_pid.as_ref()
   }
 }

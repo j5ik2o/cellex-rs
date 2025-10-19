@@ -107,7 +107,7 @@ where
     let settings = InternalActorSystemConfig {
       root_event_listener_opt: root_event_listener,
       root_escalation_handler_opt: root_handler_from_runtime,
-      receive_timeout_scheduler_factory_shared_opt: receive_timeout_scheduler_factory_shared_opt,
+      receive_timeout_scheduler_factory_shared_opt,
       metrics_sink_opt: metrics_sink,
       root_failure_telemetry_shared: root_failure_telemetry,
       root_observation_config: observation_config,

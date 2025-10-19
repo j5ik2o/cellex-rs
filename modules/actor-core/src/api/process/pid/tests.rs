@@ -1,7 +1,10 @@
 #![allow(clippy::unwrap_used)]
 
 use super::{NodeId, Pid, PidParseError, PidTag, SystemId};
-use crate::api::actor::{ActorId, ActorPath};
+use crate::{
+  alloc::string::ToString,
+  api::actor::{ActorId, ActorPath},
+};
 
 fn actor_path(ids: &[usize]) -> ActorPath {
   ids.iter().fold(ActorPath::new(), |path, id| path.push_child(ActorId(*id)))

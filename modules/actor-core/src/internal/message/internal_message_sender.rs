@@ -53,6 +53,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Function that executes message sending
+  #[must_use]
   pub fn new(inner: ArcShared<SendFn>) -> Self {
     Self { inner, drop_hook: None, _marker: PhantomData }
   }
@@ -73,6 +74,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the destination refuses the message.
   pub fn send_default(&self, message: AnyMessage) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.send_with_priority(message, DEFAULT_PRIORITY)
   }
@@ -85,6 +89,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the destination refuses the message.
   pub fn send_with_priority(
     &self,
     message: AnyMessage,
@@ -108,7 +115,7 @@ where
 impl InternalMessageSender {
   /// Thread-safe helper retained for existing call sites.
   #[allow(dead_code)]
-  pub(crate) fn from_internal_ref<MF>(actor_ref: PriorityActorRef<AnyMessage, MF>) -> Self
+  pub(crate) fn from_internal_ref<MF>(actor_ref: &PriorityActorRef<AnyMessage, MF>) -> Self
   where
     MF: MailboxFactory + Clone + 'static,
     MF::Queue<PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,

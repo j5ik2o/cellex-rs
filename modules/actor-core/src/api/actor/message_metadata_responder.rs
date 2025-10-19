@@ -23,6 +23,9 @@ where
   AR: ActorRuntime,
   MailboxOf<AR>: MailboxFactory + Clone + 'static, {
   /// Sends a response message back to the original sender.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when no responder can be resolved or delivery fails.
   fn respond_with<Resp, U>(&self, ctx: &mut ActorContext<'_, '_, U, AR>, message: Resp) -> AskResult<()>
   where
     Resp: Element,

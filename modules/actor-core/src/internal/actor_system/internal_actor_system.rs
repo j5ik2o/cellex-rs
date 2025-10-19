@@ -174,13 +174,13 @@ where
 
   #[allow(dead_code)]
   #[must_use]
-  pub fn system_id(&self) -> &SystemId {
+  pub const fn system_id(&self) -> &SystemId {
     &self.system_id
   }
 
   #[allow(dead_code)]
   #[must_use]
-  pub fn node_id(&self) -> Option<&NodeId> {
+  pub const fn node_id(&self) -> Option<&NodeId> {
     self.node_id.as_ref()
   }
 
