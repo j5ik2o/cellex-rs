@@ -17,6 +17,7 @@ impl ShutdownToken {
   ///
   /// # Returns
   /// New shutdown token
+  #[must_use]
   pub fn new() -> Self {
     Self { inner: ArcShared::new(AtomicBool::new(false)) }
   }
@@ -33,6 +34,7 @@ impl ShutdownToken {
   ///
   /// # Returns
   /// `true` if shutdown has been triggered, `false` otherwise
+  #[must_use]
   pub fn is_triggered(&self) -> bool {
     self.inner.load(Ordering::SeqCst)
   }

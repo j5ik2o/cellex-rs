@@ -175,6 +175,8 @@ where
   ///
   /// Deprecated since version 3.1.0. Use `dispatch_next` or `run_until` instead.
   #[deprecated(since = "3.1.0", note = "Use dispatch_next or run_until instead")]
+  /// # Errors
+  /// Returns [`QueueError`] when the underlying scheduler reports a mailbox failure.
   pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     #[allow(deprecated)]
     self.inner.dispatch_all()
@@ -185,11 +187,14 @@ where
   /// # Returns
   ///
   /// `Ok(())` on success, `Err` if a mailbox error occurs
+  /// # Errors
+  /// Returns [`QueueError`] when the underlying scheduler reports a mailbox failure.
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await
   }
 
   /// Returns the extension registry associated with the actor system.
+  #[must_use]
   pub fn extensions(&self) -> Extensions {
     self.inner.extensions()
   }

@@ -26,11 +26,15 @@ impl AnyMessage {
   }
 
   /// Gets the `TypeId` of the internally held value.
+  #[must_use]
   pub fn type_id(&self) -> TypeId {
     self.inner.as_ref().type_id()
   }
 
   /// Attempts to downcast to type `T` by moving ownership.
+  ///
+  /// # Errors
+  /// Returns `Err(Self)` when the stored value does not match `T`.
   pub fn downcast<T>(self) -> Result<T, Self>
   where
     T: AnyMessageValue + 'static, {
