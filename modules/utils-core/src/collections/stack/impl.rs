@@ -206,5 +206,4 @@ where
 }
 
 #[cfg(test)]
-#[allow(clippy::disallowed_types)]
 mod tests;
