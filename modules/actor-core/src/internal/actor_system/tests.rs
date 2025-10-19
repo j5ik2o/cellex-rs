@@ -295,7 +295,7 @@ fn actor_ref_records_network_unreachable_for_remote_pid() {
     .expect("spawn actor");
   let pid_slot = ArcShared::new(RwLock::new(None));
   let typed_ref: crate::api::actor::actor_ref::ActorRef<u32, TestRuntime> =
-    crate::api::actor::actor_ref::ActorRef::new(actor_ref_raw, pid_slot, Some(process_registry.clone()));
+    crate::api::actor::actor_ref::ActorRef::new(actor_ref_raw, pid_slot, Some(process_registry));
 
   let remote_pid = Pid::new(SystemId::new("remote"), ActorPath::new()).with_node(NodeId::new("node2", Some(2552)));
   typed_ref.set_pid(remote_pid);
