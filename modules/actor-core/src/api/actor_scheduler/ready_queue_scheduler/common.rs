@@ -99,8 +99,7 @@ where
     let (mut mailbox, mut sender) = mailbox_spawner.spawn_mailbox(mailbox_options);
     mailbox.set_metrics_sink(self.metrics_sink_opt.clone());
     sender.set_metrics_sink(self.metrics_sink_opt.clone());
-    let actor_sender = sender.clone();
-    let control_ref = PriorityActorRef::new(actor_sender.clone());
+    let control_ref = PriorityActorRef::new(sender.clone());
     let watchers = vec![ActorId::ROOT];
     let primary_watcher = watchers.first().copied();
     let parent_path = ActorPath::new();
@@ -195,7 +194,7 @@ where
     }
   }
 
-  pub fn actor_count(&self) -> usize {
+  pub const fn actor_count(&self) -> usize {
     self.actors.len()
   }
 
@@ -216,6 +215,7 @@ where
     self.drain_ready_cycle()
   }
 
+  #[allow(clippy::needless_pass_by_value)]
   pub fn set_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
     factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
@@ -226,6 +226,7 @@ where
     }
   }
 
+  #[allow(clippy::needless_pass_by_value)]
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.metrics_sink_opt = sink.clone();
     for actor in &mut self.actors {
@@ -269,9 +270,9 @@ where
     self.escalation_sink.set_root_observation_config(config);
   }
 
-  fn handle_escalations(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
+  fn handle_escalations(&mut self) -> bool {
     if self.escalations.is_empty() {
-      return Ok(false);
+      return false;
     }
 
     let pending = core::mem::take(&mut self.escalations);
@@ -285,7 +286,7 @@ where
       }
     }
     self.escalations = remaining;
-    Ok(handled)
+    handled
   }
 
   pub(crate) fn wait_for_any_signal_future(&self) -> Option<LocalBoxFuture<'static, usize>> {
@@ -367,7 +368,7 @@ where
       self.record_repeated(MetricsEvent::ActorRegistered, added);
     }
 
-    let handled = self.handle_escalations()?;
+    let handled = self.handle_escalations();
     let removed = self.prune_stopped();
     Ok(processed_any || handled || removed)
   }

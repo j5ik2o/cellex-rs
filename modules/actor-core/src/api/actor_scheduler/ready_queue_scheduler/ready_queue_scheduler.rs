@@ -6,7 +6,6 @@ use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use spin::Mutex;
 
 use super::{
-  super::actor_scheduler::ActorScheduler,
   common::ReadyQueueSchedulerCore,
   ready_event_hook::{ReadyEventHook, ReadyQueueHandle},
   ready_notifier::ReadyNotifier,
@@ -16,7 +15,7 @@ use super::{
 };
 use crate::api::{
   actor::{actor_ref::PriorityActorRef, SpawnError},
-  actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorSchedulerSpawnContext},
+  actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
   failure_telemetry::FailureTelemetryShared,

@@ -31,7 +31,8 @@ impl<M> PriorityEnvelope<M> {
   }
 
   /// Returns a reference to the enclosed message.
-  pub fn message(&self) -> &M {
+  #[must_use]
+  pub const fn message(&self) -> &M {
     &self.message
   }
 

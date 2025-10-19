@@ -69,6 +69,9 @@ pub trait Mailbox<M> {
   ///
   /// # Returns
   /// `Ok(())` on success, `Err(SendError)` on failure
+  ///
+  /// # Errors
+  /// Returns [`Self::SendError`] when the mailbox cannot enqueue the message.
   fn try_send(&self, message: M) -> Result<(), Self::SendError>;
 
   /// Receives a message asynchronously.

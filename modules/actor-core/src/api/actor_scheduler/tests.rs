@@ -34,10 +34,9 @@ use crate::{
     },
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::{
-      actor_scheduler::ActorScheduler,
       actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-      ActorSchedulerSpawnContext,
+      ActorScheduler, ActorSchedulerSpawnContext,
     },
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,

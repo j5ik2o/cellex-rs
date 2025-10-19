@@ -35,10 +35,12 @@ where
   MF::Signal: Clone,
   Strat: GuardianStrategy<MF>,
 {
+  #[allow(clippy::missing_const_for_fn)]
   pub fn new(strategy: Strat) -> Self {
     Self { next_id: 0, children: BTreeMap::new(), names: BTreeMap::new(), strategy }
   }
 
+  #[allow(clippy::needless_pass_by_value)]
   pub fn register_child_with_naming(
     &mut self,
     control_ref: PriorityActorRef<AnyMessage, MF>,
@@ -75,8 +77,7 @@ where
 
     if let Some(watcher_id) = watcher {
       let map_clone = map_system.clone();
-      #[allow(clippy::redundant_closure)]
-      let envelope = PriorityEnvelope::from_system(SystemMessage::Watch(watcher_id)).map(move |sys| (map_clone)(sys));
+      let envelope = PriorityEnvelope::from_system(SystemMessage::Watch(watcher_id)).map(move |sys| map_clone(sys));
       control_ref.sender().try_send(envelope).map_err(SpawnError::from)?;
     }
 
@@ -90,9 +91,8 @@ where
       }
       if let Some(watcher_id) = record.watcher {
         let map_clone = record.map_system.clone();
-        #[allow(clippy::redundant_closure)]
         let envelope =
-          PriorityEnvelope::from_system(SystemMessage::Unwatch(watcher_id)).map(move |sys| (map_clone)(sys));
+          PriorityEnvelope::from_system(SystemMessage::Unwatch(watcher_id)).map(move |sys| map_clone(sys));
         let _ = record.control_ref.sender().try_send(envelope);
       }
       record.control_ref
@@ -119,7 +119,8 @@ where
 
   pub fn stop_child(&mut self, actor: ActorId) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     if let Some(record) = self.children.get(&actor) {
-      let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (&*record.map_system)(sys));
+      let map_clone = record.map_system.clone();
+      let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| map_clone(sys));
       record.control_ref.sender().try_send(envelope)
     } else {
       Ok(())
@@ -177,7 +178,8 @@ where
       | SupervisorDirective::Resume => Ok(None),
       | SupervisorDirective::Stop => {
         if let Some(record) = self.children.get(&actor) {
-          let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (*record.map_system)(sys));
+          let map_clone = record.map_system.clone();
+          let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| map_clone(sys));
           record.control_ref.sender().try_send(envelope)?;
           Ok(None)
         } else {
@@ -186,7 +188,8 @@ where
       },
       | SupervisorDirective::Restart => {
         if let Some(record) = self.children.get(&actor) {
-          let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(|sys| (*record.map_system)(sys));
+          let map_clone = record.map_system.clone();
+          let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(move |sys| map_clone(sys));
           record.control_ref.sender().try_send(envelope)?;
           self.strategy.after_restart(actor);
           Ok(None)

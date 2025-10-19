@@ -13,5 +13,8 @@ where
   fn signal(&self) -> Self::Signal;
 
   /// Attempts to dequeue one message without waiting.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox cannot provide a message due to disconnection.
   fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>>;
 }

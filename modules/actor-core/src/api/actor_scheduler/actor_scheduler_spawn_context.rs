@@ -11,6 +11,9 @@ use crate::api::{
   process::{pid::Pid, process_registry::ProcessRegistry},
 };
 
+type SchedulerProcessRegistry<MF> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 /// Parameters supplied to schedulers when spawning a new actor.
 pub struct ActorSchedulerSpawnContext<MF>
 where
@@ -32,8 +35,7 @@ where
   /// Naming strategy to apply when registering the child actor.
   pub child_naming:           ChildNaming,
   /// Process registry used to register and resolve actor PIDs.
-  pub process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
+  pub process_registry:       SchedulerProcessRegistry<MF>,
   /// Slot where the assigned PID will be recorded.
   pub actor_pid_slot:         ArcShared<RwLock<Option<Pid>>>,
 }
