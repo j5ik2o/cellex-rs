@@ -57,13 +57,13 @@ where
       .with_sender(ctx.self_dispatcher())
       .with_sender_pid(ctx.self_pid().clone());
     let envelope = MessageEnvelope::user_with_metadata(message, dispatch_metadata);
-    respond_via_pid(ctx, target_pid, envelope)
+    respond_via_pid(ctx, &target_pid, envelope)
   }
 }
 
 fn respond_via_pid<'r, 'ctx, Resp, U, AR>(
   ctx: &mut ActorContext<'r, 'ctx, U, AR>,
-  pid: crate::api::process::pid::Pid,
+  pid: &crate::api::process::pid::Pid,
   envelope: MessageEnvelope<Resp>,
 ) -> AskResult<()>
 where
@@ -75,7 +75,7 @@ where
   MailboxSignalOf<AR>: Clone,
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   let registry = ctx.process_registry();
-  match registry.with_ref(|registry| registry.resolve_pid(&pid)) {
+  match registry.with_ref(|registry| registry.resolve_pid(pid)) {
     | ProcessResolution::Local(handle) => {
       let dyn_message = AnyMessage::new(envelope);
       let send_result = handle
