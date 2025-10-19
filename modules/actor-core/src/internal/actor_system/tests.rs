@@ -90,34 +90,39 @@ fn process_registry_registers_and_deregisters_actor() {
   let captured_clone = captured.clone();
 
   let registry = system.process_registry();
-  let mut root = system.root_context();
-  let actor_ref = root
-    .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: AnyMessage| {
-      if let Ok(TestMsg::CapturePid) = msg.downcast::<TestMsg>() {
-        captured_clone.borrow_mut().replace(ctx.pid().clone());
-      }
-      Ok(())
-    }))
-    .expect("spawn actor");
+  let actor_ref = {
+    let mut root = system.root_context();
+    let actor_ref = root
+      .spawn(InternalProps::new(MailboxOptions::default(), map_system.clone(), move |ctx, msg: AnyMessage| {
+        if let Ok(TestMsg::CapturePid) = msg.downcast::<TestMsg>() {
+          captured_clone.borrow_mut().replace(ctx.pid().clone());
+        }
+        Ok(())
+      }))
+      .expect("spawn actor");
 
-  actor_ref.try_send_with_priority(AnyMessage::new(TestMsg::CapturePid), DEFAULT_PRIORITY).expect("send capture");
+    actor_ref.try_send_with_priority(AnyMessage::new(TestMsg::CapturePid), DEFAULT_PRIORITY).expect("send capture");
 
-  block_on(root.dispatch_next()).expect("dispatch capture");
-
-  drop(root);
+    block_on(root.dispatch_next()).expect("dispatch capture");
+    actor_ref
+  };
   let pid = captured.borrow().clone().expect("pid captured");
   let resolution = registry.with_ref(|registry| registry.resolve_pid(&pid));
   assert!(matches!(resolution, ProcessResolution::Local(_)));
 
   let map_clone = map_system.clone();
   actor_ref
-    .try_send_envelope(PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| map_clone(sys)))
+    .try_send_envelope({
+      #[allow(clippy::redundant_closure)]
+      PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| (map_clone)(sys))
+    })
     .expect("send stop");
 
-  let mut root = system.root_context();
-  block_on(root.dispatch_next()).ok();
-  block_on(root.dispatch_next()).ok();
-  drop(root);
+  {
+    let mut root = system.root_context();
+    block_on(root.dispatch_next()).ok();
+    block_on(root.dispatch_next()).ok();
+  }
 
   let resolution_after = registry.with_ref(|registry| registry.resolve_pid(&pid));
   assert!(matches!(resolution_after, ProcessResolution::Unresolved));

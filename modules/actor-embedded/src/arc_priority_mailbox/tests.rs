@@ -4,7 +4,6 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
 use critical_section::{Impl, RawRestoreState};
 
-
 use super::*;
 
 fn prepare() {

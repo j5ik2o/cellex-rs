@@ -75,6 +75,7 @@ where
 
     if let Some(watcher_id) = watcher {
       let map_clone = map_system.clone();
+      #[allow(clippy::redundant_closure)]
       let envelope = PriorityEnvelope::from_system(SystemMessage::Watch(watcher_id)).map(move |sys| (map_clone)(sys));
       control_ref.sender().try_send(envelope).map_err(SpawnError::from)?;
     }
@@ -89,6 +90,7 @@ where
       }
       if let Some(watcher_id) = record.watcher {
         let map_clone = record.map_system.clone();
+        #[allow(clippy::redundant_closure)]
         let envelope =
           PriorityEnvelope::from_system(SystemMessage::Unwatch(watcher_id)).map(move |sys| (map_clone)(sys));
         let _ = record.control_ref.sender().try_send(envelope);
@@ -143,8 +145,9 @@ where
     match self.register_child_with_naming(control_ref, map_system, watcher, parent_path, ChildNaming::Auto) {
       | Ok(result) => Ok(result),
       | Err(SpawnError::Queue(err)) => Err(err),
-      | Err(SpawnError::NameExists(_)) => {
-        unreachable!("NameExists cannot occur when using automatic naming")
+      | Err(SpawnError::NameExists(name)) => {
+        debug_assert!(false, "auto-generated actor name unexpectedly conflicted: {name}");
+        Err(QueueError::Disconnected)
       },
     }
   }

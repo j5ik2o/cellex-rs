@@ -48,8 +48,7 @@ fn guardian_sends_restart_message() {
   let mut guardian: Guardian<TestMailboxFactory, AlwaysRestart> = Guardian::new(AlwaysRestart);
   let parent_id = ActorId(1);
   let parent_path = ActorPath::new();
-  let (actor_id, _path) =
-    guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
+  let (actor_id, _path) = guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
   let first_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(extract_system(first_envelope.into_parts().0), SystemMessage::Watch(parent_id));
@@ -81,8 +80,7 @@ fn guardian_sends_stop_message() {
   let mut guardian: Guardian<TestMailboxFactory, AlwaysStop> = Guardian::new(AlwaysStop);
   let parent_id = ActorId(7);
   let parent_path = ActorPath::new();
-  let (actor_id, _path) =
-    guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
+  let (actor_id, _path) = guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
   let watch_envelope = mailbox.queue().poll().unwrap().unwrap();
   assert_eq!(extract_system(watch_envelope.into_parts().0), SystemMessage::Watch(parent_id));
@@ -101,8 +99,7 @@ fn guardian_emits_unwatch_on_remove() {
   let mut guardian: Guardian<TestMailboxFactory, AlwaysRestart> = Guardian::new(AlwaysRestart);
   let parent_id = ActorId(3);
   let parent_path = ActorPath::new();
-  let (actor_id, _path) =
-    guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
+  let (actor_id, _path) = guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
   // consume watch message
   let _ = mailbox.queue().poll().unwrap().unwrap();
