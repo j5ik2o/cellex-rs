@@ -32,10 +32,16 @@ log_step() {
 }
 
 run_cargo() {
+  local -a cmd
   if [[ -n "${DEFAULT_TOOLCHAIN}" ]]; then
-    cargo "+${DEFAULT_TOOLCHAIN}" "$@"
+    cmd=(cargo "+${DEFAULT_TOOLCHAIN}" "$@")
   else
-    cargo "$@"
+    cmd=(cargo "$@")
+  fi
+
+  if ! "${cmd[@]}"; then
+    echo "error: ${cmd[*]}" >&2
+    return 1
   fi
 }
 
