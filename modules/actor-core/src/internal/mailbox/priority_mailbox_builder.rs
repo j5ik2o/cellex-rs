@@ -7,22 +7,22 @@ use crate::api::mailbox::{
 
 /// Builder abstraction specialised for priority mailboxes.
 ///
-/// このトレイトは優先度付きメールボックスを生成する責務を `MailboxFactory`
-/// から切り出し、スケジューラ層が具象ファクトリ型へ直接依存しないようにする。
+/// This trait extracts the responsibility of constructing priority mailboxes from
+/// [`MailboxFactory`] so that the scheduler layer does not depend on concrete factories.
 pub trait PriorityMailboxBuilder<M>: Clone
 where
   M: Element, {
-  /// Mailbox が利用するシグナル型。
+  /// Signal type used by the mailbox.
   type Signal: MailboxSignal;
-  /// 優先度付きメッセージを保持する Mailbox 型。
+  /// Mailbox handle that stores priority envelopes.
   type Mailbox: MailboxHandle<PriorityEnvelope<M>, Signal = Self::Signal> + Clone;
-  /// メールボックスへメッセージを投入するプロデューサ型。
+  /// Producer type that enqueues messages into the mailbox.
   type Producer: MailboxProducer<PriorityEnvelope<M>> + Clone;
 
-  /// 指定されたオプションでメールボックスを生成する。
+  /// Builds a priority mailbox using the provided options.
   fn build_priority_mailbox(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox, Self::Producer>;
 
-  /// 既定設定でメールボックスを生成する。
+  /// Builds a priority mailbox using default options.
   #[allow(dead_code)]
   fn build_default_priority_mailbox(&self) -> MailboxPair<Self::Mailbox, Self::Producer> {
     self.build_priority_mailbox(MailboxOptions::default())

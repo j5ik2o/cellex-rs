@@ -1,7 +1,7 @@
-//! Behaviors DSL を使った簡単な挨拶アクターのサンプル。
+//! Minimal greeting actor example that uses the Behaviors DSL.
 //!
-//! `Behaviors::setup` で状態（挨拶回数）を初期化し、
-//! `Behaviors::receive` でメッセージごとの遷移を定義しています。
+//! `Behaviors::setup` initializes state (number of greetings) and `Behaviors::receive`
+//! defines how each command is handled.
 
 use cellex_actor_core_rs::api::{
   actor::{behavior::Behaviors, Props},

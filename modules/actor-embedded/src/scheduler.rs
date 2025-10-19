@@ -14,10 +14,10 @@ use embassy_futures::yield_now;
 
 use crate::receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
 
-/// Embassy 用スケジューラ。
+/// Embassy scheduler wrapper.
 ///
-/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`]
-/// をラップし、`embassy_futures::yield_now` による協調切り替えを提供する。
+/// Wraps the ReadyQueue-based [`cellex_actor_core_rs::ReadyQueueScheduler`] and cooperatively
+/// yields via `embassy_futures::yield_now` after dispatching.
 pub struct EmbassyScheduler<M, R, Strat = AlwaysRestart>
 where
   M: Element,
@@ -31,7 +31,7 @@ where
   M: Element,
   R: MailboxRuntime + Clone + 'static,
 {
-  /// 既定の GuardianStrategy (`AlwaysRestart`) を用いた構成を作成する。
+  /// Builds the default configuration using the `AlwaysRestart` guardian strategy.
   pub fn new(mailbox_factory: R, extensions: Extensions) -> Self {
     Self { inner: ReadyQueueScheduler::new(mailbox_factory, extensions) }
   }
@@ -43,7 +43,7 @@ where
   R: MailboxRuntime + Clone + 'static,
   Strat: GuardianStrategy<M, R>,
 {
-  /// 任意の GuardianStrategy を適用した構成を作成する。
+  /// Builds a scheduler backed by a custom guardian strategy.
   pub fn with_strategy(mailbox_factory: R, strategy: Strat, extensions: Extensions) -> Self {
     Self { inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions) }
   }
@@ -126,7 +126,7 @@ where
   }
 }
 
-/// Embassy 用スケジューラビルダーを生成するユーティリティ。
+/// Utility that produces an Embassy-ready scheduler builder.
 pub fn embassy_scheduler_builder<M, R>() -> SchedulerBuilder<M, R>
 where
   M: Element,
@@ -138,13 +138,13 @@ where
   })
 }
 
-/// `GenericActorRuntime` に Embassy スケジューラを組み込むための拡張トレイト。
+/// Extension trait that installs the Embassy scheduler into a [`GenericActorRuntime`].
 pub trait EmbassyActorRuntimeExt<R>
 where
   R: MailboxRuntime + Clone + 'static,
   R::Queue<PriorityEnvelope<cellex_actor_core_rs::DynMessage>>: Clone,
   R::Signal: Clone, {
-  /// スケジューラを Embassy 実装へ差し替える。
+  /// Replaces the scheduler with the Embassy-backed implementation.
   fn with_embassy_scheduler(self, spawner: &'static Spawner) -> GenericActorRuntime<R>;
 }
 

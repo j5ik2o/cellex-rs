@@ -99,12 +99,6 @@ pub trait StateCell<T>: Clone {
   /// # Returns
   ///
   /// Newly created state cell instance
-  ///
-  /// # Examples
-  ///
-  /// ```rust,ignore
-  /// let cell = RcState::new(42);
-  /// ```
   fn new(value: T) -> Self
   where
     Self: Sized;
@@ -122,14 +116,6 @@ pub trait StateCell<T>: Clone {
   ///
   /// Depending on the implementation, may panic if a mutable borrow already exists
   /// (e.g., `RefCell`-based implementations).
-  ///
-  /// # Examples
-  ///
-  /// ```rust,ignore
-  /// let cell = RcState::new(42);
-  /// let guard = cell.borrow();
-  /// println!("Value: {}", *guard);
-  /// ```
   fn borrow(&self) -> Self::Ref<'_>;
 
   /// Borrows the state mutably.
@@ -145,14 +131,6 @@ pub trait StateCell<T>: Clone {
   ///
   /// Depending on the implementation, may panic if any borrow already exists
   /// (e.g., `RefCell`-based implementations).
-  ///
-  /// # Examples
-  ///
-  /// ```rust,ignore
-  /// let cell = RcState::new(42);
-  /// let mut guard = cell.borrow_mut();
-  /// *guard = 100;
-  /// ```
   fn borrow_mut(&self) -> Self::RefMut<'_>;
 
   /// Executes a closure with an immutable reference to the state.
@@ -169,14 +147,6 @@ pub trait StateCell<T>: Clone {
   /// # Returns
   ///
   /// Result of executing the closure
-  ///
-  /// # Examples
-  ///
-  /// ```rust,ignore
-  /// let cell = RcState::new(vec![1, 2, 3]);
-  /// let len = cell.with_ref(|v| v.len());
-  /// assert_eq!(len, 3);
-  /// ```
   fn with_ref<R>(&self, f: impl FnOnce(&T) -> R) -> R {
     let guard = self.borrow();
     f(&*guard)
@@ -195,14 +165,6 @@ pub trait StateCell<T>: Clone {
   /// # Returns
   ///
   /// Result of executing the closure
-  ///
-  /// # Examples
-  ///
-  /// ```rust,ignore
-  /// let cell = RcState::new(0);
-  /// cell.with_ref_mut(|v| *v += 1);
-  /// assert_eq!(cell.with_ref(|v| *v), 1);
-  /// ```
   fn with_ref_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
     let mut guard = self.borrow_mut();
     f(&mut *guard)

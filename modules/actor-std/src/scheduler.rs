@@ -27,10 +27,10 @@ use tokio::task::yield_now;
 
 use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};
 
-/// Tokio 用スケジューララッパー。
+/// Tokio scheduler wrapper.
 ///
-/// ReadyQueue ベースの [`cellex_actor_core_rs::ReadyQueueScheduler`]
-/// を内包しつつ、`tokio::task::yield_now` による協調切り替えを行う。
+/// Wraps the ReadyQueue-based [`cellex_actor_core_rs::ReadyQueueScheduler`] and cooperatively
+/// yields with `tokio::task::yield_now` after each dispatch.
 pub struct TokioScheduler<MF, Strat = AlwaysRestart>
 where
   MF: MailboxFactory + Clone + 'static,
@@ -42,7 +42,7 @@ impl<MF> TokioScheduler<MF, AlwaysRestart>
 where
   MF: MailboxFactory + Clone + 'static,
 {
-  /// ReadyQueue スケジューラを用いた既定構成を作成する。
+  /// Builds the default configuration using the ReadyQueue scheduler.
   pub fn new(mailbox_factory: MF, extensions: Extensions) -> Self {
     Self { inner: ReadyQueueScheduler::new(mailbox_factory, extensions) }
   }
@@ -53,7 +53,7 @@ where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<MF>,
 {
-  /// カスタム GuardianStrategy を適用した構成を作成する。
+  /// Builds a scheduler backed by a custom [`GuardianStrategy`].
   pub fn with_strategy(mailbox_factory: MF, strategy: Strat, extensions: Extensions) -> Self {
     Self { inner: ReadyQueueScheduler::with_strategy(mailbox_factory, strategy, extensions) }
   }
@@ -140,7 +140,7 @@ where
   }
 }
 
-/// Tokio 用スケジューラビルダーを生成するユーティリティ。
+/// Utility that produces a scheduler builder configured for Tokio.
 pub fn tokio_scheduler_builder<MF>() -> ActorSchedulerHandleBuilder<MF>
 where
   MF: MailboxFactory + Clone + 'static,
@@ -151,10 +151,10 @@ where
   })
 }
 
-/// 拡張トレイト: Tokio ランタイム向けスケジューラ／タイムアウト設定を `GenericActorRuntime`
-/// に適用する。
+/// Extension trait that installs Tokio-specific scheduler and timeout settings on
+/// [`GenericActorRuntime`].
 pub trait TokioActorRuntimeExt {
-  /// スケジューラを Tokio 実装へ差し替える。
+  /// Replaces the scheduler with the Tokio-backed implementation.
   fn with_tokio_scheduler(self) -> GenericActorRuntime<TokioMailboxRuntime>;
 }
 

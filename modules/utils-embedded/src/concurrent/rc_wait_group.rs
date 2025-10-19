@@ -19,24 +19,6 @@ mod tests;
 /// - Reference counting via `Rc` (single-threaded only)
 /// - Asynchronous signaling via Embassy's `Signal`
 /// - Dynamic count management (`add` to increment, `done` to decrement)
-///
-/// # Usage Examples
-///
-/// ```ignore
-/// let wg = WaitGroup::new();
-/// wg.add(2);
-///
-/// let clone = wg.clone();
-/// async move {
-///   // Task 1
-///   clone.done();
-///   // Task 2
-///   clone.done();
-/// };
-///
-/// // Wait for all tasks to complete
-/// wg.wait().await;
-/// ```
 #[derive(Clone)]
 pub struct RcWaitGroupBackend {
   count:  Rc<RefCell<usize>>,

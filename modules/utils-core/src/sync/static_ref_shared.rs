@@ -7,7 +7,7 @@ mod tests;
 
 /// Shared wrapper backed by a `'static` reference.
 ///
-/// 利用者が静的領域に配置した値を `Shared` 抽象を介して扱えるようにする薄いラッパです。
+/// Thin wrapper that exposes user-supplied `'static` values through the [`Shared`] abstraction.
 pub struct StaticRefShared<T: ?Sized + 'static>(&'static T);
 
 impl<T: ?Sized + 'static> StaticRefShared<T> {

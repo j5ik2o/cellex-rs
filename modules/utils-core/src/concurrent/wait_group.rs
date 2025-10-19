@@ -54,24 +54,6 @@ pub trait WaitGroupBackend: Clone {
 /// 1. Add the number of tasks to wait for with `add(n)`
 /// 2. Each task calls `done()` upon completion
 /// 3. Wait for all tasks to complete with `wait()`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// let wg = WaitGroup::<TokioWaitGroupBackend>::new();
-/// wg.add(3);
-///
-/// for i in 0..3 {
-///     let wg_clone = wg.clone();
-///     tokio::spawn(async move {
-///         // Some processing
-///         wg_clone.done();
-///     });
-/// }
-///
-/// wg.wait().await; // Wait for all tasks to complete
-/// ```
-///
 /// # Type Parameters
 ///
 /// * `B` - Concrete backend type implementing the WaitGroupBackend trait

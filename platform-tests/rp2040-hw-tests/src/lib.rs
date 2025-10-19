@@ -1,4 +1,4 @@
 #![no_std]
 
-/// プレースホルダライブラリ。ハードウェアテストは `tests/` 以下を参照。
+/// Placeholder library. See the `tests/` directory for hardware integration tests.
 pub fn build_check() {}

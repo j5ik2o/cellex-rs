@@ -29,7 +29,7 @@ pub trait TypeKey: 'static {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use cellex_serialization_core_rs::{impl_type_key, SerializerId, TypeKey};
 ///
 /// struct Example;

@@ -19,18 +19,6 @@ mod tests;
 /// - Reference counting via `Rc` (single-threaded only)
 /// - Lightweight synchronization via Embassy's `NoopRawMutex`
 /// - All tasks are released simultaneously when count reaches zero
-///
-/// # Usage Examples
-///
-/// ```ignore
-/// let barrier = AsyncBarrier::new(2);
-/// let other = barrier.clone();
-///
-/// let first = barrier.wait();
-/// let second = other.wait();
-///
-/// join!(first, second); // Both tasks proceed simultaneously
-/// ```
 #[derive(Clone)]
 pub struct RcAsyncBarrierBackend {
   remaining: Rc<RefCell<usize>>,

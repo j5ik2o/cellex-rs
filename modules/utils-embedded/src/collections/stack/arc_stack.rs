@@ -46,14 +46,6 @@ where
   /// # Returns
   ///
   /// A new `ArcStack` instance with no capacity limit
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_embedded_rs::ArcStack;
-  ///
-  /// let stack: ArcStack<i32> = ArcStack::new();
-  /// ```
   pub fn new() -> Self {
     let storage = ArcShared::new(ArcStateCell::new(StackBuffer::new()));
     let backend = ArcShared::new(StackStorageBackend::new(storage));
@@ -69,14 +61,6 @@ where
   /// # Returns
   ///
   /// A new `ArcStack` instance with the specified capacity limit
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_embedded_rs::ArcStack;
-  ///
-  /// let stack: ArcStack<i32> = ArcStack::with_capacity(10);
-  /// ```
   pub fn with_capacity(capacity: usize) -> Self {
     let stack = Self::new();
     stack.set_capacity(Some(capacity));
@@ -88,16 +72,6 @@ where
   /// # Arguments
   ///
   /// * `capacity` - Optional maximum number of elements. `None` for unlimited capacity
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_embedded_rs::ArcStack;
-  ///
-  /// let stack: ArcStack<i32> = ArcStack::new();
-  /// stack.set_capacity(Some(5)); // Limit to 5 elements
-  /// stack.set_capacity(None);    // Remove capacity limit
-  /// ```
   pub fn set_capacity(&self, capacity: Option<usize>) {
     self.inner.set_capacity(capacity);
   }
@@ -112,17 +86,6 @@ where
   ///
   /// * `Ok(())` - If the value was successfully pushed
   /// * `Err(StackError<T>)` - If the stack is full or closed
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_embedded_rs::ArcStack;
-  ///
-  /// let stack: ArcStack<i32> = ArcStack::with_capacity(2);
-  /// stack.push(1).unwrap();
-  /// stack.push(2).unwrap();
-  /// assert!(stack.push(3).is_err()); // Stack is full
-  /// ```
   pub fn push(&self, value: T) -> Result<(), StackError<T>> {
     self.inner.push(value)
   }

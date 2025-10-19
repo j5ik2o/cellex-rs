@@ -1,7 +1,7 @@
 use super::metrics_event::MetricsEvent;
 
-/// ランタイムがメトリクスを発行するための抽象シンク。
+/// Abstract sink that receives metrics events emitted by the runtime.
 pub trait MetricsSink: Send + Sync + 'static {
-  /// メトリクスイベントを記録する。
+  /// Records a metrics event.
   fn record(&self, event: MetricsEvent);
 }

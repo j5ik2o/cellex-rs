@@ -118,20 +118,6 @@ where
 /// - Reference counting via `Rc` (single-threaded only)
 /// - Interior mutability via `RefCell`
 /// - Runtime borrow checking
-///
-/// # Usage Examples
-///
-/// ```ignore
-/// let cell = RcStateCell::new(1);
-/// let cloned = cell.clone();
-///
-/// {
-///   let mut value = cloned.borrow_mut();
-///   *value = 5;
-/// }
-///
-/// assert_eq!(*cell.borrow(), 5);
-/// ```
 #[derive(Debug)]
 pub struct RcStateCell<T>(Rc<RefCell<T>>);
 

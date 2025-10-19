@@ -1,18 +1,18 @@
-/// メトリクスイベントを表す種別。
+/// Metrics events emitted by the actor runtime.
 ///
-/// 現状は概要レベルの区分のみを提供し、詳細なペイロードは後続フェーズで拡張する。
+/// The variants currently cover high-level categories; payloads can be extended in later phases.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MetricsEvent {
-  /// アクターがスケジューラに登録された。
+  /// An actor was registered with the scheduler.
   ActorRegistered,
-  /// アクターが停止し、スケジューラから削除された。
+  /// An actor was deregistered from the scheduler.
   ActorDeregistered,
-  /// メールボックスへユーザーメッセージがキューイングされた。
+  /// A user message was enqueued into a mailbox.
   MailboxEnqueued,
-  /// メールボックスからメッセージがデキューされた。
+  /// A message was dequeued from a mailbox.
   MailboxDequeued,
-  /// テレメトリ呼び出しが実行された。
+  /// Telemetry handling logic was invoked.
   TelemetryInvoked,
-  /// テレメトリ呼び出しに要した時間(ナノ秒)。
+  /// Duration, in nanoseconds, spent executing telemetry handlers.
   TelemetryLatencyNanos(u64),
 }

@@ -18,24 +18,6 @@ mod tests;
 /// - Reference counting via `Rc` (single-threaded only)
 /// - Asynchronous synchronization via Embassy's `Mutex` and `Signal`
 /// - One-way countdown (count only decreases)
-///
-/// # Usage Examples
-///
-/// ```ignore
-/// let latch = CountDownLatch::new(2);
-/// let clone = latch.clone();
-///
-/// // Worker task
-/// async move {
-///   // Perform work
-///   clone.count_down().await;
-///   // Perform more work
-///   clone.count_down().await;
-/// };
-///
-/// // Wait until count reaches 0
-/// latch.wait().await;
-/// ```
 #[derive(Clone)]
 pub struct RcCountDownLatchBackend {
   count:  Rc<Mutex<NoopRawMutex, usize>>,

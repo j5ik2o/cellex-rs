@@ -5,7 +5,7 @@ use super::telemetry_tag::TelemetryTag;
 use super::tracing_failure_telemetry::tracing_failure_telemetry;
 use crate::api::{failure_telemetry::FailureTelemetryShared, supervision::failure::FailureMetadata};
 
-/// `FailureSnapshot` が保持するタグ数の上限。
+/// Maximum number of tags stored inside a `FailureSnapshot`.
 pub const MAX_FAILURE_SNAPSHOT_TAGS: usize = 8;
 
 /// Returns the default telemetry implementation for the current build configuration.

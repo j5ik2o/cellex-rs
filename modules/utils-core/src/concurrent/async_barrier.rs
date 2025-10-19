@@ -11,30 +11,6 @@ use async_trait::async_trait;
 ///
 /// - Must implement the `Clone` trait
 /// - Need not be thread-sendable (`?Send`)
-///
-/// # Examples
-///
-/// ```ignore
-/// use cellex_utils_core_rs::{AsyncBarrierBackend, AsyncBarrier};
-///
-/// // Example custom backend implementation
-/// #[derive(Clone)]
-/// struct MyBackend {
-///     // Backend-specific fields
-/// }
-///
-/// #[async_trait::async_trait(?Send)]
-/// impl AsyncBarrierBackend for MyBackend {
-///     fn new(count: usize) -> Self {
-///         // Initialization logic
-///         MyBackend { /* ... */ }
-///     }
-///
-///     async fn wait(&self) {
-///         // Wait logic implementation
-///     }
-/// }
-/// ```
 #[async_trait(?Send)]
 pub trait AsyncBarrierBackend: Clone {
   /// Creates a backend that waits for the specified number of tasks.
@@ -61,68 +37,6 @@ pub trait AsyncBarrierBackend: Clone {
 /// # Type Parameters
 ///
 /// * `B` - Backend implementation to use (a type implementing `AsyncBarrierBackend`)
-///
-/// # Examples
-///
-/// ```ignore
-/// use cellex_utils_core_rs::AsyncBarrier;
-/// use tokio::task;
-///
-/// #[tokio::main]
-/// async fn main() {
-///     // Create a barrier that waits for 3 tasks to arrive
-///     let barrier = AsyncBarrier::new(3);
-///
-///     let mut handles = vec![];
-///
-///     for i in 0..3 {
-///         let barrier_clone = barrier.clone();
-///         let handle = task::spawn(async move {
-///             println!("Task {} started", i);
-///
-///             // Wait at barrier
-///             barrier_clone.wait().await;
-///
-///             println!("Task {} passed the barrier", i);
-///         });
-///         handles.push(handle);
-///     }
-///
-///     // Wait for all tasks to complete
-///     for handle in handles {
-///         handle.await.unwrap();
-///     }
-/// }
-/// ```
-///
-/// # Usage Example (Concurrent Processing Synchronization)
-///
-/// ```ignore
-/// use cellex_utils_core_rs::AsyncBarrier;
-///
-/// async fn parallel_computation() {
-///     let barrier = AsyncBarrier::new(3);
-///
-///     // Phase 1: Each task executes initialization
-///     let tasks: Vec<_> = (0..3).map(|i| {
-///         let barrier = barrier.clone();
-///         tokio::spawn(async move {
-///             // Initialization processing
-///             println!("Task {} initializing...", i);
-///
-///             // Wait for all tasks to finish initialization
-///             barrier.wait().await;
-///
-///             // Phase 2: Processing executed after all initialization completes
-///             println!("Task {} executing main processing", i);
-///         })
-///     }).collect();
-///
-///     for task in tasks {
-///         task.await.unwrap();
-///     }
-/// }
-/// ```
 #[derive(Clone, Debug)]
 pub struct AsyncBarrier<B>
 where
@@ -144,15 +58,6 @@ where
   ///
   /// A new `AsyncBarrier` instance
   ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_core_rs::AsyncBarrier;
-  ///
-  /// // Create a barrier that waits for 5 tasks to arrive
-  /// let barrier = AsyncBarrier::new(5);
-  /// ```
-  ///
   /// # Panics
   ///
   /// If `count` is 0, some backend implementations may panic.
@@ -167,22 +72,6 @@ where
   /// have called `wait()` on the barrier.
   /// When all tasks arrive, all tasks are released simultaneously and can
   /// continue processing.
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_core_rs::AsyncBarrier;
-  ///
-  /// let barrier = AsyncBarrier::new(3);
-  ///
-  /// // Call from multiple tasks
-  /// let barrier_clone = barrier.clone();
-  /// tokio::spawn(async move {
-  ///     println!("Task 1: Waiting at barrier...");
-  ///     barrier_clone.wait().await;
-  ///     println!("Task 1: Passed the barrier!");
-  /// });
-  /// ```
   ///
   /// # Behavior
   ///
@@ -201,16 +90,6 @@ where
   /// # Returns
   ///
   /// Immutable reference to the backend implementation
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_core_rs::AsyncBarrier;
-  ///
-  /// let barrier = AsyncBarrier::new(3);
-  /// let backend = barrier.backend();
-  /// // Execute backend-specific operations...
-  /// ```
   pub const fn backend(&self) -> &B {
     &self.backend
   }

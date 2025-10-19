@@ -30,7 +30,7 @@ pub(crate) fn acquire_serializer_extension_id() -> ExtensionId {
   }
 }
 
-/// Serializer 拡張の予約済み ExtensionId を取得します。
+/// Returns the reserved extension identifier for the serializer registry.
 #[must_use]
 pub fn serializer_extension_id() -> ExtensionId {
   acquire_serializer_extension_id()

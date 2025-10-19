@@ -8,7 +8,7 @@ use crate::api::{
   messaging::AnyMessage,
 };
 
-/// PriorityEnvelope の制御チャネル設定を確認するユニットテスト。
+/// Ensures `PriorityEnvelope::from_system` marks the envelope as a control message.
 #[test]
 fn priority_envelope_from_system_sets_control_channel() {
   let envelope = PriorityEnvelope::from_system(SystemMessage::Stop);
@@ -18,7 +18,7 @@ fn priority_envelope_from_system_sets_control_channel() {
   assert!(matches!(envelope.system_message(), Some(SystemMessage::Stop)));
 }
 
-/// PriorityEnvelope::map が優先度とチャネルを保持することを検証。
+/// Ensures `PriorityEnvelope::map` preserves priority and channel metadata.
 #[test]
 fn priority_envelope_map_preserves_metadata() {
   let envelope = PriorityEnvelope::control("ping", DEFAULT_PRIORITY + 2).map(|msg| format!("{msg}-mapped"));
@@ -28,7 +28,7 @@ fn priority_envelope_map_preserves_metadata() {
   assert_eq!(envelope.message(), "ping-mapped");
 }
 
-/// AnyMessage が型情報を保持しつつダウンキャスト可能なことを確認。
+/// Verifies that `AnyMessage` retains type information and can be downcast.
 #[test]
 fn dyn_message_downcast_recovers_value() {
   let message = AnyMessage::new(42_u32);

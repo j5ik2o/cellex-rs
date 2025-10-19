@@ -6,32 +6,6 @@ use async_trait::async_trait;
 ///
 /// This trait abstracts the concrete implementation of CountDownLatch to support
 /// different environments (standard library, embedded environments, etc.).
-///
-/// # Examples
-///
-/// ```ignore
-/// use async_trait::async_trait;
-///
-/// #[derive(Clone)]
-/// struct MyBackend {
-///     // Backend implementation details
-/// }
-///
-/// #[async_trait(?Send)]
-/// impl CountDownLatchBackend for MyBackend {
-///     fn new(count: usize) -> Self {
-///         // Initialization logic
-///     }
-///
-///     async fn count_down(&self) {
-///         // Count down logic
-///     }
-///
-///     async fn wait(&self) {
-///         // Wait logic
-///     }
-/// }
-/// ```
 #[async_trait(?Send)]
 pub trait CountDownLatchBackend: Clone {
   /// Initializes the backend with the specified count value
@@ -58,31 +32,6 @@ pub trait CountDownLatchBackend: Clone {
 /// `CountDownLatch` is a synchronization mechanism that causes multiple tasks to wait
 /// until a specified count reaches zero. It provides functionality equivalent to Java's
 /// `CountDownLatch` or Go's `WaitGroup`.
-///
-/// # Usage Examples
-///
-/// ```ignore
-/// use cellex_utils_core_rs::CountDownLatch;
-///
-/// #[tokio::main]
-/// async fn main() {
-///     let latch = CountDownLatch::<SomeBackend>::new(3);
-///
-///     // Spawn 3 tasks
-///     for i in 0..3 {
-///         let latch_clone = latch.clone();
-///         tokio::spawn(async move {
-///             // Some processing
-///             println!("Task {} completed", i);
-///             latch_clone.count_down().await;
-///         });
-///     }
-///
-///     // Wait for all tasks to complete
-///     latch.wait().await;
-///     println!("All tasks completed");
-/// }
-/// ```
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CountDownLatch<B>
 where
@@ -99,12 +48,6 @@ where
   /// # Arguments
   ///
   /// * `count` - Initial count value. `count_down` must be called this many times to reach 0
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// let latch = CountDownLatch::<SomeBackend>::new(5);
-  /// ```
   #[must_use]
   pub fn new(count: usize) -> Self {
     Self { backend: B::new(count) }
@@ -114,12 +57,6 @@ where
   ///
   /// When the count reaches 0, all tasks waiting in `wait()` are released.
   /// If the count is already 0, this method does nothing.
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// latch.count_down().await;
-  /// ```
   pub async fn count_down(&self) {
     self.backend.count_down().await;
   }
@@ -128,13 +65,6 @@ where
   ///
   /// If the count is already 0, this method returns immediately.
   /// Multiple tasks can wait simultaneously, and all are released at once when the count reaches 0.
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// latch.wait().await;
-  /// println!("All operations completed");
-  /// ```
   pub async fn wait(&self) {
     self.backend.wait().await;
   }

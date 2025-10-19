@@ -51,14 +51,6 @@ where
   /// Creates a new unbounded MPSC queue
   ///
   /// The queue will dynamically grow as needed to accommodate elements.
-  ///
-  /// # Examples
-  ///
-  /// ```ignore
-  /// use cellex_utils_embedded_rs::ArcMpscUnboundedQueue;
-  ///
-  /// let queue: ArcMpscUnboundedQueue<i32> = ArcMpscUnboundedQueue::new();
-  /// ```
   pub fn new() -> Self {
     let storage = ArcShared::new(RingBufferBackend::new(ArcStateCell::new(MpscBuffer::new(None))));
     Self { inner: MpscQueue::new(storage) }
