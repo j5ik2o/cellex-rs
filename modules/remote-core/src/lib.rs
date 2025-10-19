@@ -69,6 +69,9 @@ use cellex_actor_core_rs::api::{
   },
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Handler for notifying failure events from remote actors.
 ///
 /// Uses `FailureEventStream` to distribute failure information and enables additional processing
@@ -165,6 +168,3 @@ where
 pub fn placeholder_metadata(endpoint: &str) -> FailureMetadata {
   FailureMetadata::new().with_endpoint(endpoint.to_owned())
 }
-
-#[cfg(test)]
-mod tests;

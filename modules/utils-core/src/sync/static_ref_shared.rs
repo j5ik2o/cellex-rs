@@ -2,6 +2,9 @@ use core::ops::Deref;
 
 use super::{Shared, SharedDyn};
 
+#[cfg(test)]
+mod tests;
+
 /// Shared wrapper backed by a `'static` reference.
 ///
 /// 利用者が静的領域に配置した値を `Shared` 抽象を介して扱えるようにする薄いラッパです。
@@ -49,6 +52,3 @@ impl<T: ?Sized + 'static> SharedDyn<T> for StaticRefShared<T> {
     StaticRefShared::new(reference)
   }
 }
-
-#[cfg(test)]
-mod tests;

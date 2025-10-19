@@ -10,6 +10,9 @@ use cellex_utils_core_rs::{
 
 use crate::{collections::queue::mpsc::TokioUnboundedMpscBackend, sync::ArcShared};
 
+#[cfg(test)]
+mod tests;
+
 /// Unbounded multi-producer, single-consumer (MPSC) queue
 ///
 /// An unbounded queue that can be safely accessed from multiple threads using `Arc`-based shared
@@ -115,6 +118,3 @@ where
     Self::new()
   }
 }
-
-#[cfg(test)]
-mod tests;

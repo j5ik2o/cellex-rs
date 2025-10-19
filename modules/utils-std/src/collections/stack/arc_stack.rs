@@ -6,6 +6,9 @@ use cellex_utils_core_rs::{
 
 use crate::sync::ArcShared;
 
+#[cfg(test)]
+mod tests;
+
 type ArcStackStorage<T> = ArcShared<StackStorageBackend<ArcShared<Mutex<StackBuffer<T>>>>>;
 
 /// `Arc`-based thread-safe stack implementation
@@ -161,6 +164,3 @@ impl<T> StackStorage<T> for ArcShared<Mutex<StackBuffer<T>>> {
     f(&mut guard)
   }
 }
-
-#[cfg(test)]
-mod tests;

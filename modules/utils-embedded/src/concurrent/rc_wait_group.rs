@@ -4,6 +4,9 @@ use core::cell::RefCell;
 use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 
+#[cfg(test)]
+mod tests;
+
 /// Backend for `Rc`-based wait group implementation.
 ///
 /// Provides a mechanism in `no_std` environments to track and wait for the completion of multiple
@@ -100,6 +103,3 @@ impl WaitGroupBackend for RcWaitGroupBackend {
 /// Wait group implementation usable in `no_std` environments.
 /// Provides functionality to track completion of multiple tasks and wait until all are done.
 pub type WaitGroup = CoreWaitGroup<RcWaitGroupBackend>;
-
-#[cfg(test)]
-mod tests;

@@ -5,6 +5,9 @@ use cellex_utils_core_rs::sync::ArcShared;
 
 use super::pid::Pid;
 
+#[cfg(test)]
+mod tests;
+
 /// Reason why a message was routed to dead letters.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeadLetterReason {
@@ -87,6 +90,3 @@ impl<M> Default for DeadLetterHub<M> {
     Self::new()
   }
 }
-
-#[cfg(test)]
-mod tests;

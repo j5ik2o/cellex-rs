@@ -8,6 +8,9 @@ use cellex_utils_core_rs::{
   DEFAULT_CAPACITY,
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Ring buffer-based circular queue
 ///
 /// A ring buffer queue with fixed capacity or dynamic expansion capability.
@@ -102,6 +105,3 @@ impl<E> QueueRw<E> for ArcRingQueue<E> {
     self.inner.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

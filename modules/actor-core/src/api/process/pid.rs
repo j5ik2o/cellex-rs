@@ -7,6 +7,9 @@ use core::{
 
 use crate::api::actor::{ActorId, ActorPath};
 
+#[cfg(test)]
+mod tests;
+
 /// Errors that can occur while parsing a PID URI.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PidParseError {
@@ -281,6 +284,3 @@ impl fmt::Display for Pid {
     Ok(())
   }
 }
-
-#[cfg(test)]
-mod tests;

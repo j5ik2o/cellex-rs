@@ -10,6 +10,9 @@ use embassy_sync::{
   rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
+#[cfg(test)]
+mod tests;
+
 /// `Rc` + `Mutex` synchronization backend.
 ///
 /// Implements a synchronization primitive that provides exclusive access in `no_std` environments.
@@ -114,6 +117,3 @@ pub type Synchronized<T> = CoreSynchronized<RcMutexBackend<T>, T>;
 /// Synchronization primitive usable in `no_std` environments that provides multiple readers or
 /// single writer access.
 pub type SynchronizedRw<T> = CoreSynchronizedRw<RcRwLockBackend<T>, T>;
-
-#[cfg(test)]
-mod tests;

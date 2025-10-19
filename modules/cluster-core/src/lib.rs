@@ -61,6 +61,9 @@ use cellex_actor_core_rs::api::{
 };
 use cellex_remote_core_rs::RemoteFailureNotifier;
 
+#[cfg(test)]
+mod tests;
+
 /// Bridge connecting cluster and remote failure notifications.
 ///
 /// Propagates local failure events to remote nodes, enabling cluster-wide sharing of failure
@@ -117,6 +120,3 @@ where
     self.hub.listener()(event);
   }
 }
-
-#[cfg(test)]
-mod tests;

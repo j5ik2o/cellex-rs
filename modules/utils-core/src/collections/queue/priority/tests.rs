@@ -1,3 +1,5 @@
+#![allow(clippy::disallowed_types)]
+
 extern crate alloc;
 
 use alloc::{rc::Rc, vec::Vec};

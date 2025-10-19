@@ -10,6 +10,9 @@ use cellex_utils_core_rs::{
 
 use crate::{collections::queue::mpsc::TokioBoundedMpscBackend, sync::ArcShared};
 
+#[cfg(test)]
+mod tests;
+
 /// Bounded multi-producer, single-consumer (MPSC) queue
 ///
 /// A queue that can be safely accessed from multiple threads using `Arc`-based shared ownership.
@@ -117,6 +120,3 @@ impl<E: Element> QueueRw<E> for ArcMpscBoundedQueue<E> {
     self.inner.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

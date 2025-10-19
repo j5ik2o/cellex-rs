@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 /// Enumeration representing the size limit of a queue.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QueueSize {
@@ -41,7 +44,3 @@ impl Default for QueueSize {
     QueueSize::limited(0)
   }
 }
-
-#[cfg(test)]
-#[allow(clippy::disallowed_types)]
-mod tests;

@@ -7,6 +7,9 @@ use cellex_utils_core_rs::{
 
 use crate::sync::RcShared;
 
+#[cfg(test)]
+mod tests;
+
 /// `Rc`-based bounded MPSC (Multiple Producer, Single Consumer) queue
 ///
 /// This queue is a capacity-limited MPSC queue usable in `no_std` environments.
@@ -99,6 +102,3 @@ impl<E: Element> QueueRw<E> for RcMpscBoundedQueue<E> {
     self.inner.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

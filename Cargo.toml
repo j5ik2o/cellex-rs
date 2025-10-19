@@ -23,6 +23,7 @@ libraries = [
   { path = "lints/mod-file-lint" },
   { path = "lints/module-wiring-lint" },
   { path = "lints/tests-location-lint" },
+  { path = "lints/use-placement-lint" },
 ]
 
 [workspace.dependencies]

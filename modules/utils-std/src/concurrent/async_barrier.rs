@@ -6,6 +6,9 @@ use std::sync::{
 use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
 use tokio::sync::Notify;
 
+#[cfg(test)]
+mod tests;
+
 /// Backend implementation of async barrier using Tokio runtime
 ///
 /// A synchronization primitive for multiple tasks to wait for each other.
@@ -51,6 +54,3 @@ impl AsyncBarrierBackend for TokioAsyncBarrierBackend {
 /// A synchronization primitive that causes all tasks to wait until the specified number of tasks
 /// arrive. When all tasks reach the barrier, it resets to a reusable state.
 pub type AsyncBarrier = CoreAsyncBarrier<TokioAsyncBarrierBackend>;
-
-#[cfg(test)]
-mod tests;

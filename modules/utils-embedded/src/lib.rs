@@ -109,6 +109,9 @@
 
 extern crate alloc;
 
+#[cfg(test)]
+mod tests;
+
 pub(crate) mod collections;
 pub(crate) mod concurrent;
 pub(crate) mod sync;
@@ -179,6 +182,3 @@ pub mod prelude {
   #[cfg(feature = "rc")]
   pub use super::{RcShared, RcStateCell};
 }
-
-#[cfg(test)]
-mod tests;

@@ -4,6 +4,9 @@ use cellex_utils_core_rs::{
 
 use crate::RcRingQueue;
 
+#[cfg(test)]
+mod tests;
+
 /// `Rc`-based priority queue
 ///
 /// This queue is available in `no_std` environments and controls processing order
@@ -200,6 +203,3 @@ where
     self.inner.clean_up();
   }
 }
-
-#[cfg(test)]
-mod tests;

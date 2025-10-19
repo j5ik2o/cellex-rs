@@ -82,6 +82,9 @@ use cellex_utils_core_rs::QueueError;
 
 use crate::api::mailbox::SystemMessage;
 
+#[cfg(test)]
+mod tests;
+
 /// Public API for actors
 pub mod api;
 /// Internal implementation details
@@ -132,6 +135,3 @@ where
     timer.sleep(Duration::from_millis(0)).await;
   }
 }
-
-#[cfg(test)]
-mod tests;

@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// Shared handle that can spawn priority mailboxes without exposing the underlying factory.
-pub(crate) struct PriorityMailboxSpawnerHandle<M, B>
+pub struct PriorityMailboxSpawnerHandle<M, B>
 where
   M: Element,
   B: PriorityMailboxBuilder<M>, {
@@ -62,6 +62,7 @@ where
   }
 
   /// Returns the shared builder handle.
+  #[allow(dead_code)]
   #[must_use]
   pub fn builder(&self) -> ArcShared<B> {
     self.builder.clone()
@@ -90,6 +91,7 @@ where
   B: PriorityMailboxBuilder<M>,
 {
   /// Wraps a builder value in `ArcShared` and returns a spawner handle.
+  #[allow(dead_code)]
   #[must_use]
   pub fn from_builder(builder: B) -> Self {
     Self::new(ArcShared::new(builder))
@@ -102,6 +104,7 @@ where
   R: PriorityMailboxBuilder<M> + Clone,
 {
   /// Wraps a factory implementing [`PriorityMailboxBuilder`] and returns a spawner handle.
+  #[allow(dead_code)]
   #[must_use]
   pub fn from_factory(factory: R) -> Self {
     Self::from_builder(factory)

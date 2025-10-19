@@ -1,5 +1,4 @@
 #[cfg(test)]
-#[allow(clippy::disallowed_types)]
 mod tests;
 
 use core::marker::PhantomData;

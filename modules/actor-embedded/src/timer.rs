@@ -2,6 +2,9 @@ use core::{future::Ready, time::Duration};
 
 use cellex_actor_core_rs::api::actor_system::Timer;
 
+#[cfg(test)]
+mod tests;
+
 /// A timer that completes immediately.
 ///
 /// A timer implementation for embedded environments that completes instantly without waiting.
@@ -17,6 +20,3 @@ impl Timer for ImmediateTimer {
     core::future::ready(())
   }
 }
-
-#[cfg(test)]
-mod tests;

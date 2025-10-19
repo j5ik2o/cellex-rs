@@ -2,6 +2,9 @@
 
 use crate::id::SerializerId;
 
+#[cfg(test)]
+mod tests;
+
 /// Trait implemented by message types that can be serialized through the router.
 ///
 /// Each implementer provides a globally unique key that is used to resolve the
@@ -68,6 +71,3 @@ macro_rules! impl_type_key {
     }
   };
 }
-
-#[cfg(test)]
-mod tests;

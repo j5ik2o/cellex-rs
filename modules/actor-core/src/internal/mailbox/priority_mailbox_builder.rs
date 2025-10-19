@@ -8,7 +8,7 @@ use crate::api::mailbox::{
 ///
 /// このトレイトは優先度付きメールボックスを生成する責務を `MailboxFactory`
 /// から切り出し、スケジューラ層が具象ファクトリ型へ直接依存しないようにする。
-pub(crate) trait PriorityMailboxBuilder<M>: Clone
+pub trait PriorityMailboxBuilder<M>: Clone
 where
   M: Element, {
   /// Mailbox が利用するシグナル型。

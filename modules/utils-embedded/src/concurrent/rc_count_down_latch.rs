@@ -3,6 +3,9 @@ use alloc::{boxed::Box, rc::Rc};
 use cellex_utils_core_rs::{async_trait, CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex, signal::Signal};
 
+#[cfg(test)]
+mod tests;
+
 /// Backend for `Rc`-based countdown latch implementation.
 ///
 /// Provides a synchronization mechanism that waits for multiple tasks to complete in `no_std`
@@ -90,6 +93,3 @@ impl CountDownLatchBackend for RcCountDownLatchBackend {
 /// Countdown latch implementation usable in `no_std` environments.
 /// Provides functionality to wait for multiple tasks to complete until the count reaches 0.
 pub type CountDownLatch = CoreCountDownLatch<RcCountDownLatchBackend>;
-
-#[cfg(test)]
-mod tests;

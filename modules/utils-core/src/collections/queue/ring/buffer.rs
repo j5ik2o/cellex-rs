@@ -3,6 +3,9 @@ use core::{fmt::Debug, mem::MaybeUninit};
 
 use crate::collections::queue::{QueueBase, QueueError, QueueReader, QueueSize, QueueWriter};
 
+#[cfg(test)]
+mod tests;
+
 /// Default capacity for ring buffers
 ///
 /// Used as the initial capacity when ring buffers are created.
@@ -252,6 +255,3 @@ impl<T> Default for RingBuffer<T> {
     Self::new(DEFAULT_CAPACITY)
   }
 }
-
-#[cfg(test)]
-mod tests;

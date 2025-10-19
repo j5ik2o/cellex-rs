@@ -4,6 +4,9 @@ use core::cell::RefCell;
 use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 
+#[cfg(test)]
+mod tests;
+
 /// Backend for `Rc`-based asynchronous barrier implementation.
 ///
 /// Provides functionality for multiple tasks to wait and resume at a specific synchronization point
@@ -83,6 +86,3 @@ impl AsyncBarrierBackend for RcAsyncBarrierBackend {
 /// Asynchronous barrier implementation usable in `no_std` environments.
 /// Provides functionality for multiple tasks to wait at synchronization points until all are ready.
 pub type AsyncBarrier = CoreAsyncBarrier<RcAsyncBarrierBackend>;
-
-#[cfg(test)]
-mod tests;

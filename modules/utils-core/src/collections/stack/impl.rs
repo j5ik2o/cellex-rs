@@ -4,6 +4,9 @@ use super::{
 };
 use crate::collections::QueueSize;
 
+#[cfg(test)]
+mod tests;
+
 /// Stack facade that delegates operations to [`StackBackend`].
 ///
 /// This struct abstracts stack operations and provides a unified interface
@@ -204,7 +207,3 @@ where
     self.backend.backend().peek()
   }
 }
-
-#[cfg(test)]
-#[allow(clippy::disallowed_types)]
-mod tests;

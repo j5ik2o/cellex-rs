@@ -1,7 +1,6 @@
 use super::traits::{MpscBackend, MpscHandle};
 use crate::collections::{QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter};
 #[cfg(test)]
-#[allow(clippy::disallowed_types)]
 mod tests;
 
 /// Queue facade that operates on an [`MpscBackend`]

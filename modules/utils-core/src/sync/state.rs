@@ -1,5 +1,8 @@
 use core::ops::{Deref, DerefMut};
 
+#[cfg(test)]
+mod tests;
+
 /// Trait abstracting an internal mutable cell for storing actor state.
 ///
 /// This trait is intentionally designed to be lightweight, allowing runtimes
@@ -205,7 +208,3 @@ pub trait StateCell<T>: Clone {
     f(&mut *guard)
   }
 }
-
-#[cfg(test)]
-#[allow(clippy::disallowed_types)]
-mod tests;
