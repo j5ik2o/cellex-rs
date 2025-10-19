@@ -5,7 +5,7 @@ use cellex_utils_core_rs::Element;
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
   actor_system::{ActorSystem, ActorSystemConfig},
-  mailbox::PriorityEnvelope,
+  mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
 };
 

@@ -10,7 +10,7 @@ use crate::{
     actor::{actor_ref::ActorRef, props::Props, ChildNaming, SpawnError},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::PriorityEnvelope,
+    mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MetadataStorageMode},
   },
   internal::actor_system::InternalRootContext,

@@ -8,7 +8,10 @@ use crate::{
   api::{
     actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityEnvelope, SystemMessage},
+      MailboxFactory,
+    },
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},

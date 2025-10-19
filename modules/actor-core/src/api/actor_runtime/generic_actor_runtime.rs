@@ -4,7 +4,7 @@ use crate::{
   api::{
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ActorSchedulerHandleBuilder,
-    mailbox::{MailboxFactory, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{

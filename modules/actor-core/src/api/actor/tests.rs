@@ -41,7 +41,10 @@ use crate::{
     actor_runtime::{ActorRuntime, GenericActorRuntime, MailboxQueueOf, MailboxSignalOf},
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
     extensions::{next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension},
-    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityEnvelope, SystemMessage},
+      MailboxFactory,
+    },
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender},
     supervision::{escalation::FailureEventListener, failure::FailureEvent},
     test_support::TestMailboxFactory,
@@ -163,7 +166,7 @@ mod receive_timeout_injection {
   use crate::api::{
     actor_runtime::ActorRuntime,
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig},
-    mailbox::PriorityEnvelope,
+    mailbox::messages::PriorityEnvelope,
     messaging::AnyMessage,
     receive_timeout::{
       ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,

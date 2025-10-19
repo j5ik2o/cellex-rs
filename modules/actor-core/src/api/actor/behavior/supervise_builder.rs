@@ -4,7 +4,7 @@ use super::{Behavior, SupervisorStrategyConfig};
 use crate::api::{
   actor::behavior::supervisor_strategy::SupervisorStrategy,
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::PriorityEnvelope,
+  mailbox::messages::PriorityEnvelope,
   messaging::{AnyMessage, MetadataStorageMode},
 };
 

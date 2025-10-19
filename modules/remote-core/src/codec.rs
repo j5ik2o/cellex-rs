@@ -1,5 +1,8 @@
 use cellex_actor_core_rs::api::{
-  mailbox::{PriorityChannel, SystemMessage, ThreadSafe},
+  mailbox::{
+    messages::{PriorityChannel, SystemMessage},
+    ThreadSafe,
+  },
   messaging::{MessageEnvelope, MessageMetadata},
   process::pid::Pid,
 };

@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use crate::api::{
   failure_telemetry::FailureTelemetryShared,
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   supervision::{
     escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener},

@@ -19,7 +19,10 @@ use crate::{
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_system::map_system::MapSystemShared,
     guardian::AlwaysRestart,
-    mailbox::{MailboxOptions, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityEnvelope, SystemMessage},
+      MailboxOptions,
+    },
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata},
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},

@@ -1,7 +1,10 @@
 use crate::api::{
   actor::actor_ref::PriorityActorRef,
   actor_system::map_system::MapSystemShared,
-  mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  mailbox::{
+    messages::{PriorityEnvelope, SystemMessage},
+    MailboxFactory, MailboxProducer,
+  },
   messaging::AnyMessage,
   supervision::{escalation::EscalationSink, failure::FailureInfo},
 };

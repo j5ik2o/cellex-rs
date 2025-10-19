@@ -11,7 +11,7 @@ use crate::{
     actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, ChildNaming},
     actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::{MailboxFactory, MailboxOptions, MailboxProducer, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxProducer},
     messaging::AnyMessage,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::ReceiveTimeoutScheduler,

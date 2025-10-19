@@ -6,7 +6,7 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, root_context::RootContext, shutdown_token::ShutdownToken},
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    actor_scheduler::ReadyQueueWorker,
+    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
     actor_system::{
       actor_system_builder::ActorSystemBuilder, actor_system_config::ActorSystemConfig,
       actor_system_runner::ActorSystemRunner,
@@ -15,7 +15,7 @@ use crate::{
     failure_event_stream::FailureEventStream,
     failure_telemetry::TelemetryContext,
     guardian::AlwaysRestart,
-    mailbox::PriorityEnvelope,
+    mailbox::messages::PriorityEnvelope,
     messaging::AnyMessage,
     process::{
       pid::{NodeId, SystemId},

@@ -4,7 +4,7 @@ use cellex_utils_core_rs::DEFAULT_PRIORITY;
 
 use super::*;
 use crate::api::{
-  mailbox::{PriorityEnvelope, SystemMessage},
+  mailbox::messages::{PriorityEnvelope, SystemMessage},
   messaging::AnyMessage,
 };
 

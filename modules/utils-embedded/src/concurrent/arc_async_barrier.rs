@@ -3,7 +3,8 @@
 use alloc::{boxed::Box, sync::Arc};
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-use cellex_utils_core_rs::{async_trait, AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
+use async_trait::async_trait;
+use cellex_utils_core_rs::{AsyncBarrier as CoreAsyncBarrier, AsyncBarrierBackend};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   signal::Signal,

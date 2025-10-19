@@ -43,7 +43,7 @@ type RcRingStorage<E> = RcShared<RingStorageBackend<RcShared<RefCell<RingBuffer<
 ///
 /// ```
 /// use cellex_utils_core_rs::QueueRw;
-/// use cellex_utils_embedded_rs::RcRingQueue;
+/// use cellex_utils_embedded_rs::prelude::RcRingQueue;
 ///
 /// // Create a dynamic ring queue with capacity 10
 /// let queue: RcRingQueue<i32> = RcRingQueue::new(10);
@@ -71,7 +71,7 @@ impl<E> RcRingQueue<E> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcRingQueue;
+  /// use cellex_utils_embedded_rs::prelude::RcRingQueue;
   ///
   /// let queue: RcRingQueue<String> = RcRingQueue::new(100);
   /// ```
@@ -91,7 +91,7 @@ impl<E> RcRingQueue<E> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcRingQueue;
+  /// use cellex_utils_embedded_rs::prelude::RcRingQueue;
   ///
   /// let queue: RcRingQueue<i32> = RcRingQueue::new(10).with_dynamic(false); // Fixed capacity mode
   /// ```
@@ -109,7 +109,7 @@ impl<E> RcRingQueue<E> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcRingQueue;
+  /// use cellex_utils_embedded_rs::prelude::RcRingQueue;
   ///
   /// let queue: RcRingQueue<i32> = RcRingQueue::new(10);
   /// queue.set_dynamic(false); // Change to fixed capacity mode

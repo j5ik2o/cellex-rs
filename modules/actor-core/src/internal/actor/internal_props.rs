@@ -7,7 +7,7 @@ use crate::{
     actor::{actor_context::ActorContext, actor_failure::ActorFailure, ActorHandlerFn},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_system::map_system::MapSystemShared,
-    mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
     messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
   },
   internal::actor_context::InternalActorContext,

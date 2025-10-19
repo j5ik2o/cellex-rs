@@ -17,15 +17,15 @@ use cellex_actor_core_rs::api::mailbox::SingleThread;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::{
   mailbox::{
-    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
-    QueueMailboxRecv,
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailboxProducer,
   },
   metrics::MetricsSinkShared,
 };
 #[cfg(not(feature = "embedded_rc"))]
-use cellex_utils_embedded_rs::ArcLocalMpscUnboundedQueue;
+use cellex_utils_embedded_rs::collections::queue::mpsc::ArcLocalMpscUnboundedQueue;
 #[cfg(feature = "embedded_rc")]
-use cellex_utils_embedded_rs::RcMpscUnboundedQueue;
+use cellex_utils_embedded_rs::collections::queue::mpsc::RcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::{Element, QueueBase, QueueError, QueueRw, QueueSize};
 
 #[cfg(feature = "embedded_rc")]

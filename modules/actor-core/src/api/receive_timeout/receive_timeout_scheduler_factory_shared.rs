@@ -1,7 +1,7 @@
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use crate::api::{
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   receive_timeout::ReceiveTimeoutSchedulerFactory,
 };
 

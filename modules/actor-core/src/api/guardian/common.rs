@@ -6,7 +6,10 @@ use super::{ChildRecord, GuardianStrategy};
 use crate::api::{
   actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming, SpawnError},
   actor_system::map_system::MapSystemShared,
-  mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  mailbox::{
+    messages::{PriorityEnvelope, SystemMessage},
+    MailboxFactory, MailboxProducer,
+  },
   messaging::AnyMessage,
   supervision::{failure::FailureInfo, supervisor::SupervisorDirective},
 };

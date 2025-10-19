@@ -17,6 +17,7 @@ std = []
 embassy = ["arc", "dep:embassy-time", "dep:embassy-futures"]
 
 [dependencies]
+async-trait = { workspace = true }
 embassy-sync = { workspace = true, default-features = false, optional = true }
 embassy-time = { workspace = true, default-features = false, optional = true }
 critical-section = { workspace = true, optional = true }

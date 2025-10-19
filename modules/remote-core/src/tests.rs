@@ -10,7 +10,10 @@ use cellex_actor_core_rs::api::{
     ActorId, ActorPath,
   },
   failure_event_stream::FailureEventStream,
-  mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage, ThreadSafe},
+  mailbox::{
+    messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+    ThreadSafe,
+  },
   messaging::MessageEnvelope,
   process::pid::{NodeId, Pid, SystemId},
   supervision::{

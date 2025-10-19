@@ -1,5 +1,6 @@
-pub mod queue;
-pub mod stack;
+//! Collection modules exposed by `cellex-utils-std-rs`.
 
-pub use queue::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue, ArcPriorityQueue, ArcRingQueue};
-pub use stack::ArcStack;
+/// Queue implementations optimized for std environments.
+pub mod queue;
+/// Stack implementations backed by shared state.
+pub mod stack;

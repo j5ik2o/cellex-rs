@@ -9,7 +9,7 @@ use crate::api::{
   actor_scheduler::ActorSchedulerSpawnContext,
   actor_system::map_system::MapSystemShared,
   failure_telemetry::FailureTelemetryShared,
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,

@@ -17,7 +17,10 @@ use crate::{
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityEnvelope, SystemMessage},
+      MailboxFactory,
+    },
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::failure::FailureInfo,

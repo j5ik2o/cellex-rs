@@ -3,7 +3,7 @@ use futures::future::{select, Either, LocalBoxFuture};
 
 use crate::api::{
   actor::shutdown_token::ShutdownToken,
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
 };
 

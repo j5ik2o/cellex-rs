@@ -1,6 +1,6 @@
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::api::{actor_scheduler::ReadyQueueHandle, metrics::MetricsSinkShared};
+use crate::api::{actor_scheduler::ready_queue_scheduler::ReadyQueueHandle, metrics::MetricsSinkShared};
 
 /// Sending interface exposed by mailbox producers that enqueue messages.
 pub trait MailboxProducer<M>: Clone

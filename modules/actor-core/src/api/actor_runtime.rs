@@ -12,7 +12,7 @@ pub use generic_actor_runtime::GenericActorRuntime;
 use crate::{
   api::{
     actor_scheduler::ActorSchedulerHandleBuilder,
-    mailbox::{MailboxFactory, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},

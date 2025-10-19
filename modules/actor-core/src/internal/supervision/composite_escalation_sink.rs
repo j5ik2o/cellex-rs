@@ -5,7 +5,7 @@ use crate::api::{
   actor::actor_ref::PriorityActorRef,
   actor_system::map_system::MapSystemShared,
   failure_telemetry::FailureTelemetryShared,
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   supervision::{
     escalation::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink},

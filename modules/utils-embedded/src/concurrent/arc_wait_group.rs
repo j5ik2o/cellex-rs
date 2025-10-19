@@ -3,7 +3,8 @@
 use alloc::{boxed::Box, sync::Arc};
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
+use async_trait::async_trait;
+use cellex_utils_core_rs::{WaitGroup as CoreWaitGroup, WaitGroupBackend};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   signal::Signal,

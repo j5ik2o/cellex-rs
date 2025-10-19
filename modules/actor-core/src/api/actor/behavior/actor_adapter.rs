@@ -8,7 +8,7 @@ use crate::api::{
   actor::{actor_context::ActorContext, actor_failure::ActorFailure},
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
   actor_system::map_system::MapSystemShared,
-  mailbox::{PriorityEnvelope, SystemMessage},
+  mailbox::messages::{PriorityEnvelope, SystemMessage},
   messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
 };
 

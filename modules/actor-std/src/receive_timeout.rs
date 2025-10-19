@@ -7,14 +7,19 @@ use core::time::Duration;
 
 use cellex_actor_core_rs::api::{
   actor_system::map_system::MapSystemShared,
-  mailbox::{MailboxFactory, PriorityEnvelope, SystemMessage},
+  mailbox::{
+    messages::{PriorityEnvelope, SystemMessage},
+    MailboxFactory,
+  },
   messaging::AnyMessage,
   receive_timeout::{
     ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
     ReceiveTimeoutSchedulerFactoryShared,
   },
 };
-use cellex_utils_std_rs::{DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline, TokioDeadlineTimer};
+use cellex_utils_std_rs::{
+  timing::TokioDeadlineTimer, DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,
+};
 use futures::future::poll_fn;
 use tokio::{
   sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},

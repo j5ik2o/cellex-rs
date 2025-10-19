@@ -3,7 +3,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 use crate::api::{
   actor::{actor_context::AdapterFn, actor_ref::ActorRef},
   actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
-  mailbox::PriorityEnvelope,
+  mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
 };
 

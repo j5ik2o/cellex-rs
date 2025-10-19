@@ -1,7 +1,8 @@
 use alloc::{boxed::Box, rc::Rc};
 use core::cell::RefCell;
 
-use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
+use async_trait::async_trait;
+use cellex_utils_core_rs::{WaitGroup as CoreWaitGroup, WaitGroupBackend};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 
 #[cfg(test)]

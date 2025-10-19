@@ -14,7 +14,7 @@ use crate::api::{
   },
   extensions::Extensions,
   guardian::GuardianStrategy,
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
 };
 

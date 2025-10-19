@@ -72,6 +72,7 @@ run_dylint() {
     "module-wiring-lint:lints/module-wiring-lint"
     "tests-location-lint:lints/tests-location-lint"
     "use-placement-lint:lints/use-placement-lint"
+    "mod-reexport-lint:lints/mod-reexport-lint"
   )
 
   local -a selected=()

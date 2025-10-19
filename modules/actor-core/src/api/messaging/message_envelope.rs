@@ -1,7 +1,7 @@
 use cellex_utils_core_rs::Element;
 
 use crate::api::{
-  mailbox::{PriorityChannel, PriorityEnvelope, SystemMessage},
+  mailbox::messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
   messaging::{MessageMetadata, MetadataStorageMode, UserMessage},
 };
 

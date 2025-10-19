@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 use cellex_utils_core_rs::QueueError;
 
 use crate::api::{
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   supervision::failure::FailureInfo,
 };

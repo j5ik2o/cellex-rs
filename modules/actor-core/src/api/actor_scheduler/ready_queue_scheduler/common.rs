@@ -15,7 +15,10 @@ use crate::{
     extensions::Extensions,
     failure_telemetry::FailureTelemetryShared,
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
-    mailbox::{Mailbox, MailboxFactory, MailboxProducer, MailboxSignal, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityEnvelope, SystemMessage},
+      Mailbox, MailboxFactory, MailboxProducer, MailboxSignal,
+    },
     messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,

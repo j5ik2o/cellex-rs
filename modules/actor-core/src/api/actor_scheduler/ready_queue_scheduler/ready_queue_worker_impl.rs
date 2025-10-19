@@ -6,7 +6,7 @@ use super::ready_queue_context::ReadyQueueContext;
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
   guardian::GuardianStrategy,
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
 };
 

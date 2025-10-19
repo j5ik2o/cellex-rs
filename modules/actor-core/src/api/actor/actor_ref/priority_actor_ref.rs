@@ -1,7 +1,10 @@
 use cellex_utils_core_rs::{Element, QueueError};
 
 use crate::{
-  api::mailbox::{MailboxFactory, MailboxProducer, PriorityEnvelope, SystemMessage},
+  api::mailbox::{
+    messages::{PriorityEnvelope, SystemMessage},
+    MailboxFactory, MailboxProducer,
+  },
   RuntimeBound,
 };
 

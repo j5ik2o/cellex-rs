@@ -7,7 +7,7 @@ use crate::{
       ask::{AskError, AskResult},
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{MailboxFactory, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},

@@ -11,7 +11,7 @@ use crate::api::{
     },
   },
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::PriorityEnvelope,
+  mailbox::messages::PriorityEnvelope,
   messaging::{AnyMessage, MetadataStorageMode},
 };
 

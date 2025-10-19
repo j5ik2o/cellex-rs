@@ -112,10 +112,14 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
-pub(crate) mod collections;
-pub(crate) mod concurrent;
-pub(crate) mod sync;
-pub(crate) mod timing;
+/// Collection utilities for embedded targets.
+pub mod collections;
+/// Concurrency primitives specialized for embedded runtimes.
+pub mod concurrent;
+/// Synchronization and shared-state helpers for embedded systems.
+pub mod sync;
+/// Timer helpers for embedded environments.
+pub mod timing;
 
 pub use cellex_utils_core_rs::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
@@ -123,21 +127,6 @@ pub use cellex_utils_core_rs::{
   QueueWriter, RingBackend, RingBuffer, RingQueue, RingStorageBackend, Shared, Stack, StackBackend, StackHandle,
   StackStorage, StackStorageBackend, StateCell, TimerDeadline, DEFAULT_CAPACITY, DEFAULT_PRIORITY, PRIORITY_LEVELS,
 };
-pub use collections::*;
-#[cfg(feature = "arc")]
-pub use concurrent::{
-  ArcAsyncBarrierBackend, ArcCountDownLatchBackend, ArcCsAsyncBarrier, ArcCsCountDownLatch, ArcCsSynchronized,
-  ArcCsSynchronizedRw, ArcCsWaitGroup, ArcLocalAsyncBarrier, ArcLocalCountDownLatch, ArcLocalSynchronized,
-  ArcLocalSynchronizedRw, ArcLocalWaitGroup, ArcMutexBackend, ArcRwLockBackend, ArcSynchronized, ArcSynchronizedRw,
-  ArcWaitGroupBackend,
-};
-#[cfg(feature = "rc")]
-pub use concurrent::{
-  RcAsyncBarrier, RcAsyncBarrierBackend, RcCountDownLatch, RcCountDownLatchBackend, RcMutexBackend, RcRwLockBackend,
-  RcSynchronized, RcSynchronizedRw, RcWaitGroup, RcWaitGroupBackend,
-};
-pub use sync::*;
-pub use timing::ManualDeadlineTimer;
 
 /// Prelude module that re-exports commonly used types and functions.
 ///
@@ -161,24 +150,37 @@ pub mod prelude {
     DEFAULT_CAPACITY, DEFAULT_PRIORITY, PRIORITY_LEVELS,
   };
 
-  pub use super::ManualDeadlineTimer;
   #[cfg(feature = "arc")]
-  pub use super::{
+  pub use crate::collections::{
+    queue::{
+      mpsc::{
+        ArcCsMpscBoundedQueue, ArcCsMpscUnboundedQueue, ArcLocalMpscBoundedQueue, ArcLocalMpscUnboundedQueue,
+        ArcMpscBoundedQueue, ArcMpscUnboundedQueue,
+      },
+      priority::{ArcCsPriorityQueue, ArcLocalPriorityQueue, ArcPriorityQueue},
+      ring::{ArcLocalRingQueue, ArcRingQueue},
+    },
+    stack::{ArcCsStack, ArcLocalStack, ArcStack},
+  };
+  #[cfg(feature = "rc")]
+  pub use crate::collections::{
+    queue::{
+      mpsc::{RcMpscBoundedQueue, RcMpscUnboundedQueue},
+      priority::RcPriorityQueue,
+      ring::RcRingQueue,
+    },
+    stack::RcStack,
+  };
+  #[cfg(feature = "arc")]
+  pub use crate::concurrent::{
     ArcCsAsyncBarrier, ArcCsCountDownLatch, ArcCsSynchronized, ArcCsSynchronizedRw, ArcCsWaitGroup,
     ArcLocalAsyncBarrier, ArcLocalCountDownLatch, ArcLocalWaitGroup, ArcSynchronized, ArcSynchronizedRw,
   };
+  #[cfg(feature = "rc")]
+  pub use crate::concurrent::{RcAsyncBarrier, RcCountDownLatch, RcSynchronized, RcSynchronizedRw, RcWaitGroup};
   #[cfg(feature = "arc")]
-  pub use super::{
-    ArcCsMpscBoundedQueue, ArcCsMpscUnboundedQueue, ArcCsPriorityQueue, ArcCsStack, ArcLocalMpscBoundedQueue,
-    ArcLocalMpscUnboundedQueue, ArcLocalPriorityQueue, ArcLocalRingQueue, ArcLocalStack, ArcMpscBoundedQueue,
-    ArcMpscUnboundedQueue, ArcPriorityQueue, ArcRingQueue, ArcStack,
-  };
-  #[cfg(feature = "arc")]
-  pub use super::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
+  pub use crate::sync::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
   #[cfg(feature = "rc")]
-  pub use super::{RcAsyncBarrier, RcCountDownLatch, RcSynchronized, RcSynchronizedRw, RcWaitGroup};
-  #[cfg(feature = "rc")]
-  pub use super::{RcMpscBoundedQueue, RcMpscUnboundedQueue, RcPriorityQueue, RcRingQueue, RcStack};
-  #[cfg(feature = "rc")]
-  pub use super::{RcShared, RcStateCell};
+  pub use crate::sync::{RcShared, RcStateCell};
+  pub use crate::timing::ManualDeadlineTimer;
 }

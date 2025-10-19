@@ -5,13 +5,14 @@ use std::sync::Arc;
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
-    QueueMailboxRecv, ThreadSafe,
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailboxProducer, ThreadSafe,
   },
   metrics::MetricsSinkShared,
 };
 use cellex_utils_std_rs::{
-  ArcMpscBoundedQueue, ArcMpscUnboundedQueue, Element, QueueBase, QueueError, QueueRw, QueueSize,
+  collections::queue::mpsc::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue},
+  Element, QueueBase, QueueError, QueueRw, QueueSize,
 };
 use tokio::sync::{futures::Notified, Notify};
 

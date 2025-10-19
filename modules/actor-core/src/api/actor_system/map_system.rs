@@ -2,7 +2,7 @@ use core::ops::Deref;
 
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 
-use crate::api::mailbox::SystemMessage;
+use crate::api::mailbox::messages::SystemMessage;
 
 #[cfg(target_has_atomic = "ptr")]
 type MapSystemFn<M> = dyn Fn(SystemMessage) -> M + Send + Sync;

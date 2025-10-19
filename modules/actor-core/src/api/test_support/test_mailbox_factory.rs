@@ -1,7 +1,9 @@
 use cellex_utils_core_rs::{Element, MpscQueue, QueueSize};
 
 use crate::api::{
-  mailbox::{MailboxFactory, MailboxOptions, MailboxPair, QueueMailbox, QueueMailboxProducer, ThreadSafe},
+  mailbox::{
+    queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  },
   test_support::{common::TestQueue, shared_backend_handle::SharedBackendHandle, test_signal::TestSignal},
 };
 
