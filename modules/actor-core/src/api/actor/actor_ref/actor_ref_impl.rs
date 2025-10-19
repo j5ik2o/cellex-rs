@@ -54,7 +54,7 @@ where
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Creates a new `ActorRef` from an internal reference.
-  pub(crate) fn new(
+  pub(crate) const fn new(
     inner: PriorityActorRef<AnyMessage, MailboxOf<AR>>,
     pid_slot: ArcShared<RwLock<Option<Pid>>>,
     process_registry: Option<
@@ -95,6 +95,10 @@ where
 
   fn current_pid_from_slot(pid_slot: &ArcShared<RwLock<Option<Pid>>>) -> Option<Pid> {
     pid_slot.read().clone()
+  }
+
+  fn take_shared_envelope(shared: ArcShared<PriorityEnvelope<AnyMessage>>) -> Option<PriorityEnvelope<AnyMessage>> {
+    shared.try_unwrap().ok()
   }
 
   /// Wraps a user message into a dynamic message.
@@ -149,7 +153,9 @@ where
       let Some(handle) = resolution else {
         return Err(QueueError::Disconnected);
       };
-      let envelope = envelope_shared.try_unwrap().unwrap_or_else(|_| panic!("envelope shared beyond dispatch scope"));
+      let Some(envelope) = Self::take_shared_envelope(envelope_shared) else {
+        return Err(QueueError::Disconnected);
+      };
       let actor_ref = handle.with_ref(|actor_ref: &PriorityActorRef<AnyMessage, MailboxOf<AR>>| actor_ref.clone());
       let send_result = actor_ref.try_send_envelope(envelope);
       return Self::map_send_result(Some(registry), pid_opt.as_ref(), send_result);
@@ -213,8 +219,10 @@ where
               ));
             },
           );
-          let envelope = shared.try_unwrap().unwrap_or_else(|_| panic!("envelope shared beyond send error scope"));
-          QueueError::Full(envelope)
+          match Self::take_shared_envelope(shared) {
+            | Some(envelope) => QueueError::Full(envelope),
+            | None => QueueError::Disconnected,
+          }
         } else {
           QueueError::Full(envelope)
         }
@@ -234,8 +242,10 @@ where
               ));
             },
           );
-          let envelope = shared.try_unwrap().unwrap_or_else(|_| panic!("envelope shared beyond send error scope"));
-          QueueError::OfferError(envelope)
+          match Self::take_shared_envelope(shared) {
+            | Some(envelope) => QueueError::OfferError(envelope),
+            | None => QueueError::Disconnected,
+          }
         } else {
           QueueError::OfferError(envelope)
         }
@@ -251,8 +261,10 @@ where
               registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated));
             },
           );
-          let envelope = shared.try_unwrap().unwrap_or_else(|_| panic!("envelope shared beyond send error scope"));
-          QueueError::Closed(envelope)
+          match Self::take_shared_envelope(shared) {
+            | Some(envelope) => QueueError::Closed(envelope),
+            | None => QueueError::Disconnected,
+          }
         } else {
           QueueError::Closed(envelope)
         }

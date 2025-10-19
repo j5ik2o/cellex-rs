@@ -61,6 +61,7 @@ where
 
   /// Returns a reference to the wrapped use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn mailbox_factory(&self) -> &MF {
     self.core.mailbox_factory()
   }
