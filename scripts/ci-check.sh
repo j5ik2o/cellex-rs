@@ -14,16 +14,16 @@ FMT_TOOLCHAIN="${FMT_TOOLCHAIN:-nightly}"
 usage() {
   cat <<'EOF'
 使い方: scripts/ci-check.sh [コマンド...]
-  lint       : cargo +nightly fmt -- --check を実行します
-  dylint     : workspace.metadata で定義されたカスタムリントを実行します
-  clippy     : cargo clippy --workspace --all-targets -- -D warnings を実行します
-  no-std     : no_std 対応チェック (core/utils) を実行します
-  std        : std フィーチャーでのテストを実行します
-  embedded   : embedded 系 (utils / actor) のチェックとテストを実行します
-  embassy    : embedded のエイリアスです (互換目的)
-  test       : ワークスペース全体のテストを実行します
-  all        : 上記すべてを順番に実行します (引数なし時と同じ)
-複数指定で部分実行が可能です (例: scripts/ci-check.sh lint test)
+  lint                   : cargo +nightly fmt -- --check を実行します
+  dylint [lint...]       : カスタムリントを実行します (デフォルトはすべて、例: dylint mod-file-lint)
+                           CSV 形式のショートハンドも利用可能です (例: dylint:mod-file-lint,module-wiring-lint)
+  clippy                 : cargo clippy --workspace --all-targets -- -D warnings を実行します
+  no-std                 : no_std 対応チェック (core/utils) を実行します
+  std                    : std フィーチャーでのテストを実行します
+  embedded / embassy     : embedded 系 (utils / actor) のチェックとテストを実行します
+  test                   : ワークスペース全体のテストを実行します
+  all                    : 上記すべてを順番に実行します (引数なし時と同じ)
+複数指定で部分実行が可能です (例: scripts/ci-check.sh lint dylint module-wiring-lint)
 EOF
 }
 
@@ -65,30 +65,72 @@ run_lint() {
 }
 
 run_dylint() {
-  local toolchain
-  toolchain="nightly-$(rustc +nightly -vV | awk '/^host:/{print $2}')"
+  local -a requested=("$@")
 
-  local lint_paths=(
-    "lints/mod-file-lint"
-    "lints/module-wiring-lint"
-    "lints/tests-location-lint"
+  local -a lint_entries=(
+    "mod-file-lint:lints/mod-file-lint"
+    "module-wiring-lint:lints/module-wiring-lint"
+    "tests-location-lint:lints/tests-location-lint"
   )
 
-  local lib_dirs=()
+  local -a selected=()
 
-  for lint_path in "${lint_paths[@]}"; do
+  if [[ ${#requested[@]} -eq 0 ]]; then
+    selected=("${lint_entries[@]}")
+  else
+    local name
+    for name in "${requested[@]}"; do
+      local found=""
+      local entry
+      for entry in "${lint_entries[@]}"; do
+        local crate="${entry%%:*}"
+        local alias="${crate//-/_}"
+        if [[ "${name}" == "${crate}" || "${name}" == "${alias}" || "${name}" == "lints/${crate}" || "${name}" == "${entry#*:}" ]]; then
+          local already=""
+          if [[ ${#selected[@]} -gt 0 ]]; then
+            local existing
+            for existing in "${selected[@]}"; do
+              if [[ "${existing}" == "${entry}" ]]; then
+                already="yes"
+                break
+              fi
+            done
+          fi
+          if [[ -z "${already}" ]]; then
+            selected+=("${entry}")
+          fi
+          found="yes"
+          break
+        fi
+      done
+      if [[ -z "${found}" ]]; then
+        echo "エラー: 未知のリンター '${name}' が指定されました" >&2
+        echo "利用可能: ${lint_entries[*]//:*/}" >&2
+        return 1
+      fi
+    done
+  fi
+
+  local toolchain
+  toolchain="nightly-$(rustc +nightly -vV | awk '/^host:/{print $2}')"
+  local -a lib_dirs=()
+  local -a dylint_args=()
+
+  local entry
+  for entry in "${selected[@]}"; do
+    local crate="${entry%%:*}"
+    local lint_path="${entry#*:}"
+    local lib_name="${crate//-/_}"
+
     log_step "cargo +nightly build --manifest-path ${lint_path}/Cargo.toml --release"
     CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" cargo +nightly build --manifest-path "${lint_path}/Cargo.toml" --release
 
     log_step "cargo +nightly test --manifest-path ${lint_path}/Cargo.toml -- test ui -- --quiet"
     CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" cargo +nightly test --manifest-path "${lint_path}/Cargo.toml" -- test ui -- --quiet
 
-    local base
-    base="$(basename "${lint_path}")"
-    local crate_name="${base//-/_}"
     local target_dir="${lint_path}/target/release"
-    local plain_lib="${target_dir}/lib${crate_name}.dylib"
-    local tagged_lib="${target_dir}/lib${crate_name}@${toolchain}.dylib"
+    local plain_lib="${target_dir}/lib${lib_name}.dylib"
+    local tagged_lib="${target_dir}/lib${lib_name}@${toolchain}.dylib"
 
     if [[ -f "${plain_lib}" ]]; then
       cp -f "${plain_lib}" "${tagged_lib}"
@@ -97,13 +139,15 @@ run_dylint() {
       echo "エラー: ${plain_lib} が見つかりません" >&2
       return 1
     fi
+
+    dylint_args+=("--lib" "${lib_name}")
   done
 
   local dylint_library_path
   dylint_library_path="$(IFS=:; echo "${lib_dirs[*]}")"
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace --lib mod_file_lint --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata"
-  DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace --lib mod_file_lint --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata
+  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace ${dylint_args[*]} --no-build --no-metadata"
+  DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace "${dylint_args[@]}" --no-build --no-metadata
 }
 
 run_clippy() {
@@ -195,31 +239,88 @@ main() {
   fi
 
   local status=0
-  for cmd in "$@"; do
-    case "${cmd}" in
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
       lint)
-        run_lint
+        run_lint || status=$?
+        shift
         ;;
       dylint)
-        run_dylint
+        shift
+        local -a lint_args=()
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            lint|dylint|dylint:*|clippy|no-std|nostd|std|embedded|embassy|test|tests|workspace|all)
+              break
+              ;;
+            --)
+              shift
+              break
+              ;;
+            *)
+              lint_args+=("$1")
+              shift
+              ;;
+          esac
+        done
+        if [[ ${#lint_args[@]} -eq 0 ]]; then
+          if ! run_dylint; then
+            return 1
+          fi
+        else
+          if ! run_dylint "${lint_args[@]}"; then
+            return 1
+          fi
+        fi
+        ;;
+      dylint:*)
+        local spec="${1#dylint:}"
+        local -a lint_args=()
+        IFS=',' read -r -a lint_args <<< "${spec}"
+        if [[ ${#lint_args[@]} -eq 0 || ( ${#lint_args[@]} -eq 1 && -z "${lint_args[0]}" ) ]]; then
+          if ! run_dylint; then
+            return 1
+          fi
+        else
+          if ! run_dylint "${lint_args[@]}"; then
+            return 1
+          fi
+        fi
+        shift
         ;;
       clippy)
-        run_clippy
+        run_clippy || status=$?
+        shift
         ;;
       no-std|nostd)
-        run_no_std
+        run_no_std || status=$?
+        shift
         ;;
       std)
-        run_std
+        run_std || status=$?
+        shift
         ;;
       embedded|embassy)
-        run_embedded
+        run_embedded || status=$?
+        shift
         ;;
       test|tests|workspace)
-        run_tests
+        run_tests || status=$?
+        shift
         ;;
       all)
-        run_all
+        run_all || status=$?
+        shift
+        ;;
+      --help|-h|help)
+        usage
+        return 0
+        ;;
+      --)
+        shift
+        if ! run_all; then
+          return 1
+        fi
         ;;
       *)
         usage
