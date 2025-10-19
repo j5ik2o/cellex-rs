@@ -26,12 +26,14 @@ pub struct TokioDeadlineTimer<Item> {
 
 impl<Item> TokioDeadlineTimer<Item> {
   /// Creates an empty DeadlineTimer.
+  #[must_use]
   #[inline]
   pub fn new() -> Self {
     Self::with_inner(InnerDelayQueue::new())
   }
 
   /// Creates a DeadlineTimer with pre-allocated capacity.
+  #[must_use]
   #[inline]
   pub fn with_capacity(capacity: usize) -> Self {
     Self::with_inner(InnerDelayQueue::with_capacity(capacity))
@@ -41,8 +43,8 @@ impl<Item> TokioDeadlineTimer<Item> {
     Self { inner, allocator: DeadlineTimerKeyAllocator::new(), forward: HashMap::new(), reverse: HashMap::new() }
   }
 
-  fn release_key_mapping(&mut self, inner_key: &InnerKey) -> Option<DeadlineTimerKey> {
-    if let Some(key) = self.reverse.remove(inner_key) {
+  fn release_key_mapping(&mut self, inner_key: InnerKey) -> Option<DeadlineTimerKey> {
+    if let Some(key) = self.reverse.remove(&inner_key) {
       self.forward.remove(&key);
       Some(key)
     } else {
@@ -93,7 +95,7 @@ impl<Item> DeadlineTimer for TokioDeadlineTimer<Item> {
       | Poll::Ready(Some(expired)) => {
         let inner_key = expired.key();
         let item = expired.into_inner();
-        if let Some(key) = self.release_key_mapping(&inner_key) {
+        if let Some(key) = self.release_key_mapping(inner_key) {
           Poll::Ready(Ok(DeadlineTimerExpired { key, item }))
         } else {
           Poll::Ready(Err(DeadlineTimerError::KeyNotFound))

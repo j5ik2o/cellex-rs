@@ -26,6 +26,7 @@ impl<E> ArcPriorityQueue<E> {
   /// # Returns
   ///
   /// A new priority queue instance
+  #[must_use]
   pub fn new(capacity_per_level: usize) -> Self {
     let levels = (0..PRIORITY_LEVELS).map(|_| ArcRingQueue::new(capacity_per_level)).collect();
     Self { inner: PriorityQueue::new(levels) }
@@ -36,6 +37,7 @@ impl<E> ArcPriorityQueue<E> {
   /// # Returns
   ///
   /// A slice of priority level queues
+  #[must_use]
   pub fn levels(&self) -> &[ArcRingQueue<E>] {
     self.inner.levels()
   }
@@ -54,7 +56,8 @@ impl<E> ArcPriorityQueue<E> {
   /// # Returns
   ///
   /// A reference to the internal priority queue
-  pub fn inner(&self) -> &PriorityQueue<ArcRingQueue<E>, E> {
+  #[must_use]
+  pub const fn inner(&self) -> &PriorityQueue<ArcRingQueue<E>, E> {
     &self.inner
   }
 
@@ -63,7 +66,7 @@ impl<E> ArcPriorityQueue<E> {
   /// # Returns
   ///
   /// A mutable reference to the internal priority queue
-  pub fn inner_mut(&mut self) -> &mut PriorityQueue<ArcRingQueue<E>, E> {
+  pub const fn inner_mut(&mut self) -> &mut PriorityQueue<ArcRingQueue<E>, E> {
     &mut self.inner
   }
 }
@@ -81,6 +84,10 @@ where
   /// # Returns
   ///
   /// `Ok(())` on success, `Err(QueueError::Full)` if the queue is full
+  ///
+  /// # Errors
+  ///
+  /// Returns `QueueError::Full` if the queue is at capacity
   pub fn offer(&self, element: E) -> Result<(), QueueError<E>> {
     self.inner.offer(element)
   }
@@ -90,6 +97,10 @@ where
   /// # Returns
   ///
   /// `Ok(Some(E))` on success, `Ok(None)` if the queue is empty
+  ///
+  /// # Errors
+  ///
+  /// Returns `QueueError` if an internal error occurs
   pub fn poll(&self) -> Result<Option<E>, QueueError<E>> {
     self.inner.poll()
   }

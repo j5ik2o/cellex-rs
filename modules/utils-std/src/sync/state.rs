@@ -35,7 +35,7 @@ impl<T> ArcStateCell<T> {
   /// # Returns
   ///
   /// An `ArcStateCell` instance wrapping the `Arc<Mutex<T>>`
-  pub fn from_arc(inner: Arc<Mutex<T>>) -> Self {
+  pub const fn from_arc(inner: Arc<Mutex<T>>) -> Self {
     Self(inner)
   }
 
@@ -44,6 +44,7 @@ impl<T> ArcStateCell<T> {
   /// # Returns
   ///
   /// The internal `Arc<Mutex<T>>` instance
+  #[must_use]
   pub fn into_arc(self) -> Arc<Mutex<T>> {
     self.0
   }
@@ -74,10 +75,12 @@ impl<T> StateCell<T> for ArcStateCell<T> {
   }
 
   fn borrow(&self) -> Self::Ref<'_> {
+    #![allow(clippy::expect_used)]
     self.0.lock().expect("mutex poisoned")
   }
 
   fn borrow_mut(&self) -> Self::RefMut<'_> {
+    #![allow(clippy::expect_used)]
     self.0.lock().expect("mutex poisoned")
   }
 }

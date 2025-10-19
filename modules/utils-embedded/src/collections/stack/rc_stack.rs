@@ -70,6 +70,7 @@ impl<T> RcStack<T> {
   ///
   /// let stack: RcStack<String> = RcStack::new();
   /// ```
+  #[must_use]
   pub fn new() -> Self {
     let storage = RcShared::new(RefCell::new(StackBuffer::new()));
     let backend: RcStackStorage<T> = RcShared::new(StackStorageBackend::new(storage));
@@ -89,6 +90,7 @@ impl<T> RcStack<T> {
   ///
   /// let stack: RcStack<i32> = RcStack::with_capacity(100);
   /// ```
+  #[must_use]
   pub fn with_capacity(capacity: usize) -> Self {
     let stack = Self::new();
     stack.set_capacity(Some(capacity));
@@ -124,6 +126,10 @@ impl<T> RcStack<T> {
   ///
   /// Returns `Ok(())` on success, `Err(StackError::Full(value))` if capacity limit is reached
   ///
+  /// # Errors
+  ///
+  /// Returns `Err(StackError::Full(value))` if the stack has reached its capacity limit.
+  ///
   /// # Examples
   ///
   /// ```
@@ -152,6 +158,7 @@ impl<T> RcStack<T> {
   /// assert_eq!(stack.pop(), Some(1));
   /// assert_eq!(stack.pop(), None);
   /// ```
+  #[must_use]
   pub fn pop(&self) -> Option<T> {
     self.inner.pop()
   }
@@ -172,6 +179,7 @@ impl<T> RcStack<T> {
   /// assert_eq!(stack.peek(), Some(1));
   /// assert_eq!(stack.len().to_usize(), 1); // Element still remains
   /// ```
+  #[must_use]
   pub fn peek(&self) -> Option<T>
   where
     T: Clone, {
@@ -210,6 +218,7 @@ impl<T> RcStack<T> {
   /// stack.push(1).unwrap();
   /// assert_eq!(stack.len().to_usize(), 1);
   /// ```
+  #[must_use]
   pub fn len(&self) -> QueueSize {
     self.inner.len()
   }
@@ -228,6 +237,7 @@ impl<T> RcStack<T> {
   /// let stack: RcStack<i32> = RcStack::with_capacity(10);
   /// assert_eq!(stack.capacity().to_usize(), 10);
   /// ```
+  #[must_use]
   pub fn capacity(&self) -> QueueSize {
     self.inner.capacity()
   }

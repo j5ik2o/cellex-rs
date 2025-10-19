@@ -18,6 +18,7 @@ impl<T> Default for TokioUnboundedMpscBackend<T> {
 
 impl<T> TokioUnboundedMpscBackend<T> {
   /// Creates an unbounded Tokio MPSC backend.
+  #[must_use]
   pub fn new() -> Self {
     let (sender, receiver) = mpsc::unbounded_channel();
     Self { sender, receiver: Mutex::new(receiver) }

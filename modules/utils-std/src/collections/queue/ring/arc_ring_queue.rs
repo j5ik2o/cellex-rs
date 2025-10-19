@@ -30,6 +30,7 @@ impl<E> ArcRingQueue<E> {
   /// # Returns
   ///
   /// A new ring queue instance
+  #[must_use]
   pub fn new(capacity: usize) -> Self {
     let storage = ArcShared::new(Mutex::new(RingBuffer::new(capacity)));
     let backend: ArcRingStorage<E> = ArcShared::new(RingStorageBackend::new(storage));
@@ -45,6 +46,7 @@ impl<E> ArcRingQueue<E> {
   /// # Returns
   ///
   /// The queue instance with the configuration applied (self)
+  #[must_use]
   pub fn with_dynamic(mut self, dynamic: bool) -> Self {
     self.inner = self.inner.with_dynamic(dynamic);
     self

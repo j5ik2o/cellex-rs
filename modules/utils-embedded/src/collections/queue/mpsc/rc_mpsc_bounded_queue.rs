@@ -57,6 +57,7 @@ impl<E> RcMpscBoundedQueue<E> {
   ///
   /// let queue: RcMpscBoundedQueue<u32> = RcMpscBoundedQueue::new(100);
   /// ```
+  #[must_use]
   pub fn new(capacity: usize) -> Self {
     let storage = RcShared::new(RingBufferBackend::new(RefCell::new(MpscBuffer::new(Some(capacity)))));
     Self { inner: MpscQueue::new(storage) }

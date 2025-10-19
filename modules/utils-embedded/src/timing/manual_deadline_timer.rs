@@ -34,8 +34,9 @@ pub struct ManualDeadlineTimer<Item> {
 
 impl<Item> ManualDeadlineTimer<Item> {
   /// Creates a new timer with no entries.
+  #[must_use]
   #[inline]
-  pub fn new() -> Self {
+  pub const fn new() -> Self {
     Self {
       allocator: DeadlineTimerKeyAllocator::new(),
       entries:   Vec::new(),
@@ -114,7 +115,10 @@ impl<Item> DeadlineTimer for ManualDeadlineTimer<Item> {
     }
 
     if let Some(position) = self.ready.iter().position(|expired| expired.key == key) {
-      let expired = self.ready.remove(position).unwrap();
+      // SAFETY: position is guaranteed valid because it was just found by iter().position()
+      let Some(expired) = self.ready.remove(position) else {
+        return Err(DeadlineTimerError::KeyNotFound);
+      };
       self.entries.push(Entry { key, remaining: deadline.as_duration(), item: expired.item });
       return Ok(());
     }
@@ -129,7 +133,10 @@ impl<Item> DeadlineTimer for ManualDeadlineTimer<Item> {
     }
 
     if let Some(position) = self.ready.iter().position(|expired| expired.key == key) {
-      let expired = self.ready.remove(position).unwrap();
+      // SAFETY: position is guaranteed valid because it was just found by iter().position()
+      let Some(expired) = self.ready.remove(position) else {
+        return Ok(None);
+      };
       return Ok(Some(expired.item));
     }
 
