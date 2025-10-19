@@ -12,7 +12,7 @@ pub mod ready_queue_scheduler;
 #[cfg(test)]
 mod tests;
 
-pub use actor_scheduler::*;
+pub use actor_scheduler::ActorScheduler;
 pub use actor_scheduler_bound::*;
 pub use actor_scheduler_factory_bound::*;
 pub use actor_scheduler_handle::*;

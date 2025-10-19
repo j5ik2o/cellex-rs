@@ -177,7 +177,7 @@ where
       | SupervisorDirective::Resume => Ok(None),
       | SupervisorDirective::Stop => {
         if let Some(record) = self.children.get(&actor) {
-          let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (&*record.map_system)(sys));
+          let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| (*record.map_system)(sys));
           record.control_ref.sender().try_send(envelope)?;
           Ok(None)
         } else {
@@ -186,7 +186,7 @@ where
       },
       | SupervisorDirective::Restart => {
         if let Some(record) = self.children.get(&actor) {
-          let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(|sys| (&*record.map_system)(sys));
+          let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(|sys| (*record.map_system)(sys));
           record.control_ref.sender().try_send(envelope)?;
           self.strategy.after_restart(actor);
           Ok(None)

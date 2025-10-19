@@ -51,7 +51,7 @@ where
       core: GenericActorRuntimeState::new(actor_runtime),
       receive_timeout_scheduler_factory_shared_opt: None,
       receive_timeout_scheduler_factory_provider_shared_opt: Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
-        NoopReceiveTimeoutSchedulerFactoryProvider::default(),
+        NoopReceiveTimeoutSchedulerFactoryProvider,
       )),
       root_event_listener_opt: None,
       root_escalation_handler_opt: None,

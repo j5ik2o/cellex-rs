@@ -53,13 +53,13 @@ where
   pub fn new<F>(handler: F) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
-    let handler_cell = ArcShared::new(Mutex::new(handler));
+    let handler_cell_outer = ArcShared::new(Mutex::new(handler));
     Self::with_behavior({
-      let handler_cell_outer = handler_cell.clone();
+      let handler_cell_inner = handler_cell_outer.clone();
       move || {
-        let handler_cell_inner = handler_cell_outer.clone();
+        let handler_cell_final = handler_cell_inner.clone();
         Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
-          let mut guard = handler_cell_inner.lock();
+          let mut guard = handler_cell_final.lock();
           (guard)(ctx, msg)
         })
       }
@@ -85,14 +85,14 @@ where
   where
     F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static,
     G: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
-    let handler_cell = ArcShared::new(Mutex::new(user_handler));
+    let handler_cell_outer = ArcShared::new(Mutex::new(user_handler));
     Self::with_behavior_and_system(
       {
-        let handler_cell_outer = handler_cell.clone();
+        let handler_cell_inner = handler_cell_outer.clone();
         move || {
-          let handler_cell_inner = handler_cell_outer.clone();
+          let handler_cell_final = handler_cell_inner.clone();
           Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
-            let mut guard = handler_cell_inner.lock();
+            let mut guard = handler_cell_final.lock();
             (guard)(ctx, msg)
           })
         }
