@@ -332,7 +332,10 @@ where
         for spec in pending_specs.into_iter() {
           self.register_child_from_spec(spec, guardian, new_children).map_err(|err| match err {
             | SpawnError::Queue(queue_err) => queue_err,
-            | SpawnError::NameExists(name) => panic!("unexpected named spawn conflict: {name}"),
+            | SpawnError::NameExists(name) => {
+              debug_assert!(false, "unexpected named spawn conflict: {name}");
+              QueueError::Disconnected
+            },
           })?;
         }
         if should_stop {

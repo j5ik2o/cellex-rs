@@ -288,7 +288,8 @@ where
   scheduler.spawn_actor(supervisor, context).map_err(|err| match err {
     | SpawnError::Queue(queue_err) => queue_err,
     | SpawnError::NameExists(name) => {
-      panic!("unexpected name conflict in scheduler test: {name}")
+      debug_assert!(false, "unexpected name conflict in scheduler test: {name}");
+      QueueError::Disconnected
     },
   })
 }
@@ -304,12 +305,12 @@ fn scheduler_delivers_watch_before_user_messages() {
 
   let _actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| {
-      log_clone.borrow_mut().push(msg.clone());
+      log_clone.borrow_mut().push(msg);
     }),
   )
   .unwrap();
@@ -332,10 +333,10 @@ fn scheduler_handle_trait_object_dispatches() {
 
   spawn_with_runtime(
     scheduler.as_mut(),
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| {
       log_clone.borrow_mut().push(msg);
     }),
@@ -363,7 +364,7 @@ fn immediate_scheduler_builder_dispatches() {
     mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| {
       log_clone.borrow_mut().push(msg);
     }),
@@ -385,10 +386,10 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message::<TestMailboxFactory, _>(|_, _| {}),
   )
   .unwrap();
@@ -405,7 +406,7 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
     assert_eq!(dequeued, 0);
   }
 
-  actor_ref.sender().try_send(PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| dyn_system(sys))).unwrap();
+  actor_ref.sender().try_send(PriorityEnvelope::from_system(SystemMessage::Stop).map(dyn_system)).unwrap();
   block_on(scheduler.dispatch_next()).unwrap();
   scheduler.drain_ready().unwrap();
 
@@ -436,7 +437,7 @@ fn actor_context_exposes_parent_watcher() {
     mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |ctx, msg| {
       let current_watchers = ctx.watchers().to_vec();
       watchers_clone.borrow_mut().push(current_watchers);
@@ -470,14 +471,14 @@ fn scheduler_dispatches_high_priority_first() {
     mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message::<TestMailboxFactory, _>(move |ctx, msg| match msg {
       | Message::User(value) => {
         log_clone.borrow_mut().push((value, ctx.current_priority().unwrap()));
         if value == 99 {
           let child_log_outer = log_clone.clone();
           let child_props = Props::<Message, SchedulerTestRuntime<TestMailboxFactory>>::with_behavior({
-            let child_log = child_log_outer.clone();
+            let child_log = child_log_outer;
             move || {
               let child_log = child_log.clone();
               Behavior::stateless(move |_child_ctx, child_msg: Message| {
@@ -522,7 +523,7 @@ fn scheduler_prioritizes_system_messages() {
     mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| {
       log_clone.borrow_mut().push(msg);
     }),
@@ -531,7 +532,7 @@ fn scheduler_prioritizes_system_messages() {
 
   actor_ref.try_send_with_priority(dyn_user(42), DEFAULT_PRIORITY).unwrap();
 
-  let control_envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(|sys| dyn_system(sys));
+  let control_envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(dyn_system);
   actor_ref.try_send_envelope(control_envelope).unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
@@ -553,7 +554,7 @@ fn priority_actor_ref_sends_system_messages() {
     mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| {
       if let Message::System(system) = msg {
         log_clone.borrow_mut().push(system);
@@ -582,10 +583,10 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
 
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| {
       match msg {
         | Message::System(SystemMessage::Watch(_)) => {
@@ -629,7 +630,7 @@ fn scheduler_run_until_processes_messages() {
     mailbox_factory.clone(),
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| match msg {
       | Message::User(value) => log_clone.borrow_mut().push(Message::User(value)),
       | Message::System(_) => {},
@@ -672,7 +673,7 @@ fn scheduler_records_escalations() {
     mailbox_factory.clone(),
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| match msg {
       | Message::System(SystemMessage::Watch(_)) => {},
       | Message::User(_) if panic_flag.get() => {
@@ -707,7 +708,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 
   let (parent_mailbox, parent_sender) = mailbox_factory.build_default_mailbox::<PriorityEnvelope<AnyMessage>>();
   let parent_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(parent_sender);
-  scheduler.set_parent_guardian(parent_ref.clone(), MapSystemShared::new(|sys| dyn_system(sys)));
+  scheduler.set_parent_guardian(parent_ref.clone(), MapSystemShared::new(dyn_system));
 
   let should_panic = Rc::new(Cell::new(true));
   let panic_flag = should_panic.clone();
@@ -717,7 +718,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
     mailbox_factory.clone(),
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| match msg {
       | Message::System(SystemMessage::Watch(_)) => {},
       | Message::User(_) if panic_flag.get() => {
@@ -769,7 +770,7 @@ fn scheduler_escalation_chain_reaches_root() {
     mailbox_factory.clone(),
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message::<TestMailboxFactory, _>(move |ctx, msg| match msg {
       | Message::System(_) => {},
       | Message::User(0) if !trigger_flag.get() => {
@@ -869,7 +870,7 @@ fn scheduler_root_escalation_handler_invoked() {
     mailbox_factory.clone(),
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| match msg {
       | Message::System(SystemMessage::Watch(_)) => {},
       | Message::User(_) if panic_flag.get() => {
@@ -919,7 +920,7 @@ fn scheduler_requeues_failed_custom_escalation() {
     mailbox_factory.clone(),
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| match msg {
       | Message::System(_) => {},
       | Message::User(_) if panic_once.get() => {
@@ -977,7 +978,7 @@ fn scheduler_root_event_listener_broadcasts() {
     mailbox_factory.clone(),
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
-    MapSystemShared::new(|sys| dyn_system(sys)),
+    MapSystemShared::new(dyn_system),
     handler_from_message(move |_, msg| match msg {
       | Message::System(SystemMessage::Watch(_)) => {},
       | Message::User(_) if panic_flag.get() => {
@@ -1028,8 +1029,11 @@ fn drive_ready_queue_worker_processes_actions() {
     }
   }
 
+  type WorkerState = (VecDeque<WorkerAction>, Option<LocalBoxFuture<'static, usize>>, bool);
+
+  #[allow(clippy::arc_with_non_send_sync)]
   struct DummyWorker {
-    state:     Arc<Mutex<(VecDeque<WorkerAction>, Option<LocalBoxFuture<'static, usize>>, bool)>>,
+    state:     Arc<Mutex<WorkerState>>,
     processed: Arc<Mutex<Vec<u32>>>,
   }
 
@@ -1041,6 +1045,7 @@ fn drive_ready_queue_worker_processes_actions() {
   }
 
   impl DummyWorker {
+    #[allow(clippy::arc_with_non_send_sync)]
     fn new(actions: VecDeque<WorkerAction>, processed: Arc<Mutex<Vec<u32>>>) -> Self {
       Self { state: Arc::new(Mutex::new((actions, None, false))), processed }
     }
@@ -1072,14 +1077,8 @@ fn drive_ready_queue_worker_processes_actions() {
 
     fn wait_for_ready(&self) -> Option<LocalBoxFuture<'static, usize>> {
       let mut state = self.state.lock().unwrap();
-      let (_, wait_future, finished) = &mut *state;
-      if let Some(fut) = wait_future.take() {
-        Some(fut)
-      } else if *finished {
-        None
-      } else {
-        None
-      }
+      let (_, wait_future, _finished) = &mut *state;
+      wait_future.take()
     }
   }
 
@@ -1122,7 +1121,7 @@ fn drive_ready_queue_worker_processes_actions() {
     )
     .expect("spawn worker loop");
 
-  let shutdown_trigger = shutdown.clone();
+  let shutdown_trigger = shutdown;
   let processed_observer = processed.clone();
   pool
     .spawner()

@@ -52,7 +52,7 @@ where
   MailboxConcurrencyOf<AR>: MetadataStorageMode, {
   InternalProps::new(options, map_system, move |ctx, message| {
     let Ok(envelope) = message.downcast::<MessageEnvelope<U>>() else {
-      panic!("unexpected message type delivered to typed handler");
+      return Err(ActorFailure::from_message("unexpected message type delivered to typed handler"));
     };
     match envelope {
       | MessageEnvelope::User(user) => {

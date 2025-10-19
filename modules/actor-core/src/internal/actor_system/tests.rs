@@ -110,11 +110,11 @@ fn process_registry_registers_and_deregisters_actor() {
   let resolution = registry.with_ref(|registry| registry.resolve_pid(&pid));
   assert!(matches!(resolution, ProcessResolution::Local(_)));
 
-  let map_clone = map_system.clone();
+  let mapper = map_system;
   actor_ref
     .try_send_envelope({
       #[allow(clippy::redundant_closure)]
-      PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| (map_clone)(sys))
+      PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| (mapper)(sys))
     })
     .expect("send stop");
 
