@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - run: ./scripts/ci-checkj.sh std
+      - run: ./scripts/ci-check.sh std
   test:
     name: test
     runs-on: ubuntu-latest
