@@ -22,4 +22,4 @@ cargo bench --bench failure_telemetry --features std
 - 共有ラッパ経由のオーバーヘッドは約 3x だが、絶対値はサブナノ秒級。
 - 共有ラッパの利便性（DI や追跡用フック）を維持したまま十分許容できるレイテンシと判断。
 - 今後、メトリクス観測フックを追加する際は本結果と比較し、オーバーヘッドの増加率を評価する。
-- `scripts/ci.sh no-std` による `alloc` 構成チェックも通過済み（2025-10-14）。
+- `scripts/ci-check.sh no-std` による `alloc` 構成チェックも通過済み（2025-10-14）。

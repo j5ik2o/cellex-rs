@@ -41,7 +41,7 @@ let config = ActorSystemConfig::default()
 
 ## 確認事項
 
-- `scripts/ci.sh no-std` で `alloc` 構成（std 無し）でもビルドが成功することを確認済み（2025-10-14）。
+- `scripts/ci-check.sh no-std` で `alloc` 構成（std 無し）でもビルドが成功することを確認済み（2025-10-14）。
 - `defmt` への依存はアプリ側（例：`platform-tests/`）で既に利用実績があるため、builder から注入するだけで連携可能。
 
 ## TODO

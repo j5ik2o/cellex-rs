@@ -20,13 +20,11 @@
 - mod.rs禁止。2018モジュールを使え
 - 単体テストは hoge.rs に対して hoge/tests.rs に記述すること
 - 1ファイルに複数構造体、複数traitを記述しないこと
-- 作業後に`./scripts/ci.sh all`を実行し、エラーがないことを確認すること
+- 作業後に`./scripts/ci-check.sh all`を実行し、エラーがないことを確認すること
 
 ## [RULE] 再エクスポート規約
 
-- 末端モジュールの直属親ファイルだけが `mod child;` と `pub use child::Type;` を同居できる
-- それ以外の階層では `pub mod child;` のみ許可され、`pub use`/`pub(crate) use` は禁止
-- 末端以外のモジュールで `mod child;` を使う場合は違反、必ず `pub mod child;` にする
+- docs/guides/module_wiring.md を参照すること
 
 つまりほとんどのケースで再エクスポートは禁止になります。プレリュードは別途検討予定。
 

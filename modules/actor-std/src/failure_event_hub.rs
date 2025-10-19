@@ -47,12 +47,6 @@ impl FailureEventHub {
       listener(event.clone());
     }
   }
-
-  #[cfg(test)]
-  pub(crate) fn listener_count(&self) -> usize {
-    let guard = self.inner.listeners.lock().unwrap();
-    guard.len()
-  }
 }
 
 impl FailureEventStream for FailureEventHub {

@@ -32,7 +32,7 @@
 
 4. **監査と CI**  
    - `cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi` を CI に組み込み、`std` なしビルドが壊れていないか常時監視する。
-   - `scripts/ci.sh embedded` 実行時に `DEFAULT_TOOLCHAIN`=stable で `no_std` チェックする体制を維持。
+   - `scripts/ci-check.sh embedded` 実行時に `DEFAULT_TOOLCHAIN`=stable で `no_std` チェックする体制を維持。
 
 ## 今後のタスク案
 

@@ -79,3 +79,19 @@ workspace = false
 category = "Lint"
 command = "rust-script"
 args = ["scripts/cyclomatic.rs"]
+
+[tasks.ci-check]
+description = "Run full CI validation pipeline"
+workspace = false
+script = '''
+#!/usr/bin/env bash
+set -euo pipefail
+ARGS=("$@")
+if [ ${#ARGS[@]} -gt 0 ] && [ "${ARGS[0]}" = "--" ]; then
+  ARGS=("${ARGS[@]:1}")
+fi
+if [ ${#ARGS[@]} -eq 0 ]; then
+  ARGS=("all")
+fi
+./scripts/ci-check.sh "${ARGS[@]}"
+'''

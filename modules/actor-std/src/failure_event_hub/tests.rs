@@ -10,6 +10,13 @@ use cellex_actor_core_rs::api::{
 
 use super::*;
 
+impl FailureEventHub {
+  fn listener_count(&self) -> usize {
+    let guard = self.inner.listeners.lock().unwrap();
+    guard.len()
+  }
+}
+
 #[test]
 fn hub_forwards_events_to_subscribers() {
   let hub = FailureEventHub::new();

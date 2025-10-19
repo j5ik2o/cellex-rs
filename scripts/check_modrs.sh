@@ -3,7 +3,10 @@
 
 set -euo pipefail
 
-results=$(find . -path "./docs/sources" -prune -o -type f -name "mod.rs" -print)
+results=$(find . \
+  -path "./docs/sources" -prune -o \
+  -path "./lints/mod-file-lint/tests/ui/auxiliary" -prune -o \
+  -type f -name "mod.rs" -print)
 
 if [[ -n "${results}" ]]; then
   echo "Error: mod.rs files are not allowed in this project."

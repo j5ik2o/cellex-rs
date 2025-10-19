@@ -37,14 +37,14 @@
 - `ActorSystemConfig::with_failure_telemetry_builder` を追加し、`TelemetryContext` を経由した初期化フックを提供。
 
 ### フェーズ3: `no_std` 運用確認（進行中）
-- `NoopFailureTelemetry` での運用確認は必要（`thumb` チェックは `./scripts/ci.sh all` に任せる）。
+- `NoopFailureTelemetry` での運用確認は必要（`thumb` チェックは `./scripts/ci-check.sh all` に任せる）。
 - `defmt` 等への拡張案を別途検討する。
 - `docs/design/D18-telemetry-defmt-next-actions.md` にビルダー API を用いた `defmt` 連携メモを追加し、実装方針を整理。
 
 ### フェーズ4: ドキュメントとテスト（未着手）
 - `docs/design` に最終設計メモを追記、本ファイルを更新。
 - ユニットテスト／統合テストで `FailureTelemetry` の呼び出し順・副作用を検証。
-- `./scripts/ci.sh all` を実行し、CI チェックに備える。
+- `./scripts/ci-check.sh all` を実行し、CI チェックに備える。
 
 ## オープン課題
 - Telemetry の注入ポイントをどこに置くか（`ActorSystemBuilder` 相当の API があるか要確認）。
@@ -64,7 +64,7 @@
   - `rustup target add thumbv6m-none-eabi thumbv8m.main-none-eabi`
   - `cargo install cargo-binutils`（必要時）
 - 実行コマンド: `cargo check -p cellex-actor-core-rs --target <thumb-target>`
-- `workflow_call` 化して `./scripts/ci.sh all` からも呼び出せるように検討。
+- `workflow_call` 化して `./scripts/ci-check.sh all` からも呼び出せるように検討。
 - 成果物: 成功ログを Artefact に保存し、fail 時はダンプを添付（`RUST_LOG=debug` 推奨）。
 
 ## 詳細設計メモ
@@ -122,10 +122,10 @@
 - 詳細な出力は `docs/perf/2025-10-14-failure-telemetry.md` に記録。
 
 ## フェーズ3メモ（進行中）
-- `scripts/ci.sh no-std` を実行し、`alloc` のみの構成（`thumbv6m-none-eabi` 相当）でも `FailureTelemetryShared` / 観測フックがコンパイル可能であることを確認。（2025-10-14）
+- `scripts/ci-check.sh no-std` を実行し、`alloc` のみの構成（`thumbv6m-none-eabi` 相当）でも `FailureTelemetryShared` / 観測フックがコンパイル可能であることを確認。（2025-10-14）
 - 観測設定が未指定の場合でも `TelemetryObservationConfig::new()` を用いて no-op 動作となるよう初期値を統一。
 - `defmt` 連携案を `docs/design/D18-telemetry-defmt-next-actions.md` にまとめ、Builder API を通じた挿入が可能であることを確認。
-- `scripts/ci.sh all` を完走し、`std` / `no_std` 両構成および関連テストが成功することを確認。（2025-10-14）
+- `scripts/ci-check.sh all` を完走し、`std` / `no_std` 両構成および関連テストが成功することを確認。（2025-10-14）
 
 ## リスクと緩和策
 - Telemetry 呼び出しの遅延がスーパーバイザの応答を阻害するリスク → 非同期処理は導入せず、呼び出し時間を計測する `debug_assert!` をフェーズ2で導入。
@@ -136,7 +136,7 @@
 - 2025-10-16: RFC 草案を `docs/rfc/2025-10-root-escalation-telemetry.md` として提出。
 - 2025-10-18: フェーズ2（Builder 注入）の実装完了、`cargo test --workspace` を通過。
 - 2025-10-21: `thumb` ターゲットでの `cargo check` 完了、`no_std` プロファイルの検証をドキュメント化。
-- 2025-10-24: テスト戦略に基づく自動テスト追加、`./scripts/ci.sh all` 成功ログを残す。
+- 2025-10-24: テスト戦略に基づく自動テスト追加、`./scripts/ci-check.sh all` 成功ログを残す。
 - 2025-10-28: フェーズ3・4完了レビュー、ドキュメント更新を取りまとめて main ブランチへマージ。
 
 ## 実装タスク詳細（フェーズ2完了報告）
