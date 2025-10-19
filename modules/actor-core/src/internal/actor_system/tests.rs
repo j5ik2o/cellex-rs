@@ -1,9 +1,8 @@
-#![cfg(feature = "std")]
-#![allow(deprecated, unused_imports)]
+#![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
-#![allow(clippy::disallowed_types)]
-
+#![allow(clippy::panic)]
+#![cfg(feature = "std")]
 use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 

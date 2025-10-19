@@ -1,4 +1,7 @@
 #![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::panic)]
 use alloc::string::String;
 
 use super::MessageEnvelope;

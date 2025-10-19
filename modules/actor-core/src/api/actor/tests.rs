@@ -1,6 +1,8 @@
-#![cfg(feature = "std")]
-#![allow(deprecated)]
 #![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::panic)]
+#![cfg(feature = "std")]
 
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
