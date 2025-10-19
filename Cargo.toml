@@ -24,7 +24,7 @@ libraries = [
   { path = "lints/module-wiring-lint" },
   { path = "lints/tests-location-lint" },
   { path = "lints/use-placement-lint" },
-  { path = "lints/impl-reexport-lint" },
+  { path = "lints/mod-reexport-lint" },
 ]
 
 [workspace.dependencies]
