@@ -108,7 +108,7 @@ where
 
   /// Sets the receive-timeout driver and returns the updated bundle.
   #[must_use]
-  pub fn with_receive_timeout_driver(
+  pub fn with_receive_timeout_scheduler_factory_provider_shared_opt(
     mut self,
     driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<MF>>>,
   ) -> Self {
@@ -253,7 +253,7 @@ where
     self,
     driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>,
   ) -> Self {
-    GenericActorRuntime::with_receive_timeout_driver(self, driver)
+    GenericActorRuntime::with_receive_timeout_scheduler_factory_provider_shared_opt(self, driver)
   }
 
   fn root_event_listener_opt(&self) -> Option<FailureEventListener> {

@@ -160,7 +160,7 @@ pub trait TokioActorRuntimeExt {
 
 impl TokioActorRuntimeExt for GenericActorRuntime<TokioMailboxRuntime> {
   fn with_tokio_scheduler(self) -> GenericActorRuntime<TokioMailboxRuntime> {
-    self.with_scheduler_builder(tokio_scheduler_builder()).with_receive_timeout_driver(Some(
+    self.with_scheduler_builder(tokio_scheduler_builder()).with_receive_timeout_scheduler_factory_provider_shared_opt(Some(
       ReceiveTimeoutSchedulerFactoryProviderShared::new(TokioReceiveTimeoutDriver::new()),
     ))
   }

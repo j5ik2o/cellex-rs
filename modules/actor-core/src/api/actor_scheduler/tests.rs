@@ -4,7 +4,7 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use core::{cell::RefCell, marker::PhantomData};
+use core::cell::RefCell;
 #[cfg(feature = "std")]
 use std::cell::Cell;
 #[cfg(feature = "std")]
@@ -32,7 +32,7 @@ use crate::{
       actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
       shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
     },
-    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::{
       actor_scheduler::ActorScheduler,
       actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
@@ -115,105 +115,7 @@ impl MetricsSink for EventRecordingSink {
 }
 
 #[cfg(feature = "std")]
-#[derive(Clone)]
-struct SchedulerTestRuntime<MF>(PhantomData<MF>);
-
-#[cfg(feature = "std")]
-impl<MF> ActorRuntime for SchedulerTestRuntime<MF>
-where
-  MF: MailboxFactory + Clone + 'static,
-{
-  type MailboxFactory = MF;
-
-  fn mailbox_factory(&self) -> &Self::MailboxFactory {
-    unreachable!("SchedulerTestRuntime::mailbox_factory must not be called in tests")
-  }
-
-  fn into_mailbox_factory(self) -> Self::MailboxFactory {
-    unreachable!("SchedulerTestRuntime::into_mailbox_factory must not be called in tests")
-  }
-
-  fn mailbox_factory_shared(&self) -> ArcShared<Self::MailboxFactory> {
-    unreachable!("SchedulerTestRuntime::mailbox_factory_shared must not be called in tests")
-  }
-
-  fn receive_timeout_scheduler_factory_shared_opt(
-    &self,
-  ) -> Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>> {
-    None
-  }
-
-  fn with_receive_timeout_scheduler_factory_shared(
-    self,
-    _factory: ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>,
-  ) -> Self {
-    self
-  }
-
-  fn receive_timeout_scheduler_factory_provider_shared_opt(
-    &self,
-  ) -> Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>> {
-    None
-  }
-
-  fn with_receive_timeout_scheduler_factory_provider_shared_opt(
-    self,
-    _driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>,
-  ) -> Self {
-    self
-  }
-
-  fn root_event_listener_opt(&self) -> Option<FailureEventListener> {
-    None
-  }
-
-  fn with_root_event_listener_opt(self, _listener: Option<FailureEventListener>) -> Self {
-    self
-  }
-
-  fn root_escalation_handler_opt(&self) -> Option<FailureEventHandler> {
-    None
-  }
-
-  fn with_root_escalation_handler_opt(self, _handler: Option<FailureEventHandler>) -> Self {
-    self
-  }
-
-  fn metrics_sink_shared_opt(&self) -> Option<MetricsSinkShared> {
-    None
-  }
-
-  fn with_metrics_sink_shared_opt(self, _sink: Option<MetricsSinkShared>) -> Self {
-    self
-  }
-
-  fn with_metrics_sink_shared(self, _sink: MetricsSinkShared) -> Self {
-    self
-  }
-
-  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
-  where
-    M: Element,
-    MailboxQueueOf<Self, PriorityEnvelope<M>>: Clone,
-    MailboxSignalOf<Self>: Clone, {
-    unreachable!("SchedulerTestRuntime::priority_mailbox_spawner must not be called in tests")
-  }
-
-  fn with_scheduler_builder(self, _builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self {
-    self
-  }
-
-  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
-    unreachable!("SchedulerTestRuntime::scheduler_builder_shared must not be called in tests")
-  }
-
-  fn with_scheduler_builder_shared(
-    self,
-    _builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>,
-  ) -> Self {
-    self
-  }
-}
+type SchedulerTestRuntime<MF> = GenericActorRuntime<MF>;
 
 #[cfg(feature = "std")]
 fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<AnyMessage, MF>>
@@ -627,7 +529,7 @@ fn scheduler_run_until_processes_messages() {
 
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
-    mailbox_factory.clone(),
+    mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
