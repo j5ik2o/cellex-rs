@@ -6,7 +6,8 @@ use std::sync::{
   Arc,
 };
 
-use cellex_utils_core_rs::{async_trait, WaitGroup as CoreWaitGroup, WaitGroupBackend};
+use async_trait::async_trait;
+use cellex_utils_core_rs::{WaitGroup as CoreWaitGroup, WaitGroupBackend};
 use tokio::sync::Notify;
 
 /// Backend implementation of WaitGroup using Tokio runtime

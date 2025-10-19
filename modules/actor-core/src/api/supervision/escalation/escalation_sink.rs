@@ -2,7 +2,7 @@ use cellex_utils_core_rs::Element;
 
 use crate::api::{
   failure_telemetry::{FailureEventHandlerShared, FailureEventListenerShared},
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   supervision::failure::FailureInfo,
 };
 

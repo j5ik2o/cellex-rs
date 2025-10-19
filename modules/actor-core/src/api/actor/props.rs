@@ -12,7 +12,10 @@ use crate::{
   api::{
     actor::behavior::SupervisorStrategyConfig,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityEnvelope, SystemMessage},
+      MailboxFactory, MailboxOptions,
+    },
     messaging::{AnyMessage, MetadataStorageMode},
   },
   internal::actor::{internal_props_from_adapter, InternalProps},

@@ -5,7 +5,7 @@ use super::{
   receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared,
 };
 use crate::api::{
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
 };
 

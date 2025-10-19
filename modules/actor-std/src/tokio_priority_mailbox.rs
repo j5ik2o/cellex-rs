@@ -7,7 +7,11 @@ use std::{
 };
 
 use cellex_actor_core_rs::api::{
-  mailbox::{Mailbox, MailboxOptions, PriorityEnvelope, QueueMailbox, QueueMailboxProducer, QueueMailboxRecv},
+  mailbox::{
+    messages::PriorityEnvelope,
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+    Mailbox, MailboxOptions, QueueMailboxProducer,
+  },
   metrics::MetricsSinkShared,
 };
 use cellex_utils_std_rs::{

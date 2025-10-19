@@ -10,12 +10,14 @@ use core::{
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailbox, QueueMailboxProducer,
-    QueueMailboxRecv, ThreadSafe,
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+    Mailbox, MailboxFactory, MailboxOptions, MailboxPair, MailboxSignal, QueueMailboxProducer, ThreadSafe,
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_embedded_rs::{queue::mpsc::ArcMpscUnboundedQueue, ArcShared, Element, QueueError, QueueSize};
+use cellex_utils_embedded_rs::{
+  collections::queue::mpsc::ArcMpscUnboundedQueue, sync::ArcShared, Element, QueueError, QueueSize,
+};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   signal::Signal,

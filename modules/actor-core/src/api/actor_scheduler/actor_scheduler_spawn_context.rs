@@ -6,7 +6,7 @@ use spin::RwLock;
 use crate::api::{
   actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ChildNaming},
   actor_system::map_system::MapSystemShared,
-  mailbox::{MailboxFactory, MailboxOptions, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
   messaging::AnyMessage,
   process::{pid::Pid, process_registry::ProcessRegistry},
 };

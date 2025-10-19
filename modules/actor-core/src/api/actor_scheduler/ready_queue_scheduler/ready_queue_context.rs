@@ -12,7 +12,7 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     failure_telemetry::FailureTelemetryShared,
     guardian::GuardianStrategy,
-    mailbox::{MailboxFactory, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,

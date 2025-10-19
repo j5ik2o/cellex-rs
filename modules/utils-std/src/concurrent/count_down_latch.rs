@@ -6,7 +6,8 @@ use std::sync::{
   Arc,
 };
 
-use cellex_utils_core_rs::{async_trait, CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
+use async_trait::async_trait;
+use cellex_utils_core_rs::{CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
 use tokio::sync::Notify;
 
 /// Backend implementation of countdown latch using Tokio runtime

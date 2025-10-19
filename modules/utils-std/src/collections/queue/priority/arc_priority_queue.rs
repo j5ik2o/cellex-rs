@@ -2,7 +2,7 @@ use cellex_utils_core_rs::{
   PriorityMessage, PriorityQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, PRIORITY_LEVELS,
 };
 
-use crate::ArcRingQueue;
+use crate::collections::queue::ring::ArcRingQueue;
 
 #[cfg(test)]
 mod tests;

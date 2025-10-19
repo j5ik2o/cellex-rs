@@ -1,6 +1,9 @@
 use cellex_utils_core_rs::{QueueSize, DEFAULT_PRIORITY};
 
-use crate::api::mailbox::{MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage};
+use crate::api::mailbox::{
+  messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+  MailboxOptions,
+};
 
 #[test]
 fn mailbox_options_helpers_cover_basic_cases() {

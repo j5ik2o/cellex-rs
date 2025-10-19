@@ -9,7 +9,7 @@ use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
 use crate::{
   api::{
     actor::actor_ref::PriorityActorRef,
-    mailbox::{MailboxConcurrency, MailboxFactory, PriorityEnvelope, ThreadSafe},
+    mailbox::{messages::PriorityEnvelope, MailboxConcurrency, MailboxFactory, ThreadSafe},
     messaging::AnyMessage,
   },
   RuntimeBound,

@@ -3,7 +3,7 @@ use cellex_utils_core_rs::Element;
 use crate::api::{
   actor::behavior::Behavior,
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::PriorityEnvelope,
+  mailbox::messages::PriorityEnvelope,
   messaging::{AnyMessage, MetadataStorageMode},
 };
 

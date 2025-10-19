@@ -64,7 +64,6 @@ mod concurrent;
 pub mod sync;
 mod timing;
 
-pub use async_trait::async_trait;
 pub use collections::{
   Element, MpscBackend, MpscBuffer, MpscHandle, MpscQueue, PriorityMessage, PriorityQueue, QueueBase, QueueError,
   QueueHandle, QueueReader, QueueRw, QueueRwHandle, QueueSize, QueueStorage, QueueWriter, RingBackend, RingBuffer,
@@ -76,8 +75,6 @@ pub use concurrent::{
   AsyncBarrier, AsyncBarrierBackend, CountDownLatch, CountDownLatchBackend, GuardHandle, Synchronized,
   SynchronizedMutexBackend, SynchronizedRw, SynchronizedRwBackend, WaitGroup, WaitGroupBackend,
 };
-#[cfg(feature = "alloc")]
-pub use sync::RcShared;
 pub use sync::{ArcShared, Flag, Shared, SharedBound, SharedDyn, SharedFactory, SharedFn, StateCell, StaticRefShared};
 pub use timing::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,

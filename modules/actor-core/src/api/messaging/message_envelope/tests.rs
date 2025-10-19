@@ -1,7 +1,7 @@
 use alloc::string::String;
 
 use super::MessageEnvelope;
-use crate::api::mailbox::{PriorityChannel, SystemMessage};
+use crate::api::mailbox::messages::{PriorityChannel, SystemMessage};
 
 #[test]
 fn into_priority_envelope_retains_priority() {

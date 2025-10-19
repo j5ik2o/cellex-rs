@@ -10,7 +10,7 @@ use std::hint::black_box;
 
 use cellex_actor_core_rs::{
   api::{
-    mailbox::{PriorityEnvelope, SingleThread, ThreadSafe},
+    mailbox::{messages::PriorityEnvelope, SingleThread, ThreadSafe},
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
   },
   internal::message::InternalMessageSender,

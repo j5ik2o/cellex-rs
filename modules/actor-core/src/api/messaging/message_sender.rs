@@ -4,7 +4,7 @@ use cellex_utils_core_rs::{Element, QueueError};
 
 use crate::{
   api::{
-    mailbox::{MailboxConcurrency, PriorityEnvelope, ThreadSafe},
+    mailbox::{messages::PriorityEnvelope, MailboxConcurrency, ThreadSafe},
     messaging::{AnyMessage, MessageEnvelope},
   },
   internal::message::InternalMessageSender,

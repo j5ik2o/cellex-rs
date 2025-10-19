@@ -13,7 +13,7 @@ use crate::api::{
   extensions::Extensions,
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,

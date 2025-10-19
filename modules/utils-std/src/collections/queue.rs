@@ -1,7 +1,8 @@
-pub mod mpsc;
-pub mod priority;
-pub mod ring;
+//! Queue variants available in the std build.
 
-pub use mpsc::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue};
-pub use priority::ArcPriorityQueue;
-pub use ring::ArcRingQueue;
+/// Tokio-backed MPSC queue implementations.
+pub mod mpsc;
+/// Priority queue wrappers built on ring queues.
+pub mod priority;
+/// Ring buffer queue adapters for std environments.
+pub mod ring;

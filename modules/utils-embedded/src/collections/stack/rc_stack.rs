@@ -36,7 +36,7 @@ type RcStackStorage<T> = RcShared<StackStorageBackend<RcShared<RefCell<StackBuff
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::RcStack;
+/// use cellex_utils_embedded_rs::prelude::RcStack;
 ///
 /// // Stack without capacity limit
 /// let stack = RcStack::new();
@@ -66,7 +66,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack: RcStack<String> = RcStack::new();
   /// ```
@@ -85,7 +85,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack: RcStack<i32> = RcStack::with_capacity(100);
   /// ```
@@ -104,7 +104,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack: RcStack<i32> = RcStack::new();
   /// stack.set_capacity(Some(10)); // Limit capacity to 10
@@ -127,7 +127,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack = RcStack::new();
   /// stack.push(42).unwrap();
@@ -145,7 +145,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack = RcStack::new();
   /// stack.push(1).unwrap();
@@ -165,7 +165,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack = RcStack::new();
   /// stack.push(1).unwrap();
@@ -183,7 +183,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack = RcStack::new();
   /// stack.push(1).unwrap();
@@ -204,7 +204,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack = RcStack::new();
   /// stack.push(1).unwrap();
@@ -223,7 +223,7 @@ impl<T> RcStack<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcStack;
+  /// use cellex_utils_embedded_rs::prelude::RcStack;
   ///
   /// let stack: RcStack<i32> = RcStack::with_capacity(10);
   /// assert_eq!(stack.capacity().to_usize(), 10);

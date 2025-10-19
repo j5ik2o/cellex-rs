@@ -2,7 +2,8 @@
 
 use alloc::{boxed::Box, sync::Arc};
 
-use cellex_utils_core_rs::{async_trait, CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
+use async_trait::async_trait;
+use cellex_utils_core_rs::{CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   mutex::Mutex,

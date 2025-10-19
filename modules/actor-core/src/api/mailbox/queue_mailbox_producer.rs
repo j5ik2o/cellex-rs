@@ -1,7 +1,7 @@
 use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw};
 
 use crate::api::{
-  actor_scheduler::ReadyQueueHandle,
+  actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
   mailbox::mailbox_signal::MailboxSignal,
   metrics::{MetricsEvent, MetricsSinkShared},
 };

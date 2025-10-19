@@ -73,9 +73,9 @@ pub use arc_mailbox::{ArcMailbox, ArcMailboxRuntime, ArcMailboxSender};
 #[cfg(feature = "embedded_arc")]
 pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxRuntime, ArcPriorityMailboxSender};
 #[cfg(feature = "embedded_arc")]
-pub use cellex_utils_embedded_rs::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
+pub use cellex_utils_embedded_rs::sync::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
 #[cfg(feature = "embedded_rc")]
-pub use cellex_utils_embedded_rs::{RcShared, RcStateCell};
+pub use cellex_utils_embedded_rs::sync::{RcShared, RcStateCell};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
 

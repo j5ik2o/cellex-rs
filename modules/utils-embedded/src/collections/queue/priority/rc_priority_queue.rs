@@ -2,7 +2,7 @@ use cellex_utils_core_rs::{
   PriorityMessage, PriorityQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, PRIORITY_LEVELS,
 };
 
-use crate::RcRingQueue;
+use crate::collections::queue::ring::RcRingQueue;
 
 #[cfg(test)]
 mod tests;
@@ -37,7 +37,7 @@ mod tests;
 ///
 /// ```
 /// use cellex_utils_core_rs::{PriorityMessage, QueueRw};
-/// use cellex_utils_embedded_rs::RcPriorityQueue;
+/// use cellex_utils_embedded_rs::prelude::RcPriorityQueue;
 ///
 /// #[derive(Debug)]
 /// struct Task {
@@ -75,7 +75,7 @@ impl<E> RcPriorityQueue<E> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcPriorityQueue;
+  /// use cellex_utils_embedded_rs::prelude::RcPriorityQueue;
   ///
   /// // Can store up to 10 elements per priority level
   /// let queue: RcPriorityQueue<u32> = RcPriorityQueue::new(10);
@@ -95,7 +95,7 @@ impl<E> RcPriorityQueue<E> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcPriorityQueue;
+  /// use cellex_utils_embedded_rs::prelude::RcPriorityQueue;
   ///
   /// let queue: RcPriorityQueue<i32> = RcPriorityQueue::new(5);
   /// queue.set_dynamic(false); // Fixed capacity mode
@@ -115,7 +115,7 @@ impl<E> RcPriorityQueue<E> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcPriorityQueue;
+  /// use cellex_utils_embedded_rs::prelude::RcPriorityQueue;
   ///
   /// let queue: RcPriorityQueue<i32> = RcPriorityQueue::new(5).with_dynamic(false);
   /// ```

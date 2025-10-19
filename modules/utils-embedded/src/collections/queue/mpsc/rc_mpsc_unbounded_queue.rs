@@ -37,7 +37,7 @@ mod tests;
 ///
 /// ```
 /// use cellex_utils_core_rs::QueueRw;
-/// use cellex_utils_embedded_rs::RcMpscUnboundedQueue;
+/// use cellex_utils_embedded_rs::prelude::RcMpscUnboundedQueue;
 ///
 /// let queue = RcMpscUnboundedQueue::new();
 /// queue.offer(1).unwrap();
@@ -58,7 +58,7 @@ impl<E> RcMpscUnboundedQueue<E> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::RcMpscUnboundedQueue;
+  /// use cellex_utils_embedded_rs::prelude::RcMpscUnboundedQueue;
   ///
   /// let queue: RcMpscUnboundedQueue<String> = RcMpscUnboundedQueue::new();
   /// ```

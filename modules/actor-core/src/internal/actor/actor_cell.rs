@@ -6,11 +6,14 @@ use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared};
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
-    actor_scheduler::ReadyQueueHandle,
+    actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     guardian::{Guardian, GuardianStrategy},
-    mailbox::{Mailbox, MailboxFactory, MailboxHandle, MailboxProducer, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityEnvelope, SystemMessage},
+      Mailbox, MailboxFactory, MailboxHandle, MailboxProducer,
+    },
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     process::{pid::Pid, process_registry::ProcessRegistry},

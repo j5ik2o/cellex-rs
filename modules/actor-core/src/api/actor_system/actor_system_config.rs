@@ -6,7 +6,7 @@ use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   extensions::{Extension, Extensions},
   failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared},
-  mailbox::PriorityEnvelope,
+  mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},

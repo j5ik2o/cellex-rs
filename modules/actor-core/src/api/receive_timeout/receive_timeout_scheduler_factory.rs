@@ -4,7 +4,7 @@ use cellex_utils_core_rs::Element;
 
 use crate::api::{
   actor_system::map_system::MapSystemShared,
-  mailbox::{MailboxFactory, PriorityEnvelope},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
   receive_timeout::{receive_timeout_factory_bound::ReceiveTimeoutSchedulerFactoryBound, ReceiveTimeoutScheduler},
 };
 

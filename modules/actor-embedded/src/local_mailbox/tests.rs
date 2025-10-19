@@ -40,7 +40,7 @@ fn local_mailbox_delivers_messages_in_fifo_order() {
 
 #[test]
 fn local_mailbox_wakes_after_message_arrives() {
-  let (mailbox, sender) = LocalMailbox::new();
+  let (mailbox, sender) = LocalMailbox::<u8>::new();
 
   let mut future = mailbox.recv();
   let waker = noop_waker();
@@ -56,7 +56,7 @@ fn local_mailbox_wakes_after_message_arrives() {
 
 #[test]
 fn local_mailbox_preserves_messages_post_wake() {
-  let (mailbox, sender) = LocalMailbox::new();
+  let (mailbox, sender) = LocalMailbox::<u8>::new();
 
   let mut recv_future = mailbox.recv();
   let waker = noop_waker();

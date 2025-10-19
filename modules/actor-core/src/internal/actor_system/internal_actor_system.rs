@@ -10,10 +10,10 @@ use crate::{
   api::{
     actor::actor_ref::PriorityActorRef,
     actor_runtime::{ActorRuntime, MailboxOf},
-    actor_scheduler::{ActorSchedulerHandle, ActorSchedulerHandleBuilder, ReadyQueueWorker},
+    actor_scheduler::{ready_queue_scheduler::ReadyQueueWorker, ActorSchedulerHandle, ActorSchedulerHandleBuilder},
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::{MailboxFactory, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     process::{

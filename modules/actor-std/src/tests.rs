@@ -9,7 +9,7 @@ use cellex_actor_core_rs::{
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
     extensions::Extensions,
-    mailbox::{MailboxOptions, SystemMessage},
+    mailbox::{messages::SystemMessage, MailboxOptions},
     messaging::{AnyMessage, MessageEnvelope},
     process::{
       pid::{Pid, SystemId},
@@ -20,7 +20,7 @@ use cellex_actor_core_rs::{
   },
 };
 use cellex_utils_core_rs::sync::ArcShared;
-use cellex_utils_std_rs::{ArcStateCell, StateCell};
+use cellex_utils_std_rs::{sync::ArcStateCell, StateCell};
 use spin::RwLock;
 
 use super::*;

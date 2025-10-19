@@ -80,7 +80,7 @@ use core::time::Duration;
 
 use cellex_utils_core_rs::QueueError;
 
-use crate::api::mailbox::SystemMessage;
+use crate::api::mailbox::messages::SystemMessage;
 
 #[cfg(test)]
 mod tests;

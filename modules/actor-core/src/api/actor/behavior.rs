@@ -5,7 +5,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 use super::{actor_context::ActorContext, actor_failure::ActorFailure, signal::Signal};
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::{PriorityEnvelope, SystemMessage},
+  mailbox::messages::{PriorityEnvelope, SystemMessage},
   messaging::{AnyMessage, MetadataStorageMode},
 };
 

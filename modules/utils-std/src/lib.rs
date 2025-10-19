@@ -54,10 +54,14 @@
 //! timers. The structure is primarily based on re-exports to avoid circular dependencies with the
 //! core layer, and `TokioDeadlineTimer` is also provided from here.
 
-pub(crate) mod collections;
-pub(crate) mod concurrent;
-pub(crate) mod sync;
-pub(crate) mod timing;
+/// Collection data structures tailored for std environments.
+pub mod collections;
+/// Concurrency primitives backed by Tokio synchronization types.
+pub mod concurrent;
+/// Shared ownership and state cell implementations for std environments.
+pub mod sync;
+/// Tokio-specific timing utilities.
+pub mod timing;
 
 pub use cellex_utils_core_rs::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
@@ -66,13 +70,6 @@ pub use cellex_utils_core_rs::{
   Stack, StackBackend, StackHandle, StackStorage, StackStorageBackend, StateCell, TimerDeadline, DEFAULT_CAPACITY,
   DEFAULT_PRIORITY, PRIORITY_LEVELS,
 };
-pub use collections::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue, ArcPriorityQueue, ArcRingQueue, ArcStack};
-pub use concurrent::{
-  AsyncBarrier, CountDownLatch, Synchronized, SynchronizedRw, TokioAsyncBarrierBackend, TokioCountDownLatchBackend,
-  TokioMutexBackend, TokioRwLockBackend, TokioWaitGroupBackend, WaitGroup,
-};
-pub use sync::{ArcShared, ArcStateCell};
-pub use timing::TokioDeadlineTimer;
 
 /// Prelude module that re-exports commonly used types and traits.
 pub mod prelude {
@@ -84,8 +81,20 @@ pub mod prelude {
     PRIORITY_LEVELS,
   };
 
-  pub use super::{
-    ArcMpscBoundedQueue, ArcMpscUnboundedQueue, ArcPriorityQueue, ArcRingQueue, ArcShared, ArcStack, ArcStateCell,
-    AsyncBarrier, CountDownLatch, Synchronized, SynchronizedRw, TokioDeadlineTimer, WaitGroup,
+  pub use crate::{
+    collections::{
+      queue::{
+        mpsc::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue},
+        priority::ArcPriorityQueue,
+        ring::ArcRingQueue,
+      },
+      stack::ArcStack,
+    },
+    concurrent::{
+      AsyncBarrier, CountDownLatch, Synchronized, SynchronizedRw, TokioAsyncBarrierBackend, TokioCountDownLatchBackend,
+      TokioMutexBackend, TokioRwLockBackend, TokioWaitGroupBackend, WaitGroup,
+    },
+    sync::{ArcShared, ArcStateCell},
+    timing::TokioDeadlineTimer,
   };
 }

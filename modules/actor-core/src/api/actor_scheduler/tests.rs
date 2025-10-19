@@ -42,7 +42,10 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::{MailboxFactory, MailboxOptions, PriorityChannel, PriorityEnvelope, SystemMessage},
+    mailbox::{
+      messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+      MailboxFactory, MailboxOptions,
+    },
     messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::{

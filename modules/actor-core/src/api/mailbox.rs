@@ -18,9 +18,9 @@ mod mailbox_options;
 mod mailbox_producer;
 /// Mailbox signaling mechanisms
 mod mailbox_signal;
-mod messages;
+pub mod messages;
 /// Queue-based mailbox implementation
-mod queue_mailbox;
+pub mod queue_mailbox;
 /// Queue use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
 mod queue_mailbox_producer;
 /// Single-threaded mailbox
@@ -34,13 +34,11 @@ pub use mailbox_handle::*;
 pub use mailbox_options::*;
 pub use mailbox_producer::*;
 pub use mailbox_signal::*;
-pub use messages::*;
-pub use queue_mailbox::*;
 pub use queue_mailbox_producer::*;
 pub use single_thread::*;
 pub use thread_safe::*;
 
-use crate::api::actor_scheduler::ReadyQueueHandle;
+use crate::api::actor_scheduler::ready_queue_scheduler::ReadyQueueHandle;
 
 /// Type alias for mailbox and producer pair.
 ///

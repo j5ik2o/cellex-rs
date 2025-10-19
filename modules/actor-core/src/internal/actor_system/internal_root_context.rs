@@ -14,7 +14,7 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     extensions::Extensions,
     guardian::GuardianStrategy,
-    mailbox::{MailboxFactory, PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::supervisor::{NoopSupervisor, Supervisor},
