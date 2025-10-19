@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use super::{Synchronized, SynchronizedRw};
 
 #[tokio::test]

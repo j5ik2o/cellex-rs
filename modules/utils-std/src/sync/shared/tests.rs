@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use std::sync::Mutex;
 
 use cellex_utils_core_rs::{QueueBase, RingBuffer};

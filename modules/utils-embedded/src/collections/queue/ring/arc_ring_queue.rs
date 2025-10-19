@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use cellex_utils_core_rs::{
   QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, RingBuffer, RingQueue, RingStorageBackend,
   DEFAULT_CAPACITY,

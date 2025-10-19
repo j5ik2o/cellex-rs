@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use alloc::rc::Rc;
 use core::{
   cell::{Ref, RefCell, RefMut},

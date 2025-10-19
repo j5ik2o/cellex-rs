@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use tokio::join;
 
 use super::AsyncBarrier;
