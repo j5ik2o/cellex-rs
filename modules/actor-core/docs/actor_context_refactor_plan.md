@@ -49,7 +49,7 @@ ActorContext は現状でメッセージ型 `M` をジェネリックとして�
 
 5. **テスト・CI の実行**  
    - `cargo test --workspace` を実行して動作確認。  
-   - `./scripts/ci.sh all` を実行してプロジェクト標準 CI チェックを通過させる。  
+   - `./scripts/ci-check.sh all` を実行してプロジェクト標準 CI チェックを通過させる。  
    - 必要ならば RP2040 / RP2350 向けターゲットへの `cargo check` も実施する。
 
 ## 留意事項

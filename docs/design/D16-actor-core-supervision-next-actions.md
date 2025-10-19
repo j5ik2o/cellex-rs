@@ -1,7 +1,7 @@
 # actor-core Panic / Supervision：次アクション
 
 ## 現状メモ
-- `unwind-supervision` フィーチャで `catch_unwind` ベースの監督経路を opt-in できるようになり、CI (`scripts/ci.sh std`) でも検証されている。
+- `unwind-supervision` フィーチャで `catch_unwind` ベースの監督経路を opt-in できるようになり、CI (`scripts/ci-check.sh std`) でも検証されている。
 - `BehaviorFailure` / `ActorFailure` を通じた Result ベースのエラー伝搬がデフォルトパス。
 
 ## 優先タスク

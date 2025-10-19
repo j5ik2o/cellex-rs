@@ -13,7 +13,7 @@ FMT_TOOLCHAIN="${FMT_TOOLCHAIN:-nightly}"
 
 usage() {
   cat <<'EOF'
-使い方: scripts/ci.sh [コマンド...]
+使い方: scripts/ci-check.sh [コマンド...]
   lint       : cargo +nightly fmt -- --check を実行します
   dylint     : workspace.metadata で定義されたカスタムリントを実行します
   clippy     : cargo clippy --workspace --all-targets -- -D warnings を実行します
@@ -23,7 +23,7 @@ usage() {
   embassy    : embedded のエイリアスです (互換目的)
   test       : ワークスペース全体のテストを実行します
   all        : 上記すべてを順番に実行します (引数なし時と同じ)
-複数指定で部分実行が可能です (例: scripts/ci.sh lint test)
+複数指定で部分実行が可能です (例: scripts/ci-check.sh lint test)
 EOF
 }
 
