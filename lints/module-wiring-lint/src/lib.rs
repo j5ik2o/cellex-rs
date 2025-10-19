@@ -1,392 +1,260 @@
 #![feature(rustc_private)]
 
-extern crate rustc_errors;
+extern crate rustc_data_structures;
 extern crate rustc_hir;
 extern crate rustc_middle;
 extern crate rustc_span;
 
-use std::{
-  collections::{HashMap, HashSet},
-  fs,
-  path::{Path, PathBuf},
+use rustc_data_structures::fx::FxHashMap;
+use rustc_hir::{
+  self as hir,
+  def_id::{DefId, LocalModDefId},
+  Item,
+  ItemKind,
+  UseKind,
 };
-
-use quote::ToTokens;
-use rustc_errors::Diag;
-use rustc_hir::{Item, ItemKind, UseKind, UsePath};
 use rustc_lint::{LateContext, LateLintPass, LintContext};
-use rustc_span::{
-  source_map::SourceMap,
-  symbol::{sym, Symbol},
-  FileName, RealFileName, Span,
-};
-use syn::{Attribute as SynAttribute, Item as SynItem, ItemMod as SynItemMod};
+use rustc_middle::ty::Visibility;
+use rustc_span::{symbol::Symbol, Span};
 
 dylint_linting::impl_late_lint! {
-    pub MODULE_WIRING,
-    Warn,
-    "enforce module wiring conventions for re-exports",
-    ModuleWiring::default()
+  pub NO_PARENT_REEXPORT,
+  Warn,
+  "enforce module wiring re-export policy",
+  NoParentReexport::default()
 }
 
-pub struct ModuleWiring {
-  seen_files:       HashSet<PathBuf>,
-  delegation_cache: HashMap<PathBuf, bool>,
+pub struct NoParentReexport {
+  leaf_cache: FxHashMap<LocalModDefId, bool>,
 }
 
-impl Default for ModuleWiring {
+impl Default for NoParentReexport {
   fn default() -> Self {
-    Self { seen_files: HashSet::new(), delegation_cache: HashMap::new() }
+    Self { leaf_cache: FxHashMap::default() }
   }
 }
 
-impl<'tcx> LateLintPass<'tcx> for ModuleWiring {
+impl<'tcx> LateLintPass<'tcx> for NoParentReexport {
   fn check_item(&mut self, cx: &LateContext<'tcx>, item: &Item<'tcx>) {
-    let sm = cx.tcx.sess.source_map();
-    let Some(file_path) = file_path_from_span(sm, item.span) else {
-      return;
-    };
-    if is_exception_file(&file_path) {
-      return;
+    if let ItemKind::Use(path, kind) = &item.kind {
+      self.evaluate_use(cx, item, path, *kind);
     }
-    if !self.seen_files.insert(file_path.clone()) {
-      return;
-    }
-    analyze_file(cx, &file_path, &mut self.delegation_cache);
   }
 }
 
-struct ModuleData {
-  skip_missing: bool,
-  mods:         HashMap<String, ModEntry>,
-  reexports:    HashMap<String, Vec<ReexportEntry>>,
+impl NoParentReexport {
+  fn evaluate_use<'tcx>(&mut self, cx: &LateContext<'tcx>, item: &Item<'tcx>, path: &hir::UsePath<'tcx>, kind: UseKind) {
+    if !is_public_use(cx, item) {
+      return;
+    }
+
+    if has_allow_comment(cx, item.span) {
+      return;
+    }
+
+    let current_mod = cx.tcx.parent_module_from_def_id(item.owner_id.def_id);
+
+    if is_prelude_module(cx, current_mod.to_def_id()) {
+      return;
+    }
+
+    let binding_ident = match kind {
+      | UseKind::Single(ident) => Some(ident.name),
+      | UseKind::Glob => None,
+      | UseKind::ListStem => {
+        return;
+      },
+    };
+
+    let Some(first_segment) = path.segments.first() else {
+      return;
+    };
+
+    if binding_ident.is_some() && path.segments.len() < 2 {
+      self.emit_violation(cx, item.span, RuleLabel::Principle, "子モジュールを介さない再エクスポートは許可されていません", Some("末端モジュールにシンボルを配置し、親から `pub use child::Type;` として公開してください"));
+      return;
+    }
+
+    if is_special_segment(first_segment.ident.name) {
+      self.emit_violation(cx, item.span, RuleLabel::Principle, "特殊パス（self / super / crate）を経由した再エクスポートは禁止されています", Some("末端モジュールの直属親からのみ再エクスポートしてください"));
+      return;
+    }
+
+    if let (Some(last_segment), Some(binding_name)) = (path.segments.last(), binding_ident) {
+      if binding_name != last_segment.ident.name {
+        self.emit_violation(
+          cx,
+          item.span,
+          RuleLabel::Exception,
+          "`as` を用いた再エクスポートは許可されていません",
+          Some("末端モジュール内で元の名前を公開するか、呼び出し側で名前を付け替えてください"),
+        );
+        return;
+      }
+    }
+
+    let child_name = first_segment.ident.name;
+
+    let Some(child_mod) = self.find_direct_child_module(cx, current_mod, child_name) else {
+      let detail = format!("モジュール `{}` はこのモジュールの直属の子として定義されていません", child_name.as_str());
+      self.emit_violation(cx, item.span, RuleLabel::Principle, &detail, Some("`mod child;` を定義した親モジュール内でのみ `pub use child::Type;` を記述してください"));
+      return;
+    };
+
+    if !self.is_leaf(cx, child_mod) {
+      let detail = format!("モジュール `{}` にさらに子モジュールが存在するため末端モジュールではありません", child_name.as_str());
+      self.emit_violation(
+        cx,
+        item.span,
+        RuleLabel::Exception,
+        &detail,
+        Some("再エクスポートは葉モジュールの直属親でのみ行い、階層が深い場合は子モジュール側で公開してください"),
+      );
+      return;
+    }
+  }
+
+  fn find_direct_child_module<'tcx>(&self, cx: &LateContext<'tcx>, parent: LocalModDefId, target: Symbol) -> Option<LocalModDefId> {
+    let items = cx.tcx.hir_module_items(parent);
+    for item_id in items.free_items() {
+      let def_id = item_id.owner_id.def_id;
+      let node = cx.tcx.hir_node_by_def_id(def_id);
+      let item = node.expect_item();
+      if let ItemKind::Mod(ident, _) = item.kind {
+        if ident.name == target {
+          return Some(LocalModDefId::new_unchecked(def_id));
+        }
+      }
+    }
+    None
+  }
+
+  fn is_leaf<'tcx>(&mut self, cx: &LateContext<'tcx>, module: LocalModDefId) -> bool {
+    if let Some(&cached) = self.leaf_cache.get(&module) {
+      return cached;
+    }
+
+    let items = cx.tcx.hir_module_items(module);
+    let mut is_leaf = true;
+    for item_id in items.free_items() {
+      let def_id = item_id.owner_id.def_id;
+      let node = cx.tcx.hir_node_by_def_id(def_id);
+      let item = node.expect_item();
+      if matches!(item.kind, ItemKind::Mod(_, _)) {
+        is_leaf = false;
+        break;
+      }
+    }
+
+    self.leaf_cache.insert(module, is_leaf);
+    is_leaf
+  }
+
+  fn emit_violation(&self, cx: &LateContext<'_>, span: Span, label: RuleLabel, detail: &str, help: Option<&'static str>) {
+    cx.span_lint(NO_PARENT_REEXPORT, span, |diag| {
+      diag.primary_message("再エクスポートは末端モジュールの直属親以外では禁止です");
+      diag.note(label.message());
+      diag.note(format!("詳細: {}", detail));
+      if let Some(help_msg) = help {
+        diag.help(help_msg);
+      }
+    });
+  }
 }
 
-#[derive(Clone)]
-struct ModEntry {
-  symbol:             Symbol,
-  span:               Span,
-  is_public:          bool,
-  has_reexport:       bool,
-  delegates_children: bool,
-  is_cfg_test:        bool,
+#[derive(Clone, Copy)]
+enum RuleLabel {
+  Principle,
+  Exception,
 }
 
-#[derive(Clone)]
-struct ReexportEntry {
-  span:    Span,
-  snippet: Option<String>,
+impl RuleLabel {
+  fn message(self) -> &'static str {
+    match self {
+      | RuleLabel::Principle => "ルール: 原則ルール: 再エクスポート禁止",
+      | RuleLabel::Exception => "ルール: 例外ルール: 末端モジュールの直属親のみ許可",
+    }
+  }
 }
 
-const ALLOW_FILE_FLAG: &str = "allow:module-wiring-skip";
-const IGNORED_CHILD_MODULES: &[&str] = &["tests", "test", "bench", "benches"];
+fn is_special_segment(symbol: Symbol) -> bool {
+  matches!(symbol.as_str(), "self" | "super" | "crate")
+}
 
-fn analyze_file(cx: &LateContext<'_>, file_path: &Path, delegation_cache: &mut HashMap<PathBuf, bool>) {
-  let Ok(src) = fs::read_to_string(file_path) else {
-    return;
+fn is_prelude_module(cx: &LateContext<'_>, def_id: DefId) -> bool {
+  let path = cx.tcx.def_path_str(def_id);
+  path.split("::").last() == Some("prelude")
+}
+
+fn has_allow_comment(cx: &LateContext<'_>, span: Span) -> bool {
+  const TOKEN: &str = "allow module_wiring::no_parent_reexport";
+  let sm = cx.tcx.sess.source_map();
+
+  if let Ok(prev_source) = sm.span_to_prev_source(span) {
+    if prev_source
+      .lines()
+      .last()
+      .map(|line| line.trim_start().starts_with("//") && line.trim_start()[2..].trim_start().starts_with(TOKEN))
+      .unwrap_or(false)
+    {
+      return true;
+    }
+  }
+
+  let loc = sm.lookup_char_pos(span.lo());
+
+  if comment_present(&loc.file, loc.line, Some(loc.col.0 as usize), TOKEN) {
+    return true;
+  }
+
+  if loc.line > 0 && comment_present(&loc.file, loc.line - 1, None, TOKEN) {
+    return true;
+  }
+
+  false
+}
+
+fn comment_present(file: &rustc_span::SourceFile, line_idx: usize, limit: Option<usize>, token: &str) -> bool {
+  let Some(line) = file.get_line(line_idx) else {
+    return false;
   };
-  let skip_missing = should_skip_missing_check(&src);
 
-  let mut mods: HashMap<String, ModEntry> = HashMap::new();
-  let mut reexports: HashMap<String, Vec<ReexportEntry>> = HashMap::new();
+  let text = line.as_ref();
 
-  collect_items_for_file(cx, file_path, delegation_cache, &mut mods, &mut reexports);
+  if scan_comment(text, token) {
+    return true;
+  }
 
-  let mut data = ModuleData { skip_missing, mods, reexports };
+  if let Some(end) = limit {
+    let end = end.min(text.len());
+    if end == 0 {
+      return false;
+    }
+    return scan_comment(&text[..end], token);
+  }
 
-  emit_violations(cx, &mut data);
-
-  // nothing else to do
+  false
 }
 
-fn collect_items_for_file(
-  cx: &LateContext<'_>,
-  file_path: &Path,
-  delegation_cache: &mut HashMap<PathBuf, bool>,
-  mods: &mut HashMap<String, ModEntry>,
-  reexports: &mut HashMap<String, Vec<ReexportEntry>>,
-) {
+fn scan_comment(segment: &str, token: &str) -> bool {
+  if let Some(pos) = segment.rfind("//") {
+    return segment[pos + 2..].trim().starts_with(token);
+  }
+  false
+}
+
+fn is_public_use(cx: &LateContext<'_>, item: &Item<'_>) -> bool {
   let sm = cx.tcx.sess.source_map();
-  let crate_items = cx.tcx.hir_crate_items(());
-
-  for item_id in crate_items.free_items() {
-    let hir_item = cx.tcx.hir_expect_item(item_id.owner_id.def_id);
-    let Some(item_path) = file_path_from_span(sm, hir_item.span) else {
-      continue;
-    };
-    if item_path != file_path {
-      continue;
-    }
-
-    if let ItemKind::Mod(_, module) = &hir_item.kind {
-      let child_name = cx.tcx.item_name(hir_item.owner_id.def_id.to_def_id());
-      if should_ignore_symbol(child_name) {
-        continue;
+  if let Ok(snippet) = sm.span_to_snippet(item.span) {
+    if let Some(use_pos) = snippet.find("use") {
+      let prefix = &snippet[..use_pos];
+      if prefix.split_whitespace().any(|tok| tok.starts_with("pub")) {
+        return true;
       }
-      if let Some(entry) = build_mod_entry(cx, file_path, hir_item, module, delegation_cache) {
-        let key = entry.symbol.to_string();
-        mods.insert(key, entry);
-      }
+      return false;
     }
+    return false;
   }
 
-  for item_id in crate_items.free_items() {
-    let hir_item = cx.tcx.hir_expect_item(item_id.owner_id.def_id);
-    let Some(item_path) = file_path_from_span(sm, hir_item.span) else {
-      continue;
-    };
-    if item_path != file_path {
-      continue;
-    }
-
-    if let ItemKind::Use(path, use_kind) = &hir_item.kind {
-      collect_use_item(cx, hir_item, path, *use_kind, mods, reexports);
-    }
-  }
-}
-
-fn build_mod_entry(
-  cx: &LateContext<'_>,
-  parent_file: &Path,
-  item: &Item<'_>,
-  _module: &rustc_hir::Mod<'_>,
-  delegation_cache: &mut HashMap<PathBuf, bool>,
-) -> Option<ModEntry> {
-  let child_name = cx.tcx.item_name(item.owner_id.def_id.to_def_id());
-  let visibility = cx.tcx.local_visibility(item.owner_id.def_id);
-  let is_public = visibility.is_public();
-  let is_cfg_test = has_cfg_test_attr(cx, cx.tcx.hir_attrs(item.hir_id()));
-
-  let delegates_children = resolve_child_path(parent_file, child_name.as_str())
-    .map(|child_path| module_delegates(&child_path, delegation_cache))
-    .unwrap_or(false);
-
-  Some(ModEntry {
-    symbol: child_name,
-    span: item.span,
-    is_public,
-    has_reexport: false,
-    delegates_children,
-    is_cfg_test,
-  })
-}
-
-fn collect_use_item(
-  cx: &LateContext<'_>,
-  item: &Item<'_>,
-  path: &UsePath<'_>,
-  _use_kind: UseKind,
-  mods: &HashMap<String, ModEntry>,
-  reexports: &mut HashMap<String, Vec<ReexportEntry>>,
-) {
-  if !cx.tcx.local_visibility(item.owner_id.def_id).is_public() {
-    return;
-  }
-
-  let segments: Vec<String> = path.segments.iter().map(|seg| seg.ident.to_string()).collect();
-  if segments.is_empty() {
-    return;
-  }
-
-  let first_segment = segments.first().cloned();
-  let mut normalized = segments;
-  while matches!(normalized.first().map(|s| s.as_str()), Some("self") | Some("super") | Some("crate")) {
-    normalized.remove(0);
-  }
-
-  if normalized.is_empty() {
-    return;
-  }
-
-  let child_key = normalized[0].clone();
-  let should_track =
-    mods.contains_key(&child_key) || matches!(first_segment.as_deref(), Some("self") | Some("super") | Some("crate"));
-
-  if !should_track {
-    return;
-  }
-
-  let snippet = cx.tcx.sess.source_map().span_to_snippet(item.span).ok();
-  let entry = ReexportEntry { span: item.span, snippet };
-  reexports.entry(child_key).or_default().push(entry);
-
-  // For glob imports, we want to ensure the key exists for subsequent diagnostics even if
-  // the parent didn't declare the child explicitly. `mods` remains unchanged here; missing
-  // entries will be handled later.
-}
-
-fn emit_violations(cx: &LateContext<'_>, data: &mut ModuleData) {
-  for (child, entries) in &data.reexports {
-    if let Some(entry) = data.mods.get_mut(child) {
-      entry.has_reexport = true;
-      if entry.is_public {
-        for reexport in entries {
-          emit_pub_mod_with_reexport(cx, entry, reexport);
-        }
-      }
-      if entry.delegates_children {
-        for reexport in entries {
-          emit_delegated_reexport(cx, child, reexport);
-        }
-      }
-    } else {
-      for reexport in entries {
-        emit_stray_reexport(cx, child, reexport);
-      }
-    }
-  }
-
-  for entry in data.mods.values() {
-    if entry.is_cfg_test {
-      continue;
-    }
-    if should_ignore_symbol(entry.symbol) {
-      continue;
-    }
-    if entry.delegates_children {
-      if !entry.is_public {
-        emit_non_public_delegator(cx, entry);
-      }
-      continue;
-    }
-    if entry.is_public {
-      continue;
-    }
-    if !entry.has_reexport && !data.skip_missing {
-      emit_missing_reexport(cx, entry);
-    }
-  }
-}
-
-fn emit_pub_mod_with_reexport(cx: &LateContext<'_>, entry: &ModEntry, reexport: &ReexportEntry) {
-  let child_name = entry.symbol.to_ident_string();
-  cx.span_lint(MODULE_WIRING, entry.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!("`pub mod {child_name};` is declared alongside a public re-export"));
-    if let Some(snippet) = &reexport.snippet {
-      diag.help(format!("replace this with `mod {child_name};` and keep only `{snippet}`"));
-    } else {
-      diag.help(format!("replace `pub mod {child_name};` with `mod {child_name};` and keep the re-export only"));
-    }
-  });
-}
-
-fn emit_delegated_reexport(cx: &LateContext<'_>, child: &str, reexport: &ReexportEntry) {
-  let snippet = reexport.snippet.as_deref().unwrap_or("public re-export");
-  cx.span_lint(MODULE_WIRING, reexport.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!("`{snippet}` re-exports from the non-leaf module `{child}`"));
-    diag.help("only the direct parent module should re-export leaf types");
-  });
-}
-
-fn emit_stray_reexport(cx: &LateContext<'_>, child: &str, reexport: &ReexportEntry) {
-  let snippet = reexport.snippet.as_deref().unwrap_or("public re-export");
-  cx.span_lint(MODULE_WIRING, reexport.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!("`{snippet}` has no matching `mod {child};` in this parent module"));
-    diag.help("declare the module locally and re-export from the direct parent only");
-  });
-}
-
-fn emit_non_public_delegator(cx: &LateContext<'_>, entry: &ModEntry) {
-  let child_name = entry.symbol.to_ident_string();
-  cx.span_lint(MODULE_WIRING, entry.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!("`mod {child_name};` aggregates submodules but is not exported"));
-    diag.help(format!("change to `pub mod {child_name};` and let deeper modules handle re-exports"));
-  });
-}
-
-fn emit_missing_reexport(cx: &LateContext<'_>, entry: &ModEntry) {
-  let child_name = entry.symbol.to_ident_string();
-  cx.span_lint(MODULE_WIRING, entry.span, |diag: &mut Diag<'_, ()>| {
-    diag.primary_message(format!("`mod {child_name};` is missing a matching `pub use {child_name}::...;` re-export"));
-    diag.help(format!("add `pub use {child_name}::Type;` so the parent re-exports the leaf type"));
-  });
-}
-
-fn file_path_from_span(sm: &SourceMap, span: Span) -> Option<PathBuf> {
-  match sm.span_to_filename(span) {
-    | FileName::Real(RealFileName::LocalPath(path)) => Some(path.to_path_buf()),
-    | _ => None,
-  }
-}
-
-fn should_skip_missing_check(src: &str) -> bool {
-  src.lines().take(80).any(|line| line.contains(ALLOW_FILE_FLAG))
-}
-
-fn resolve_child_path(parent: &Path, child: &str) -> Option<PathBuf> {
-  let module_dir = module_directory(parent)?;
-  let candidate = module_dir.join(format!("{child}.rs"));
-  if candidate.exists() {
-    return Some(candidate);
-  }
-  let mod_candidate = module_dir.join(child).join("mod.rs");
-  if mod_candidate.exists() {
-    return Some(mod_candidate);
-  }
-  None
-}
-
-fn module_directory(file_path: &Path) -> Option<PathBuf> {
-  let parent_dir = file_path.parent()?;
-  let file_name = file_path.file_name()?.to_str()?;
-  if matches!(file_name, "lib.rs" | "main.rs") {
-    return Some(parent_dir.to_path_buf());
-  }
-  if let Some(stem) = file_path.file_stem() {
-    return Some(parent_dir.join(stem));
-  }
-  Some(parent_dir.to_path_buf())
-}
-
-fn module_delegates(path: &Path, cache: &mut HashMap<PathBuf, bool>) -> bool {
-  if let Some(cached) = cache.get(path) {
-    return *cached;
-  }
-
-  let delegates = fs::read_to_string(path)
-    .ok()
-    .and_then(|src| syn::parse_file(&src).ok())
-    .map(|file| {
-      file.items.into_iter().any(|item| match item {
-        | SynItem::Mod(SynItemMod { content: None, ident, attrs, .. }) => {
-          let name = ident.to_string();
-          if should_ignore_name(&name) || name.starts_with("__") {
-            return false;
-          }
-          !syn_has_cfg_test(&attrs)
-        },
-        | _ => false,
-      })
-    })
-    .unwrap_or(false);
-
-  cache.insert(path.to_path_buf(), delegates);
-  delegates
-}
-
-fn syn_has_cfg_test(attrs: &[SynAttribute]) -> bool {
-  attrs.iter().any(|attr| {
-    let path = attr.path();
-    (path.is_ident("cfg") || path.is_ident("cfg_attr")) && attr.meta.to_token_stream().to_string().contains("test")
-  })
-}
-
-fn has_cfg_test_attr(cx: &LateContext<'_>, attrs: &[rustc_hir::Attribute]) -> bool {
-  let sm = cx.tcx.sess.source_map();
-  attrs.iter().any(|attr| {
-    (attr.has_name(sym::cfg) || attr.has_name(sym::cfg_attr))
-      && sm.span_to_snippet(attr.span()).map(|snippet| snippet.contains("test")).unwrap_or(false)
-  })
-}
-
-fn should_ignore_symbol(symbol: Symbol) -> bool {
-  IGNORED_CHILD_MODULES.iter().any(|ignored| symbol.as_str() == *ignored)
-}
-
-fn should_ignore_name(name: &str) -> bool {
-  IGNORED_CHILD_MODULES.iter().any(|ignored| name == *ignored)
-}
-
-fn is_exception_file(path: &Path) -> bool {
-  matches!(path.file_name().and_then(|s| s.to_str()), Some("main.rs") | Some("tests.rs") | Some("build.rs"))
+  matches!(cx.tcx.visibility(item.owner_id.def_id), Visibility::Public | Visibility::Restricted(_))
 }

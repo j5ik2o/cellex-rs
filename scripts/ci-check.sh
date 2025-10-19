@@ -79,6 +79,9 @@ run_dylint() {
     log_step "cargo +nightly build --manifest-path ${lint_path}/Cargo.toml --release"
     CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" cargo +nightly build --manifest-path "${lint_path}/Cargo.toml" --release
 
+    log_step "cargo +nightly test --manifest-path ${lint_path}/Cargo.toml -- test ui -- --quiet"
+    CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" cargo +nightly test --manifest-path "${lint_path}/Cargo.toml" -- test ui -- --quiet
+
     local base
     base="$(basename "${lint_path}")"
     local crate_name="${base//-/_}"

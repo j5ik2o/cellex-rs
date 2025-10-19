@@ -1,0 +1,13 @@
+warning: 再エクスポートは末端モジュールの直属親以外では禁止です
+  --> $DIR/grandparent_reexport.rs:11:1
+   |
+LL | pub use child::sub::Thing;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: ルール: 例外ルール: 末端モジュールの直属親のみ許可
+   = note: 詳細: モジュール `child` にさらに子モジュールが存在するため末端モジュールではありません
+   = help: 再エクスポートは葉モジュールの直属親でのみ行い、階層が深い場合は子モジュール側で公開してください
+   = note: `#[warn(no_parent_reexport)]` on by default
+
+warning: 1 warning emitted
+
