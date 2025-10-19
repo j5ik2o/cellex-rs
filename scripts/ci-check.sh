@@ -149,13 +149,20 @@ run_dylint() {
   local dylint_library_path
   dylint_library_path="$(IFS=:; echo "${lib_dirs[*]}")"
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace ${dylint_args[*]} --no-build --no-metadata"
-  DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace "${dylint_args[@]}" --no-build --no-metadata
+  local rustflags_value
+  if [[ -n "${RUSTFLAGS-}" ]]; then
+    rustflags_value="${RUSTFLAGS} -Dwarnings"
+  else
+    rustflags_value="-Dwarnings"
+  fi
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace ${dylint_args[*]} --no-build --no-metadata (RUSTFLAGS=${rustflags_value})"
+  RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace "${dylint_args[@]}" --no-build --no-metadata
 }
 
 run_clippy() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --exclude module-wiring-lint --all-targets -- -D warnings"
-  run_cargo clippy --workspace --exclude module-wiring-lint --all-targets -- -D warnings
+  log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --all-targets -- -D warnings"
+  run_cargo clippy --workspace --all-targets -- -D warnings
 }
 
 run_no_std() {
@@ -220,13 +227,14 @@ run_embedded() {
 }
 
 run_tests() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --exclude module-wiring-lint --verbose"
-  run_cargo test --workspace --exclude module-wiring-lint --verbose
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --verbose"
+  run_cargo test --workspace --verbose
 }
 
 run_all() {
   run_lint
   run_dylint
+  run_clippy
   run_no_std
   run_std
   run_embedded
@@ -241,11 +249,10 @@ main() {
     return
   fi
 
-  local status=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       lint)
-        run_lint || status=$?
+        run_lint || return 1
         shift
         ;;
       dylint)
@@ -292,27 +299,27 @@ main() {
         shift
         ;;
       clippy)
-        run_clippy || status=$?
+        run_clippy || return 1
         shift
         ;;
       no-std|nostd)
-        run_no_std || status=$?
+        run_no_std || return 1
         shift
         ;;
       std)
-        run_std || status=$?
+        run_std || return 1
         shift
         ;;
       embedded|embassy)
-        run_embedded || status=$?
+        run_embedded || return 1
         shift
         ;;
       test|tests|workspace)
-        run_tests || status=$?
+        run_tests || return 1
         shift
         ;;
       all)
-        run_all || status=$?
+        run_all || return 1
         shift
         ;;
       --help|-h|help)
@@ -331,7 +338,7 @@ main() {
         ;;
     esac
   done
-  return "${status}"
+  return 0
 }
 
 main "$@"
