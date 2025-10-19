@@ -16,13 +16,13 @@ members = [
   "platform-tests/rp2040-hw-tests",
   "platform-tests/rp2350-hw-tests",
   "platform-tests/wio-terminal-hw-tests",
-#  "lints/module-wiring-lint"
 ]
 
-#[workspace.metadata.dylint]
-#libraries = [
-#  { path = "lints/module-wiring-lint" }
-#]
+[workspace.metadata.dylint]
+libraries = [
+  { path = "lints/module-wiring-lint" },
+  { path = "lints/tests-location-lint" },
+]
 
 [workspace.dependencies]
 alloc-cortex-m = "0.4"

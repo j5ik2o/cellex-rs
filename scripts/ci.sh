@@ -15,6 +15,7 @@ usage() {
   cat <<'EOF'
 使い方: scripts/ci.sh [コマンド...]
   lint       : cargo +nightly fmt -- --check を実行します
+  dylint     : workspace.metadata で定義されたカスタムリントを実行します
   clippy     : cargo clippy --workspace --all-targets -- -D warnings を実行します
   no-std     : no_std 対応チェック (core/utils) を実行します
   std        : std フィーチャーでのテストを実行します
@@ -61,6 +62,44 @@ ensure_target_installed() {
 run_lint() {
   log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check (excluding module-wiring-lint)"
   cargo "+${FMT_TOOLCHAIN}" fmt --all -- --check
+}
+
+run_dylint() {
+  local toolchain
+  toolchain="nightly-$(rustc +nightly -vV | awk '/^host:/{print $2}')"
+
+  local lint_paths=(
+    "lints/module-wiring-lint"
+    "lints/tests-location-lint"
+  )
+
+  local lib_dirs=()
+
+  for lint_path in "${lint_paths[@]}"; do
+    log_step "cargo +nightly build --manifest-path ${lint_path}/Cargo.toml --release"
+    CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" cargo +nightly build --manifest-path "${lint_path}/Cargo.toml" --release
+
+    local base
+    base="$(basename "${lint_path}")"
+    local crate_name="${base//-/_}"
+    local target_dir="${lint_path}/target/release"
+    local plain_lib="${target_dir}/lib${crate_name}.dylib"
+    local tagged_lib="${target_dir}/lib${crate_name}@${toolchain}.dylib"
+
+    if [[ -f "${plain_lib}" ]]; then
+      cp -f "${plain_lib}" "${tagged_lib}"
+      lib_dirs+=("$(cd "${target_dir}" && pwd)")
+    else
+      echo "エラー: ${plain_lib} が見つかりません" >&2
+      return 1
+    fi
+  done
+
+  local dylint_library_path
+  dylint_library_path="$(IFS=:; echo "${lib_dirs[*]}")"
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata"
+  DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace --lib module_wiring_lint --lib tests_location_lint --no-build --no-metadata
 }
 
 run_clippy() {
@@ -136,6 +175,7 @@ run_tests() {
 
 run_all() {
   run_lint
+  run_dylint
   run_no_std
   run_std
   run_embedded
@@ -155,6 +195,9 @@ main() {
     case "${cmd}" in
       lint)
         run_lint
+        ;;
+      dylint)
+        run_dylint
         ;;
       clippy)
         run_clippy

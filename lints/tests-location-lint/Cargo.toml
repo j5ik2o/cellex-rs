@@ -1,5 +1,5 @@
 [package]
-name = "module-wiring-lint"
+name = "tests-location-lint"
 version = "0.1.0"
 edition = "2021"
 
