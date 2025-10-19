@@ -65,6 +65,7 @@ use crate::{
 
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 struct AlwaysEscalate;
 
 #[cfg(feature = "std")]

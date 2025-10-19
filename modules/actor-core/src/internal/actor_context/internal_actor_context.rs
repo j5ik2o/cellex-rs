@@ -20,6 +20,9 @@ use crate::{
   internal::{actor::InternalProps, actor_context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
 };
 
+type ActorProcessRegistryShared<MF> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 /// Context for actors to operate on themselves and child actors.
 pub struct InternalActorContext<'a, MF>
 where
@@ -36,8 +39,7 @@ where
   actor_path:       ActorPath,
   actor_id:         ActorId,
   pid:              Pid,
-  process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
+  process_registry: ActorProcessRegistryShared<MF>,
   watchers:         &'a mut Vec<ActorId>,
   current_priority: Option<i8>,
   receive_timeout:  Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
@@ -59,9 +61,7 @@ where
     actor_path: ActorPath,
     actor_id: ActorId,
     pid: Pid,
-    process_registry: ArcShared<
-      ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>,
-    >,
+    process_registry: ActorProcessRegistryShared<MF>,
     watchers: &'a mut Vec<ActorId>,
     receive_timeout: Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
     extensions: Extensions,
@@ -128,9 +128,7 @@ where
     &self.pid
   }
 
-  pub fn process_registry(
-    &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>> {
+  pub fn process_registry(&self) -> ActorProcessRegistryShared<MF> {
     self.process_registry.clone()
   }
 

@@ -1,7 +1,3 @@
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use core::marker::PhantomData;
 
 use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
@@ -121,8 +117,8 @@ impl InternalMessageSender {
     MF::Queue<PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MF::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
-    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message, priority| {
-      sender.try_send_with_priority(message, priority)
-    })))
+    let send_fn = ArcShared::new(move |message, priority| sender.try_send_with_priority(message, priority))
+      .into_dyn(|f| f as &SendFn);
+    Self::new(send_fn)
   }
 }

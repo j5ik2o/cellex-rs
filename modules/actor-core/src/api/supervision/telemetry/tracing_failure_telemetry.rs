@@ -22,6 +22,7 @@ impl FailureTelemetry for TracingFailureTelemetry {
 
 #[cfg(feature = "std")]
 /// Returns a shared handle to the tracing-based telemetry implementation.
+#[must_use]
 pub fn tracing_failure_telemetry() -> FailureTelemetryShared {
   FailureTelemetryShared::new(TracingFailureTelemetry)
 }

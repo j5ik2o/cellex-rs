@@ -22,6 +22,9 @@ use crate::{
   internal::actor::InternalProps,
 };
 
+type RootProcessRegistryShared<AR> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 pub(crate) struct InternalRootContext<'a, AR, Strat>
 where
   AR: ActorRuntime + Clone + 'static,
@@ -72,10 +75,7 @@ where
     self.system.scheduler.spawn_actor(supervisor, context)
   }
 
-  pub fn process_registry(
-    &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
-  {
+  pub fn process_registry(&self) -> RootProcessRegistryShared<AR> {
     self.system.process_registry()
   }
 

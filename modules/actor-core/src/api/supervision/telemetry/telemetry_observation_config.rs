@@ -28,18 +28,18 @@ impl TelemetryObservationConfig {
 
   /// Returns the currently configured metrics sink, if any.
   #[must_use]
-  pub fn metrics_sink(&self) -> Option<&MetricsSinkShared> {
+  pub const fn metrics_sink(&self) -> Option<&MetricsSinkShared> {
     self.metrics.as_ref()
   }
 
   /// Enables or disables recording of call duration.
-  pub fn set_record_timing(&mut self, enabled: bool) {
+  pub const fn set_record_timing(&mut self, enabled: bool) {
     self.record_timing = enabled;
   }
 
   /// Indicates whether call duration should be recorded.
   #[must_use]
-  pub fn should_record_timing(&self) -> bool {
+  pub const fn should_record_timing(&self) -> bool {
     self.record_timing
   }
 

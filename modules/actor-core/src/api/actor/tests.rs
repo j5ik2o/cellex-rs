@@ -241,10 +241,12 @@ mod receive_timeout_injection {
     let factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
-      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        factory_calls.clone(),
-      ))));
+      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(
+        ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+          driver_calls.clone(),
+          factory_calls.clone(),
+        )),
+      ));
 
     let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default();
 
@@ -262,10 +264,12 @@ mod receive_timeout_injection {
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
-      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        driver_factory_calls.clone(),
-      ))))
+      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(
+        ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+          driver_calls.clone(),
+          driver_factory_calls.clone(),
+        )),
+      ))
       .with_receive_timeout_scheduler_factory_shared(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
@@ -288,10 +292,12 @@ mod receive_timeout_injection {
     let config_factory_calls = Arc::new(AtomicUsize::new(0));
 
     let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
-      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        driver_factory_calls.clone(),
-      ))))
+      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(
+        ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+          driver_calls.clone(),
+          driver_factory_calls.clone(),
+        )),
+      ))
       .with_receive_timeout_scheduler_factory_shared(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));

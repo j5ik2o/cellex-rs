@@ -37,6 +37,7 @@ where
   /// Creates a new `RootEscalationSink`.
   ///
   /// By default, no handler or listener is configured.
+  #[must_use]
   pub fn new() -> Self {
     Self {
       event_handler:  None,
@@ -66,6 +67,7 @@ where
   }
 
   /// Returns the currently registered telemetry implementation.
+  #[must_use]
   pub fn telemetry(&self) -> FailureTelemetryShared {
     self.telemetry.clone()
   }
@@ -76,7 +78,8 @@ where
   }
 
   /// Returns the telemetry observation config.
-  pub fn observation_config(&self) -> &TelemetryObservationConfig {
+  #[must_use]
+  pub const fn observation_config(&self) -> &TelemetryObservationConfig {
     &self.observation
   }
 
@@ -138,7 +141,7 @@ where
     }
 
     if let Some(listener) = self.event_listener.as_ref() {
-      listener(FailureEvent::RootEscalated(info.clone()));
+      listener(FailureEvent::RootEscalated(info));
     }
 
     Ok(())

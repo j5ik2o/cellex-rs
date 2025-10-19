@@ -24,6 +24,9 @@ use crate::{
   internal::actor_system::internal_actor_system_config::InternalActorSystemConfig,
 };
 
+type ActorSystemProcessRegistryShared<AR> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 pub(crate) struct InternalActorSystem<AR, Strat = AlwaysRestart>
 where
   AR: ActorRuntime + Clone + 'static,
@@ -38,8 +41,7 @@ where
   extensions: Extensions,
   #[allow(dead_code)]
   metrics_sink: Option<MetricsSinkShared>,
-  pub(super) process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
+  pub(super) process_registry: ActorSystemProcessRegistryShared<AR>,
   #[allow(dead_code)]
   pub(super) system_id: SystemId,
   #[allow(dead_code)]
@@ -165,10 +167,7 @@ where
   }
 
   #[must_use]
-  pub fn process_registry(
-    &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
-  {
+  pub fn process_registry(&self) -> ActorSystemProcessRegistryShared<AR> {
     self.process_registry.clone()
   }
 
