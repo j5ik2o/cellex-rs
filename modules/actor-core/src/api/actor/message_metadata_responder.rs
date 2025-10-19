@@ -86,11 +86,8 @@ where
         | Err(QueueError::Full(envelope)) | Err(QueueError::OfferError(envelope)) => {
           let shared = ArcShared::new(envelope);
           registry.with_ref(|registry| {
-            registry.publish_dead_letter(DeadLetter::new(
-              pid.clone(),
-              shared.clone(),
-              DeadLetterReason::DeliveryRejected,
-            ));
+            let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::DeliveryRejected);
+            registry.publish_dead_letter(&letter);
           });
           let _ = shared.try_unwrap();
           Err(AskError::SendFailed(QueueError::Disconnected))
@@ -98,7 +95,8 @@ where
         | Err(QueueError::Closed(envelope)) => {
           let shared = ArcShared::new(envelope);
           registry.with_ref(|registry| {
-            registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated));
+            let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated);
+            registry.publish_dead_letter(&letter);
           });
           let _ = shared.try_unwrap();
           Err(AskError::SendFailed(QueueError::Disconnected))
@@ -111,11 +109,8 @@ where
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
       let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {
-        registry.publish_dead_letter(DeadLetter::new(
-          pid.clone(),
-          shared.clone(),
-          DeadLetterReason::NetworkUnreachable,
-        ));
+        let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::NetworkUnreachable);
+        registry.publish_dead_letter(&letter);
       });
       let _ = shared.try_unwrap();
       Err(AskError::MissingResponder)
@@ -125,7 +120,8 @@ where
       let priority_envelope = PriorityEnvelope::with_default_priority(dyn_message);
       let shared = ArcShared::new(priority_envelope);
       registry.with_ref(|registry| {
-        registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::UnregisteredPid));
+        let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::UnregisteredPid);
+        registry.publish_dead_letter(&letter);
       });
       let _ = shared.try_unwrap();
       Err(AskError::MissingResponder)

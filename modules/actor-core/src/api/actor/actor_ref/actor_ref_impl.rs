@@ -212,11 +212,8 @@ where
               PriorityActorRef<AnyMessage, MailboxOf<AR>>,
               ArcShared<PriorityEnvelope<AnyMessage>>,
             >| {
-              registry.publish_dead_letter(DeadLetter::new(
-                pid.clone(),
-                shared.clone(),
-                DeadLetterReason::DeliveryRejected,
-              ));
+              let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::DeliveryRejected);
+              registry.publish_dead_letter(&letter);
             },
           );
           match Self::take_shared_envelope(shared) {
@@ -235,11 +232,8 @@ where
               PriorityActorRef<AnyMessage, MailboxOf<AR>>,
               ArcShared<PriorityEnvelope<AnyMessage>>,
             >| {
-              registry.publish_dead_letter(DeadLetter::new(
-                pid.clone(),
-                shared.clone(),
-                DeadLetterReason::DeliveryRejected,
-              ));
+              let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::DeliveryRejected);
+              registry.publish_dead_letter(&letter);
             },
           );
           match Self::take_shared_envelope(shared) {
@@ -258,7 +252,8 @@ where
               PriorityActorRef<AnyMessage, MailboxOf<AR>>,
               ArcShared<PriorityEnvelope<AnyMessage>>,
             >| {
-              registry.publish_dead_letter(DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated));
+              let letter = DeadLetter::new(pid.clone(), shared.clone(), DeadLetterReason::Terminated);
+              registry.publish_dead_letter(&letter);
             },
           );
           match Self::take_shared_envelope(shared) {

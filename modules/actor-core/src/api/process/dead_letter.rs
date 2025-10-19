@@ -48,7 +48,7 @@ pub struct DeadLetter<M> {
 
 impl<M> DeadLetter<M> {
   /// Creates a new dead letter entry.
-  pub fn new(pid: Pid, message: M, reason: DeadLetterReason) -> Self {
+  pub const fn new(pid: Pid, message: M, reason: DeadLetterReason) -> Self {
     Self { pid, message, reason }
   }
 }
@@ -63,6 +63,7 @@ pub struct DeadLetterHub<M> {
 
 impl<M> DeadLetterHub<M> {
   /// Creates an empty hub.
+  #[must_use]
   pub fn new() -> Self {
     Self { listeners: Vec::new() }
   }
@@ -80,6 +81,7 @@ impl<M> DeadLetterHub<M> {
   }
 
   /// Returns true if there are listeners registered.
+  #[must_use]
   pub fn has_listeners(&self) -> bool {
     !self.listeners.is_empty()
   }

@@ -97,6 +97,7 @@ where
   ///
   /// # Returns
   /// Clone of the internal message sender
+  #[must_use]
   pub fn internal(&self) -> InternalMessageSender<C> {
     self.inner.clone()
   }
@@ -105,6 +106,7 @@ where
   ///
   /// # Returns
   /// Internal message sender
+  #[must_use]
   pub fn into_internal(self) -> InternalMessageSender<C> {
     self.inner
   }

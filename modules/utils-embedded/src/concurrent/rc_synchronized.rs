@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use alloc::{boxed::Box, rc::Rc};
 
 use async_trait::async_trait;
