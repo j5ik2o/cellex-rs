@@ -3,7 +3,7 @@ mod ready_event_hook;
 mod ready_notifier;
 mod ready_queue_context;
 #[allow(clippy::module_inception)]
-mod ready_queue_scheduler;
+mod base;
 mod ready_queue_state;
 mod ready_queue_worker;
 mod ready_queue_worker_impl;
@@ -15,7 +15,7 @@ pub use ready_event_hook::ReadyQueueHandle;
 pub(crate) use ready_notifier::ReadyNotifier;
 #[allow(unused_imports)]
 pub(crate) use ready_queue_context::ReadyQueueContext;
-pub use ready_queue_scheduler::ReadyQueueScheduler;
+pub use base::ReadyQueueScheduler;
 #[allow(unused_imports)]
 pub(crate) use ready_queue_state::ReadyQueueState;
 pub use ready_queue_worker::{drive_ready_queue_worker, ReadyQueueWorker};
