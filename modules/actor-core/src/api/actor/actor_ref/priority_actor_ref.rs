@@ -12,8 +12,9 @@ use crate::{
 ///
 /// Unlike [`ActorRef`](crate::api::actor::actor_ref::ActorRef) this type operates on the
 /// raw mailbox types and is primarily used by runtime internals. It lives in
-/// the `api` layer so that other public types (such as [`ActorRef`](crate::api::actor::actor_ref::ActorRef)) can hold
-/// it without depending on `internal` modules.
+/// the `api` layer so that other public types (such as
+/// [`ActorRef`](crate::api::actor::actor_ref::ActorRef)) can hold it without depending on
+/// `internal` modules.
 pub struct PriorityActorRef<M, MF>
 where
   M: Element,

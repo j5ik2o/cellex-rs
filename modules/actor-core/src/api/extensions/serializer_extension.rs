@@ -128,7 +128,8 @@ impl SerializerRegistryExtension {
     self.bindings.bind(key, serializer)
   }
 
-  /// Binds the [`TypeKey::type_key`](TypeKey::type_key) of `T` to the specified serializer identifier.
+  /// Binds the [`TypeKey::type_key`](TypeKey::type_key) of `T` to the specified serializer
+  /// identifier.
   ///
   /// # Errors
   /// Returns [`BindingError`] when the type key binding fails.

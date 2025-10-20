@@ -6,7 +6,8 @@ use crate::api::{
   metrics::{MetricsEvent, MetricsSinkShared},
 };
 
-/// Sending handle that shares queue ownership with [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).
+/// Sending handle that shares queue ownership with
+/// [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).
 ///
 /// Sending handle that shares queue ownership with the mailbox.
 /// Allows safe message sending from multiple threads.
