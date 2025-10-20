@@ -11,7 +11,7 @@ alloc = []
 std = ["alloc", "cellex-actor-core-rs/std"]
 
 [dependencies]
-cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc"] }
+cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc", "test-support"] }
 cellex-serialization-core-rs = { path = "../serialization-core", default-features = false, features = ["alloc"] }
 thiserror = { workspace = true }
 
