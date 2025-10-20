@@ -164,6 +164,7 @@ impl TokioMailboxRuntime {
   ///
   /// # Returns
   /// A pair of mailbox and sender handle
+  #[must_use]
   pub fn mailbox<M>(&self, options: MailboxOptions) -> (TokioMailbox<M>, TokioMailboxSender<M>)
   where
     M: Element, {
@@ -178,6 +179,7 @@ impl TokioMailboxRuntime {
   ///
   /// # Returns
   /// A pair of mailbox and sender handle
+  #[must_use]
   pub fn with_capacity<M>(&self, capacity: usize) -> (TokioMailbox<M>, TokioMailboxSender<M>)
   where
     M: Element, {
@@ -188,6 +190,7 @@ impl TokioMailboxRuntime {
   ///
   /// # Returns
   /// A pair of mailbox and sender handle
+  #[must_use]
   pub fn unbounded<M>(&self) -> (TokioMailbox<M>, TokioMailboxSender<M>)
   where
     M: Element, {
@@ -233,6 +236,7 @@ where
   ///
   /// # Returns
   /// A pair of mailbox and sender handle
+  #[must_use]
   pub fn new(capacity: usize) -> (Self, TokioMailboxSender<M>) {
     TokioMailboxRuntime.with_capacity(capacity)
   }
@@ -241,6 +245,7 @@ where
   ///
   /// # Returns
   /// A pair of mailbox and sender handle
+  #[must_use]
   pub fn unbounded() -> (Self, TokioMailboxSender<M>) {
     TokioMailboxRuntime.unbounded()
   }
@@ -249,6 +254,7 @@ where
   ///
   /// # Returns
   /// A `TokioMailboxSender` for sending messages
+  #[must_use]
   pub fn producer(&self) -> TokioMailboxSender<M>
   where
     TokioQueue<M>: Clone,
@@ -260,7 +266,8 @@ where
   ///
   /// # Returns
   /// An immutable reference to the internal mailbox
-  pub fn inner(&self) -> &QueueMailbox<TokioQueue<M>, NotifySignal> {
+  #[must_use]
+  pub const fn inner(&self) -> &QueueMailbox<TokioQueue<M>, NotifySignal> {
     &self.inner
   }
 }
@@ -342,7 +349,8 @@ where
   ///
   /// # Returns
   /// An immutable reference to the internal producer
-  pub fn inner(&self) -> &QueueMailboxProducer<TokioQueue<M>, NotifySignal> {
+  #[must_use]
+  pub const fn inner(&self) -> &QueueMailboxProducer<TokioQueue<M>, NotifySignal> {
     &self.inner
   }
 
