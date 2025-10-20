@@ -141,6 +141,9 @@ where
 
   /// Legacy sync API. Internally uses the same path as `dispatch_next`,
   /// but `run_until` / `dispatch_next` is recommended for new code.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue operations fail.
   #[deprecated(since = "3.1.0", note = "Use dispatch_next / run_until instead")]
   pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     #[cfg(feature = "std")]
@@ -159,6 +162,9 @@ where
 
   /// Helper that repeats `dispatch_next` as long as the condition holds.
   /// Allows simple construction of wait loops that can be controlled from the runtime side.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when dispatching an actor fails.
   pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
@@ -171,12 +177,19 @@ where
   /// Runs the scheduler as a resident async task. Can be used like
   /// `tokio::spawn(async move { scheduler.run_forever().await })`.
   /// Stops on error or task cancellation.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when dispatching an actor fails.
   pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       self.dispatch_next().await?;
     }
   }
 
+  /// Dispatches the next ready actor if available, waiting otherwise.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue processing fails.
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       if self.drain_ready_cycle()? {
@@ -211,6 +224,9 @@ where
   }
 
   /// Processes one cycle of messages in the Ready queue. Returns true if processing occurred.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue operations fail.
   pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.drain_ready_cycle()
   }
@@ -324,7 +340,7 @@ where
         processed_any = true;
       }
     }
-    self.finish_cycle(new_children, processed_any)
+    Ok(self.finish_cycle(new_children, processed_any))
   }
 
   async fn process_waiting_actor(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
@@ -339,7 +355,7 @@ where
       self.record_messages_dequeued(processed_count);
     }
 
-    self.finish_cycle(new_children, processed_count > 0)
+    Ok(self.finish_cycle(new_children, processed_count > 0))
   }
 
   pub fn process_actor_pending(&mut self, index: usize) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
@@ -354,14 +370,10 @@ where
       self.record_messages_dequeued(processed_count);
     }
 
-    self.finish_cycle(new_children, processed_count > 0)
+    Ok(self.finish_cycle(new_children, processed_count > 0))
   }
 
-  fn finish_cycle(
-    &mut self,
-    new_children: Vec<ActorCell<MF, Strat>>,
-    processed_any: bool,
-  ) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
+  fn finish_cycle(&mut self, new_children: Vec<ActorCell<MF, Strat>>, processed_any: bool) -> bool {
     if !new_children.is_empty() {
       let added = new_children.len();
       self.actors.extend(new_children);
@@ -370,7 +382,7 @@ where
 
     let handled = self.handle_escalations();
     let removed = self.prune_stopped();
-    Ok(processed_any || handled || removed)
+    processed_any || handled || removed
   }
 
   fn forward_to_local_parent(&self, info: &FailureInfo) -> bool {
@@ -380,9 +392,11 @@ where
       }
 
       if let Some((parent_ref, map_system)) = self.guardian.child_route(parent_info.actor) {
+        #[allow(clippy::redundant_clone)]
+        let map_clone = map_system.clone();
         #[allow(clippy::redundant_closure)]
         let envelope =
-          PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (&*map_system)(sys));
+          PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(move |sys| map_clone(sys));
         if parent_ref.sender().try_send(envelope).is_ok() {
           return true;
         }

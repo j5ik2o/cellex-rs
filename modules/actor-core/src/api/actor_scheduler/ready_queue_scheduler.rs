@@ -2,6 +2,7 @@ mod common;
 mod ready_event_hook;
 mod ready_notifier;
 mod ready_queue_context;
+#[allow(clippy::module_inception)]
 mod ready_queue_scheduler;
 mod ready_queue_state;
 mod ready_queue_worker;

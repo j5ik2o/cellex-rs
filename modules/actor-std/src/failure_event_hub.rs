@@ -3,7 +3,7 @@ mod tests;
 
 use std::sync::{
   atomic::{AtomicU64, Ordering},
-  Arc, Mutex,
+  Arc, Mutex, MutexGuard,
 };
 
 use cellex_actor_core_rs::api::{
@@ -28,6 +28,12 @@ impl Default for FailureEventHubInner {
   }
 }
 
+impl FailureEventHubInner {
+  fn lock_listeners(&self) -> MutexGuard<'_, Vec<(u64, FailureEventListener)>> {
+    self.listeners.lock().unwrap_or_else(|err| err.into_inner())
+  }
+}
+
 impl FailureEventHub {
   /// Creates a new `FailureEventHub` instance.
   ///
@@ -40,7 +46,7 @@ impl FailureEventHub {
 
   fn notify_listeners(&self, event: FailureEvent) {
     let snapshot: Vec<FailureEventListener> = {
-      let guard = self.inner.listeners.lock().unwrap();
+      let guard = self.inner.lock_listeners();
       guard.iter().map(|(_, listener)| listener.clone()).collect()
     };
     for listener in snapshot.into_iter() {
@@ -60,7 +66,7 @@ impl FailureEventStream for FailureEventHub {
   fn subscribe(&self, listener: FailureEventListener) -> Self::Subscription {
     let id = self.inner.next_id.fetch_add(1, Ordering::Relaxed);
     {
-      let mut guard = self.inner.listeners.lock().unwrap();
+      let mut guard = self.inner.lock_listeners();
       guard.push((id, listener));
     }
 
@@ -76,7 +82,7 @@ pub struct FailureEventSubscription {
 
 impl Drop for FailureEventSubscription {
   fn drop(&mut self) {
-    let mut guard = self.inner.listeners.lock().unwrap();
+    let mut guard = self.inner.lock_listeners();
     if let Some(index) = guard.iter().position(|(entry_id, _)| *entry_id == self.id) {
       guard.swap_remove(index);
     }

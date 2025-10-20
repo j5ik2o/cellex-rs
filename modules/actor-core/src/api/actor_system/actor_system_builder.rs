@@ -37,23 +37,23 @@ where
 
   /// Returns a reference to the runtime preset owned by the builder.
   #[must_use]
-  pub fn actor_runtime(&self) -> &AR {
+  pub const fn actor_runtime(&self) -> &AR {
     &self.actor_runtime
   }
 
   /// Returns a mutable reference to the runtime preset.
-  pub fn actor_runtime_mut(&mut self) -> &mut AR {
+  pub const fn actor_runtime_mut(&mut self) -> &mut AR {
     &mut self.actor_runtime
   }
 
   /// Returns a reference to the configuration being accumulated.
   #[must_use]
-  pub fn config(&self) -> &ActorSystemConfig<AR> {
+  pub const fn config(&self) -> &ActorSystemConfig<AR> {
     &self.config
   }
 
   /// Returns a mutable reference to the configuration being accumulated.
-  pub fn config_mut(&mut self) -> &mut ActorSystemConfig<AR> {
+  pub const fn config_mut(&mut self) -> &mut ActorSystemConfig<AR> {
     &mut self.config
   }
 

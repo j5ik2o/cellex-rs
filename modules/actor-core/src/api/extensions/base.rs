@@ -6,9 +6,11 @@ use spin::RwLock;
 
 use super::extension::{Extension, ExtensionId};
 
+type ExtensionSlots = ArcShared<RwLock<Vec<Option<ArcShared<dyn Extension>>>>>;
+
 /// Container managing registered extensions.
 pub struct Extensions {
-  slots: ArcShared<RwLock<Vec<Option<ArcShared<dyn Extension>>>>>,
+  slots: ExtensionSlots,
 }
 
 impl Extensions {
@@ -20,7 +22,7 @@ impl Extensions {
 
   /// Builds a registry from an externally managed slot list.
   #[must_use]
-  pub fn from_shared(slots: ArcShared<RwLock<Vec<Option<ArcShared<dyn Extension>>>>>) -> Self {
+  pub fn from_shared(slots: ExtensionSlots) -> Self {
     Self { slots }
   }
 

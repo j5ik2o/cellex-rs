@@ -22,7 +22,7 @@ where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<MF>,
 {
-  pub(crate) fn new(context: ArcShared<Mutex<ReadyQueueContext<MF, Strat>>>) -> Self {
+  pub(crate) const fn new(context: ArcShared<Mutex<ReadyQueueContext<MF, Strat>>>) -> Self {
     Self { context }
   }
 }

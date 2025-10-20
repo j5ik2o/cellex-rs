@@ -26,6 +26,9 @@ use crate::{
   internal::actor_system::{InternalActorSystem, InternalActorSystemConfig},
 };
 
+type ActorProcessRegistryHandle<AR> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 /// Primary instance of the actor system.
 ///
 /// Responsible for actor spawning, management, and message dispatching.
@@ -228,6 +231,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on normal completion, `Err` on queue error
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when dispatching an actor fails.
   pub async fn run_until<F>(&mut self, should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
@@ -240,6 +246,9 @@ where
   ///
   /// # Returns
   /// `Infallible` (does not terminate normally) or queue error
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when dispatching an actor fails.
   pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.run_forever().await
   }
@@ -250,12 +259,18 @@ where
   ///
   /// # Returns
   /// `Ok(())` on normal completion, `Err` on queue error
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue processing fails.
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await
   }
 
   /// Synchronously processes messages accumulated in the Ready queue, repeating until empty.
   /// Does not wait for new messages to arrive.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue processing fails.
   pub fn run_until_idle(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let shutdown = self.shutdown.clone();
     self.inner.run_until_idle(|| !shutdown.is_triggered())
@@ -275,22 +290,19 @@ where
 
   /// Returns the process registry associated with this actor system.
   #[must_use]
-  pub fn process_registry(
-    &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
-  {
+  pub fn process_registry(&self) -> ActorProcessRegistryHandle<AR> {
     self.inner.process_registry()
   }
 
   /// Returns the system identifier assigned to this actor system.
   #[must_use]
-  pub fn system_id(&self) -> &SystemId {
+  pub const fn system_id(&self) -> &SystemId {
     &self.system_id
   }
 
   /// Returns the node identifier when it has been configured.
   #[must_use]
-  pub fn node_id(&self) -> Option<&NodeId> {
+  pub const fn node_id(&self) -> Option<&NodeId> {
     self.node_id.as_ref()
   }
 }

@@ -76,7 +76,9 @@ where
     });
 
     if let Some(watcher_id) = watcher {
+      #[allow(clippy::redundant_clone)]
       let map_clone = map_system.clone();
+      #[allow(clippy::redundant_closure)]
       let envelope = PriorityEnvelope::from_system(SystemMessage::Watch(watcher_id)).map(move |sys| map_clone(sys));
       control_ref.sender().try_send(envelope).map_err(SpawnError::from)?;
     }
@@ -90,9 +92,10 @@ where
         self.names.remove(name);
       }
       if let Some(watcher_id) = record.watcher {
+        #[allow(clippy::redundant_clone)]
         let map_clone = record.map_system.clone();
-        let envelope =
-          PriorityEnvelope::from_system(SystemMessage::Unwatch(watcher_id)).map(move |sys| map_clone(sys));
+        #[allow(clippy::redundant_closure)]
+        let envelope = PriorityEnvelope::from_system(SystemMessage::Unwatch(watcher_id)).map(move |sys| map_clone(sys));
         let _ = record.control_ref.sender().try_send(envelope);
       }
       record.control_ref
@@ -120,6 +123,7 @@ where
   pub fn stop_child(&mut self, actor: ActorId) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     if let Some(record) = self.children.get(&actor) {
       let map_clone = record.map_system.clone();
+      #[allow(clippy::redundant_closure)]
       let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| map_clone(sys));
       record.control_ref.sender().try_send(envelope)
     } else {
@@ -178,7 +182,9 @@ where
       | SupervisorDirective::Resume => Ok(None),
       | SupervisorDirective::Stop => {
         if let Some(record) = self.children.get(&actor) {
+          #[allow(clippy::redundant_clone)]
           let map_clone = record.map_system.clone();
+          #[allow(clippy::redundant_closure)]
           let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| map_clone(sys));
           record.control_ref.sender().try_send(envelope)?;
           Ok(None)
@@ -188,7 +194,9 @@ where
       },
       | SupervisorDirective::Restart => {
         if let Some(record) = self.children.get(&actor) {
+          #[allow(clippy::redundant_clone)]
           let map_clone = record.map_system.clone();
+          #[allow(clippy::redundant_closure)]
           let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(move |sys| map_clone(sys));
           record.control_ref.sender().try_send(envelope)?;
           self.strategy.after_restart(actor);

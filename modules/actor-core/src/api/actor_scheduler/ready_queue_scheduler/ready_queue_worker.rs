@@ -14,6 +14,9 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   /// Processes one ready actor (if any). Returns `Some(true)` if progress was made.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue access fails.
   fn process_ready_once(&self) -> Result<Option<bool>, QueueError<PriorityEnvelope<AnyMessage>>>;
 
   /// Returns a future that resolves when any actor becomes ready.
@@ -27,6 +30,9 @@ where
 /// * `shutdown` - Shutdown signal token
 /// * `yield_now` - Closure to yield execution
 /// * `wait_for_shutdown` - Closure to wait for shutdown signal
+///
+/// # Errors
+/// Returns [`QueueError`] when processing an actor fails.
 pub async fn drive_ready_queue_worker<MF, Y, YF, S, SF>(
   worker: ArcShared<dyn ReadyQueueWorker<MF>>,
   shutdown: ShutdownToken,

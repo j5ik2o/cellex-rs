@@ -92,13 +92,13 @@ impl SerializerRegistryExtension {
 
   /// Returns a reference to the underlying registry.
   #[must_use]
-  pub fn registry(&self) -> &InMemorySerializerRegistry {
+  pub const fn registry(&self) -> &InMemorySerializerRegistry {
     &self.registry
   }
 
   /// Returns the binding registry used by the router.
   #[must_use]
-  pub fn bindings(&self) -> &TypeBindingRegistry {
+  pub const fn bindings(&self) -> &TypeBindingRegistry {
     &self.bindings
   }
 
@@ -151,6 +151,12 @@ impl SerializerRegistryExtension {
     } else {
       Ok(())
     }
+  }
+}
+
+impl Default for SerializerRegistryExtension {
+  fn default() -> Self {
+    Self::new()
   }
 }
 

@@ -2,7 +2,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use crate::{
   api::{
-    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_runtime::base::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ActorSchedulerHandleBuilder,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,

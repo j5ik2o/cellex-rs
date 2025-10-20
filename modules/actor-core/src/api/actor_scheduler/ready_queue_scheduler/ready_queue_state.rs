@@ -7,7 +7,7 @@ pub(crate) struct ReadyQueueState {
 }
 
 impl ReadyQueueState {
-  pub(crate) fn new() -> Self {
+  pub(crate) const fn new() -> Self {
     Self { queue: VecDeque::new(), queued: Vec::new(), running: Vec::new() }
   }
 

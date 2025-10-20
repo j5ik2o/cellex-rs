@@ -1,9 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use alloc::rc::Rc;
 use core::{
-  cell::RefCell,
   fmt,
   future::Future,
   marker::PhantomData,
@@ -26,10 +24,14 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_embedded_rs::collections::queue::mpsc::ArcLocalMpscUnboundedQueue;
 #[cfg(feature = "embedded_rc")]
 use cellex_utils_embedded_rs::collections::queue::mpsc::RcMpscUnboundedQueue;
-use cellex_utils_embedded_rs::{Element, QueueBase, QueueError, QueueRw, QueueSize};
+#[cfg(not(feature = "embedded_rc"))]
+use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+#[cfg(feature = "embedded_rc")]
+use cellex_utils_embedded_rs::sync::{RcShared, RcStateCell};
+use cellex_utils_embedded_rs::{Element, QueueBase, QueueError, QueueRw, QueueSize, StateCell};
 
 #[cfg(feature = "embedded_rc")]
-type LocalQueueInner<M> = Rc<RcMpscUnboundedQueue<M>>;
+type LocalQueueInner<M> = RcShared<RcMpscUnboundedQueue<M>>;
 
 #[cfg(not(feature = "embedded_rc"))]
 type LocalQueueInner<M> = ArcLocalMpscUnboundedQueue<M>;
@@ -38,7 +40,7 @@ type LocalQueueInner<M> = ArcLocalMpscUnboundedQueue<M>;
 fn new_queue<M>() -> LocalQueueInner<M>
 where
   M: Element, {
-  Rc::new(RcMpscUnboundedQueue::new())
+  RcShared::new(RcMpscUnboundedQueue::new())
 }
 
 #[cfg(not(feature = "embedded_rc"))]
@@ -52,7 +54,7 @@ where
 fn clone_queue<M>(inner: &LocalQueueInner<M>) -> LocalQueueInner<M>
 where
   M: Element, {
-  Rc::clone(inner)
+  inner.clone()
 }
 
 #[cfg(not(feature = "embedded_rc"))]
@@ -60,6 +62,34 @@ fn clone_queue<M>(inner: &LocalQueueInner<M>) -> LocalQueueInner<M>
 where
   M: Element, {
   inner.clone()
+}
+
+#[cfg(feature = "embedded_rc")]
+type SignalCell = RcStateCell<SignalState>;
+
+#[cfg(not(feature = "embedded_rc"))]
+type SignalCell = ArcLocalStateCell<SignalState>;
+
+#[cfg(feature = "embedded_rc")]
+fn new_signal_cell() -> SignalCell {
+  SignalCell::new(SignalState::default())
+}
+
+#[cfg(not(feature = "embedded_rc"))]
+fn new_signal_cell() -> SignalCell {
+  SignalCell::new(SignalState::default())
+}
+
+#[cfg(feature = "embedded_rc")]
+fn with_signal_state_mut<T>(state: &SignalCell, f: impl FnOnce(&mut SignalState) -> T) -> T {
+  let mut guard = state.borrow_mut();
+  f(&mut guard)
+}
+
+#[cfg(not(feature = "embedded_rc"))]
+fn with_signal_state_mut<T>(state: &SignalCell, f: impl FnOnce(&mut SignalState) -> T) -> T {
+  let mut guard = state.borrow_mut();
+  f(&mut guard)
 }
 
 #[derive(Debug)]
@@ -153,15 +183,21 @@ pub struct LocalMailboxRuntime {
   _marker: PhantomData<()>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct LocalSignal {
-  state: Rc<RefCell<SignalState>>,
+  state: SignalCell,
 }
 
 #[derive(Debug, Default)]
 struct SignalState {
   notified: bool,
   waker:    Option<Waker>,
+}
+
+impl Default for LocalSignal {
+  fn default() -> Self {
+    Self { state: new_signal_cell() }
+  }
 }
 
 impl MailboxSignal for LocalSignal {
@@ -171,11 +207,12 @@ impl MailboxSignal for LocalSignal {
     Self: 'a;
 
   fn notify(&self) {
-    let mut state = self.state.borrow_mut();
-    state.notified = true;
-    if let Some(waker) = state.waker.take() {
-      waker.wake();
-    }
+    with_signal_state_mut(&self.state, |state| {
+      state.notified = true;
+      if let Some(waker) = state.waker.take() {
+        waker.wake();
+      }
+    });
   }
 
   fn wait(&self) -> Self::WaitFuture<'_> {
@@ -191,14 +228,15 @@ impl Future for LocalSignalWait {
   type Output = ();
 
   fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-    let mut state = self.signal.state.borrow_mut();
-    if state.notified {
-      state.notified = false;
-      Poll::Ready(())
-    } else {
-      state.waker = Some(cx.waker().clone());
-      Poll::Pending
-    }
+    with_signal_state_mut(&self.signal.state, |state| {
+      if state.notified {
+        state.notified = false;
+        Poll::Ready(())
+      } else {
+        state.waker = Some(cx.waker().clone());
+        Poll::Pending
+      }
+    })
   }
 }
 
