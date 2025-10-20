@@ -53,6 +53,27 @@ fn binds_and_resolves_serializer() {
 }
 
 #[test]
+fn resolve_or_fallback_uses_fallback_serializer() {
+  let bindings = TypeBindingRegistry::new();
+  let serializers = InMemorySerializerRegistry::new();
+  let router = SerializationRouter::with_fallback(bindings.clone(), serializers.clone(), Some(SerializerId::new(42)));
+
+  let serializer = ArcShared::new(EchoSerializer);
+  serializers.register(serializer).expect("serializer");
+
+  assert!(router.resolve_serializer("missing.Type").is_none());
+
+  let resolved = router.resolve_or_fallback("missing.Type").expect("fallback");
+  assert_eq!(resolved.serializer_id(), SerializerId::new(42));
+
+  let message = resolved.serialize_with_type_name_opt(b"hello", Some("missing.Type")).expect("serialize");
+  assert_eq!(message.payload, b"hello");
+
+  let fallback = router.fallback_serializer().expect("fallback serializer");
+  assert_eq!(fallback.serializer_id(), SerializerId::new(42));
+}
+
+#[test]
 fn duplicate_binding_fails() {
   let bindings = TypeBindingRegistry::new();
   bindings.bind("dup.Type", SerializerId::new(1)).expect("bind first");

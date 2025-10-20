@@ -48,9 +48,16 @@ impl SerializerRegistryExtension {
   /// Creates a new registry extension and installs built-in serializers.
   #[must_use]
   pub fn new() -> Self {
+    Self::with_fallback(None)
+  }
+
+  /// Creates a new registry extension with the specified fallback serializer.
+  #[must_use]
+  pub fn with_fallback(fallback: Option<SerializerId>) -> Self {
     let registry = InMemorySerializerRegistry::new();
     let bindings = TypeBindingRegistry::new();
     let router = SerializationRouter::new(bindings.clone(), registry.clone());
+    router.set_fallback_serializer(fallback);
     let extension = Self { id: serializer_extension_id(), registry, bindings, router };
     extension.install_builtin_serializers();
     extension.install_default_bindings();
@@ -106,6 +113,11 @@ impl SerializerRegistryExtension {
   #[must_use]
   pub fn router(&self) -> SerializationRouter {
     self.router.clone()
+  }
+
+  /// Sets the fallback serializer identifier used when a type key is not registered.
+  pub fn set_fallback_serializer(&self, fallback: Option<SerializerId>) {
+    self.router.set_fallback_serializer(fallback);
   }
 
   /// Registers a serializer implementation, returning an error when the ID clashes.

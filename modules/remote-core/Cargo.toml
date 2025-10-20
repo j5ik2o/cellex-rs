@@ -18,3 +18,5 @@ thiserror = { workspace = true }
 [dev-dependencies]
 cellex-actor-std-rs = { path = "../actor-std" }
 cellex-serialization-json-rs = { path = "../serialization-json" }
+serde = { workspace = true }
+serde_json = { workspace = true }
