@@ -25,8 +25,7 @@ fn noop_sender<M, C>() -> MessageSender<M, C>
 where
   M: Element,
   C: MetadataStorageMode, {
-  let dispatch = ArcShared::new(|_, _| Ok(()))
-    .into_dyn(|handler| handler as &NoopDispatchFn);
+  let dispatch = ArcShared::new(|_, _| Ok(())).into_dyn(|handler| handler as &NoopDispatchFn);
   let internal = InternalMessageSender::<C>::new(dispatch);
   MessageSender::from_internal(internal)
 }
