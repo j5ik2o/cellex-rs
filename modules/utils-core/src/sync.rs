@@ -16,6 +16,6 @@ pub use flag::Flag;
 pub use function::{SharedFactory, SharedFn};
 #[cfg(feature = "alloc")]
 pub use rc_shared::RcShared;
-pub use shared::{Shared, SharedBound, SharedDyn};
+pub use shared::{SendBound, Shared, SharedBound, SharedDyn};
 pub use state::StateCell;
 pub use static_ref_shared::StaticRefShared;

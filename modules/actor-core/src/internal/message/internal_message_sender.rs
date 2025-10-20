@@ -1,14 +1,11 @@
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{ArcShared, QueueError, SharedBound, DEFAULT_PRIORITY};
 
-use crate::{
-  api::{
-    actor::actor_ref::PriorityActorRef,
-    mailbox::{messages::PriorityEnvelope, MailboxConcurrency, MailboxFactory, ThreadSafe},
-    messaging::AnyMessage,
-  },
-  RuntimeBound,
+use crate::api::{
+  actor::actor_ref::PriorityActorRef,
+  mailbox::{messages::PriorityEnvelope, MailboxConcurrency, MailboxFactory, ThreadSafe},
+  messaging::AnyMessage,
 };
 
 #[cfg(target_has_atomic = "ptr")]
@@ -114,8 +111,8 @@ impl InternalMessageSender {
   pub(crate) fn from_internal_ref<MF>(actor_ref: &PriorityActorRef<AnyMessage, MF>) -> Self
   where
     MF: MailboxFactory + Clone + 'static,
-    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MF::Signal: Clone + RuntimeBound + 'static, {
+    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+    MF::Signal: Clone + SharedBound + 'static, {
     let sender = actor_ref.clone();
     let send_fn = ArcShared::new(move |message, priority| sender.try_send_with_priority(message, priority))
       .into_dyn(|f| f as &SendFn);

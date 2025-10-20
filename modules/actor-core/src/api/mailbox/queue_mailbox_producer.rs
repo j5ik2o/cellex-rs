@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw};
+use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw, SharedBound};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
@@ -30,17 +30,19 @@ impl<Q, S> core::fmt::Debug for QueueMailboxProducer<Q, S> {
   }
 }
 
+#[cfg(target_has_atomic = "ptr")]
 unsafe impl<Q, S> Send for QueueMailboxProducer<Q, S>
 where
-  Q: Send + Sync,
-  S: Send + Sync,
+  Q: SharedBound,
+  S: SharedBound,
 {
 }
 
+#[cfg(target_has_atomic = "ptr")]
 unsafe impl<Q, S> Sync for QueueMailboxProducer<Q, S>
 where
-  Q: Send + Sync,
-  S: Send + Sync,
+  Q: SharedBound,
+  S: SharedBound,
 {
 }
 

@@ -1,11 +1,13 @@
+use cellex_utils_core_rs::SharedBound;
+
 use crate::api::{
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
-  receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderBound, ReceiveTimeoutSchedulerFactoryShared},
+  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
 };
 
 /// Trait representing a runtime-specific provider for receive-timeout scheduler factories.
-pub trait ReceiveTimeoutSchedulerFactoryProvider<MF>: ReceiveTimeoutSchedulerFactoryProviderBound
+pub trait ReceiveTimeoutSchedulerFactoryProvider<MF>: SharedBound
 where
   MF: MailboxFactory + Clone + 'static,
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,

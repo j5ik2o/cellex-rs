@@ -3,6 +3,8 @@
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
+use cellex_utils_core_rs::sync::SharedBound;
+
 use crate::{
   error::{DeserializationError, SerializationError},
   id::SerializerId,
@@ -10,7 +12,7 @@ use crate::{
 };
 
 /// Abstraction implemented by concrete serializer backends.
-pub trait Serializer: Send + Sync {
+pub trait Serializer: SharedBound {
   /// Returns the unique identifier associated with this serializer.
   fn serializer_id(&self) -> SerializerId;
 

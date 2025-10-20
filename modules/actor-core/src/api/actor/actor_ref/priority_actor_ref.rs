@@ -1,11 +1,8 @@
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{Element, QueueError, SharedBound};
 
-use crate::{
-  api::mailbox::{
-    messages::{PriorityEnvelope, SystemMessage},
-    MailboxFactory, MailboxProducer,
-  },
-  RuntimeBound,
+use crate::api::mailbox::{
+  messages::{PriorityEnvelope, SystemMessage},
+  MailboxFactory, MailboxProducer,
 };
 
 /// Minimal handle that delivers envelopes into an actor's mailbox.
@@ -28,8 +25,8 @@ unsafe impl<M, MF> Send for PriorityActorRef<M, MF>
 where
   M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
-  MF::Signal: Clone + RuntimeBound,
+  MF::Queue<PriorityEnvelope<M>>: Clone + SharedBound,
+  MF::Signal: Clone + SharedBound,
 {
 }
 
@@ -37,8 +34,8 @@ unsafe impl<M, MF> Sync for PriorityActorRef<M, MF>
 where
   M: Element,
   MF: MailboxFactory,
-  MF::Queue<PriorityEnvelope<M>>: Clone + RuntimeBound,
-  MF::Signal: Clone + RuntimeBound,
+  MF::Queue<PriorityEnvelope<M>>: Clone + SharedBound,
+  MF::Signal: Clone + SharedBound,
 {
 }
 

@@ -75,7 +75,9 @@ pub use concurrent::{
   AsyncBarrier, AsyncBarrierBackend, CountDownLatch, CountDownLatchBackend, GuardHandle, Synchronized,
   SynchronizedMutexBackend, SynchronizedRw, SynchronizedRwBackend, WaitGroup, WaitGroupBackend,
 };
-pub use sync::{ArcShared, Flag, Shared, SharedBound, SharedDyn, SharedFactory, SharedFn, StateCell, StaticRefShared};
+pub use sync::{
+  ArcShared, Flag, SendBound, Shared, SharedBound, SharedDyn, SharedFactory, SharedFn, StateCell, StaticRefShared,
+};
 pub use timing::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };

@@ -83,14 +83,7 @@ where
   fn make_ready_handle(&self, index: usize) -> ReadyQueueHandle {
     let state = self.state.clone();
     let notifier = ArcShared::new(ReadyNotifier::new(state, index));
-    #[cfg(target_has_atomic = "ptr")]
-    {
-      notifier.into_dyn(|inner| inner as &(dyn ReadyEventHook + Send + Sync))
-    }
-    #[cfg(not(target_has_atomic = "ptr"))]
-    {
-      notifier.into_dyn(|inner| inner as &dyn ReadyEventHook)
-    }
+    notifier.into_dyn(|inner| inner as &dyn ReadyEventHook)
   }
 
   /// Spawns an actor and registers its mailbox with the ready queue.

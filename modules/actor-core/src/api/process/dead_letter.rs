@@ -54,7 +54,12 @@ impl<M> DeadLetter<M> {
 }
 
 /// Listener invoked when a dead letter is published.
+#[cfg(target_has_atomic = "ptr")]
 pub type DeadLetterListener<M> = dyn Fn(&DeadLetter<M>) + Send + Sync + 'static;
+
+/// Listener invoked when a dead letter is published.
+#[cfg(not(target_has_atomic = "ptr"))]
+pub type DeadLetterListener<M> = dyn Fn(&DeadLetter<M>) + 'static;
 
 /// Hub that dispatches dead letters to interested observers.
 pub struct DeadLetterHub<M> {
