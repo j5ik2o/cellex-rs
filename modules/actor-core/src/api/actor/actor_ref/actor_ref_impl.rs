@@ -1,6 +1,6 @@
 use core::{future::Future, marker::PhantomData};
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared, SharedBound};
 use spin::RwLock;
 
 use super::priority_actor_ref::PriorityActorRef;
@@ -20,7 +20,6 @@ use crate::{
     },
   },
   internal::message::InternalMessageSender,
-  RuntimeBound,
 };
 
 type ActorProcessRegistry<AR> =
@@ -284,8 +283,8 @@ where
   /// Converts this actor reference to a message dispatcher.
   pub fn to_dispatcher(&self) -> MessageSender<U, MailboxConcurrencyOf<AR>>
   where
-    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+    MailboxSignalOf<AR>: Clone + SharedBound + 'static, {
     let inner = self.inner.clone();
     let pid_slot = self.pid_slot.clone();
     let registry = self.process_registry.clone();
@@ -294,6 +293,7 @@ where
       ActorRef::<U, AR>::dispatch_dyn_with_parts(&inner, &pid_slot, registry.as_ref(), message, priority)
     })
     .into_dyn(|f| f as &(dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + Send + Sync));
+
     #[cfg(not(target_has_atomic = "ptr"))]
     let dispatch = ArcShared::new(move |message: AnyMessage, priority: i8| {
       ActorRef::<U, AR>::dispatch_dyn_with_parts(&inner, &pid_slot, registry.as_ref(), message, priority)
@@ -312,8 +312,8 @@ where
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     S: Element,
-    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+    MailboxSignalOf<AR>: Clone + SharedBound + 'static, {
     self.request_with_dispatcher(message, sender.to_dispatcher())
   }
 
@@ -357,8 +357,8 @@ where
   where
     Resp: Element,
     S: Element,
-    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+    MailboxSignalOf<AR>: Clone + SharedBound + 'static, {
     self.request_future_with_dispatcher(message, sender.to_dispatcher())
   }
 
@@ -391,8 +391,8 @@ where
   where
     Resp: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+    MailboxSignalOf<AR>: Clone + SharedBound + 'static, {
     let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_responder(responder);
@@ -414,8 +414,8 @@ where
     Resp: Element,
     S: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+    MailboxSignalOf<AR>: Clone + SharedBound + 'static, {
     self.request_future_with_timeout_dispatcher(message, sender.to_dispatcher(), timeout)
   }
 
@@ -431,8 +431,8 @@ where
     Resp: Element,
     S: Element,
     TFut: Future<Output = ()> + Unpin,
-    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-    MailboxSignalOf<AR>: Clone + RuntimeBound + 'static, {
+    MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+    MailboxSignalOf<AR>: Clone + SharedBound + 'static, {
     let timeout_future = timeout;
     let (future, responder) = create_ask_handles::<Resp, MailboxConcurrencyOf<AR>>();
     let metadata = MessageMetadata::<MailboxConcurrencyOf<AR>>::new().with_sender(sender).with_responder(responder);

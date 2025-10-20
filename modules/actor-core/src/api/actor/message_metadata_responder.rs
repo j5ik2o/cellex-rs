@@ -1,20 +1,17 @@
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared};
+use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared, SharedBound};
 
-use crate::{
-  api::{
-    actor::{
-      actor_context::ActorContext,
-      ask::{AskError, AskResult},
-    },
-    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
-    process::{
-      dead_letter::{DeadLetter, DeadLetterReason},
-      process_registry::ProcessResolution,
-    },
+use crate::api::{
+  actor::{
+    actor_context::ActorContext,
+    ask::{AskError, AskResult},
   },
-  RuntimeBound,
+  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
+  messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MetadataStorageMode},
+  process::{
+    dead_letter::{DeadLetter, DeadLetterReason},
+    process_registry::ProcessResolution,
+  },
 };
 
 /// Trait allowing message metadata to respond to the original sender.
@@ -36,8 +33,8 @@ impl<AR> MessageMetadataResponder<AR> for MessageMetadata<MailboxConcurrencyOf<A
 where
   AR: ActorRuntime + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
-  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
-  MailboxSignalOf<AR>: Clone + RuntimeBound + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone + SharedBound + 'static,
+  MailboxSignalOf<AR>: Clone + SharedBound + 'static,
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   fn respond_with<Resp, U>(&self, ctx: &mut ActorContext<'_, '_, U, AR>, message: Resp) -> AskResult<()>

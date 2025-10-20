@@ -71,7 +71,7 @@ where
   /// Returns a builder that wires a custom guardian strategy into the ready-queue scheduler.
   pub fn with_strategy<Strat>(self, strategy: Strat) -> Self
   where
-    Strat: GuardianStrategy<MF> + Clone + Send + Sync, {
+    Strat: GuardianStrategy<MF> + Clone + SharedBound, {
     let _ = self;
     Self::new(move |mailbox_factory, extensions| {
       Box::new(ReadyQueueScheduler::with_strategy(mailbox_factory, strategy.clone(), extensions))

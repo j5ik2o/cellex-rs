@@ -1,13 +1,12 @@
-#[cfg(target_has_atomic = "ptr")]
-/// Marker trait describing factory objects safe for concurrent scheduler use.
-pub trait ActorSchedulerFactoryBound: Send + Sync {}
+//! Marker trait describing scheduler factories that must be shareable on multi-threaded targets.
+//!
+//! Internally this relies on [`cellex_utils_core_rs::sync::SharedBound`], which collapses to
+//! `Send + Sync` on pointer-atomic platforms and imposes no additional bound on single-threaded
+//! targets.
 
-#[cfg(target_has_atomic = "ptr")]
-impl<T: Send + Sync> ActorSchedulerFactoryBound for T {}
+use cellex_utils_core_rs::sync::SharedBound;
 
-#[cfg(not(target_has_atomic = "ptr"))]
-/// Marker trait for factory objects on single-threaded embedded targets.
-pub trait ActorSchedulerFactoryBound {}
+/// Factory objects must implement this trait to be accepted by the scheduler.
+pub trait ActorSchedulerFactoryBound: SharedBound {}
 
-#[cfg(not(target_has_atomic = "ptr"))]
-impl<T> ActorSchedulerFactoryBound for T {}
+impl<T> ActorSchedulerFactoryBound for T where T: SharedBound {}
