@@ -4,7 +4,7 @@ use crate::api::{
 };
 
 impl MetadataStorageMode for ThreadSafe {
-  fn into_record(metadata: MessageMetadata<Self>) -> MetadataStorageRecord {
+  fn to_record(metadata: MessageMetadata<Self>) -> MetadataStorageRecord {
     MetadataStorageRecord::ThreadSafe(metadata)
   }
 

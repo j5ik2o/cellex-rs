@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, time::Duration};
 
@@ -23,7 +21,7 @@ use crate::{
 type ActorProcessRegistryShared<MF> =
   ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
 
-/// Context for actors to operate on themselves and child actors.
+/// Context used by the runtime to interact with the currently running actor and its children.
 pub struct InternalActorContext<'a, MF>
 where
   MF: MailboxFactory + Clone, {
@@ -51,6 +49,7 @@ where
   MF: MailboxFactory + Clone,
 {
   #[allow(clippy::too_many_arguments)]
+  /// Creates a new internal context for the specified actor.
   pub(crate) fn new(
     mailbox_factory: &'a MF,
     mailbox_spawner: PriorityMailboxSpawnerHandle<AnyMessage, MF>,
@@ -98,52 +97,63 @@ where
   }
 
   #[allow(clippy::missing_const_for_fn)]
+  /// Returns the mailbox factory used to create new actor mailboxes.
   pub fn mailbox_factory(&self) -> &MF {
     self.mailbox_factory
   }
 
   #[allow(dead_code)]
+  /// Returns the mailbox spawner handle used to provision child mailboxes.
   pub(crate) const fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<AnyMessage, MF> {
     &self.mailbox_spawner
   }
 
   #[allow(dead_code)]
+  /// Returns a mutable reference to the supervisor overseeing the actor.
   pub(crate) fn supervisor(&mut self) -> &mut dyn Supervisor<AnyMessage> {
     self.supervisor
   }
 
+  /// Returns the numeric identifier of the actor.
   pub const fn actor_id(&self) -> ActorId {
     self.actor_id
   }
 
+  /// Returns the logical actor path.
   pub const fn actor_path(&self) -> &ActorPath {
     &self.actor_path
   }
 
+  /// Returns the list of watchers currently observing the actor.
   pub const fn watchers(&self) -> &[ActorId] {
     self.watchers.as_slice()
   }
 
+  /// Returns the actor's process identifier.
   pub const fn pid(&self) -> &Pid {
     &self.pid
   }
 
+  /// Returns a shared handle to the process registry.
   pub fn process_registry(&self) -> ActorProcessRegistryShared<MF> {
     self.process_registry.clone()
   }
 
+  /// Registers a watcher so that it receives termination notifications.
   pub fn register_watcher(&mut self, watcher: ActorId) {
     if !self.watchers.contains(&watcher) {
       self.watchers.push(watcher);
     }
   }
 
+  /// Unregisters a watcher, stopping termination notifications.
   pub fn unregister_watcher(&mut self, watcher: ActorId) {
     if let Some(index) = self.watchers.iter().position(|w| *w == watcher) {
       self.watchers.swap_remove(index);
     }
   }
 
+  /// Returns an actor reference to the actor itself.
   pub(crate) fn self_ref(&self) -> PriorityActorRef<AnyMessage, MF>
   where
     MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
@@ -180,6 +190,7 @@ where
     actor_ref
   }
 
+  /// Queues the creation of a child actor based on prepared props.
   pub(crate) fn spawn_child_from_props(
     &mut self,
     supervisor: Box<dyn Supervisor<AnyMessage>>,
@@ -192,10 +203,12 @@ where
     self.enqueue_spawn(supervisor, options, map_system, handler, pid_slot)
   }
 
+  /// Returns the priority currently being processed by the actor, if any.
   pub const fn current_priority(&self) -> Option<i8> {
     self.current_priority
   }
 
+  /// Sends a user message to the actor with an explicit priority.
   pub fn send_to_self_with_priority(
     &self,
     message: AnyMessage,
@@ -204,6 +217,7 @@ where
     self.sender.try_send(PriorityEnvelope::new(message, priority))
   }
 
+  /// Sends a control message to the actor.
   pub fn send_control_to_self(
     &self,
     message: AnyMessage,
@@ -212,6 +226,7 @@ where
     self.sender.try_send(PriorityEnvelope::control(message, priority))
   }
 
+  /// Sends a prepared priority envelope to the actor.
   pub fn send_envelope_to_self(
     &self,
     envelope: PriorityEnvelope<AnyMessage>,
@@ -220,19 +235,23 @@ where
   }
 
   #[allow(clippy::missing_const_for_fn)]
+  /// Records that a priority is currently being processed.
   pub(crate) fn enter_priority(&mut self, priority: i8) {
     self.current_priority = Some(priority);
   }
 
   #[allow(clippy::missing_const_for_fn)]
+  /// Clears the priority currently being processed.
   pub(crate) fn exit_priority(&mut self) {
     self.current_priority = None;
   }
 
+  /// Returns `true` when a receive-timeout scheduler is installed.
   pub const fn has_receive_timeout_scheduler(&self) -> bool {
     self.receive_timeout.is_some()
   }
 
+  /// Configures the receive-timeout duration for the actor.
   pub fn set_receive_timeout(&mut self, duration: Duration) -> bool {
     if let Some(cell) = self.receive_timeout {
       cell.borrow_mut().set(duration);
@@ -242,6 +261,7 @@ where
     }
   }
 
+  /// Cancels a previously configured receive-timeout.
   pub fn cancel_receive_timeout(&mut self) -> bool {
     if let Some(cell) = self.receive_timeout {
       cell.borrow_mut().cancel();
@@ -251,6 +271,7 @@ where
     }
   }
 
+  /// Notifies the receive-timeout scheduler about message activity.
   pub(crate) fn notify_receive_timeout_activity(&mut self, influence: bool) {
     if !influence {
       return;

@@ -15,10 +15,10 @@ pub trait ReadyEventHook {
   fn notify_ready(&self);
 }
 
-/// Shared handle to a [`ReadyEventHook`].
+/// Shared handle to a ready-event hook implementation.
 #[cfg(target_has_atomic = "ptr")]
 pub type ReadyQueueHandle = ArcShared<dyn ReadyEventHook + Send + Sync>;
 
-/// Shared handle to a [`ReadyEventHook`] (no atomic pointer targets).
+/// Shared handle to a ready-event hook implementation (no atomic pointer targets).
 #[cfg(not(target_has_atomic = "ptr"))]
 pub type ReadyQueueHandle = ArcShared<dyn ReadyEventHook>;

@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use alloc::boxed::Box;
 use core::{
   future::Future,
@@ -23,6 +21,7 @@ use embassy_sync::{
   signal::Signal,
 };
 
+/// Mailbox implementation backed by an `ArcShared` MPSC queue.
 #[derive(Clone)]
 pub struct ArcMailbox<M, RM = CriticalSectionRawMutex>
 where
@@ -31,6 +30,7 @@ where
   inner: QueueMailbox<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
 }
 
+/// Sending handle associated with [`ArcMailbox`].
 #[derive(Clone)]
 pub struct ArcMailboxSender<M, RM = CriticalSectionRawMutex>
 where
@@ -39,6 +39,7 @@ where
   inner: QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
 }
 
+/// Factory for constructing [`ArcMailbox`] instances.
 pub struct ArcMailboxRuntime<RM = CriticalSectionRawMutex>
 where
   RM: RawMutex, {
@@ -63,6 +64,7 @@ where
   }
 }
 
+/// Notification primitive used to wake mailbox waiters.
 pub struct ArcSignal<RM>
 where
   RM: RawMutex, {
@@ -114,6 +116,7 @@ where
   }
 }
 
+/// Future returned by [`ArcSignal::wait`] that resolves when a signal arrives.
 pub struct ArcSignalWait<'a, RM>
 where
   RM: RawMutex, {
@@ -137,10 +140,12 @@ impl<RM> ArcMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
+  /// Creates a new runtime factory.
   pub const fn new() -> Self {
     Self { _marker: PhantomData }
   }
 
+  /// Builds a mailbox using the supplied options.
   pub fn mailbox<M>(&self, options: MailboxOptions) -> (ArcMailbox<M, RM>, ArcMailboxSender<M, RM>)
   where
     M: Element, {
@@ -148,6 +153,7 @@ where
     (ArcMailbox { inner: mailbox }, ArcMailboxSender { inner: sender })
   }
 
+  /// Builds an unbounded mailbox.
   pub fn unbounded<M>(&self) -> (ArcMailbox<M, RM>, ArcMailboxSender<M, RM>)
   where
     M: Element, {
@@ -190,14 +196,17 @@ where
   M: Element,
   RM: RawMutex,
 {
+  /// Creates an unbounded mailbox and sender pair.
   pub fn new() -> (Self, ArcMailboxSender<M, RM>) {
     ArcMailboxRuntime::<RM>::new().unbounded()
   }
 
+  /// Returns the underlying queue mailbox.
   pub fn inner(&self) -> &QueueMailbox<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 
+  /// Updates the metrics sink associated with the mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.inner.set_metrics_sink(sink);
   }
@@ -250,18 +259,22 @@ where
   RM: RawMutex,
   ArcMpscUnboundedQueue<M, RM>: Clone,
 {
+  /// Attempts to enqueue a message without blocking.
   pub fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
     self.inner.try_send(message)
   }
 
+  /// Sends a message, waiting for capacity when required.
   pub fn send(&self, message: M) -> Result<(), QueueError<M>> {
     self.inner.send(message)
   }
 
+  /// Returns the underlying queue mailbox producer.
   pub fn inner(&self) -> &QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 
+  /// Updates the metrics sink associated with the producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.inner.set_metrics_sink(sink);
   }

@@ -29,7 +29,9 @@ use crate::{TokioMailboxRuntime, TokioReceiveTimeoutDriver};
 
 /// Tokio scheduler wrapper.
 ///
-/// Wraps the ReadyQueue-based [`cellex_actor_core_rs::ReadyQueueScheduler`] and cooperatively
+/// Wraps the ReadyQueue-based
+/// [`ReadyQueueScheduler`](cellex_actor_core_rs::api::actor_scheduler::ready_queue_scheduler::ReadyQueueScheduler)
+/// and cooperatively
 /// yields with `tokio::task::yield_now` after each dispatch.
 pub struct TokioScheduler<MF, Strat = AlwaysRestart>
 where

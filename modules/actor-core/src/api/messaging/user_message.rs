@@ -31,7 +31,7 @@ impl<U> UserMessage<U> {
     if metadata.is_empty() {
       Self::new(message)
     } else {
-      let record = Mode::into_record(metadata);
+      let record = Mode::to_record(metadata);
       Self { message: ManuallyDrop::new(message), metadata: Some(record) }
     }
   }

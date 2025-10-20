@@ -1,6 +1,7 @@
 use cellex_utils_core_rs::QueueSize;
 
-/// Runtime-agnostic construction options for [`QueueMailbox`].
+/// Runtime-agnostic construction options for
+/// [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).
 ///
 /// Holds the capacity settings for mailboxes.
 /// Different capacities can be set for regular messages and priority messages.

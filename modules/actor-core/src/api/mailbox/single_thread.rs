@@ -10,7 +10,7 @@ pub struct SingleThread;
 impl MailboxConcurrency for SingleThread {}
 
 impl MetadataStorageMode for SingleThread {
-  fn into_record(metadata: MessageMetadata<Self>) -> MetadataStorageRecord {
+  fn to_record(metadata: MessageMetadata<Self>) -> MetadataStorageRecord {
     MetadataStorageRecord::SingleThread(metadata)
   }
 

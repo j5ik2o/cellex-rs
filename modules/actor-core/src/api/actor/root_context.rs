@@ -128,7 +128,7 @@ where
   /// Future for receiving the response, or an error
   ///
   /// # Errors
-  /// Returns [`AskError`] when sending the request fails.
+  /// Returns [`AskError`](crate::api::actor::ask::AskError) when sending the request fails.
   pub fn request_future<V, Resp>(&self, target: &ActorRef<V, AR>, message: V) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
@@ -150,7 +150,7 @@ where
   /// Future for receiving the response with timeout, or an error
   ///
   /// # Errors
-  /// Returns [`AskError`] when sending the request fails.
+  /// Returns [`AskError`](crate::api::actor::ask::AskError) when sending the request fails.
   pub fn request_future_with_timeout<V, Resp, TFut>(
     &self,
     target: &ActorRef<V, AR>,
