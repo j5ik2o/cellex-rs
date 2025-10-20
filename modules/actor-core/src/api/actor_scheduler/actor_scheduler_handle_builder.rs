@@ -5,8 +5,6 @@ use cellex_utils_core_rs::{
   SharedBound,
 };
 
-#[cfg(any(test, feature = "test-support"))]
-use crate::api::actor_scheduler::immediate_scheduler::ImmediateScheduler;
 use crate::api::{
   actor_scheduler::{
     actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
@@ -34,14 +32,6 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
-  #[cfg(any(test, feature = "test-support"))]
-  #[allow(dead_code)]
-  #[must_use]
-  /// Creates a builder that produces the immediate scheduler used in tests.
-  pub fn immediate() -> Self {
-    Self::new(|mailbox_factory, extensions| Box::new(ImmediateScheduler::new(mailbox_factory, extensions)))
-  }
-
   /// Creates a builder from a factory closure producing scheduler handles.
   pub fn new<F>(factory: F) -> Self
   where
