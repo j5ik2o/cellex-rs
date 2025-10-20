@@ -246,6 +246,7 @@ impl LocalMailboxRuntime {
   /// # Returns
   ///
   /// A new factory instance
+  #[must_use]
   pub const fn new() -> Self {
     Self { _marker: PhantomData }
   }
@@ -259,6 +260,7 @@ impl LocalMailboxRuntime {
   /// # Returns
   ///
   /// A tuple of (receiver mailbox, sender handle)
+  #[must_use]
   pub fn mailbox<M>(&self, options: MailboxOptions) -> (LocalMailbox<M>, LocalMailboxSender<M>)
   where
     M: Element, {
@@ -271,6 +273,7 @@ impl LocalMailboxRuntime {
   /// # Returns
   ///
   /// A tuple of (receiver mailbox, sender handle)
+  #[must_use]
   pub fn unbounded<M>(&self) -> (LocalMailbox<M>, LocalMailboxSender<M>)
   where
     M: Element, {
@@ -318,6 +321,7 @@ where
   /// # Returns
   ///
   /// A tuple of (receiver mailbox, sender handle)
+  #[must_use]
   pub fn new() -> (Self, LocalMailboxSender<M>) {
     LocalMailboxRuntime::default().unbounded()
   }
@@ -327,6 +331,7 @@ where
   /// # Returns
   ///
   /// A new sender to the mailbox
+  #[must_use]
   pub fn producer(&self) -> LocalMailboxSender<M>
   where
     LocalSignal: Clone, {
@@ -338,7 +343,8 @@ where
   /// # Returns
   ///
   /// A reference to the `QueueMailbox`
-  pub fn inner(&self) -> &QueueMailbox<LocalQueue<M>, LocalSignal> {
+  #[must_use]
+  pub const fn inner(&self) -> &QueueMailbox<LocalQueue<M>, LocalSignal> {
     &self.inner
   }
 
@@ -443,7 +449,8 @@ where
   /// # Returns
   ///
   /// A reference to the `QueueMailboxProducer`
-  pub fn inner(&self) -> &QueueMailboxProducer<LocalQueue<M>, LocalSignal> {
+  #[must_use]
+  pub const fn inner(&self) -> &QueueMailboxProducer<LocalQueue<M>, LocalSignal> {
     &self.inner
   }
 

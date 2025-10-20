@@ -1,12 +1,7 @@
-#![allow(clippy::disallowed_types)]
 #![cfg(feature = "std")]
 
 extern crate alloc;
 
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use std::hint::black_box;
 
 use cellex_actor_core_rs::{
@@ -30,8 +25,7 @@ fn noop_sender<M, C>() -> MessageSender<M, C>
 where
   M: Element,
   C: MetadataStorageMode, {
-  let dispatch_impl: Arc<NoopDispatchFn> = Arc::new(|_, _| Ok(()));
-  let dispatch = ArcShared::from_arc_for_testing_dont_use_production(dispatch_impl);
+  let dispatch = ArcShared::new(|_, _| Ok(())).into_dyn(|handler| handler as &NoopDispatchFn);
   let internal = InternalMessageSender::<C>::new(dispatch);
   MessageSender::from_internal(internal)
 }

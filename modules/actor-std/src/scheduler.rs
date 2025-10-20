@@ -141,6 +141,7 @@ where
 }
 
 /// Utility that produces a scheduler builder configured for Tokio.
+#[must_use]
 pub fn tokio_scheduler_builder<MF>() -> ActorSchedulerHandleBuilder<MF>
 where
   MF: MailboxFactory + Clone + 'static,

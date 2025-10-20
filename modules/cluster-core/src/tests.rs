@@ -1,7 +1,7 @@
 use std::{
   any::Any,
   borrow::Cow,
-  sync::{Arc, Mutex},
+  sync::{Arc, Mutex, MutexGuard},
 };
 
 use cellex_actor_core_rs::api::{
@@ -19,6 +19,12 @@ use cellex_actor_std_rs::FailureEventHub;
 use cellex_remote_core_rs::RemoteFailureNotifier;
 
 use super::ClusterFailureBridge;
+
+type TestResult<T = ()> = Result<T, String>;
+
+fn lock<'a, T>(mutex: &'a Mutex<T>) -> Result<MutexGuard<'a, T>, String> {
+  mutex.lock().map_err(|err| format!("mutex poisoned: {:?}", err))
+}
 
 #[test]
 fn cluster_failure_bridge_new_creates_instance() {
@@ -48,13 +54,13 @@ fn cluster_failure_bridge_notifier_returns_reference() {
 }
 
 #[test]
-fn cluster_failure_bridge_fan_out_dispatches_root_escalation() {
+fn cluster_failure_bridge_fan_out_dispatches_root_escalation() -> TestResult {
   let hub = FailureEventHub::new();
 
   let hub_events = Arc::new(Mutex::new(Vec::new()));
   let hub_events_clone = Arc::clone(&hub_events);
   let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
-    hub_events_clone.lock().unwrap().push(event);
+    hub_events_clone.lock().unwrap_or_else(|err| err.into_inner()).push(event);
   }));
 
   let remote_hub = FailureEventHub::new();
@@ -65,7 +71,7 @@ fn cluster_failure_bridge_fan_out_dispatches_root_escalation() {
 
   let handler = FailureEventListener::new(move |event: FailureEvent| {
     if matches!(event, FailureEvent::RootEscalated(_)) {
-      *handler_called_clone.lock().unwrap() = true;
+      *handler_called_clone.lock().unwrap_or_else(|err| err.into_inner()) = true;
     }
   });
   remote_notifier.set_handler(handler);
@@ -73,30 +79,30 @@ fn cluster_failure_bridge_fan_out_dispatches_root_escalation() {
   let bridge = ClusterFailureBridge::new(hub, remote_notifier);
 
   let info = FailureInfo::new(ActorId(1), ActorPath::new(), ActorFailure::from_message("test error"));
-  let event = FailureEvent::RootEscalated(info);
+  let event = FailureEvent::RootEscalated(info.clone());
 
-  bridge.fan_out(event.clone());
+  bridge.fan_out(event);
 
-  assert!(*handler_called.lock().unwrap());
+  assert!(*lock(&handler_called)?);
 
-  let events = hub_events.lock().unwrap();
+  let events = lock(&hub_events)?;
   assert_eq!(events.len(), 1);
 
   let FailureEvent::RootEscalated(received_info) = &events[0];
-  let FailureEvent::RootEscalated(original_info) = &event;
 
-  assert_eq!(received_info.actor, original_info.actor);
-  assert_eq!(received_info.description(), original_info.description());
+  assert_eq!(received_info.actor, info.actor);
+  assert_eq!(received_info.description(), info.description());
+  Ok(())
 }
 
 #[test]
-fn cluster_failure_bridge_fan_out_handles_hub_listener_call() {
+fn cluster_failure_bridge_fan_out_handles_hub_listener_call() -> TestResult {
   let hub = FailureEventHub::new();
 
   let hub_events = Arc::new(Mutex::new(Vec::new()));
   let hub_events_clone = Arc::clone(&hub_events);
   let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
-    hub_events_clone.lock().unwrap().push(event);
+    hub_events_clone.lock().unwrap_or_else(|err| err.into_inner()).push(event);
   }));
 
   let remote_hub = FailureEventHub::new();
@@ -107,10 +113,11 @@ fn cluster_failure_bridge_fan_out_handles_hub_listener_call() {
   let info = FailureInfo::new(ActorId(2), ActorPath::new(), ActorFailure::from_message("another error"));
   let event = FailureEvent::RootEscalated(info);
 
-  bridge.fan_out(event.clone());
+  bridge.fan_out(event);
 
-  let events = hub_events.lock().unwrap();
+  let events = lock(&hub_events)?;
   assert_eq!(events.len(), 1);
+  Ok(())
 }
 
 #[derive(Debug)]
@@ -127,7 +134,7 @@ impl BehaviorFailure for ClusterBehaviorFailure {
 }
 
 #[test]
-fn cluster_failure_bridge_preserves_behavior_failure() {
+fn cluster_failure_bridge_preserves_behavior_failure() -> TestResult {
   let hub = FailureEventHub::new();
 
   let captured_local: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
@@ -135,7 +142,7 @@ fn cluster_failure_bridge_preserves_behavior_failure() {
   let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
     if let Some(custom) = info.behavior_failure().as_any().downcast_ref::<ClusterBehaviorFailure>() {
-      captured_local_clone.lock().unwrap().replace(custom.0.to_owned());
+      captured_local_clone.lock().unwrap_or_else(|err| err.into_inner()).replace(custom.0.to_owned());
     }
   }));
 
@@ -147,7 +154,7 @@ fn cluster_failure_bridge_preserves_behavior_failure() {
   remote_notifier.set_handler(FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
     if let Some(custom) = info.behavior_failure().as_any().downcast_ref::<ClusterBehaviorFailure>() {
-      captured_remote_clone.lock().unwrap().replace(custom.0.to_owned());
+      captured_remote_clone.lock().unwrap_or_else(|err| err.into_inner()).replace(custom.0.to_owned());
     }
   }));
 
@@ -157,6 +164,7 @@ fn cluster_failure_bridge_preserves_behavior_failure() {
   let info = FailureInfo::new(ActorId(5), ActorPath::new(), failure);
   bridge.fan_out(FailureEvent::RootEscalated(info));
 
-  assert_eq!(captured_local.lock().unwrap().as_deref(), Some("cluster boom"));
-  assert_eq!(captured_remote.lock().unwrap().as_deref(), Some("cluster boom"));
+  assert_eq!(lock(&captured_local)?.as_deref(), Some("cluster boom"));
+  assert_eq!(lock(&captured_remote)?.as_deref(), Some("cluster boom"));
+  Ok(())
 }

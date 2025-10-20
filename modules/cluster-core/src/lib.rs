@@ -26,7 +26,7 @@
 #![deny(clippy::unreachable)]
 #![deny(clippy::empty_enum)]
 #![deny(clippy::no_effect)]
-#![deny(clippy::drop_copy)]
+#![deny(dropping_copy_types)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
@@ -40,7 +40,6 @@
 #![deny(clippy::clone_on_copy)]
 #![deny(clippy::len_without_is_empty)]
 #![deny(clippy::wrong_self_convention)]
-#![deny(clippy::wrong_pub_self_convention)]
 #![deny(clippy::from_over_into)]
 #![deny(clippy::eq_op)]
 #![deny(clippy::bool_comparison)]
@@ -87,6 +86,7 @@ where
   ///
   /// * `hub` - The local failure event hub
   /// * `remote_notifier` - The notification handler for remote nodes
+  #[allow(clippy::missing_const_for_fn)]
   pub fn new(hub: E, remote_notifier: RemoteFailureNotifier<E>) -> Self {
     Self { hub, remote_notifier }
   }
@@ -105,6 +105,7 @@ where
   /// # Returns
   ///
   /// A reference to `RemoteFailureNotifier`
+  #[allow(clippy::missing_const_for_fn)]
   pub fn notifier(&self) -> &RemoteFailureNotifier<E> {
     &self.remote_notifier
   }
