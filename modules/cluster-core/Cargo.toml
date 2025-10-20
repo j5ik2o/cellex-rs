@@ -16,3 +16,7 @@ cellex-remote-core-rs = { path = "../remote-core", default-features = false, fea
 
 [dev-dependencies]
 cellex-actor-std-rs = { path = "../actor-std" }
+cellex-serialization-core-rs = { path = "../serialization-core" }
+cellex-serialization-json-rs = { path = "../serialization-json" }
+serde = { workspace = true }
+serde_json = { workspace = true }

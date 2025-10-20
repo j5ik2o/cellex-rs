@@ -22,7 +22,12 @@ use cellex_actor_core_rs::api::{
   },
 };
 use cellex_actor_std_rs::FailureEventHub;
-use cellex_serialization_json_rs::SerdeJsonSerializer;
+use cellex_serialization_core_rs::{
+  impl_type_key, InMemorySerializerRegistry, SerializationRouter, TypeBindingRegistry, TypeKey,
+};
+use cellex_serialization_json_rs::{shared_json_serializer, SerdeJsonSerializer, SERDE_JSON_SERIALIZER_ID};
+use serde::{Deserialize, Serialize};
+use serde_json::from_slice;
 
 use super::{placeholder_metadata, RemoteFailureNotifier};
 use crate::{
@@ -186,6 +191,56 @@ fn remote_failure_notifier_preserves_behavior_failure() -> TestResult {
   assert!(*lock(&handler_called)?, "handler should receive SampleBehaviorFailure");
   let recorded = lock(&captured)?.clone().ok_or_else(|| "captured failure".to_string())?;
   assert_eq!(recorded, "remote boom");
+  Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct RemoteRouterPayload {
+  value: String,
+}
+
+impl_type_key!(RemoteRouterPayload, "test.RemoteRouterPayload");
+
+#[test]
+fn remote_serialization_router_roundtrip_with_fallback() -> TestResult {
+  let bindings = TypeBindingRegistry::new();
+  let serializers = InMemorySerializerRegistry::new();
+  let router = SerializationRouter::with_fallback(bindings, serializers.clone(), Some(SERDE_JSON_SERIALIZER_ID));
+
+  serializers.register(shared_json_serializer()).map_err(|err| format!("serializer 登録に失敗しました: {err}"))?;
+
+  let serializer = SerdeJsonSerializer::new();
+  let payload = RemoteRouterPayload { value: "hello".to_string() };
+
+  let serialized = serializer
+    .serialize_value(Some(<RemoteRouterPayload as TypeKey>::type_key()), &payload)
+    .map_err(|err| format!("シリアライズに失敗しました: {err}"))?;
+
+  let envelope = control_remote_envelope_with_reply(serialized, 4, None);
+  let frame = frame_from_serialized_envelope(envelope).map_err(|err| format!("フレーム生成に失敗しました: {err:?}"))?;
+
+  let decoded = envelope_from_frame(frame);
+  let (envelope, priority, channel) = decoded.into_parts_with_channel();
+  assert_eq!(priority, 4);
+  assert_eq!(channel, PriorityChannel::Control);
+
+  let MessageEnvelope::User(user) = envelope else {
+    return Err("ユーザーメッセージを期待しました".to_string());
+  };
+
+  let (message, _) = user.into_parts::<ThreadSafe>();
+  let type_key = message.type_name.clone().ok_or_else(|| "型キーが存在しません".to_string())?;
+
+  let resolved = router
+    .resolve_or_fallback(&type_key)
+    .ok_or_else(|| "フォールバックを含めシリアライザを解決できません".to_string())?;
+  assert_eq!(resolved.serializer_id(), SERDE_JSON_SERIALIZER_ID);
+
+  let payload_bytes = resolved.deserialize(&message).map_err(|err| format!("デシリアライズに失敗しました: {err}"))?;
+
+  let decoded: RemoteRouterPayload =
+    from_slice(&payload_bytes).map_err(|err| format!("JSON 変換に失敗しました: {err}"))?;
+  assert_eq!(decoded, payload);
   Ok(())
 }
 

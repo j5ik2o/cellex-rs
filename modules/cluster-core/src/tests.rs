@@ -17,6 +17,12 @@ use cellex_actor_core_rs::api::{
 };
 use cellex_actor_std_rs::FailureEventHub;
 use cellex_remote_core_rs::RemoteFailureNotifier;
+use cellex_serialization_core_rs::{
+  impl_type_key, InMemorySerializerRegistry, SerializationRouter, SerializedMessage, TypeBindingRegistry, TypeKey,
+};
+use cellex_serialization_json_rs::{shared_json_serializer, SerdeJsonSerializer, SERDE_JSON_SERIALIZER_ID};
+use serde::{Deserialize, Serialize};
+use serde_json::from_slice;
 
 use super::ClusterFailureBridge;
 
@@ -166,5 +172,107 @@ fn cluster_failure_bridge_preserves_behavior_failure() -> TestResult {
 
   assert_eq!(lock(&captured_local)?.as_deref(), Some("cluster boom"));
   assert_eq!(lock(&captured_remote)?.as_deref(), Some("cluster boom"));
+  Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct ClusterRouterPayload {
+  value: String,
+}
+
+impl_type_key!(ClusterRouterPayload, "test.ClusterRouterPayload");
+
+#[derive(Debug, Clone)]
+struct RouterBehaviorFailure {
+  message: SerializedMessage,
+}
+
+impl RouterBehaviorFailure {
+  fn new(message: SerializedMessage) -> Self {
+    Self { message }
+  }
+
+  fn serialized(&self) -> &SerializedMessage {
+    &self.message
+  }
+}
+
+impl BehaviorFailure for RouterBehaviorFailure {
+  fn as_any(&self) -> &dyn Any {
+    self
+  }
+
+  fn description(&self) -> Cow<'_, str> {
+    let type_name = self.message.type_name.as_deref().unwrap_or("unknown");
+    Cow::Owned(format!("cluster router failure for {type_name}"))
+  }
+}
+
+fn decode_router_payload(router: &SerializationRouter, message: &SerializedMessage) -> Option<ClusterRouterPayload> {
+  let type_key = message.type_name.as_deref()?;
+  let serializer = router.resolve_or_fallback(type_key)?;
+  let bytes = serializer.deserialize(message).ok()?;
+  from_slice(&bytes).ok()
+}
+
+#[test]
+fn cluster_serialization_router_roundtrip_with_fallback() -> TestResult {
+  let bindings = TypeBindingRegistry::new();
+  let registry = InMemorySerializerRegistry::new();
+  let router = SerializationRouter::with_fallback(bindings, registry.clone(), Some(SERDE_JSON_SERIALIZER_ID));
+
+  registry.register(shared_json_serializer()).map_err(|err| format!("シリアライザ登録に失敗しました: {err}"))?;
+
+  let serializer = SerdeJsonSerializer::new();
+  let payload = ClusterRouterPayload { value: "cluster route".to_string() };
+  let expected = payload.value.clone();
+
+  let serialized = serializer
+    .serialize_value(Some(<ClusterRouterPayload as TypeKey>::type_key()), &payload)
+    .map_err(|err| format!("シリアライズに失敗しました: {err}"))?;
+
+  let hub = FailureEventHub::new();
+  let remote_hub = FailureEventHub::new();
+  let mut remote_notifier = RemoteFailureNotifier::new(remote_hub);
+
+  let remote_captured: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+  let router_for_remote = router.clone();
+  remote_notifier.set_handler(FailureEventListener::new({
+    let remote_captured = Arc::clone(&remote_captured);
+    move |event: FailureEvent| {
+      let FailureEvent::RootEscalated(info) = event;
+      if let Some(custom) = info.behavior_failure().as_any().downcast_ref::<RouterBehaviorFailure>() {
+        if let Some(decoded) = decode_router_payload(&router_for_remote, custom.serialized()) {
+          remote_captured.lock().unwrap_or_else(|err| err.into_inner()).replace(decoded.value);
+        }
+      }
+    }
+  }));
+
+  let local_captured: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+  let router_for_local = router.clone();
+  let _subscription = hub.subscribe(FailureEventListener::new({
+    let local_captured = Arc::clone(&local_captured);
+    move |event: FailureEvent| {
+      let FailureEvent::RootEscalated(info) = event;
+      if let Some(custom) = info.behavior_failure().as_any().downcast_ref::<RouterBehaviorFailure>() {
+        if let Some(decoded) = decode_router_payload(&router_for_local, custom.serialized()) {
+          local_captured.lock().unwrap_or_else(|err| err.into_inner()).replace(decoded.value);
+        }
+      }
+    }
+  }));
+
+  let bridge = ClusterFailureBridge::new(hub, remote_notifier);
+
+  let failure = ActorFailure::new(RouterBehaviorFailure::new(serialized));
+  let info = FailureInfo::new(ActorId(7), ActorPath::new(), failure);
+  bridge.fan_out(FailureEvent::RootEscalated(info));
+
+  let remote_value = lock(&remote_captured)?.clone().ok_or_else(|| "リモート側の復元結果がありません".to_string())?;
+  assert_eq!(remote_value, expected);
+
+  let local_value = lock(&local_captured)?.clone().ok_or_else(|| "ローカル側の復元結果がありません".to_string())?;
+  assert_eq!(local_value, expected);
   Ok(())
 }
