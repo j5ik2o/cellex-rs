@@ -109,7 +109,7 @@ where
   ///
   /// # Returns
   ///
-  /// The queue capacity. [`QueueSize::Unbounded`] if unlimited
+  /// The queue capacity. [`QueueSize::Limitless`] if unlimited
   pub fn capacity(&self) -> QueueSize {
     self.storage.backend().capacity()
   }
@@ -158,7 +158,7 @@ where
   ///
   /// # Returns
   ///
-  /// The number of elements in the queue. [`QueueSize::Unbounded`] if unlimited
+  /// The number of elements in the queue. [`QueueSize::Limitless`] if unlimited
   fn len(&self) -> QueueSize {
     self.backend().len()
   }
@@ -167,7 +167,7 @@ where
   ///
   /// # Returns
   ///
-  /// The queue capacity. [`QueueSize::Unbounded`] if unlimited
+  /// The queue capacity. [`QueueSize::Limitless`] if unlimited
   fn capacity(&self) -> QueueSize {
     self.capacity()
   }

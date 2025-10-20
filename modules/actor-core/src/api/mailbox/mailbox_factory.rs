@@ -40,7 +40,7 @@ pub trait MailboxFactory {
   /// - `options`: Capacity settings for the mailbox
   ///
   /// # Returns
-  /// Pair of `(mailbox, producer)`
+  /// A pair containing `(mailbox, producer)`.
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element;
@@ -48,7 +48,7 @@ pub trait MailboxFactory {
   /// Creates a mailbox with default settings.
   ///
   /// # Returns
-  /// Pair of `(mailbox, producer)`
+  /// A pair containing `(mailbox, producer)`.
   fn build_default_mailbox<M>(&self) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {

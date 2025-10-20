@@ -35,7 +35,7 @@ impl<M> RemoteEnvelope<M> {
     (self.message, self.priority, self.channel)
   }
 
-  /// Alias for [`into_parts`] to emphasize channel preservation.
+  /// Alias for [`Self::into_parts`] to emphasize channel preservation.
   #[allow(clippy::missing_const_for_fn)]
   pub fn into_parts_with_channel(self) -> (M, i8, PriorityChannel) {
     self.into_parts()

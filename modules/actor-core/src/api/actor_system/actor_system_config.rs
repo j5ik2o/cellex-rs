@@ -14,7 +14,7 @@ use crate::api::{
   supervision::{escalation::FailureEventListener, telemetry::TelemetryObservationConfig},
 };
 
-/// Configuration options applied when constructing an [`ActorSystem`].
+/// Configuration options applied when constructing an [`ActorSystem`](crate::api::actor_system::ActorSystem).
 pub struct ActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone + 'static,

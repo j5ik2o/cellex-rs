@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use core::marker::PhantomData;
 
 use cellex_actor_core_rs::api::{
@@ -18,6 +16,7 @@ use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
 
 use crate::arc_mailbox::ArcSignal;
 
+/// Priority queue bundle used by [`ArcPriorityMailbox`].
 pub struct ArcPriorityQueues<M, RM>
 where
   M: Element,
@@ -159,6 +158,7 @@ where
   }
 }
 
+/// Mailbox that stores priority envelopes using `ArcShared` storage.
 #[derive(Clone)]
 pub struct ArcPriorityMailbox<M, RM = CriticalSectionRawMutex>
 where
@@ -167,6 +167,7 @@ where
   inner: QueueMailbox<ArcPriorityQueues<M, RM>, ArcSignal<RM>>,
 }
 
+/// Sending handle associated with [`ArcPriorityMailbox`].
 #[derive(Clone)]
 pub struct ArcPriorityMailboxSender<M, RM = CriticalSectionRawMutex>
 where
@@ -175,6 +176,7 @@ where
   inner: QueueMailboxProducer<ArcPriorityQueues<M, RM>, ArcSignal<RM>>,
 }
 
+/// Factory for constructing [`ArcPriorityMailbox`] instances.
 #[derive(Debug)]
 pub struct ArcPriorityMailboxRuntime<RM = CriticalSectionRawMutex>
 where
@@ -203,6 +205,7 @@ impl<RM> ArcPriorityMailboxRuntime<RM>
 where
   RM: RawMutex,
 {
+  /// Creates a new runtime with the specified control capacity per priority level.
   pub const fn new(control_capacity_per_level: usize) -> Self {
     Self {
       control_capacity_per_level,
@@ -212,16 +215,19 @@ where
     }
   }
 
+  /// Updates the number of priority levels managed by the runtime.
   pub fn with_levels(mut self, levels: usize) -> Self {
     self.levels = levels.max(1);
     self
   }
 
+  /// Updates the capacity dedicated to regular (non-control) messages.
   pub fn with_regular_capacity(mut self, capacity: usize) -> Self {
     self.regular_capacity = capacity;
     self
   }
 
+  /// Builds a mailbox using the provided options.
   pub fn mailbox<M>(&self, options: MailboxOptions) -> (ArcPriorityMailbox<M, RM>, ArcPriorityMailboxSender<M, RM>)
   where
     M: Element, {
@@ -268,14 +274,17 @@ where
   M: Element,
   RM: RawMutex,
 {
+  /// Creates a mailbox runtime and builds a mailbox with the requested control capacity.
   pub fn new(control_capacity_per_level: usize) -> (Self, ArcPriorityMailboxSender<M, RM>) {
     ArcPriorityMailboxRuntime::<RM>::new(control_capacity_per_level).mailbox(MailboxOptions::default())
   }
 
+  /// Returns the underlying queue mailbox.
   pub fn inner(&self) -> &QueueMailbox<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 
+  /// Updates the metrics sink associated with the mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.inner.set_metrics_sink(sink);
   }
@@ -326,22 +335,27 @@ where
   M: Element,
   RM: RawMutex,
 {
+  /// Attempts to enqueue an envelope without blocking.
   pub fn try_send(&self, message: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.inner.try_send(message)
   }
 
+  /// Sends an envelope, waiting when required by the backend.
   pub fn send(&self, message: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.inner.send(message)
   }
 
+  /// Attempts to enqueue a user message with the specified priority.
   pub fn try_send_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.try_send(PriorityEnvelope::new(message, priority))
   }
 
+  /// Sends a user message with the specified priority.
   pub fn send_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.send(PriorityEnvelope::new(message, priority))
   }
 
+  /// Attempts to enqueue a control message with the specified priority.
   pub fn try_send_control_with_priority(
     &self,
     message: M,
@@ -350,14 +364,17 @@ where
     self.try_send(PriorityEnvelope::control(message, priority))
   }
 
+  /// Sends a control message with the specified priority.
   pub fn send_control_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.send(PriorityEnvelope::control(message, priority))
   }
 
+  /// Returns the underlying queue mailbox producer.
   pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 
+  /// Updates the metrics sink associated with the producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.inner.set_metrics_sink(sink);
   }

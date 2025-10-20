@@ -42,7 +42,7 @@ use crate::api::actor_scheduler::ready_queue_scheduler::ReadyQueueHandle;
 
 /// Type alias for mailbox and producer pair.
 ///
-/// Pair of receiver and sender handles returned when creating a mailbox.
+/// A pair of receiver and sender handles returned when creating a mailbox.
 pub type MailboxPair<H, P> = (H, P);
 
 /// Mailbox abstraction that decouples message queue implementations from core logic.
