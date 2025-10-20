@@ -1,7 +1,3 @@
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use core::marker::PhantomData;
 
 use cellex_utils_core_rs::{ArcShared, QueueError, DEFAULT_PRIORITY};
@@ -53,6 +49,7 @@ where
   ///
   /// # Arguments
   /// * `inner` - Function that executes message sending
+  #[must_use]
   pub fn new(inner: ArcShared<SendFn>) -> Self {
     Self { inner, drop_hook: None, _marker: PhantomData }
   }
@@ -73,6 +70,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the destination refuses the message.
   pub fn send_default(&self, message: AnyMessage) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.send_with_priority(message, DEFAULT_PRIORITY)
   }
@@ -85,6 +85,9 @@ where
   ///
   /// # Returns
   /// `Ok(())` on success, queue error on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the destination refuses the message.
   pub fn send_with_priority(
     &self,
     message: AnyMessage,
@@ -108,14 +111,14 @@ where
 impl InternalMessageSender {
   /// Thread-safe helper retained for existing call sites.
   #[allow(dead_code)]
-  pub(crate) fn from_internal_ref<MF>(actor_ref: PriorityActorRef<AnyMessage, MF>) -> Self
+  pub(crate) fn from_internal_ref<MF>(actor_ref: &PriorityActorRef<AnyMessage, MF>) -> Self
   where
     MF: MailboxFactory + Clone + 'static,
     MF::Queue<PriorityEnvelope<AnyMessage>>: Clone + RuntimeBound + 'static,
     MF::Signal: Clone + RuntimeBound + 'static, {
     let sender = actor_ref.clone();
-    Self::new(ArcShared::from_arc_for_testing_dont_use_production(Arc::new(move |message, priority| {
-      sender.try_send_with_priority(message, priority)
-    })))
+    let send_fn = ArcShared::new(move |message, priority| sender.try_send_with_priority(message, priority))
+      .into_dyn(|f| f as &SendFn);
+    Self::new(send_fn)
   }
 }

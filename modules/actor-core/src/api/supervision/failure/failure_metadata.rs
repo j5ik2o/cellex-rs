@@ -18,7 +18,8 @@ impl FailureMetadata {
   ///
   /// # Returns
   /// New `FailureMetadata` instance
-  pub fn new() -> Self {
+  #[must_use]
+  pub const fn new() -> Self {
     Self { component: None, endpoint: None, transport: None, tags: BTreeMap::new() }
   }
 
@@ -29,6 +30,7 @@ impl FailureMetadata {
   ///
   /// # Returns
   /// `FailureMetadata` instance with component name set
+  #[must_use]
   pub fn with_component(mut self, component: impl Into<String>) -> Self {
     self.component = Some(component.into());
     self
@@ -41,6 +43,7 @@ impl FailureMetadata {
   ///
   /// # Returns
   /// `FailureMetadata` instance with endpoint set
+  #[must_use]
   pub fn with_endpoint(mut self, endpoint: impl Into<String>) -> Self {
     self.endpoint = Some(endpoint.into());
     self
@@ -53,6 +56,7 @@ impl FailureMetadata {
   ///
   /// # Returns
   /// `FailureMetadata` instance with transport set
+  #[must_use]
   pub fn with_transport(mut self, transport: impl Into<String>) -> Self {
     self.transport = Some(transport.into());
     self
@@ -66,6 +70,7 @@ impl FailureMetadata {
   ///
   /// # Returns
   /// `FailureMetadata` instance with tag added
+  #[must_use]
   pub fn insert_tag(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
     self.tags.insert(key.into(), value.into());
     self

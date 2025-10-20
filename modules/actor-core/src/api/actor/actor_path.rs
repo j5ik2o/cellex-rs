@@ -16,7 +16,8 @@ impl ActorPath {
   /// Creates a new empty `ActorPath`.
   ///
   /// Represents a root path with no segments.
-  pub fn new() -> Self {
+  #[must_use]
+  pub const fn new() -> Self {
     Self { segments: Vec::new() }
   }
 
@@ -25,6 +26,7 @@ impl ActorPath {
   /// # Returns
   ///
   /// Slice of `ActorId`
+  #[must_use]
   pub fn segments(&self) -> &[ActorId] {
     &self.segments
   }
@@ -38,6 +40,7 @@ impl ActorPath {
   /// # Returns
   ///
   /// New `ActorPath` including the child actor
+  #[must_use]
   pub fn push_child(&self, id: ActorId) -> Self {
     let mut segments = self.segments.clone();
     segments.push(id);
@@ -49,6 +52,7 @@ impl ActorPath {
   /// # Returns
   ///
   /// `Some(ActorPath)` if parent path exists, `None` for root
+  #[must_use]
   pub fn parent(&self) -> Option<Self> {
     if self.segments.is_empty() {
       None
@@ -64,6 +68,7 @@ impl ActorPath {
   /// # Returns
   ///
   /// Last `ActorId`, or `None` if empty
+  #[must_use]
   pub fn last(&self) -> Option<ActorId> {
     self.segments.last().copied()
   }
@@ -73,7 +78,8 @@ impl ActorPath {
   /// # Returns
   ///
   /// `true` if empty, `false` otherwise
-  pub fn is_empty(&self) -> bool {
+  #[must_use]
+  pub const fn is_empty(&self) -> bool {
     self.segments.is_empty()
   }
 }

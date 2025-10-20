@@ -40,7 +40,7 @@ where
 {
   /// Creates a new handle from an `ArcShared`-wrapped factory.
   #[must_use]
-  pub fn new(builder: ArcShared<B>) -> Self {
+  pub const fn new(builder: ArcShared<B>) -> Self {
     Self { builder, metrics_sink: None, _marker: PhantomData }
   }
 

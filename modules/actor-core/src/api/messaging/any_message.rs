@@ -26,11 +26,15 @@ impl AnyMessage {
   }
 
   /// Gets the `TypeId` of the internally held value.
+  #[must_use]
   pub fn type_id(&self) -> TypeId {
     self.inner.as_ref().type_id()
   }
 
   /// Attempts to downcast to type `T` by moving ownership.
+  ///
+  /// # Errors
+  /// Returns `Err(Self)` when the stored value does not match `T`.
   pub fn downcast<T>(self) -> Result<T, Self>
   where
     T: AnyMessageValue + 'static, {
@@ -41,6 +45,7 @@ impl AnyMessage {
   }
 
   /// Attempts to downcast to type `T` through a shared reference.
+  #[must_use]
   pub fn downcast_ref<T>(&self) -> Option<&T>
   where
     T: AnyMessageValue + 'static, {
@@ -48,6 +53,7 @@ impl AnyMessage {
   }
 
   /// Attempts to downcast to type `T` through a mutable reference.
+  #[must_use]
   pub fn downcast_mut<T>(&mut self) -> Option<&mut T>
   where
     T: AnyMessageValue + 'static, {
@@ -55,6 +61,7 @@ impl AnyMessage {
   }
 
   /// Extracts the internal type-erased value.
+  #[must_use]
   pub fn into_any(self) -> Box<DynMessageInner> {
     self.inner
   }

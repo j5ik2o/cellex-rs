@@ -46,13 +46,13 @@ where
 
     if let Some(parent_info) = info.escalate_to_parent() {
       let envelope =
-        PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (&*self.map_system)(sys));
+        PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(|sys| (*self.map_system)(sys));
       if self.control_ref.sender().try_send(envelope).is_ok() {
         return Ok(());
       }
     } else {
       let envelope =
-        PriorityEnvelope::from_system(SystemMessage::Escalate(info.clone())).map(|sys| (&*self.map_system)(sys));
+        PriorityEnvelope::from_system(SystemMessage::Escalate(info.clone())).map(|sys| (*self.map_system)(sys));
       if self.control_ref.sender().try_send(envelope).is_ok() {
         return Ok(());
       }

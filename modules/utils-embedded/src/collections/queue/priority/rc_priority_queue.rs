@@ -80,6 +80,7 @@ impl<E> RcPriorityQueue<E> {
   /// // Can store up to 10 elements per priority level
   /// let queue: RcPriorityQueue<u32> = RcPriorityQueue::new(10);
   /// ```
+  #[must_use]
   pub fn new(capacity_per_level: usize) -> Self {
     let levels = (0..PRIORITY_LEVELS).map(|_| RcRingQueue::new(capacity_per_level)).collect();
     Self { inner: PriorityQueue::new(levels) }
@@ -119,6 +120,7 @@ impl<E> RcPriorityQueue<E> {
   ///
   /// let queue: RcPriorityQueue<i32> = RcPriorityQueue::new(5).with_dynamic(false);
   /// ```
+  #[must_use]
   pub fn with_dynamic(self, dynamic: bool) -> Self {
     self.set_dynamic(dynamic);
     self
@@ -129,6 +131,7 @@ impl<E> RcPriorityQueue<E> {
   /// # Returns
   ///
   /// Reference to an array of 8 priority level queues
+  #[must_use]
   pub fn levels(&self) -> &[RcRingQueue<E>] {
     self.inner.levels()
   }
@@ -147,7 +150,8 @@ impl<E> RcPriorityQueue<E> {
   /// # Returns
   ///
   /// Reference to the internal `PriorityQueue` instance
-  pub fn inner(&self) -> &PriorityQueue<RcRingQueue<E>, E> {
+  #[must_use]
+  pub const fn inner(&self) -> &PriorityQueue<RcRingQueue<E>, E> {
     &self.inner
   }
 }

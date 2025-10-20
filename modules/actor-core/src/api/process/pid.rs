@@ -74,7 +74,7 @@ impl NodeId {
 
   /// Returns the port, if specified.
   #[must_use]
-  pub fn port(&self) -> Option<u16> {
+  pub const fn port(&self) -> Option<u16> {
     self.port
   }
 }
@@ -119,7 +119,7 @@ pub struct Pid {
 impl Pid {
   /// Creates a new PID within the specified system.
   #[must_use]
-  pub fn new(system: SystemId, path: ActorPath) -> Self {
+  pub const fn new(system: SystemId, path: ActorPath) -> Self {
     Self { scheme: Cow::Borrowed("actor"), system, node: None, path, tag: None }
   }
 
@@ -146,25 +146,25 @@ impl Pid {
 
   /// Returns the system identifier.
   #[must_use]
-  pub fn system(&self) -> &SystemId {
+  pub const fn system(&self) -> &SystemId {
     &self.system
   }
 
   /// Returns the optional node identifier.
   #[must_use]
-  pub fn node(&self) -> Option<&NodeId> {
+  pub const fn node(&self) -> Option<&NodeId> {
     self.node.as_ref()
   }
 
   /// Returns the actor path.
   #[must_use]
-  pub fn path(&self) -> &ActorPath {
+  pub const fn path(&self) -> &ActorPath {
     &self.path
   }
 
   /// Returns the optional tag.
   #[must_use]
-  pub fn tag(&self) -> Option<&PidTag> {
+  pub const fn tag(&self) -> Option<&PidTag> {
     self.tag.as_ref()
   }
 
@@ -175,6 +175,9 @@ impl Pid {
   }
 
   /// Parses a PID from its URI representation.
+  ///
+  /// # Errors
+  /// `PidParseError` when the input string does not conform to the PID URI format.
   pub fn parse(input: &str) -> Result<Self, PidParseError> {
     input.parse()
   }

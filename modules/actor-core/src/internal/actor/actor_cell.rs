@@ -26,6 +26,9 @@ use crate::{
   },
 };
 
+type ActorCellProcessRegistryShared<MF> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 pub(crate) struct ActorCell<MF, Strat>
 where
   MF: MailboxFactory + Clone + 'static,
@@ -47,8 +50,7 @@ where
   receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   receive_timeout_scheduler_opt: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
-  process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
+  process_registry: ActorCellProcessRegistryShared<MF>,
 }
 
 impl<MF, Strat> ActorCell<MF, Strat>
@@ -71,9 +73,7 @@ where
     handler: Box<ActorHandlerFn<AnyMessage, MF>>,
     receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
     extensions: Extensions,
-    process_registry: ArcShared<
-      ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>,
-    >,
+    process_registry: ActorCellProcessRegistryShared<MF>,
   ) -> Self {
     let mut cell = Self {
       actor_id,
@@ -151,7 +151,7 @@ where
     self.watchers.clear();
   }
 
-  pub(super) fn should_mark_stop_for_message() -> bool {
+  pub(super) const fn should_mark_stop_for_message() -> bool {
     true
   }
 
@@ -229,7 +229,7 @@ where
     MailboxHandle::signal(&self.mailbox)
   }
 
-  pub(crate) fn is_stopped(&self) -> bool {
+  pub(crate) const fn is_stopped(&self) -> bool {
     self.stopped
   }
 
@@ -332,7 +332,10 @@ where
         for spec in pending_specs.into_iter() {
           self.register_child_from_spec(spec, guardian, new_children).map_err(|err| match err {
             | SpawnError::Queue(queue_err) => queue_err,
-            | SpawnError::NameExists(name) => panic!("unexpected named spawn conflict: {name}"),
+            | SpawnError::NameExists(name) => {
+              debug_assert!(false, "unexpected named spawn conflict: {name}");
+              QueueError::Disconnected
+            },
           })?;
         }
         if should_stop {
@@ -378,7 +381,7 @@ where
       &parent_path,
       child_naming,
     )?;
-    let control_handle = ArcShared::new(control_ref.clone());
+    let control_handle = ArcShared::new(control_ref);
     let pid =
       self.process_registry.with_ref(|registry| registry.register_local(actor_path.clone(), control_handle.clone()));
     {

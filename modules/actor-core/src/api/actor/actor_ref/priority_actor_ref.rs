@@ -64,16 +64,22 @@ where
 {
   /// Wraps a mailbox producer handle.
   #[must_use]
-  pub fn new(sender: MF::Producer<PriorityEnvelope<M>>) -> Self {
+  pub const fn new(sender: MF::Producer<PriorityEnvelope<M>>) -> Self {
     Self { sender }
   }
 
   /// Sends a message with the specified priority to the mailbox.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox rejects the message.
   pub fn try_send_with_priority(&self, message: M, priority: i8) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.sender.try_send(PriorityEnvelope::new(message, priority))
   }
 
   /// Sends a control-channel message with the specified priority.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox rejects the message.
   pub fn try_send_control_with_priority(
     &self,
     message: M,
@@ -83,13 +89,16 @@ where
   }
 
   /// Sends a pre-built priority envelope.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox rejects the message.
   pub fn try_send_envelope(&self, envelope: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.sender.try_send(envelope)
   }
 
   /// Returns the raw producer handle kept by the reference.
   #[must_use]
-  pub fn sender(&self) -> &MF::Producer<PriorityEnvelope<M>> {
+  pub const fn sender(&self) -> &MF::Producer<PriorityEnvelope<M>> {
     &self.sender
   }
 }
@@ -100,6 +109,9 @@ where
   MF::Producer<PriorityEnvelope<SystemMessage>>: Clone,
 {
   /// Sends a system message via the reference.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox rejects the message.
   pub fn try_send_system(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<SystemMessage>>> {
     self.sender.try_send(PriorityEnvelope::from_system(message))
   }

@@ -38,6 +38,7 @@ where
   /// # Returns
   ///
   /// A new queue instance using the Tokio unbounded channel backend
+  #[must_use]
   pub fn new() -> Self {
     Self::with_tokio()
   }
@@ -47,6 +48,7 @@ where
   /// # Returns
   ///
   /// A new queue instance using the Tokio unbounded channel backend
+  #[must_use]
   pub fn with_tokio() -> Self {
     Self::from_backend(TokioUnboundedMpscBackend::new())
   }
@@ -56,6 +58,7 @@ where
   /// # Returns
   ///
   /// A new queue instance using the ring buffer backend
+  #[must_use]
   pub fn with_ring_buffer() -> Self {
     let backend = RingBufferBackend::new(Mutex::new(MpscBuffer::new(None)));
     Self::from_backend(backend)

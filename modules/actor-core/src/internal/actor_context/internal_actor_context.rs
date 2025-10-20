@@ -20,6 +20,9 @@ use crate::{
   internal::{actor::InternalProps, actor_context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
 };
 
+type ActorProcessRegistryShared<MF> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 /// Context for actors to operate on themselves and child actors.
 pub struct InternalActorContext<'a, MF>
 where
@@ -36,8 +39,7 @@ where
   actor_path:       ActorPath,
   actor_id:         ActorId,
   pid:              Pid,
-  process_registry:
-    ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>,
+  process_registry: ActorProcessRegistryShared<MF>,
   watchers:         &'a mut Vec<ActorId>,
   current_priority: Option<i8>,
   receive_timeout:  Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
@@ -59,9 +61,7 @@ where
     actor_path: ActorPath,
     actor_id: ActorId,
     pid: Pid,
-    process_registry: ArcShared<
-      ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>,
-    >,
+    process_registry: ActorProcessRegistryShared<MF>,
     watchers: &'a mut Vec<ActorId>,
     receive_timeout: Option<&'a RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
     extensions: Extensions,
@@ -97,12 +97,13 @@ where
     self.extensions.with::<E, _, _>(id, f)
   }
 
+  #[allow(clippy::missing_const_for_fn)]
   pub fn mailbox_factory(&self) -> &MF {
     self.mailbox_factory
   }
 
   #[allow(dead_code)]
-  pub(crate) fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<AnyMessage, MF> {
+  pub(crate) const fn mailbox_spawner(&self) -> &PriorityMailboxSpawnerHandle<AnyMessage, MF> {
     &self.mailbox_spawner
   }
 
@@ -111,25 +112,23 @@ where
     self.supervisor
   }
 
-  pub fn actor_id(&self) -> ActorId {
+  pub const fn actor_id(&self) -> ActorId {
     self.actor_id
   }
 
-  pub fn actor_path(&self) -> &ActorPath {
+  pub const fn actor_path(&self) -> &ActorPath {
     &self.actor_path
   }
 
-  pub fn watchers(&self) -> &[ActorId] {
+  pub const fn watchers(&self) -> &[ActorId] {
     self.watchers.as_slice()
   }
 
-  pub fn pid(&self) -> &Pid {
+  pub const fn pid(&self) -> &Pid {
     &self.pid
   }
 
-  pub fn process_registry(
-    &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>> {
+  pub fn process_registry(&self) -> ActorProcessRegistryShared<MF> {
     self.process_registry.clone()
   }
 
@@ -193,7 +192,7 @@ where
     self.enqueue_spawn(supervisor, options, map_system, handler, pid_slot)
   }
 
-  pub fn current_priority(&self) -> Option<i8> {
+  pub const fn current_priority(&self) -> Option<i8> {
     self.current_priority
   }
 
@@ -220,15 +219,17 @@ where
     self.sender.try_send(envelope)
   }
 
+  #[allow(clippy::missing_const_for_fn)]
   pub(crate) fn enter_priority(&mut self, priority: i8) {
     self.current_priority = Some(priority);
   }
 
+  #[allow(clippy::missing_const_for_fn)]
   pub(crate) fn exit_priority(&mut self) {
     self.current_priority = None;
   }
 
-  pub fn has_receive_timeout_scheduler(&self) -> bool {
+  pub const fn has_receive_timeout_scheduler(&self) -> bool {
     self.receive_timeout.is_some()
   }
 

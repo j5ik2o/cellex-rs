@@ -9,15 +9,16 @@ use crate::api::{failure_telemetry::FailureTelemetryShared, supervision::failure
 pub const MAX_FAILURE_SNAPSHOT_TAGS: usize = 8;
 
 /// Returns the default telemetry implementation for the current build configuration.
+#[must_use]
 pub fn default_failure_telemetry_shared() -> FailureTelemetryShared {
   #[cfg(all(feature = "std", feature = "unwind-supervision"))]
   {
-    return tracing_failure_telemetry();
+    tracing_failure_telemetry()
   }
 
   #[cfg(not(all(feature = "std", feature = "unwind-supervision")))]
   {
-    return super::noop_failure_telemetry::noop_failure_telemetry_shared();
+    super::noop_failure_telemetry::noop_failure_telemetry_shared()
   }
 }
 

@@ -7,6 +7,9 @@ pub trait MailboxProducer<M>: Clone
 where
   M: Element, {
   /// Attempts to enqueue a message without waiting.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox cannot accept the message.
   fn try_send(&self, message: M) -> Result<(), QueueError<M>>;
 
   /// Injects a metrics sink for enqueue instrumentation. Default: no-op.

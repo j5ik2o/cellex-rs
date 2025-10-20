@@ -62,6 +62,7 @@ where
   MF::Signal: Clone,
 {
   /// Returns a builder configured to create ready-queue-based schedulers.
+  #[must_use]
   pub fn ready_queue() -> Self {
     Self::new(|mailbox_factory, extensions| Box::new(ReadyQueueScheduler::new(mailbox_factory, extensions)))
   }

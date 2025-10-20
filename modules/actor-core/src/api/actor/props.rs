@@ -54,15 +54,12 @@ where
   where
     F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
     let handler_cell = ArcShared::new(Mutex::new(handler));
-    Self::with_behavior({
+    Self::with_behavior(move || {
       let handler_cell = handler_cell.clone();
-      move || {
-        let handler_cell = handler_cell.clone();
-        Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
-          let mut guard = handler_cell.lock();
-          (guard)(ctx, msg)
-        })
-      }
+      Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
+        let mut guard = handler_cell.lock();
+        (guard)(ctx, msg)
+      })
     })
   }
 
@@ -87,15 +84,12 @@ where
     G: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
     let handler_cell = ArcShared::new(Mutex::new(user_handler));
     Self::with_behavior_and_system(
-      {
+      move || {
         let handler_cell = handler_cell.clone();
-        move || {
-          let handler_cell = handler_cell.clone();
-          Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
-            let mut guard = handler_cell.lock();
-            (guard)(ctx, msg)
-          })
-        }
+        Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
+          let mut guard = handler_cell.lock();
+          (guard)(ctx, msg)
+        })
       },
       system_handler,
     )
@@ -136,6 +130,7 @@ where
 
   /// Overrides the mailbox options for this `Props`.
   #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn with_mailbox_options(mut self, options: MailboxOptions) -> Self {
     self.inner.options = options;
     self

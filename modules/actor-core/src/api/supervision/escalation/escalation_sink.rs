@@ -36,5 +36,9 @@ where
   /// # Returns
   ///
   /// `Ok(())` on success, `Err(FailureInfo)` if processing failed
+  ///
+  /// # Errors
+  /// Returns [`FailureInfo`] when the sink rejects the escalation request and propagates it
+  /// back to the caller for further handling.
   fn handle(&mut self, info: FailureInfo, already_handled: bool) -> Result<(), FailureInfo>;
 }

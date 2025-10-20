@@ -14,7 +14,7 @@ impl<U> UserMessage<U> {
   ///
   /// # Arguments
   /// * `message` - User message
-  pub fn new(message: U) -> Self {
+  pub const fn new(message: U) -> Self {
     Self { message: ManuallyDrop::new(message), metadata: None }
   }
 
@@ -41,7 +41,7 @@ impl<U> UserMessage<U> {
   /// # Returns
   /// Reference to the user message
   pub fn message(&self) -> &U {
-    &*self.message
+    &self.message
   }
 
   /// Decomposes into message and metadata key.

@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use cellex_utils_core_rs::{
   PriorityMessage, PriorityQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, PRIORITY_LEVELS,
 };

@@ -1,3 +1,5 @@
+#![allow(clippy::disallowed_types)]
+
 use super::StaticRefShared;
 use crate::sync::shared::SharedDyn;
 

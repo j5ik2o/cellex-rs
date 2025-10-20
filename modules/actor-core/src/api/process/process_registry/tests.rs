@@ -1,3 +1,6 @@
+#![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
 
@@ -19,9 +22,10 @@ fn register_and_resolve_local() {
   let registry: ProcessRegistry<u32, usize> = ProcessRegistry::new(SystemId::new("sys"), None);
   let pid = registry.register_local(sample_path(), ArcShared::new(10));
 
-  match registry.resolve_pid(&pid) {
-    | ProcessResolution::Local(handle) => assert_eq!(*handle, 10),
-    | other => panic!("unexpected resolution: {other:?}"),
+  let resolution = registry.resolve_pid(&pid);
+  assert!(matches!(resolution, ProcessResolution::Local(_)), "unexpected resolution: {resolution:?}");
+  if let ProcessResolution::Local(handle) = resolution {
+    assert_eq!(*handle, 10);
   }
 }
 

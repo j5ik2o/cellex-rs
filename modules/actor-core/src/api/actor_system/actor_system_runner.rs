@@ -37,18 +37,18 @@ where
 {
   /// Gets the number of ReadyQueue workers to spawn when driving the system.
   #[must_use]
-  pub fn ready_queue_worker_count(&self) -> NonZeroUsize {
+  pub const fn ready_queue_worker_count(&self) -> NonZeroUsize {
     self.ready_queue_worker_count
   }
 
   /// Updates the ReadyQueue worker count in place.
-  pub fn set_ready_queue_worker_count(&mut self, worker_count: NonZeroUsize) {
+  pub const fn set_ready_queue_worker_count(&mut self, worker_count: NonZeroUsize) {
     self.ready_queue_worker_count = worker_count;
   }
 
   /// Returns a new runner with the specified ReadyQueue worker count.
   #[must_use]
-  pub fn with_ready_queue_worker_count(mut self, worker_count: NonZeroUsize) -> Self {
+  pub const fn with_ready_queue_worker_count(mut self, worker_count: NonZeroUsize) -> Self {
     self.set_ready_queue_worker_count(worker_count);
     self
   }
@@ -69,6 +69,7 @@ where
   ///
   /// # Returns
   /// Clone of the shutdown token
+  #[must_use]
   pub fn shutdown_token(&self) -> ShutdownToken {
     self.system.shutdown.clone()
   }
@@ -79,6 +80,9 @@ where
   ///
   /// # Returns
   /// `Infallible` (does not terminate normally) or queue error
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue processing fails.
   pub async fn run_forever(mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.system.run_forever().await
   }
@@ -89,6 +93,9 @@ where
   ///
   /// # Returns
   /// `Infallible` (does not terminate normally) or queue error
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue processing fails.
   pub async fn into_future(self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.run_forever().await
   }
@@ -97,6 +104,7 @@ where
   ///
   /// # Returns
   /// Internal actor system
+  #[must_use]
   pub fn into_inner(self) -> ActorSystem<U, AR, Strat> {
     self.system
   }

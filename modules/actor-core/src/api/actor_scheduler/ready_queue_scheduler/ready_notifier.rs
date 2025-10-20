@@ -9,7 +9,7 @@ pub(crate) struct ReadyNotifier {
 }
 
 impl ReadyNotifier {
-  pub(crate) fn new(state: ArcShared<Mutex<ReadyQueueState>>, index: usize) -> Self {
+  pub(crate) const fn new(state: ArcShared<Mutex<ReadyQueueState>>, index: usize) -> Self {
     Self { state, index }
   }
 }

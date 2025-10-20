@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use std::{task::Context, time::Duration};
 
 use futures::task::noop_waker_ref;

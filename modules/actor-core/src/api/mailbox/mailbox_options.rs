@@ -19,6 +19,7 @@ impl MailboxOptions {
   ///
   /// # Arguments
   /// - `capacity`: Capacity for regular message queue
+  #[must_use]
   pub const fn with_capacity(capacity: usize) -> Self {
     Self { capacity: QueueSize::limited(capacity), priority_capacity: QueueSize::limitless() }
   }
@@ -28,6 +29,7 @@ impl MailboxOptions {
   /// # Arguments
   /// - `capacity`: Capacity for regular message queue
   /// - `priority_capacity`: Capacity for priority message queue
+  #[must_use]
   pub const fn with_capacities(capacity: QueueSize, priority_capacity: QueueSize) -> Self {
     Self { capacity, priority_capacity }
   }
@@ -36,12 +38,14 @@ impl MailboxOptions {
   ///
   /// # Arguments
   /// - `priority_capacity`: Capacity for priority message queue
+  #[must_use]
   pub const fn with_priority_capacity(mut self, priority_capacity: QueueSize) -> Self {
     self.priority_capacity = priority_capacity;
     self
   }
 
   /// Creates mailbox options with unlimited capacity.
+  #[must_use]
   pub const fn unbounded() -> Self {
     Self { capacity: QueueSize::limitless(), priority_capacity: QueueSize::limitless() }
   }

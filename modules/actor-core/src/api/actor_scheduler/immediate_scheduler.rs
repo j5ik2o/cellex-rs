@@ -6,9 +6,7 @@ use cellex_utils_core_rs::QueueError;
 
 use crate::api::{
   actor::{actor_ref::PriorityActorRef, SpawnError},
-  actor_scheduler::{
-    actor_scheduler::ActorScheduler, ready_queue_scheduler::ReadyQueueScheduler, ActorSchedulerSpawnContext,
-  },
+  actor_scheduler::{ready_queue_scheduler::ReadyQueueScheduler, ActorScheduler, ActorSchedulerSpawnContext},
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
   failure_telemetry::FailureTelemetryShared,

@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use std::hint::black_box;
 
 use cellex_actor_core_rs::api::{

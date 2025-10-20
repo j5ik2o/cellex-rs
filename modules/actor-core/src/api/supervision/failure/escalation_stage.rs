@@ -16,6 +16,7 @@ impl EscalationStage {
   ///
   /// # Returns
   /// `EscalationStage::Initial` instance
+  #[must_use]
   pub const fn initial() -> Self {
     EscalationStage::Initial
   }
@@ -24,7 +25,8 @@ impl EscalationStage {
   ///
   /// # Returns
   /// Number of propagations. Returns 0 for `Initial`.
-  pub fn hops(self) -> u8 {
+  #[must_use]
+  pub const fn hops(self) -> u8 {
     match self {
       | EscalationStage::Initial => 0,
       | EscalationStage::Escalated { hops } => hops,
@@ -35,6 +37,7 @@ impl EscalationStage {
   ///
   /// # Returns
   /// `true` if initial stage, `false` otherwise
+  #[must_use]
   pub const fn is_initial(self) -> bool {
     matches!(self, EscalationStage::Initial)
   }
@@ -45,7 +48,8 @@ impl EscalationStage {
   /// New escalated `EscalationStage` instance.
   /// Returns `Escalated { hops: 1 }` for `Initial`,
   /// or a new instance with `hops` incremented by 1 for `Escalated`.
-  pub fn escalate(self) -> Self {
+  #[must_use]
+  pub const fn escalate(self) -> Self {
     match self {
       | EscalationStage::Initial => EscalationStage::Escalated { hops: 1 },
       | EscalationStage::Escalated { hops } => {

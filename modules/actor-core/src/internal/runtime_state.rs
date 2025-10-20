@@ -40,6 +40,7 @@ where
 
   /// Returns a reference to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub(crate) fn mailbox_factory(&self) -> &MF {
     &self.mailbox_factory
   }

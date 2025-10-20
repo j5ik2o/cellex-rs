@@ -27,7 +27,7 @@ where
   S: MailboxSignal,
   M: Element,
 {
-  pub(super) fn new(mailbox: &'a QueueMailbox<Q, S>) -> Self {
+  pub(super) const fn new(mailbox: &'a QueueMailbox<Q, S>) -> Self {
     Self { mailbox, wait: None, marker: PhantomData }
   }
 }

@@ -15,7 +15,8 @@ pub struct TestSignalWait<'a> {
 
 impl<'a> TestSignalWait<'a> {
   /// Creates a wait future from the given signal.
-  pub fn new(signal: TestSignal) -> Self {
+  #[must_use]
+  pub const fn new(signal: TestSignal) -> Self {
     Self { signal, _marker: PhantomData }
   }
 }

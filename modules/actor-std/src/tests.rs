@@ -25,12 +25,14 @@ use spin::RwLock;
 
 use super::*;
 
+type TestResult<T = ()> = Result<T, String>;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Message {
   System(SystemMessage),
 }
 
-async fn run_test_actor_loop_updates_state() {
+async fn run_test_actor_loop_updates_state() -> TestResult {
   let (mailbox, sender) = TokioMailbox::new(8);
   let mailbox = Arc::new(mailbox);
   let state = ArcStateCell::new(0_u32);
@@ -49,23 +51,24 @@ async fn run_test_actor_loop_updates_state() {
     .await;
   });
 
-  sender.send(4_u32).expect("send message");
+  sender.send(4_u32).map_err(|err| format!("send message: {:?}", err))?;
   tokio::time::sleep(Duration::from_millis(10)).await;
 
   assert_eq!(*state.borrow(), 4_u32);
+  Ok(())
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn test_actor_loop_updates_state() {
-  run_test_actor_loop_updates_state().await;
+async fn test_actor_loop_updates_state() -> TestResult {
+  run_test_actor_loop_updates_state().await
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn test_actor_loop_updates_state_multi_thread() {
-  run_test_actor_loop_updates_state().await;
+async fn test_actor_loop_updates_state_multi_thread() -> TestResult {
+  run_test_actor_loop_updates_state().await
 }
 
-async fn run_typed_actor_system_handles_user_messages() {
+async fn run_typed_actor_system_handles_user_messages() -> TestResult {
   let mut system: ActorSystem<u32, _> =
     ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(TokioMailboxRuntime), ActorSystemConfig::default());
 
@@ -73,20 +76,21 @@ async fn run_typed_actor_system_handles_user_messages() {
   let log_clone = log.clone();
 
   let props = Props::new(move |_, msg: u32| {
-    log_clone.lock().unwrap().push(msg);
+    log_clone.lock().unwrap_or_else(|err| err.into_inner()).push(msg);
     Ok(())
   });
 
   let mut root = system.root_context();
-  let actor_ref = root.spawn(props).expect("spawn typed actor");
+  let actor_ref = root.spawn(props).map_err(|err| format!("spawn typed actor: {:?}", err))?;
 
-  actor_ref.tell(99).expect("tell");
-  root.dispatch_next().await.expect("dispatch next");
+  actor_ref.tell(99).map_err(|err| format!("tell: {:?}", err))?;
+  root.dispatch_next().await.map_err(|err| format!("dispatch next: {:?}", err))?;
 
-  assert_eq!(log.lock().unwrap().as_slice(), &[99]);
+  assert_eq!(log.lock().unwrap_or_else(|err| err.into_inner()).as_slice(), &[99]);
+  Ok(())
 }
 
-async fn run_receive_timeout_triggers() {
+async fn run_receive_timeout_triggers() -> TestResult {
   let mailbox_factory = TokioMailboxRuntime;
   let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
   config.set_receive_timeout_scheduler_factory_shared_opt(Some(ReceiveTimeoutSchedulerFactoryShared::new(
@@ -107,41 +111,42 @@ async fn run_receive_timeout_triggers() {
       let timeout_clone = timeout_log.clone();
       move |_: &mut ActorContext<'_, '_, u32, TokioActorRuntime>, sys: SystemMessage| {
         if matches!(sys, SystemMessage::ReceiveTimeout) {
-          timeout_clone.lock().unwrap().push(sys);
+          timeout_clone.lock().unwrap_or_else(|err| err.into_inner()).push(sys);
         }
       }
     }),
   );
 
   let mut root = system.root_context();
-  let actor_ref = root.spawn(props).expect("spawn receive-timeout actor");
+  let actor_ref = root.spawn(props).map_err(|err| format!("spawn receive-timeout actor: {:?}", err))?;
 
-  actor_ref.tell(1).expect("tell");
-  root.dispatch_next().await.expect("dispatch user");
+  actor_ref.tell(1).map_err(|err| format!("tell: {:?}", err))?;
+  root.dispatch_next().await.map_err(|err| format!("dispatch user: {:?}", err))?;
 
   tokio::time::sleep(Duration::from_millis(30)).await;
-  root.dispatch_next().await.expect("dispatch timeout");
+  root.dispatch_next().await.map_err(|err| format!("dispatch timeout: {:?}", err))?;
 
-  let log = timeout_log.lock().unwrap();
+  let log = timeout_log.lock().unwrap_or_else(|err| err.into_inner());
   assert!(!log.is_empty(), "ReceiveTimeout が少なくとも 1 回は発火する想定");
   assert!(
     log.iter().all(|sys| matches!(sys, SystemMessage::ReceiveTimeout)),
     "ReceiveTimeout 以外のシグナルは届かない想定"
   );
+  Ok(())
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn typed_actor_system_handles_user_messages() {
-  run_typed_actor_system_handles_user_messages().await;
+async fn typed_actor_system_handles_user_messages() -> TestResult {
+  run_typed_actor_system_handles_user_messages().await
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn typed_actor_system_handles_user_messages_multi_thread() {
-  run_typed_actor_system_handles_user_messages().await;
+async fn typed_actor_system_handles_user_messages_multi_thread() -> TestResult {
+  run_typed_actor_system_handles_user_messages().await
 }
 
 #[tokio::test]
-async fn tokio_scheduler_builder_dispatches() {
+async fn tokio_scheduler_builder_dispatches() -> TestResult {
   let bundle: TokioActorRuntime = tokio_actor_runtime();
   let mailbox_factory = bundle.mailbox_factory().clone();
   let mut scheduler = tokio_scheduler_builder().build(mailbox_factory.clone(), Extensions::new());
@@ -154,13 +159,12 @@ async fn tokio_scheduler_builder_dispatches() {
   let pid_slot = ArcShared::new(RwLock::new(None::<Pid>));
   let context = ActorSchedulerSpawnContext {
     mailbox_factory: mailbox_factory.clone(),
-    mailbox_factory_shared: mailbox_factory_shared,
+    mailbox_factory_shared,
     map_system: MapSystemShared::new(|sys| AnyMessage::new(MessageEnvelope::<Message>::System(sys))),
     mailbox_options: MailboxOptions::default(),
     handler: Box::new(move |_, msg: AnyMessage| {
-      let envelope = msg.downcast::<MessageEnvelope<Message>>().expect("unexpected message type");
-      if let MessageEnvelope::System(system) = envelope {
-        log_clone.lock().unwrap().push(Message::System(system));
+      if let Ok(MessageEnvelope::System(system)) = msg.downcast::<MessageEnvelope<Message>>() {
+        log_clone.lock().unwrap_or_else(|err| err.into_inner()).push(Message::System(system));
       }
       Ok(())
     }),
@@ -169,11 +173,14 @@ async fn tokio_scheduler_builder_dispatches() {
     actor_pid_slot: pid_slot,
   };
 
-  scheduler.spawn_actor(Box::new(NoopSupervisor), context).unwrap();
+  scheduler.spawn_actor(Box::new(NoopSupervisor), context).map_err(|err| format!("spawn actor: {:?}", err))?;
 
-  scheduler.dispatch_next().await.unwrap();
+  scheduler.dispatch_next().await.map_err(|err| format!("dispatch next: {:?}", err))?;
 
-  assert_eq!(log.lock().unwrap().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
+  assert_eq!(log.lock().unwrap_or_else(|err| err.into_inner()).as_slice(), &[Message::System(SystemMessage::Watch(
+    ActorId::ROOT
+  ))]);
+  Ok(())
 }
 
 #[test]
@@ -188,11 +195,11 @@ fn tokio_bundle_sets_default_receive_timeout_factory() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn receive_timeout_triggers() {
-  run_receive_timeout_triggers().await;
+async fn receive_timeout_triggers() -> TestResult {
+  run_receive_timeout_triggers().await
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn receive_timeout_triggers_multi_thread() {
-  run_receive_timeout_triggers().await;
+async fn receive_timeout_triggers_multi_thread() -> TestResult {
+  run_receive_timeout_triggers().await
 }

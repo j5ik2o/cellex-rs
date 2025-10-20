@@ -13,6 +13,7 @@ pub struct TokioBoundedMpscBackend<T> {
 
 impl<T> TokioBoundedMpscBackend<T> {
   /// Creates a bounded Tokio MPSC backend with the specified per-level capacity.
+  #[must_use]
   pub fn new(capacity: usize) -> Self {
     let (sender, receiver) = mpsc::channel(capacity);
     Self { sender, receiver: Mutex::new(receiver), capacity }

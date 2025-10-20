@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use core::ops::Deref;
 
 /// Shared ownership abstraction used across runtimes.

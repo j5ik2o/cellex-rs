@@ -16,16 +16,19 @@ pub struct TestMailboxFactory {
 
 impl TestMailboxFactory {
   /// Creates a runtime with an optional global capacity shared by all queues.
+  #[must_use]
   pub const fn new(capacity: Option<usize>) -> Self {
     Self { capacity }
   }
 
   /// Creates a runtime that enforces the same capacity for every mailbox queue.
+  #[must_use]
   pub const fn with_capacity_per_queue(capacity: usize) -> Self {
     Self::new(Some(capacity))
   }
 
   /// Creates an unbounded runtime that lets queue options decide the capacity.
+  #[must_use]
   pub fn unbounded() -> Self {
     Self::default()
   }

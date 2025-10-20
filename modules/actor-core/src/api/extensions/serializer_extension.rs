@@ -92,13 +92,13 @@ impl SerializerRegistryExtension {
 
   /// Returns a reference to the underlying registry.
   #[must_use]
-  pub fn registry(&self) -> &InMemorySerializerRegistry {
+  pub const fn registry(&self) -> &InMemorySerializerRegistry {
     &self.registry
   }
 
   /// Returns the binding registry used by the router.
   #[must_use]
-  pub fn bindings(&self) -> &TypeBindingRegistry {
+  pub const fn bindings(&self) -> &TypeBindingRegistry {
     &self.bindings
   }
 
@@ -109,6 +109,9 @@ impl SerializerRegistryExtension {
   }
 
   /// Registers a serializer implementation, returning an error when the ID clashes.
+  ///
+  /// # Errors
+  /// Returns [`RegistryError`] when an identical serializer identifier is already registered.
   pub fn register_serializer<S>(&self, serializer: ArcShared<S>) -> Result<(), RegistryError>
   where
     S: Serializer + 'static, {
@@ -116,6 +119,9 @@ impl SerializerRegistryExtension {
   }
 
   /// Binds the provided key to the specified serializer identifier.
+  ///
+  /// # Errors
+  /// Returns [`BindingError`] when the key cannot be associated with the serializer identifier.
   pub fn bind_key<K>(&self, key: K, serializer: SerializerId) -> Result<(), BindingError>
   where
     K: Into<String>, {
@@ -123,6 +129,9 @@ impl SerializerRegistryExtension {
   }
 
   /// Binds the [`TypeKey::KEY`] of `T` to the specified serializer identifier.
+  ///
+  /// # Errors
+  /// Returns [`BindingError`] when the type key binding fails.
   pub fn bind_type<T>(&self, serializer: SerializerId) -> Result<(), BindingError>
   where
     T: TypeKey, {
@@ -130,6 +139,10 @@ impl SerializerRegistryExtension {
   }
 
   /// Binds `T` using its [`TypeKey::default_serializer`] when available.
+  ///
+  /// # Errors
+  /// Returns [`BindingError`] when binding the type key fails or no default serializer is
+  /// available.
   pub fn bind_type_with_default<T>(&self) -> Result<(), BindingError>
   where
     T: TypeKey, {
@@ -138,6 +151,12 @@ impl SerializerRegistryExtension {
     } else {
       Ok(())
     }
+  }
+}
+
+impl Default for SerializerRegistryExtension {
+  fn default() -> Self {
+    Self::new()
   }
 }
 

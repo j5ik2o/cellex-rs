@@ -126,6 +126,9 @@ where
   /// # Returns
   ///
   /// Future for receiving the response, or an error
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when sending the request fails.
   pub fn request_future<V, Resp>(&self, target: &ActorRef<V, AR>, message: V) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
@@ -145,6 +148,9 @@ where
   /// # Returns
   ///
   /// Future for receiving the response with timeout, or an error
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when sending the request fails.
   pub fn request_future_with_timeout<V, Resp, TFut>(
     &self,
     target: &ActorRef<V, AR>,
@@ -169,6 +175,8 @@ where
   ///
   /// Deprecated since version 3.1.0. Use `dispatch_next` or `run_until` instead.
   #[deprecated(since = "3.1.0", note = "Use dispatch_next or run_until instead")]
+  /// # Errors
+  /// Returns [`QueueError`] when the underlying scheduler reports a mailbox failure.
   pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     #[allow(deprecated)]
     self.inner.dispatch_all()
@@ -179,11 +187,14 @@ where
   /// # Returns
   ///
   /// `Ok(())` on success, `Err` if a mailbox error occurs
+  /// # Errors
+  /// Returns [`QueueError`] when the underlying scheduler reports a mailbox failure.
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await
   }
 
   /// Returns the extension registry associated with the actor system.
+  #[must_use]
   pub fn extensions(&self) -> Extensions {
     self.inner.extensions()
   }

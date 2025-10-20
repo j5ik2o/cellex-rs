@@ -26,12 +26,14 @@ impl<Q, S> QueueMailbox<Q, S> {
   }
 
   /// Gets a reference to the internal queue.
-  pub fn queue(&self) -> &Q {
+  #[must_use]
+  pub const fn queue(&self) -> &Q {
     &self.queue
   }
 
   /// Gets a reference to the internal signal.
-  pub fn signal(&self) -> &S {
+  #[must_use]
+  pub const fn signal(&self) -> &S {
     &self.signal
   }
 

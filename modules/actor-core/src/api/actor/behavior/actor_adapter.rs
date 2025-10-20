@@ -33,6 +33,9 @@ where
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Creates a new `ActorAdapter`.
+  ///
+  /// # Errors
+  /// None. This constructor cannot fail.
   pub fn new<S>(behavior_factory: ArcShared<dyn Fn() -> Behavior<U, AR> + 'static>, system_handler: Option<S>) -> Self
   where
     S: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
@@ -45,6 +48,9 @@ where
   }
 
   /// Processes a user message.
+  ///
+  /// # Errors
+  /// Returns [`ActorFailure`] when behavior transitions fail or remain in setup state.
   pub fn handle_user(&mut self, ctx: &mut ActorContext<'_, '_, U, AR>, message: U) -> Result<(), ActorFailure> {
     self.ensure_initialized(ctx)?;
     while matches!(self.behavior, Behavior::Setup { .. }) {
@@ -64,6 +70,9 @@ where
   }
 
   /// Processes a system message.
+  ///
+  /// # Errors
+  /// Returns [`ActorFailure`] when behavior transitions fail or remain in setup state.
   pub fn handle_system(
     &mut self,
     ctx: &mut ActorContext<'_, '_, U, AR>,

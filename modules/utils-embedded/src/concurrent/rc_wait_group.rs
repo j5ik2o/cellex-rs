@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use alloc::{boxed::Box, rc::Rc};
 use core::cell::RefCell;
 

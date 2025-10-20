@@ -47,7 +47,8 @@ pub struct ProcessRegistry<T, M> {
 
 impl<T, M> ProcessRegistry<T, M> {
   /// Creates a new process registry for the given system/node combination.
-  pub fn new(system: SystemId, node: Option<NodeId>) -> Self {
+  #[must_use]
+  pub const fn new(system: SystemId, node: Option<NodeId>) -> Self {
     Self { system, node, processes: RwLock::new(BTreeMap::new()), dead_letters: RwLock::new(DeadLetterHub::new()) }
   }
 
@@ -57,13 +58,13 @@ impl<T, M> ProcessRegistry<T, M> {
 
   /// Returns the system identifier.
   #[must_use]
-  pub fn system(&self) -> &SystemId {
+  pub const fn system(&self) -> &SystemId {
     &self.system
   }
 
   /// Returns the local node identifier.
   #[must_use]
-  pub fn node(&self) -> Option<&NodeId> {
+  pub const fn node(&self) -> Option<&NodeId> {
     self.node.as_ref()
   }
 
@@ -118,11 +119,13 @@ impl<T, M> ProcessRegistry<T, M> {
         Some(handle)
       },
       | ProcessResolution::Remote => {
-        self.publish_dead_letter(DeadLetter::new(pid.clone(), message, remote_reason));
+        let letter = DeadLetter::new(pid.clone(), message, remote_reason);
+        self.publish_dead_letter(&letter);
         None
       },
       | ProcessResolution::Unresolved => {
-        self.publish_dead_letter(DeadLetter::new(pid.clone(), message, unresolved_reason));
+        let letter = DeadLetter::new(pid.clone(), message, unresolved_reason);
+        self.publish_dead_letter(&letter);
         None
       },
     }
@@ -134,9 +137,9 @@ impl<T, M> ProcessRegistry<T, M> {
   }
 
   /// Publishes a dead letter directly.
-  pub fn publish_dead_letter(&self, dead_letter: DeadLetter<M>) {
+  pub fn publish_dead_letter(&self, dead_letter: &DeadLetter<M>) {
     let hub = self.dead_letters.read();
-    hub.publish(&dead_letter);
+    hub.publish(dead_letter);
   }
 }
 

@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use alloc::format;
 
 use cellex_utils_core_rs::DEFAULT_PRIORITY;

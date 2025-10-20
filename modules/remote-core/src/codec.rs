@@ -46,13 +46,17 @@ pub enum RemotePayloadFrame {
 impl RemoteMessageFrame {
   /// Creates a new frame.
   #[must_use]
-  pub fn new(priority: i8, channel: PriorityChannel, payload: RemotePayloadFrame, reply_to: Option<Pid>) -> Self {
+  pub const fn new(priority: i8, channel: PriorityChannel, payload: RemotePayloadFrame, reply_to: Option<Pid>) -> Self {
     Self { priority, channel, payload, reply_to }
   }
 }
 
 /// Encodes a [`RemoteEnvelope`] carrying serialized user messages or system messages into a
 /// transport frame.
+///
+/// # Errors
+/// Returns [`RemoteCodecError::UnsupportedMetadata`] when the envelope carries unsupported
+/// metadata.
 pub fn frame_from_serialized_envelope(
   envelope: RemoteEnvelope<MessageEnvelope<SerializedMessage>>,
 ) -> Result<RemoteMessageFrame, RemoteCodecError> {

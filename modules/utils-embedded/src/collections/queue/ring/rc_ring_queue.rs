@@ -75,6 +75,7 @@ impl<E> RcRingQueue<E> {
   ///
   /// let queue: RcRingQueue<String> = RcRingQueue::new(100);
   /// ```
+  #[must_use]
   pub fn new(capacity: usize) -> Self {
     let storage = RcShared::new(RefCell::new(RingBuffer::new(capacity)));
     let backend: RcRingStorage<E> = RcShared::new(RingStorageBackend::new(storage));
@@ -95,6 +96,7 @@ impl<E> RcRingQueue<E> {
   ///
   /// let queue: RcRingQueue<i32> = RcRingQueue::new(10).with_dynamic(false); // Fixed capacity mode
   /// ```
+  #[must_use]
   pub fn with_dynamic(mut self, dynamic: bool) -> Self {
     self.inner = self.inner.with_dynamic(dynamic);
     self

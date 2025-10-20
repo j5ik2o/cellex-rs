@@ -41,6 +41,7 @@ where
   /// # Returns
   ///
   /// A new queue instance using the Tokio channel backend
+  #[must_use]
   pub fn new(capacity: usize) -> Self {
     Self::with_tokio(capacity)
   }
@@ -54,6 +55,7 @@ where
   /// # Returns
   ///
   /// A new queue instance using the Tokio channel backend
+  #[must_use]
   pub fn with_tokio(capacity: usize) -> Self {
     Self::from_backend(TokioBoundedMpscBackend::new(capacity))
   }
@@ -67,6 +69,7 @@ where
   /// # Returns
   ///
   /// A new queue instance using the ring buffer backend
+  #[must_use]
   pub fn with_ring_buffer(capacity: usize) -> Self {
     let backend = RingBufferBackend::new(Mutex::new(MpscBuffer::new(Some(capacity))));
     Self::from_backend(backend)

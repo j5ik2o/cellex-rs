@@ -33,12 +33,18 @@ where
   }
 
   /// Converts an external message and sends it to the target actor.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the target mailbox rejects the message.
   pub fn tell(&self, message: Ext) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let mapped = (self.adapter)(message);
     self.target.tell(mapped)
   }
 
   /// Converts an external message and sends it to the target actor with the specified priority.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the target mailbox rejects the message.
   pub fn tell_with_priority(&self, message: Ext, priority: i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let mapped = (self.adapter)(message);
     self.target.tell_with_priority(mapped, priority)
@@ -46,7 +52,7 @@ where
 
   /// Gets a reference to the target actor.
   #[must_use]
-  pub fn target(&self) -> &ActorRef<U, AR> {
+  pub const fn target(&self) -> &ActorRef<U, AR> {
     &self.target
   }
 }

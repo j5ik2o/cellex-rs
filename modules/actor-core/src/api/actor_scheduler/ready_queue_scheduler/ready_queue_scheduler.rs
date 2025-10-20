@@ -6,7 +6,6 @@ use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use spin::Mutex;
 
 use super::{
-  super::actor_scheduler::ActorScheduler,
   common::ReadyQueueSchedulerCore,
   ready_event_hook::{ReadyEventHook, ReadyQueueHandle},
   ready_notifier::ReadyNotifier,
@@ -16,7 +15,7 @@ use super::{
 };
 use crate::api::{
   actor::{actor_ref::PriorityActorRef, SpawnError},
-  actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorSchedulerSpawnContext},
+  actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
   failure_telemetry::FailureTelemetryShared,
@@ -75,6 +74,7 @@ where
   Strat: GuardianStrategy<MF>,
 {
   /// Returns a handle that exposes ready-queue controls for cooperative workers.
+  #[must_use]
   pub fn worker_handle(&self) -> ArcShared<dyn ReadyQueueWorker<MF>> {
     let shared = ArcShared::new(ReadyQueueWorkerImpl::<MF, Strat>::new(self.context.clone()));
     shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<MF>)
@@ -94,6 +94,9 @@ where
   }
 
   /// Spawns an actor and registers its mailbox with the ready queue.
+  ///
+  /// # Errors
+  /// Returns [`SpawnError`] when the guardian or mailbox initialisation fails.
   pub fn spawn_actor_internal(
     &mut self,
     supervisor: Box<dyn Supervisor<AnyMessage>>,
@@ -180,18 +183,25 @@ where
   }
 
   /// Returns the number of actors currently managed by the scheduler.
+  #[must_use]
   pub fn actor_count(&self) -> usize {
     let ctx = self.context.lock();
     ctx.actor_count()
   }
 
   /// Processes queued ready actors and reports whether more work remains.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue operations fail.
   pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut ctx = self.context.lock();
     ctx.drain_ready()
   }
 
   /// Drives the scheduler loop until the provided predicate returns `false`.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when dispatching an actor fails.
   pub async fn run_until<F>(&mut self, mut should_continue: F) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     F: FnMut() -> bool, {
@@ -202,6 +212,9 @@ where
   }
 
   /// Continuously dispatches work until an error causes the loop to terminate.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when dispatching an actor fails.
   pub async fn run_forever(&mut self) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       self.dispatch_next().await?;
@@ -209,6 +222,9 @@ where
   }
 
   /// Dispatches the next ready actor, waiting for mailbox signals when queues are empty.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when queue processing fails.
   pub async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     loop {
       {

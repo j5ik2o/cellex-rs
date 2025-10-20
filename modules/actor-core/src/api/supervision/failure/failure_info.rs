@@ -34,6 +34,7 @@ impl FailureInfo {
   ///
   /// # Returns
   /// New `FailureInfo` instance
+  #[must_use]
   pub fn new(actor: ActorId, path: ActorPath, failure: ActorFailure) -> Self {
     Self::new_with_metadata(actor, path, failure, FailureMetadata::default())
   }
@@ -48,7 +49,13 @@ impl FailureInfo {
   ///
   /// # Returns
   /// New `FailureInfo` instance
-  pub fn new_with_metadata(actor: ActorId, path: ActorPath, failure: ActorFailure, metadata: FailureMetadata) -> Self {
+  #[must_use]
+  pub const fn new_with_metadata(
+    actor: ActorId,
+    path: ActorPath,
+    failure: ActorFailure,
+    metadata: FailureMetadata,
+  ) -> Self {
     Self { actor, path, failure, metadata, stage: EscalationStage::Initial }
   }
 
@@ -59,6 +66,7 @@ impl FailureInfo {
   ///
   /// # Returns
   /// `FailureInfo` instance with metadata set
+  #[must_use]
   pub fn with_metadata(mut self, metadata: FailureMetadata) -> Self {
     self.metadata = metadata;
     self
@@ -71,7 +79,8 @@ impl FailureInfo {
   ///
   /// # Returns
   /// `FailureInfo` instance with escalation stage set
-  pub fn with_stage(mut self, stage: EscalationStage) -> Self {
+  #[must_use]
+  pub const fn with_stage(mut self, stage: EscalationStage) -> Self {
     self.stage = stage;
     self
   }
@@ -86,6 +95,7 @@ impl FailureInfo {
   ///
   /// # Returns
   /// New `FailureInfo` instance
+  #[must_use]
   pub fn from_error(actor: ActorId, path: ActorPath, failure: &ActorFailure) -> Self {
     Self::from_error_with_metadata(actor, path, failure, FailureMetadata::default())
   }
@@ -100,6 +110,7 @@ impl FailureInfo {
   ///
   /// # Returns
   /// New `FailureInfo` instance
+  #[must_use]
   pub fn from_error_with_metadata(
     actor: ActorId,
     path: ActorPath,
@@ -120,6 +131,7 @@ impl FailureInfo {
   /// # Returns
   /// `FailureInfo` instance escalated to parent actor.
   /// Returns `None` if parent doesn't exist.
+  #[must_use]
   pub fn escalate_to_parent(&self) -> Option<Self> {
     let parent_path = self.path.parent()?;
     let parent_actor = parent_path.last().unwrap_or(self.actor);
@@ -140,7 +152,7 @@ impl FailureInfo {
 
   /// Provides a reference to the wrapped `ActorFailure`.
   #[must_use]
-  pub fn actor_failure(&self) -> &ActorFailure {
+  pub const fn actor_failure(&self) -> &ActorFailure {
     &self.failure
   }
 

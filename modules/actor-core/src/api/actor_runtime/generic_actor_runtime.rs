@@ -2,7 +2,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use crate::{
   api::{
-    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_runtime::base::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ActorSchedulerHandleBuilder,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
@@ -51,7 +51,7 @@ where
       core: GenericActorRuntimeState::new(actor_runtime),
       receive_timeout_scheduler_factory_shared_opt: None,
       receive_timeout_scheduler_factory_provider_shared_opt: Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
-        NoopReceiveTimeoutSchedulerFactoryProvider::default(),
+        NoopReceiveTimeoutSchedulerFactoryProvider,
       )),
       root_event_listener_opt: None,
       root_escalation_handler_opt: None,
@@ -61,6 +61,7 @@ where
 
   /// Returns a reference to the wrapped use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   #[must_use]
+  #[allow(clippy::missing_const_for_fn)]
   pub fn mailbox_factory(&self) -> &MF {
     self.core.mailbox_factory()
   }
@@ -107,7 +108,7 @@ where
 
   /// Sets the receive-timeout driver and returns the updated bundle.
   #[must_use]
-  pub fn with_receive_timeout_driver(
+  pub fn with_receive_timeout_scheduler_factory_provider_shared_opt(
     mut self,
     driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<MF>>>,
   ) -> Self {
@@ -252,7 +253,7 @@ where
     self,
     driver: Option<ReceiveTimeoutSchedulerFactoryProviderShared<Self::MailboxFactory>>,
   ) -> Self {
-    GenericActorRuntime::with_receive_timeout_driver(self, driver)
+    GenericActorRuntime::with_receive_timeout_scheduler_factory_provider_shared_opt(self, driver)
   }
 
   fn root_event_listener_opt(&self) -> Option<FailureEventListener> {

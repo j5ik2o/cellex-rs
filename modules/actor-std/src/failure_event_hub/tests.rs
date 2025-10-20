@@ -12,8 +12,7 @@ use super::*;
 
 impl FailureEventHub {
   fn listener_count(&self) -> usize {
-    let guard = self.inner.listeners.lock().unwrap();
-    guard.len()
+    self.inner.lock_listeners().len()
   }
 }
 
@@ -24,7 +23,7 @@ fn hub_forwards_events_to_subscribers() {
   let storage_clone = storage.clone();
 
   let _sub = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
-    storage_clone.lock().unwrap().push(event);
+    storage_clone.lock().unwrap_or_else(|err| err.into_inner()).push(event);
   }));
 
   let listener = hub.listener();
@@ -36,7 +35,7 @@ fn hub_forwards_events_to_subscribers() {
   ));
   listener(event.clone());
 
-  let events = storage.lock().unwrap();
+  let events = storage.lock().unwrap_or_else(|err| err.into_inner());
   assert_eq!(events.len(), 1);
   match &events[0] {
     | FailureEvent::RootEscalated(info) => assert_eq!(info.description().as_ref(), "boom"),

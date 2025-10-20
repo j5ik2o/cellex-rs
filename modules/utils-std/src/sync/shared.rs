@@ -47,7 +47,7 @@ impl<T: ?Sized> ArcShared<T> {
   /// # Returns
   ///
   /// An `ArcShared` instance wrapping the `Arc`
-  pub fn from_arc(inner: Arc<T>) -> Self {
+  pub const fn from_arc(inner: Arc<T>) -> Self {
     Self(inner)
   }
 
@@ -56,6 +56,7 @@ impl<T: ?Sized> ArcShared<T> {
   /// # Returns
   ///
   /// The internal `Arc` instance
+  #[must_use]
   pub fn into_arc(self) -> Arc<T> {
     self.0
   }

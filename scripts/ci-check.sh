@@ -32,10 +32,16 @@ log_step() {
 }
 
 run_cargo() {
+  local -a cmd
   if [[ -n "${DEFAULT_TOOLCHAIN}" ]]; then
-    cargo "+${DEFAULT_TOOLCHAIN}" "$@"
+    cmd=(cargo "+${DEFAULT_TOOLCHAIN}" "$@")
   else
-    cargo "$@"
+    cmd=(cargo "$@")
+  fi
+
+  if ! "${cmd[@]}"; then
+    echo "error: ${cmd[*]}" >&2
+    return 1
   fi
 }
 
@@ -73,7 +79,6 @@ run_dylint() {
     "type-per-file-lint:lints/type-per-file-lint"
     "tests-location-lint:lints/tests-location-lint"
     "use-placement-lint:lints/use-placement-lint"
-    "mod-reexport-lint:lints/mod-reexport-lint"
     "rustdoc-lint:lints/rustdoc-lint"
   )
 

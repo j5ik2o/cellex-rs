@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use cellex_utils_core_rs::{
   Element, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
   RingBufferBackend,

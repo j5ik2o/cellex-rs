@@ -71,12 +71,14 @@ where
   MailboxSignalOf<AR>: Clone,
 {
   /// Sets the failure event listener.
+  #[must_use]
   pub fn with_failure_event_listener_opt(mut self, listener: Option<FailureEventListener>) -> Self {
     self.failure_event_listener_opt = listener;
     self
   }
 
   /// Sets the receive-timeout factory.
+  #[must_use]
   pub fn with_receive_timeout_scheduler_factory_shared_opt(
     mut self,
     factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<AR>>>,
@@ -86,31 +88,36 @@ where
   }
 
   /// Sets the metrics sink.
+  #[must_use]
   pub fn with_metrics_sink_shared_opt(mut self, sink: Option<MetricsSinkShared>) -> Self {
     self.metrics_sink_shared_opt = sink;
     self
   }
 
   /// Sets the failure telemetry implementation.
+  #[must_use]
   pub fn with_failure_telemetry_shared_opt(mut self, telemetry: Option<FailureTelemetryShared>) -> Self {
     self.failure_telemetry_shared_opt = telemetry;
     self
   }
 
   /// Sets the failure telemetry builder implementation.
+  #[must_use]
   pub fn with_failure_telemetry_builder_shared_opt(mut self, builder: Option<FailureTelemetryBuilderShared>) -> Self {
     self.failure_telemetry_builder_shared_opt = builder;
     self
   }
 
   /// Sets telemetry observation configuration.
+  #[must_use]
   pub fn with_failure_observation_config_opt(mut self, config: Option<TelemetryObservationConfig>) -> Self {
     self.failure_observation_config_opt = config;
     self
   }
 
   /// Sets the default ReadyQueue worker count.
-  pub fn with_ready_queue_worker_count_opt(mut self, worker_count: Option<NonZeroUsize>) -> Self {
+  #[must_use]
+  pub const fn with_ready_queue_worker_count_opt(mut self, worker_count: Option<NonZeroUsize>) -> Self {
     self.ready_queue_worker_count_opt = worker_count;
     self
   }
@@ -176,7 +183,7 @@ where
   }
 
   /// Mutable setter for the default ReadyQueue worker count.
-  pub fn set_ready_queue_worker_count_opt(&mut self, worker_count: Option<NonZeroUsize>) {
+  pub const fn set_ready_queue_worker_count_opt(&mut self, worker_count: Option<NonZeroUsize>) {
     self.ready_queue_worker_count_opt = worker_count;
   }
 
@@ -216,11 +223,11 @@ where
     self.failure_observation_config_opt.clone()
   }
 
-  pub(crate) fn ready_queue_worker_count_opt(&self) -> Option<NonZeroUsize> {
+  pub(crate) const fn ready_queue_worker_count_opt(&self) -> Option<NonZeroUsize> {
     self.ready_queue_worker_count_opt
   }
 
-  pub(crate) fn system_id(&self) -> &SystemId {
+  pub(crate) const fn system_id(&self) -> &SystemId {
     &self.system_id
   }
 
@@ -229,12 +236,14 @@ where
   }
 
   /// Replaces the extension registry in the configuration.
+  #[must_use]
   pub fn with_extensions(mut self, extensions: Extensions) -> Self {
     self.extensions = extensions;
     self
   }
 
   /// Registers an extension handle in the configuration.
+  #[must_use]
   pub fn with_extension_handle<E>(self, extension: ArcShared<E>) -> Self
   where
     E: Extension + 'static, {
@@ -244,6 +253,7 @@ where
   }
 
   /// Registers an extension value in the configuration by wrapping it with `ArcShared`.
+  #[must_use]
   pub fn with_extension_value<E>(self, extension: E) -> Self
   where
     E: Extension + 'static, {
@@ -251,6 +261,7 @@ where
   }
 
   /// Returns the registered extensions.
+  #[must_use]
   pub fn extensions(&self) -> Extensions {
     self.extensions.clone()
   }

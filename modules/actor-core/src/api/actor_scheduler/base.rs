@@ -30,6 +30,9 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
   /// Spawns a new actor instance and returns its internal reference on success.
+  ///
+  /// # Errors
+  /// Returns [`SpawnError`] when the scheduler fails to initialise the actor.
   fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<AnyMessage>>,
@@ -65,10 +68,7 @@ where
   );
 
   /// Registers a callback invoked when escalations occur during execution.
-  fn on_escalation(
-    &mut self,
-    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static>,
-  );
+  fn on_escalation(&mut self, handler: EscalationHandler);
 
   /// Drains and returns buffered escalations captured since the last poll.
   fn take_escalations(&mut self) -> Vec<FailureInfo>;
@@ -77,6 +77,9 @@ where
   fn actor_count(&self) -> usize;
 
   /// Drains ready queues and reports whether additional work remains.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when draining ready queues fails.
   fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>>;
 
   /// Dispatches the next scheduled message, awaiting asynchronous readiness.
@@ -88,3 +91,4 @@ where
     None
   }
 }
+type EscalationHandler = Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static>;

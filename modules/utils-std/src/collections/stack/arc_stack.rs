@@ -26,6 +26,7 @@ impl<T> ArcStack<T> {
   /// # Returns
   ///
   /// An empty `ArcStack` instance
+  #[must_use]
   pub fn new() -> Self {
     let storage = ArcShared::new(Mutex::new(StackBuffer::new()));
     let backend: ArcStackStorage<T> = ArcShared::new(StackStorageBackend::new(storage));
@@ -41,6 +42,7 @@ impl<T> ArcStack<T> {
   /// # Returns
   ///
   /// An empty `ArcStack` instance with the specified capacity
+  #[must_use]
   pub fn with_capacity(capacity: usize) -> Self {
     let stack = Self::new();
     stack.set_capacity(Some(capacity));
@@ -78,6 +80,7 @@ impl<T> ArcStack<T> {
   /// # Returns
   ///
   /// `Some(T)` if the stack is not empty, `None` if empty
+  #[must_use]
   pub fn pop(&self) -> Option<T> {
     self.inner.pop()
   }
@@ -87,6 +90,7 @@ impl<T> ArcStack<T> {
   /// # Returns
   ///
   /// A clone of the top element `Some(T)` if the stack is not empty, `None` if empty
+  #[must_use]
   pub fn peek(&self) -> Option<T>
   where
     T: Clone, {
@@ -103,6 +107,7 @@ impl<T> ArcStack<T> {
   /// # Returns
   ///
   /// The current number of elements in the stack
+  #[must_use]
   pub fn len(&self) -> QueueSize {
     self.inner.len()
   }
@@ -112,6 +117,7 @@ impl<T> ArcStack<T> {
   /// # Returns
   ///
   /// The maximum capacity of the stack. `QueueSize::Unlimited` if unlimited
+  #[must_use]
   pub fn capacity(&self) -> QueueSize {
     self.inner.capacity()
   }
@@ -155,11 +161,13 @@ impl<T> StackMut<T> for ArcStack<T> {
 
 impl<T> StackStorage<T> for ArcShared<Mutex<StackBuffer<T>>> {
   fn with_read<R>(&self, f: impl FnOnce(&StackBuffer<T>) -> R) -> R {
+    #![allow(clippy::expect_used)]
     let guard = self.lock().expect("mutex poisoned");
     f(&guard)
   }
 
   fn with_write<R>(&self, f: impl FnOnce(&mut StackBuffer<T>) -> R) -> R {
+    #![allow(clippy::expect_used)]
     let mut guard = self.lock().expect("mutex poisoned");
     f(&mut guard)
   }

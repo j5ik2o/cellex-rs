@@ -39,7 +39,7 @@ where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<MF>,
 {
-  pub(crate) fn actor_count(&self) -> usize {
+  pub(crate) const fn actor_count(&self) -> usize {
     self.core.actor_count()
   }
 

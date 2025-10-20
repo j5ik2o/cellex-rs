@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use super::*;
 use crate::tests::init_arc_critical_section;
 

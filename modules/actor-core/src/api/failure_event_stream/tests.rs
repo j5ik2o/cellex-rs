@@ -1,3 +1,6 @@
+#![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -6,17 +9,20 @@ use super::FailureEventStream;
 use crate::api::supervision::{escalation::FailureEventListener, failure::FailureEvent};
 
 /// In-memory implementation for testing only.
+#[allow(dead_code)]
 #[derive(Clone, Default)]
 pub(crate) struct TestFailureEventStream {
   inner: Arc<TestFailureEventStreamInner>,
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 struct TestFailureEventStreamInner {
   next_id:   AtomicU64,
   listeners: Mutex<Vec<(u64, FailureEventListener)>>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub(crate) struct TestFailureEventSubscription {
   inner: Arc<TestFailureEventStreamInner>,

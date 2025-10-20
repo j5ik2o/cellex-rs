@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 #![cfg(feature = "arc")]
 
 use alloc::{boxed::Box, sync::Arc};

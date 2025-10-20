@@ -25,7 +25,7 @@ where
   ///
   /// # Arguments
   /// * `message` - User message
-  pub fn user(message: U) -> Self {
+  pub const fn user(message: U) -> Self {
     MessageEnvelope::User(UserMessage::new(message))
   }
 
@@ -42,19 +42,19 @@ where
 
   /// Wraps this envelope into a priority envelope with the specified priority.
   #[must_use]
-  pub fn into_priority_envelope(self, priority: i8) -> PriorityEnvelope<Self> {
+  pub const fn into_priority_envelope(self, priority: i8) -> PriorityEnvelope<Self> {
     PriorityEnvelope::new(self, priority)
   }
 
   /// Wraps this envelope into a control-channel priority envelope with the specified priority.
   #[must_use]
-  pub fn into_control_envelope(self, priority: i8) -> PriorityEnvelope<Self> {
+  pub const fn into_control_envelope(self, priority: i8) -> PriorityEnvelope<Self> {
     PriorityEnvelope::with_channel(self, priority, PriorityChannel::Control)
   }
 
   /// Creates a control-channel envelope for a user message with the provided priority.
   #[must_use]
-  pub fn control_user(message: U, priority: i8) -> PriorityEnvelope<Self> {
+  pub const fn control_user(message: U, priority: i8) -> PriorityEnvelope<Self> {
     MessageEnvelope::user(message).into_control_envelope(priority)
   }
 }

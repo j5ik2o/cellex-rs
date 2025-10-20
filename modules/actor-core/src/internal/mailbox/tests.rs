@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use cellex_utils_core_rs::{QueueSize, DEFAULT_PRIORITY};
 
 use crate::api::mailbox::{

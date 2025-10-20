@@ -62,6 +62,7 @@ impl<E> RcMpscUnboundedQueue<E> {
   ///
   /// let queue: RcMpscUnboundedQueue<String> = RcMpscUnboundedQueue::new();
   /// ```
+  #[must_use]
   pub fn new() -> Self {
     let storage = RcShared::new(RingBufferBackend::new(RefCell::new(MpscBuffer::new(None))));
     Self { inner: MpscQueue::new(storage) }

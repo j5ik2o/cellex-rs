@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 extern crate std;
 
 use std::sync::{

@@ -1,5 +1,8 @@
+#![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::panic)]
 #![cfg(feature = "std")]
-#![allow(deprecated)]
 
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
@@ -98,8 +101,7 @@ mod ready_queue_worker_configuration {
 
   #[test]
   fn actor_system_runner_defaults_ready_queue_worker_count_to_one() {
-    let mailbox_factory = TestMailboxFactory::unbounded();
-    let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone());
+    let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded());
     let system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
     let runner = system.into_runner();
 
@@ -108,8 +110,7 @@ mod ready_queue_worker_configuration {
 
   #[test]
   fn actor_system_runner_respects_configured_ready_queue_worker_count() {
-    let mailbox_factory = TestMailboxFactory::unbounded();
-    let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone());
+    let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded());
     let worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
     let config = ActorSystemConfig::default().with_ready_queue_worker_count_opt(Some(worker_count));
 
@@ -236,16 +237,16 @@ mod receive_timeout_injection {
 
   #[test]
   fn actor_system_uses_driver_receive_timeout_when_no_bundle_or_config() {
-    let mailbox_factory = TestMailboxFactory::unbounded();
     let driver_calls = Arc::new(AtomicUsize::new(0));
     let factory_calls = Arc::new(AtomicUsize::new(0));
 
-    let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone()).with_receive_timeout_driver(
-      Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        factory_calls.clone(),
-      ))),
-    );
+    let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
+      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(
+        ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+          driver_calls.clone(),
+          factory_calls.clone(),
+        )),
+      ));
 
     let config: ActorSystemConfig<TestRuntime> = ActorSystemConfig::default();
 
@@ -258,16 +259,17 @@ mod receive_timeout_injection {
 
   #[test]
   fn actor_system_prefers_bundle_factory_over_driver() {
-    let mailbox_factory = TestMailboxFactory::unbounded();
     let driver_calls = Arc::new(AtomicUsize::new(0));
     let driver_factory_calls = Arc::new(AtomicUsize::new(0));
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
 
-    let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        driver_factory_calls.clone(),
-      ))))
+    let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
+      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(
+        ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+          driver_calls.clone(),
+          driver_factory_calls.clone(),
+        )),
+      ))
       .with_receive_timeout_scheduler_factory_shared(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
@@ -284,17 +286,18 @@ mod receive_timeout_injection {
 
   #[test]
   fn actor_system_prefers_config_factory_over_driver_and_bundle() {
-    let mailbox_factory = TestMailboxFactory::unbounded();
     let driver_calls = Arc::new(AtomicUsize::new(0));
     let driver_factory_calls = Arc::new(AtomicUsize::new(0));
     let bundle_factory_calls = Arc::new(AtomicUsize::new(0));
     let config_factory_calls = Arc::new(AtomicUsize::new(0));
 
-    let actor_runtime: TestRuntime = GenericActorRuntime::new(mailbox_factory.clone())
-      .with_receive_timeout_driver(Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
-        driver_calls.clone(),
-        driver_factory_calls.clone(),
-      ))))
+    let actor_runtime: TestRuntime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
+      .with_receive_timeout_scheduler_factory_provider_shared_opt(Some(
+        ReceiveTimeoutSchedulerFactoryProviderShared::new(CountingDriver::new(
+          driver_calls.clone(),
+          driver_factory_calls.clone(),
+        )),
+      ))
       .with_receive_timeout_scheduler_factory_shared(ReceiveTimeoutSchedulerFactoryShared::new(CountingFactory::new(
         bundle_factory_calls.clone(),
       )));
@@ -435,9 +438,7 @@ fn test_supervise_resume_on_failure() {
     move || {
       let log_clone = log_factory.clone();
       Behaviors::supervise(Behaviors::receive(move |_, msg: u32| {
-        if msg == 0 {
-          panic!("fail once");
-        }
+        assert_ne!(msg, 0, "fail once");
         log_clone.borrow_mut().push(msg);
         Ok(Behaviors::same())
       }))
@@ -606,14 +607,13 @@ fn user_message_drops_metadata_on_drop() {
 fn metadata_restored_through_into_parts() {
   let metadata = MessageMetadata::<ThreadSafe>::new().with_sender(noop_sender::<ParentMessage>());
   let envelope = MessageEnvelope::user_with_metadata(ParentMessage("pong".into()), metadata);
-  let restored = match envelope {
-    | MessageEnvelope::User(user) => {
-      let (message, metadata) = user.into_parts::<ThreadSafe>();
-      assert_eq!(message.0, "pong");
-      metadata.expect("metadata expected")
-    },
-    | MessageEnvelope::System(_) => unreachable!(),
+  assert!(matches!(envelope, MessageEnvelope::User(_)), "user envelope expected");
+  let MessageEnvelope::User(user) = envelope else {
+    return;
   };
+  let (message, metadata) = user.into_parts::<ThreadSafe>();
+  assert_eq!(message.0, "pong");
+  let restored = metadata.expect("metadata expected");
 
   assert!(restored.sender_as::<ParentMessage>().is_some(), "sender metadata should be preserved");
 }
@@ -625,7 +625,6 @@ fn test_typed_actor_handles_watch_unwatch() {
     ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(mailbox_factory), ActorSystemConfig::default());
 
   let watchers_count: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
-  let watchers_count_clone = watchers_count.clone();
 
   let system_handler = Some(|ctx: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
     | SystemMessage::Watch(watcher) => {
@@ -639,9 +638,9 @@ fn test_typed_actor_handles_watch_unwatch() {
 
   let props = Props::with_behavior_and_system(
     {
-      let watchers_factory = watchers_count_clone.clone();
+      let watchers_factory = Rc::clone(&watchers_count);
       move || {
-        let watchers_clone = watchers_factory.clone();
+        let watchers_clone = Rc::clone(&watchers_factory);
         Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, u32, _>, _msg: u32| {
           *watchers_clone.borrow_mut() = ctx.watchers().len();
           Ok(())
@@ -805,21 +804,21 @@ fn test_parent_spawns_child_with_distinct_message_type() {
     ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
 
   let child_log: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
-  let child_log_for_parent = child_log.clone();
 
   let props = Props::with_behavior({
-    let child_log_factory = child_log_for_parent.clone();
+    let child_log_factory = Rc::clone(&child_log);
     move || {
-      let child_log_parent = child_log_factory.clone();
+      let child_log_parent = Rc::clone(&child_log_factory);
       Behaviors::receive(move |ctx: &mut ActorContext<'_, '_, ParentMessage, _>, msg: ParentMessage| {
         let name = msg.0;
         let child_props = Props::with_behavior({
-          let child_log_factory = child_log_parent.clone();
+          let child_log_for_child = Rc::clone(&child_log_parent);
           move || {
-            let child_log_for_child = child_log_factory.clone();
+            let child_log_inner = Rc::clone(&child_log_for_child);
             Behaviors::receive(
               move |_child_ctx: &mut ActorContext<'_, '_, ChildMessage, _>, child_msg: ChildMessage| {
-                child_log_for_child.borrow_mut().push(child_msg.text.clone());
+                let ChildMessage { text } = child_msg;
+                child_log_inner.borrow_mut().push(text);
                 Ok(Behaviors::same())
               },
             )
@@ -888,19 +887,17 @@ fn test_parent_actor_spawns_child() {
     ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
 
   let child_log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
-  let child_log_for_parent = child_log.clone();
   let child_ref_holder: Rc<RefCell<Option<ActorRef<u32, _>>>> = Rc::new(RefCell::new(None));
-  let child_ref_holder_clone = child_ref_holder.clone();
 
   let props = Props::with_behavior({
-    let child_log_factory = child_log_for_parent.clone();
-    let child_ref_holder_factory = child_ref_holder_clone.clone();
+    let child_log_factory = Rc::clone(&child_log);
+    let child_ref_holder_factory = Rc::clone(&child_ref_holder);
     move || {
-      let child_log_parent = child_log_factory.clone();
-      let child_ref_holder_local = child_ref_holder_factory.clone();
+      let child_log_parent = Rc::clone(&child_log_factory);
+      let child_ref_holder_local = Rc::clone(&child_ref_holder_factory);
       Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
         if child_ref_holder_local.borrow().is_none() {
-          let child_log_for_child = child_log_parent.clone();
+          let child_log_for_child = Rc::clone(&child_log_parent);
           let child_props = Props::new(move |_, child_msg: u32| {
             child_log_for_child.borrow_mut().push(child_msg);
             Ok(())
@@ -1188,16 +1185,14 @@ mod metrics_injection {
 
   #[test]
   fn actor_system_prefers_config_metrics_sink_over_bundle() {
-    let mailbox_factory = TestMailboxFactory::unbounded();
     let recorded = Arc::new(Mutex::new(None));
-    let recorded_clone = recorded.clone();
 
     let runtime_sink = MetricsSinkShared::new(TaggedSink { _id: "runtime" });
     let config_sink = MetricsSinkShared::new(TaggedSink { _id: "config" });
     let config_ptr = config_sink.with_ref(|inner| inner as *const _ as *const () as usize);
 
-    let actor_runtime = GenericActorRuntime::new(mailbox_factory.clone())
-      .with_scheduler_builder(make_scheduler_builder(recorded_clone.clone()))
+    let actor_runtime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
+      .with_scheduler_builder(make_scheduler_builder(Arc::clone(&recorded)))
       .with_metrics_sink_shared(runtime_sink);
 
     let config: ActorSystemConfig<GenericActorRuntime<TestMailboxFactory>> =
@@ -1211,15 +1206,13 @@ mod metrics_injection {
 
   #[test]
   fn actor_system_uses_bundle_metrics_when_config_absent() {
-    let mailbox_factory = TestMailboxFactory::unbounded();
     let recorded = Arc::new(Mutex::new(None));
-    let recorded_clone = recorded.clone();
 
     let runtime_sink = MetricsSinkShared::new(TaggedSink { _id: "runtime" });
     let runtime_ptr = runtime_sink.with_ref(|inner| inner as *const _ as *const () as usize);
 
-    let actor_runtime = GenericActorRuntime::new(mailbox_factory)
-      .with_scheduler_builder(make_scheduler_builder(recorded_clone.clone()))
+    let actor_runtime = GenericActorRuntime::new(TestMailboxFactory::unbounded())
+      .with_scheduler_builder(make_scheduler_builder(Arc::clone(&recorded)))
       .with_metrics_sink_shared(runtime_sink);
 
     let config: ActorSystemConfig<GenericActorRuntime<TestMailboxFactory>> = ActorSystemConfig::default();

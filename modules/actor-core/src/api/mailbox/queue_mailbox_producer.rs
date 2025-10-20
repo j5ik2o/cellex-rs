@@ -92,6 +92,9 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   ///
   /// # Returns
   /// `Ok(())` on success, `Err(QueueError)` on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the queue rejects the message.
   pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
     Q: QueueRw<M>,

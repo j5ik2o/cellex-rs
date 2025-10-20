@@ -42,6 +42,9 @@ use crate::{
   internal::actor_context::InternalActorContext,
 };
 
+type ActorRegistryShared<AR> =
+  ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;
+
 #[cfg(target_has_atomic = "ptr")]
 pub(super) type AdapterFn<Ext, U> = dyn Fn(Ext) -> U + Send + Sync;
 
@@ -94,7 +97,7 @@ where
 {
   /// Determines if receive timeout is supported.
   #[must_use]
-  pub fn has_receive_timeout_support(&self) -> bool {
+  pub const fn has_receive_timeout_support(&self) -> bool {
     self.inner.has_receive_timeout_scheduler()
   }
 
@@ -120,7 +123,7 @@ where
 {
   /// Gets the metadata accompanying the current message.
   #[must_use]
-  pub fn message_metadata(&self) -> Option<&MessageMetadata<MailboxConcurrencyOf<AR>>> {
+  pub const fn message_metadata(&self) -> Option<&MessageMetadata<MailboxConcurrencyOf<AR>>> {
     self.metadata.as_ref()
   }
 
@@ -148,40 +151,37 @@ where
 
   /// Gets the actor ID of this actor.
   #[must_use]
-  pub fn actor_id(&self) -> ActorId {
+  pub const fn actor_id(&self) -> ActorId {
     self.inner.actor_id()
   }
 
   /// Gets the actor path of this actor.
   #[must_use]
-  pub fn actor_path(&self) -> &ActorPath {
+  pub const fn actor_path(&self) -> &ActorPath {
     self.inner.actor_path()
   }
 
   /// Gets the list of actor IDs watching this actor.
   #[must_use]
-  pub fn watchers(&self) -> &[ActorId] {
+  pub const fn watchers(&self) -> &[ActorId] {
     self.inner.watchers()
   }
 
   /// Returns the current processing priority if the actor is executing within a priority context.
   #[must_use]
-  pub fn current_priority(&self) -> Option<i8> {
+  pub const fn current_priority(&self) -> Option<i8> {
     self.inner.current_priority()
   }
 
   /// Gets the PID representing this actor.
   #[must_use]
-  pub fn self_pid(&self) -> &Pid {
+  pub const fn self_pid(&self) -> &Pid {
     self.inner.pid()
   }
 
   /// Returns the process registry handle for PID resolution.
   #[must_use]
-  pub fn process_registry(
-    &self,
-  ) -> ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>
-  {
+  pub fn process_registry(&self) -> ActorRegistryShared<AR> {
     self.inner.process_registry()
   }
 
@@ -202,7 +202,7 @@ where
   }
 
   /// Gets a mutable reference to the internal context.
-  pub fn inner(&mut self) -> &mut InternalActorContext<'ctx, MailboxOf<AR>> {
+  pub const fn inner(&mut self) -> &mut InternalActorContext<'ctx, MailboxOf<AR>> {
     self.inner
   }
 }
@@ -243,18 +243,27 @@ where
   MailboxConcurrencyOf<AR>: MetadataStorageMode,
 {
   /// Sends a message to itself.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox refuses the message.
   pub fn send_to_self(&self, message: U) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let dyn_message = AnyMessage::new(MessageEnvelope::user(message));
     self.inner.send_to_self_with_priority(dyn_message, DEFAULT_PRIORITY)
   }
 
   /// Sends a system message to itself.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the mailbox refuses the system message.
   pub fn send_system_to_self(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     let envelope = PriorityEnvelope::from_system(message).map(|sys| AnyMessage::new(MessageEnvelope::<U>::System(sys)));
     self.inner.send_envelope_to_self(envelope)
   }
 
   /// Reports a failure to the guardian using the supervision channel.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when delivering the escalation fails.
   pub fn fail<E>(&self, error: E) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
   where
     E: core::fmt::Display + core::fmt::Debug + Send + 'static, {
@@ -288,6 +297,9 @@ where
   }
 
   /// Requests a message with sender information.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the target mailbox refuses the message.
   pub fn request<V>(
     &mut self,
     target: &ActorRef<V, AR>,
@@ -304,6 +316,9 @@ where
   }
 
   /// Requests a message with specified sender information.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the target mailbox refuses the message.
   pub fn request_with_sender<V, S>(
     &mut self,
     target: &ActorRef<V, AR>,
@@ -320,6 +335,9 @@ where
   }
 
   /// Forwards a message while preserving the original metadata.
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the target mailbox refuses the forwarded message.
   pub fn forward<V>(
     &mut self,
     target: &ActorRef<V, AR>,
@@ -332,6 +350,9 @@ where
   }
 
   /// Responds to the sender of the current message.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when no responder is available or delivery fails.
   pub fn respond<Resp>(&mut self, message: Resp) -> AskResult<()>
   where
     Resp: Element,
@@ -342,6 +363,9 @@ where
   }
 
   /// Sends an inquiry to the target actor and returns a Future that waits for a response.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when the target mailbox refuses the message.
   pub fn ask<V, Resp, F>(&mut self, target: &ActorRef<V, AR>, factory: F) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
@@ -364,6 +388,9 @@ where
   }
 
   /// Sends an inquiry with timeout and returns a Future that waits for a response.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when the target mailbox refuses the message.
   pub fn ask_with_timeout<V, Resp, F, TFut>(
     &mut self,
     target: &ActorRef<V, AR>,
@@ -393,6 +420,9 @@ where
   }
 
   /// Sends an inquiry to the target actor and returns a Future that waits for a response.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when the target mailbox refuses the message.
   pub fn request_future<V, Resp>(&mut self, target: &ActorRef<V, AR>, message: V) -> AskResult<AskFuture<Resp>>
   where
     V: Element,
@@ -410,6 +440,9 @@ where
   }
 
   /// Sends an inquiry with timeout and returns a Future that waits for a response.
+  ///
+  /// # Errors
+  /// Returns [`AskError`] when the target mailbox refuses the message.
   pub fn request_future_with_timeout<V, Resp, TFut>(
     &mut self,
     target: &ActorRef<V, AR>,

@@ -25,7 +25,7 @@ impl<T> TokioMutexBackend<T> {
   /// # Returns
   ///
   /// A new `TokioMutexBackend` instance
-  pub fn new_with_mutex(inner: Mutex<T>) -> Self {
+  pub const fn new_with_mutex(inner: Mutex<T>) -> Self {
     Self { inner }
   }
 }
@@ -68,7 +68,7 @@ impl<T> TokioRwLockBackend<T> {
   /// # Returns
   ///
   /// A new `TokioRwLockBackend` instance
-  pub fn new_with_rwlock(inner: RwLock<T>) -> Self {
+  pub const fn new_with_rwlock(inner: RwLock<T>) -> Self {
     Self { inner }
   }
 }

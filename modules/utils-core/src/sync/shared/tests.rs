@@ -1,9 +1,11 @@
+#![allow(clippy::disallowed_types)]
 extern crate alloc;
 
-use super::*;
 #[allow(clippy::disallowed_types)]
 use alloc::rc::Rc;
 use core::cell::RefCell;
+
+use super::*;
 
 #[allow(clippy::disallowed_types)]
 #[derive(Clone, Debug)]

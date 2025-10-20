@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};

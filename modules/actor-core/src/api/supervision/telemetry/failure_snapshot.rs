@@ -23,6 +23,7 @@ pub struct FailureSnapshot {
 impl FailureSnapshot {
   /// Captures an immutable snapshot from [`FailureInfo`].
   /// Creates a snapshot from [`FailureInfo`].
+  #[must_use]
   pub fn from_failure_info(info: &FailureInfo) -> Self {
     Self {
       actor:       info.actor,
@@ -37,31 +38,31 @@ impl FailureSnapshot {
 
   /// Returns the actor identifier.
   #[must_use]
-  pub fn actor(&self) -> ActorId {
+  pub const fn actor(&self) -> ActorId {
     self.actor
   }
 
   /// Returns the actor path.
   #[must_use]
-  pub fn path(&self) -> &ActorPath {
+  pub const fn path(&self) -> &ActorPath {
     &self.path
   }
 
   /// Returns the failure payload.
   #[must_use]
-  pub fn failure(&self) -> &ActorFailure {
+  pub const fn failure(&self) -> &ActorFailure {
     &self.failure
   }
 
   /// Returns the associated metadata.
   #[must_use]
-  pub fn metadata(&self) -> &FailureMetadata {
+  pub const fn metadata(&self) -> &FailureMetadata {
     &self.metadata
   }
 
   /// Returns the escalation stage.
   #[must_use]
-  pub fn stage(&self) -> EscalationStage {
+  pub const fn stage(&self) -> EscalationStage {
     self.stage
   }
 

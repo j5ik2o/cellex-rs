@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_types)]
 use super::{FailureTelemetryBuilderShared, FailureTelemetryShared, TelemetryContext};
 use crate::api::{extensions::Extensions, supervision::telemetry::NoopFailureTelemetry};
 

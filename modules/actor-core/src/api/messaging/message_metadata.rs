@@ -20,6 +20,7 @@ where
   C: MetadataStorageMode,
 {
   /// Creates new empty metadata.
+  #[must_use]
   pub fn new() -> Self {
     Self::default()
   }
@@ -28,6 +29,7 @@ where
   ///
   /// # Arguments
   /// * `sender` - Sender's dispatcher to set
+  #[must_use]
   pub fn with_sender<U>(mut self, sender: MessageSender<U, C>) -> Self
   where
     U: Element, {
@@ -39,6 +41,7 @@ where
   ///
   /// # Arguments
   /// * `responder` - Responder's dispatcher to set
+  #[must_use]
   pub fn with_responder<U>(mut self, responder: MessageSender<U, C>) -> Self
   where
     U: Element, {
@@ -47,12 +50,14 @@ where
   }
 
   /// Sets the sender PID and returns self.
+  #[must_use]
   pub fn with_sender_pid(mut self, sender_pid: Pid) -> Self {
     self.inner = self.inner.with_sender_pid(Some(sender_pid));
     self
   }
 
   /// Sets the responder PID and returns self.
+  #[must_use]
   pub fn with_responder_pid(mut self, responder_pid: Pid) -> Self {
     self.inner = self.inner.with_responder_pid(Some(responder_pid));
     self
@@ -79,12 +84,14 @@ where
   }
 
   /// Returns the sender PID if set.
-  pub fn sender_pid(&self) -> Option<&Pid> {
+  #[must_use]
+  pub const fn sender_pid(&self) -> Option<&Pid> {
     self.inner.sender_pid()
   }
 
   /// Returns the responder PID if set.
-  pub fn responder_pid(&self) -> Option<&Pid> {
+  #[must_use]
+  pub const fn responder_pid(&self) -> Option<&Pid> {
     self.inner.responder_pid()
   }
 
@@ -94,6 +101,7 @@ where
   ///
   /// # Returns
   /// `Some(MessageSender<U>)` if dispatcher exists, `None` otherwise
+  #[must_use]
   pub fn dispatcher_for<U>(&self) -> Option<MessageSender<U, C>>
   where
     U: Element, {
@@ -104,7 +112,8 @@ where
   ///
   /// # Returns
   /// `true` if neither sender nor responder exists, `false` otherwise
-  pub fn is_empty(&self) -> bool {
+  #[must_use]
+  pub const fn is_empty(&self) -> bool {
     self.inner.sender.is_none()
       && self.inner.responder.is_none()
       && self.inner.sender_pid().is_none()

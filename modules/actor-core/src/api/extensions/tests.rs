@@ -1,3 +1,6 @@
+#![allow(clippy::disallowed_types)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 extern crate alloc;
 
 #[cfg(feature = "std")]
@@ -47,7 +50,7 @@ fn register_and_lookup_extension() {
   let extensions = Extensions::new();
   let extension = ArcShared::new(DummyExtension::new(42));
   let id = extension.extension_id();
-  extensions.register(extension.clone());
+  extensions.register(extension);
 
   let stored = extensions.get(id).expect("extension should exist");
   assert_eq!(stored.extension_id(), id);
