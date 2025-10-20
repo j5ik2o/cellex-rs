@@ -169,7 +169,7 @@ impl MetricsSink for RecordingMetricsSink {
 }
 
 #[test]
-fn cluster_failure_bridge_triggers_telemetry_metrics() -> TestResult {
+fn cluster_failure_bridge_triggers_telemetry_metrics() {
   let hub = FailureEventHub::new();
   let remote_hub = FailureEventHub::new();
 
@@ -177,7 +177,7 @@ fn cluster_failure_bridge_triggers_telemetry_metrics() -> TestResult {
   let local_telemetry = FailureTelemetryShared::new(local_telemetry_impl);
   let (local_metrics_impl, local_metrics_events) = RecordingMetricsSink::new();
   let local_metrics = MetricsSinkShared::new(local_metrics_impl);
-  let mut local_observation = TelemetryObservationConfig::new().with_metrics_sink(local_metrics.clone());
+  let mut local_observation = TelemetryObservationConfig::new().with_metrics_sink(local_metrics);
   local_observation.set_record_timing(true);
 
   let mut local_root: RootEscalationSink<TestMailboxFactory> = RootEscalationSink::new();
@@ -187,18 +187,15 @@ fn cluster_failure_bridge_triggers_telemetry_metrics() -> TestResult {
   let local_sink_clone: Arc<Mutex<RootEscalationSink<TestMailboxFactory>>> = Arc::clone(&local_sink);
   let _local_subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
-    local_sink_clone
-      .lock()
-      .unwrap_or_else(|err| err.into_inner())
-      .handle(info, false)
-      .expect("local root sink should handle failure");
+    let handle_result = local_sink_clone.lock().unwrap_or_else(|err| err.into_inner()).handle(info, false);
+    assert!(handle_result.is_ok(), "local root sink should handle failure: {:?}", handle_result.err());
   }));
 
   let (remote_telemetry_impl, remote_telemetry_events) = RecordingTelemetry::new();
   let remote_telemetry = FailureTelemetryShared::new(remote_telemetry_impl);
   let (remote_metrics_impl, remote_metrics_events) = RecordingMetricsSink::new();
   let remote_metrics = MetricsSinkShared::new(remote_metrics_impl);
-  let mut remote_observation = TelemetryObservationConfig::new().with_metrics_sink(remote_metrics.clone());
+  let mut remote_observation = TelemetryObservationConfig::new().with_metrics_sink(remote_metrics);
   remote_observation.set_record_timing(true);
 
   let mut remote_root: RootEscalationSink<TestMailboxFactory> = RootEscalationSink::new();
@@ -210,11 +207,8 @@ fn cluster_failure_bridge_triggers_telemetry_metrics() -> TestResult {
   let mut remote_notifier = RemoteFailureNotifier::new(remote_hub);
   remote_notifier.set_handler(FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
-    remote_sink_clone
-      .lock()
-      .unwrap_or_else(|err| err.into_inner())
-      .handle(info, false)
-      .expect("remote root sink should handle failure");
+    let handle_result = remote_sink_clone.lock().unwrap_or_else(|err| err.into_inner()).handle(info, false);
+    assert!(handle_result.is_ok(), "remote root sink should handle failure: {:?}", handle_result.err());
   }));
 
   let bridge = ClusterFailureBridge::new(hub, remote_notifier);
@@ -236,7 +230,6 @@ fn cluster_failure_bridge_triggers_telemetry_metrics() -> TestResult {
   let remote_metrics_values = remote_metrics_events.lock().unwrap_or_else(|err| err.into_inner()).clone();
   assert!(remote_metrics_values.contains(&MetricsEvent::TelemetryInvoked));
   assert!(remote_metrics_values.iter().any(|event| matches!(event, MetricsEvent::TelemetryLatencyNanos(_))));
-  Ok(())
 }
 
 #[derive(Debug)]
@@ -363,7 +356,7 @@ fn cluster_serialization_router_roundtrip_with_fallback() -> TestResult {
   }));
 
   let local_captured: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-  let router_for_local = router.clone();
+  let router_for_local = router;
   let _subscription = hub.subscribe(FailureEventListener::new({
     let local_captured = Arc::clone(&local_captured);
     move |event: FailureEvent| {

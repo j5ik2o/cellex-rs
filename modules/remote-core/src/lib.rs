@@ -4,6 +4,7 @@
 //! The current goal is to provide integration points for `FailureEventStream`.
 
 #![deny(missing_docs)]
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(clippy::missing_errors_doc)]

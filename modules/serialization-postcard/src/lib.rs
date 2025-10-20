@@ -2,6 +2,7 @@
 
 #![no_std]
 #![deny(missing_docs)]
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 
 extern crate alloc;
 

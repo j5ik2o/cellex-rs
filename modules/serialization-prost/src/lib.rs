@@ -1,6 +1,7 @@
 //! Protobuf serializer implementation backed by [`prost`].
 
 #![deny(missing_docs)]
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 
 use cellex_serialization_core_rs::{
   error::{DeserializationError, SerializationError},

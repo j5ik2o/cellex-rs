@@ -237,7 +237,7 @@ impl MetricsSink for RecordingMetricsSink {
 }
 
 #[test]
-fn remote_failure_notifier_triggers_telemetry_metrics() -> TestResult {
+fn remote_failure_notifier_triggers_telemetry_metrics() {
   let hub = FailureEventHub::new();
   let notifier = RemoteFailureNotifier::new(hub.clone());
 
@@ -247,7 +247,7 @@ fn remote_failure_notifier_triggers_telemetry_metrics() -> TestResult {
   let (metrics_impl, metrics_events) = RecordingMetricsSink::new();
   let metrics = MetricsSinkShared::new(metrics_impl);
 
-  let mut observation = TelemetryObservationConfig::new().with_metrics_sink(metrics.clone());
+  let mut observation = TelemetryObservationConfig::new().with_metrics_sink(metrics);
   observation.set_record_timing(true);
 
   let mut root_sink: RootEscalationSink<TestMailboxFactory> = RootEscalationSink::new();
@@ -258,11 +258,8 @@ fn remote_failure_notifier_triggers_telemetry_metrics() -> TestResult {
   let sink_clone: Arc<Mutex<RootEscalationSink<TestMailboxFactory>>> = Arc::clone(&sink);
   let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
-    sink_clone
-      .lock()
-      .unwrap_or_else(|err| err.into_inner())
-      .handle(info, false)
-      .expect("root sink should handle failure");
+    let handle_result = sink_clone.lock().unwrap_or_else(|err| err.into_inner()).handle(info, false);
+    assert!(handle_result.is_ok(), "root sink should handle failure: {:?}", handle_result.err());
   }));
 
   let failure = ActorFailure::from_message("remote telemetry failure");
@@ -275,7 +272,6 @@ fn remote_failure_notifier_triggers_telemetry_metrics() -> TestResult {
   let recorded_metrics = metrics_events.lock().unwrap_or_else(|err| err.into_inner()).clone();
   assert!(recorded_metrics.contains(&MetricsEvent::TelemetryInvoked));
   assert!(recorded_metrics.iter().any(|event| matches!(event, MetricsEvent::TelemetryLatencyNanos(_))));
-  Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
