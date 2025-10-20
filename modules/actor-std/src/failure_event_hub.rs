@@ -40,11 +40,12 @@ impl FailureEventHub {
   /// # Returns
   ///
   /// A new hub instance initialized with default state
+  #[must_use]
   pub fn new() -> Self {
     Self::default()
   }
 
-  fn notify_listeners(&self, event: FailureEvent) {
+  fn notify_listeners(&self, event: &FailureEvent) {
     let snapshot: Vec<FailureEventListener> = {
       let guard = self.inner.lock_listeners();
       guard.iter().map(|(_, listener)| listener.clone()).collect()
@@ -60,7 +61,7 @@ impl FailureEventStream for FailureEventHub {
 
   fn listener(&self) -> FailureEventListener {
     let inner = self.clone();
-    FailureEventListener::new(move |event: FailureEvent| inner.notify_listeners(event))
+    FailureEventListener::new(move |event: FailureEvent| inner.notify_listeners(&event))
   }
 
   fn subscribe(&self, listener: FailureEventListener) -> Self::Subscription {

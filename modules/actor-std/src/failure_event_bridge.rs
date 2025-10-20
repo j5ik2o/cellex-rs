@@ -17,6 +17,7 @@ impl TokioFailureEventBridge {
   /// # Returns
   ///
   /// A new bridge instance with a broadcast channel of the specified capacity
+  #[must_use]
   pub fn new(capacity: usize) -> Self {
     let (sender, _) = broadcast::channel(capacity);
     Self { sender }
@@ -30,10 +31,11 @@ impl TokioFailureEventBridge {
   /// # Returns
   ///
   /// A listener function that broadcasts failure events
+  #[must_use]
   pub fn listener(&self) -> FailureEventListener {
     let sender = self.sender.clone();
     FailureEventListener::new(move |event: FailureEvent| {
-      let _ = sender.send(event.clone());
+      let _ = sender.send(event);
     })
   }
 
@@ -46,6 +48,7 @@ impl TokioFailureEventBridge {
   /// # Returns
   ///
   /// A broadcast receiver for receiving failure events
+  #[must_use]
   pub fn subscribe(&self) -> broadcast::Receiver<FailureEvent> {
     self.sender.subscribe()
   }
