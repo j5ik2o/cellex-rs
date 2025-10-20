@@ -252,11 +252,11 @@ fn scheduler_handle_trait_object_dispatches() {
 
 #[cfg(feature = "std")]
 #[test]
-fn immediate_scheduler_builder_dispatches() {
+fn scheduler_builder_dispatches() {
   use futures::executor::block_on;
 
   let mailbox_factory = TestMailboxFactory::unbounded();
-  let mut scheduler = ActorSchedulerHandleBuilder::immediate().build(mailbox_factory.clone(), Extensions::new());
+  let mut scheduler = ActorSchedulerHandleBuilder::ready_queue().build(mailbox_factory.clone(), Extensions::new());
 
   let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();
