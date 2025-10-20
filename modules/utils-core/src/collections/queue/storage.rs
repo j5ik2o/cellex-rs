@@ -1,37 +1,8 @@
-use super::{mpsc::MpscBuffer, ring::RingBuffer};
+mod queue_storage;
 
-/// Queue storage abstraction trait
-///
-/// Provides read and write access to ring buffer-based queues.
-/// This trait provides a unified interface for ring buffers wrapped
-/// in different synchronization primitives (RefCell, Mutex, etc.).
-///
-/// # Type Parameters
-///
-/// * `E` - Type of elements stored in the queue
-pub trait QueueStorage<E> {
-  /// Executes a closure using an immutable reference to the ring buffer
-  ///
-  /// # Arguments
-  ///
-  /// * `f` - Closure receiving an immutable reference to the ring buffer
-  ///
-  /// # Returns
-  ///
-  /// Result of executing the closure
-  fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R;
+pub use queue_storage::QueueStorage;
 
-  /// Executes a closure using a mutable reference to the ring buffer
-  ///
-  /// # Arguments
-  ///
-  /// * `f` - Closure receiving a mutable reference to the ring buffer
-  ///
-  /// # Returns
-  ///
-  /// Result of executing the closure
-  fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R;
-}
+use super::mpsc::MpscBuffer;
 
 /// Ring buffer-based storage abstraction trait
 ///
@@ -64,44 +35,6 @@ pub trait RingBufferStorage<T> {
   ///
   /// Result of executing the closure
   fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R;
-}
-
-#[cfg(feature = "alloc")]
-mod queue_alloc_impls {
-  use core::cell::RefCell;
-
-  use super::{QueueStorage, RingBuffer};
-
-  impl<E> QueueStorage<E> for RefCell<RingBuffer<E>> {
-    fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
-      let guard = self.borrow();
-      f(&guard)
-    }
-
-    fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
-      let mut guard = self.borrow_mut();
-      f(&mut guard)
-    }
-  }
-}
-
-#[cfg(all(feature = "alloc", feature = "std"))]
-mod queue_std_impls {
-  use std::sync::Mutex;
-
-  use super::{QueueStorage, RingBuffer};
-
-  impl<E> QueueStorage<E> for Mutex<RingBuffer<E>> {
-    fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
-      let guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-      f(&guard)
-    }
-
-    fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
-      let mut guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-      f(&mut guard)
-    }
-  }
 }
 
 #[cfg(feature = "alloc")]

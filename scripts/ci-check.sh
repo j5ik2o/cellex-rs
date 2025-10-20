@@ -71,7 +71,51 @@ run_lint() {
 }
 
 run_dylint() {
-  local -a requested=("$@")
+  local -a lint_filters
+  lint_filters=()
+  local -a module_filters
+  module_filters=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -n|--name)
+        if [[ $# -lt 2 ]]; then
+          echo "エラー: -n/--name にはリント名を指定してください" >&2
+          return 1
+        fi
+        lint_filters+=("$2")
+        shift 2
+        ;;
+      -m|--module|--package)
+        if [[ $# -lt 2 ]]; then
+          echo "エラー: -m/--module にはモジュール名(またはパッケージ名)を指定してください" >&2
+          return 1
+        fi
+        module_filters+=("$2")
+        shift 2
+        ;;
+      --)
+        shift
+        while [[ $# -gt 0 ]]; do
+          lint_filters+=("$1")
+          shift
+        done
+        ;;
+      -h|--help)
+        echo "利用例: scripts/ci-check.sh dylint -n mod-file-lint -m cellex-actor-core-rs" >&2
+        return 0
+        ;;
+      *)
+        lint_filters+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  local -a requested=()
+  if [[ ${lint_filters+set} == set ]]; then
+    requested=("${lint_filters[@]}")
+  fi
 
   local -a lint_entries=(
     "mod-file-lint:lints/mod-file-lint"
@@ -120,6 +164,50 @@ run_dylint() {
     done
   fi
 
+  local -a package_args=()
+  if [[ ${#module_filters[@]} -gt 0 ]]; then
+    local module_spec
+    for module_spec in "${module_filters[@]}"; do
+      local manifest_path=""
+      local package_name=""
+
+      if [[ -f "${module_spec}" && "${module_spec}" == *Cargo.toml ]]; then
+        manifest_path="${module_spec}"
+      elif [[ -d "${module_spec}" && -f "${module_spec}/Cargo.toml" ]]; then
+        manifest_path="${module_spec}/Cargo.toml"
+      elif [[ -d "modules/${module_spec}" && -f "modules/${module_spec}/Cargo.toml" ]]; then
+        manifest_path="modules/${module_spec}/Cargo.toml"
+      fi
+
+      if [[ -n "${manifest_path}" ]]; then
+        package_name="$(awk -F'"' '/^name[[:space:]]*=/{print $2; exit}' "${manifest_path}")"
+      else
+        package_name="${module_spec}"
+      fi
+
+      if [[ -z "${package_name}" ]]; then
+        echo "エラー: モジュール '${module_spec}' のパッケージ名を特定できませんでした" >&2
+        return 1
+      fi
+
+      local already=""
+      if [[ ${#package_args[@]} -gt 0 ]]; then
+        local idx=0
+        while [[ ${idx} -lt ${#package_args[@]} ]]; do
+          if [[ "${package_args[${idx}+1]}" == "${package_name}" ]]; then
+            already="yes"
+            break
+          fi
+          idx=$((idx + 2))
+        done
+      fi
+
+      if [[ -z "${already}" ]]; then
+        package_args+=("-p" "${package_name}")
+      fi
+    done
+  fi
+
   local toolchain
   toolchain="nightly-$(rustc +nightly -vV | awk '/^host:/{print $2}')"
   local -a lib_dirs=()
@@ -162,8 +250,17 @@ run_dylint() {
     rustflags_value="-Dwarnings"
   fi
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint --workspace ${dylint_args[*]} --no-build --no-metadata (RUSTFLAGS=${rustflags_value})"
-  RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint --workspace "${dylint_args[@]}" --no-build --no-metadata
+  local -a cargo_dylint_args=()
+  if [[ ${#package_args[@]} -eq 0 ]]; then
+    cargo_dylint_args+=("--workspace")
+  else
+    cargo_dylint_args+=("${package_args[@]}")
+  fi
+  cargo_dylint_args+=("${dylint_args[@]}")
+  cargo_dylint_args+=("--no-build" "--no-metadata")
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${cargo_dylint_args[*]} (RUSTFLAGS=${rustflags_value})"
+  RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${cargo_dylint_args[@]}"
 }
 
 run_clippy() {
