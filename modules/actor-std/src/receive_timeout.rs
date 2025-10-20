@@ -18,7 +18,7 @@ use cellex_actor_core_rs::api::{
   },
 };
 use cellex_utils_std_rs::{
-  timing::TokioDeadlineTimer, DeadlineTimer, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,
+  timing::TokioDeadlineTimer, DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,
 };
 use futures::future::poll_fn;
 use tokio::{
@@ -45,7 +45,8 @@ struct TimerState {
 }
 
 impl TimerState {
-  fn new() -> Self {
+  #[must_use]
+  const fn new() -> Self {
     Self { key: None, duration: None }
   }
 }
@@ -104,7 +105,8 @@ pub struct TokioReceiveTimeoutSchedulerFactory;
 
 impl TokioReceiveTimeoutSchedulerFactory {
   /// Creates a new factory.
-  pub fn new() -> Self {
+  #[must_use]
+  pub const fn new() -> Self {
     Self
   }
 }
@@ -129,7 +131,7 @@ pub struct TokioReceiveTimeoutDriver;
 impl TokioReceiveTimeoutDriver {
   /// Creates a new driver instance.
   #[must_use]
-  pub fn new() -> Self {
+  pub const fn new() -> Self {
     Self
   }
 }
@@ -140,8 +142,8 @@ impl ReceiveTimeoutSchedulerFactoryProvider<TokioMailboxRuntime> for TokioReceiv
   }
 }
 
-async fn wait_for_expired(timer: &mut TokioDeadlineTimer<()>) -> DeadlineTimerExpired<()> {
-  poll_fn(|cx| timer.poll_expired(cx)).await.expect("poll expired")
+async fn wait_for_expired(timer: &mut TokioDeadlineTimer<()>) -> Result<DeadlineTimerExpired<()>, DeadlineTimerError> {
+  poll_fn(|cx| timer.poll_expired(cx)).await
 }
 
 async fn run_scheduler(
@@ -186,15 +188,23 @@ async fn run_scheduler(
         }
       }
       expired = wait_for_expired(&mut timer), if state.key.is_some() => {
-        let _ = expired;
-        state.key = None;
-        let envelope = PriorityEnvelope::from_system(SystemMessage::ReceiveTimeout)
-          .map(|sys| (map_system)(sys));
-        let _ = sender.try_send(envelope);
-        if let Some(duration) = state.duration {
-          if let Ok(key) = timer.insert((), TimerDeadline::from(duration)) {
-            state.key = Some(key);
-          }
+        match expired {
+          | Ok(_) => {
+            state.key = None;
+            #[allow(clippy::redundant_closure)]
+            let envelope = PriorityEnvelope::from_system(SystemMessage::ReceiveTimeout)
+              .map(|sys| (map_system)(sys));
+            let _ = sender.try_send(envelope);
+            if let Some(duration) = state.duration {
+              if let Ok(key) = timer.insert((), TimerDeadline::from(duration)) {
+                state.key = Some(key);
+              }
+            }
+          },
+          | Err(_) => {
+            state.key = None;
+            state.duration = None;
+          },
         }
       }
     }

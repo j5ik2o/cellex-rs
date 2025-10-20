@@ -100,9 +100,8 @@ fn priority_mailbox_capacity_split() -> TestResult {
   sender.send_with_priority(2, DEFAULT_PRIORITY).map_err(|err| format!("regular enqueue: {:?}", err))?;
   sender.send_with_priority(3, DEFAULT_PRIORITY).map_err(|err| format!("second regular enqueue: {:?}", err))?;
 
-  let err = match sender.try_send_with_priority(4, DEFAULT_PRIORITY) {
-    | Err(err) => err,
-    | Ok(_) => return Err("regular capacity not reached".to_string()),
+  let Err(err) = sender.try_send_with_priority(4, DEFAULT_PRIORITY) else {
+    return Err("regular capacity not reached".to_string());
   };
   assert!(matches!(&*err, QueueError::Full(_)));
   Ok(())

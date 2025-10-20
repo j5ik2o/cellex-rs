@@ -1,7 +1,7 @@
 use std::{
   any::Any,
   borrow::Cow,
-  sync::{Arc, Mutex},
+  sync::{Arc, Mutex, MutexGuard},
 };
 
 use cellex_actor_core_rs::api::{
@@ -32,6 +32,12 @@ use crate::{
   },
   remote_envelope::RemoteEnvelope,
 };
+
+type TestResult<T = ()> = Result<T, String>;
+
+fn lock<'a, T>(mutex: &'a Mutex<T>) -> Result<MutexGuard<'a, T>, String> {
+  mutex.lock().map_err(|err| format!("mutex poisoned: {:?}", err))
+}
 
 #[test]
 fn remote_failure_notifier_new_creates_instance() {
@@ -71,7 +77,7 @@ fn remote_failure_notifier_set_handler_stores_handler() {
 }
 
 #[test]
-fn remote_failure_notifier_dispatch_calls_handler() {
+fn remote_failure_notifier_dispatch_calls_handler() -> TestResult {
   let hub = FailureEventHub::new();
   let mut notifier = RemoteFailureNotifier::new(hub);
 
@@ -80,7 +86,7 @@ fn remote_failure_notifier_dispatch_calls_handler() {
 
   let handler = FailureEventListener::new(move |event: FailureEvent| {
     if matches!(event, FailureEvent::RootEscalated(_)) {
-      *called_clone.lock().unwrap() = true;
+      *called_clone.lock().unwrap_or_else(|err| err.into_inner()) = true;
     }
   });
   notifier.set_handler(handler);
@@ -88,7 +94,8 @@ fn remote_failure_notifier_dispatch_calls_handler() {
   let info = FailureInfo::new(ActorId(1), ActorPath::new(), ActorFailure::from_message("test error"));
   notifier.dispatch(info);
 
-  assert!(*called.lock().unwrap());
+  assert!(*lock(&called)?);
+  Ok(())
 }
 
 #[test]
@@ -101,13 +108,13 @@ fn remote_failure_notifier_dispatch_without_handler_does_nothing() {
 }
 
 #[test]
-fn remote_failure_notifier_emit_calls_hub_and_handler() {
+fn remote_failure_notifier_emit_calls_hub_and_handler() -> TestResult {
   let hub = FailureEventHub::new();
 
   let hub_events = Arc::new(Mutex::new(Vec::new()));
   let hub_events_clone = Arc::clone(&hub_events);
   let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
-    hub_events_clone.lock().unwrap().push(event);
+    hub_events_clone.lock().unwrap_or_else(|err| err.into_inner()).push(event);
   }));
 
   let mut notifier = RemoteFailureNotifier::new(hub);
@@ -117,7 +124,7 @@ fn remote_failure_notifier_emit_calls_hub_and_handler() {
 
   let handler = FailureEventListener::new(move |event: FailureEvent| {
     if matches!(event, FailureEvent::RootEscalated(_)) {
-      *handler_called_clone.lock().unwrap() = true;
+      *handler_called_clone.lock().unwrap_or_else(|err| err.into_inner()) = true;
     }
   });
   notifier.set_handler(handler);
@@ -125,14 +132,15 @@ fn remote_failure_notifier_emit_calls_hub_and_handler() {
   let info = FailureInfo::new(ActorId(1), ActorPath::new(), ActorFailure::from_message("test error"));
   notifier.emit(info.clone());
 
-  assert!(*handler_called.lock().unwrap());
+  assert!(*lock(&handler_called)?);
 
-  let events = hub_events.lock().unwrap();
+  let events = lock(&hub_events)?;
   assert_eq!(events.len(), 1);
 
   let FailureEvent::RootEscalated(received_info) = &events[0];
   assert_eq!(received_info.actor, info.actor);
   assert_eq!(received_info.description(), info.description());
+  Ok(())
 }
 
 #[derive(Debug)]
@@ -149,7 +157,7 @@ impl BehaviorFailure for SampleBehaviorFailure {
 }
 
 #[test]
-fn remote_failure_notifier_preserves_behavior_failure() {
+fn remote_failure_notifier_preserves_behavior_failure() -> TestResult {
   let hub = FailureEventHub::new();
   let mut notifier = RemoteFailureNotifier::new(hub.clone());
 
@@ -158,7 +166,7 @@ fn remote_failure_notifier_preserves_behavior_failure() {
   let _subscription = hub.subscribe(FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
     if let Some(failure) = info.behavior_failure().as_any().downcast_ref::<SampleBehaviorFailure>() {
-      captured_clone.lock().unwrap().replace(failure.0.to_owned());
+      captured_clone.lock().unwrap_or_else(|err| err.into_inner()).replace(failure.0.to_owned());
     }
   }));
 
@@ -167,7 +175,7 @@ fn remote_failure_notifier_preserves_behavior_failure() {
   notifier.set_handler(FailureEventListener::new(move |event: FailureEvent| {
     let FailureEvent::RootEscalated(info) = event;
     if info.behavior_failure().as_any().is::<SampleBehaviorFailure>() {
-      *handler_called_clone.lock().unwrap() = true;
+      *handler_called_clone.lock().unwrap_or_else(|err| err.into_inner()) = true;
     }
   }));
 
@@ -175,9 +183,10 @@ fn remote_failure_notifier_preserves_behavior_failure() {
   let info = FailureInfo::new(ActorId(99), ActorPath::new(), failure);
   notifier.emit(info);
 
-  assert!(*handler_called.lock().unwrap(), "handler should receive SampleBehaviorFailure");
-  let recorded = captured.lock().unwrap().clone().expect("captured failure");
+  assert!(*lock(&handler_called)?, "handler should receive SampleBehaviorFailure");
+  let recorded = lock(&captured)?.clone().ok_or_else(|| "captured failure".to_string())?;
   assert_eq!(recorded, "remote boom");
+  Ok(())
 }
 
 #[test]
@@ -192,7 +201,8 @@ fn placeholder_metadata_creates_metadata_with_endpoint() {
 }
 
 #[test]
-fn remote_envelope_roundtrip_preserves_control_channel() {
+#[allow(clippy::unnecessary_wraps)]
+fn remote_envelope_roundtrip_preserves_control_channel() -> TestResult {
   let system_msg = SystemMessage::Stop;
   let expected_priority = system_msg.priority();
   let priority_envelope = PriorityEnvelope::from_system(system_msg.clone());
@@ -209,10 +219,12 @@ fn remote_envelope_roundtrip_preserves_control_channel() {
   assert_eq!(restored_message, system_msg);
   assert_eq!(priority, expected_priority);
   assert_eq!(channel, PriorityChannel::Control);
+  Ok(())
 }
 
 #[test]
-fn remote_envelope_roundtrip_preserves_user_priority() {
+#[allow(clippy::unnecessary_wraps)]
+fn remote_envelope_roundtrip_preserves_user_priority() -> TestResult {
   let priority_envelope = PriorityEnvelope::control("ping".to_string(), 7);
 
   let remote_envelope: RemoteEnvelope<String> = RemoteEnvelope::from(priority_envelope);
@@ -228,10 +240,11 @@ fn remote_envelope_roundtrip_preserves_user_priority() {
   assert_eq!(message, "ping");
   assert_eq!(priority, 7);
   assert_eq!(channel, PriorityChannel::Control);
+  Ok(())
 }
 
 #[test]
-fn remote_envelope_roundtrip_preserves_user_message_envelope() {
+fn remote_envelope_roundtrip_preserves_user_message_envelope() -> TestResult {
   let message_envelope = MessageEnvelope::user("hello".to_string());
   let priority_envelope = PriorityEnvelope::with_channel(message_envelope, 5, PriorityChannel::Control);
 
@@ -252,22 +265,23 @@ fn remote_envelope_roundtrip_preserves_user_message_envelope() {
       assert_eq!(message, "hello");
       assert!(metadata.is_none());
     },
-    | MessageEnvelope::System(_) => panic!("expected user envelope"),
+    | MessageEnvelope::System(_) => return Err("expected user envelope".to_string()),
   }
+  Ok(())
 }
 
 #[test]
-fn frame_roundtrip_preserves_channel_and_priority_for_system_message() {
+fn frame_roundtrip_preserves_channel_and_priority_for_system_message() -> TestResult {
   let priority = SystemMessage::Restart.priority();
   let message_envelope = MessageEnvelope::System(SystemMessage::Restart);
   let envelope = RemoteEnvelope::new(message_envelope, priority, PriorityChannel::Control);
-  let frame = frame_from_serialized_envelope(envelope.clone()).expect("frame encoding");
+  let frame = frame_from_serialized_envelope(envelope).map_err(|err| format!("frame encoding: {:?}", err))?;
 
   assert_eq!(frame.priority, priority);
   assert_eq!(frame.channel, PriorityChannel::Control);
   match &frame.payload {
     | RemotePayloadFrame::System(message) => assert!(matches!(message, SystemMessage::Restart)),
-    | _ => panic!("expected system payload"),
+    | _ => return Err("expected system payload".to_string()),
   }
 
   let decoded = envelope_from_frame(frame);
@@ -275,24 +289,27 @@ fn frame_roundtrip_preserves_channel_and_priority_for_system_message() {
   assert_eq!(decoded_priority, priority);
   assert_eq!(decoded_channel, PriorityChannel::Control);
   assert!(matches!(decoded_message, MessageEnvelope::System(SystemMessage::Restart)));
+  Ok(())
 }
 
 #[test]
-fn frame_roundtrip_preserves_serialized_user_payload() {
+fn frame_roundtrip_preserves_serialized_user_payload() -> TestResult {
   let serializer = SerdeJsonSerializer::new();
-  let serialized = serializer.serialize_value(Some("String"), &"hello".to_string()).expect("serialize payload");
+  let serialized = serializer
+    .serialize_value(Some("String"), &"hello".to_string())
+    .map_err(|err| format!("serialize payload: {:?}", err))?;
 
   let reply_to = Some(Pid::new(SystemId::new("sys"), ActorPath::new()).with_node(NodeId::new("remote", Some(2552))));
 
   let envelope = control_remote_envelope_with_reply(serialized.clone(), 9, reply_to.clone());
-  let frame = frame_from_serialized_envelope(envelope).expect("frame encoding");
+  let frame = frame_from_serialized_envelope(envelope).map_err(|err| format!("frame encoding: {:?}", err))?;
 
   assert_eq!(frame.priority, 9);
   assert_eq!(frame.channel, PriorityChannel::Control);
   assert_eq!(frame.reply_to.as_ref().map(ToString::to_string), reply_to.as_ref().map(ToString::to_string));
 
   let RemotePayloadFrame::User { serialized: frame_payload } = &frame.payload else {
-    panic!("expected user payload");
+    return Err("expected user payload".to_string());
   };
   assert_eq!(frame_payload.serializer_id, serialized.serializer_id);
   assert_eq!(frame_payload.payload, serialized.payload);
@@ -304,34 +321,38 @@ fn frame_roundtrip_preserves_serialized_user_payload() {
   match decoded_envelope {
     | MessageEnvelope::User(user) => {
       let (payload, metadata) = user.into_parts::<ThreadSafe>();
-      let metadata = metadata.expect("metadata expected");
+      let metadata = metadata.ok_or_else(|| "metadata expected".to_string())?;
       assert_eq!(metadata.responder_pid().map(ToString::to_string), reply_to.as_ref().map(ToString::to_string));
       assert_eq!(payload.payload, serialized.payload);
     },
-    | MessageEnvelope::System(_) => panic!("expected user payload"),
+    | MessageEnvelope::System(_) => return Err("expected user payload".to_string()),
   }
+  Ok(())
 }
 
 #[test]
-fn frame_roundtrip_preserves_reply_to_pid() {
+fn frame_roundtrip_preserves_reply_to_pid() -> TestResult {
   let serializer = SerdeJsonSerializer::new();
-  let serialized = serializer.serialize_value(Some("String"), &"ping".to_string()).expect("serialize payload");
+  let serialized = serializer
+    .serialize_value(Some("String"), &"ping".to_string())
+    .map_err(|err| format!("serialize payload: {:?}", err))?;
   let reply_to = Pid::new(SystemId::new("sys"), ActorPath::new()).with_node(NodeId::new("node", None));
 
-  let envelope = control_remote_envelope_with_reply(serialized.clone(), 5, Some(reply_to.clone()));
-  let frame = frame_from_serialized_envelope(envelope).expect("frame encoding");
+  let envelope = control_remote_envelope_with_reply(serialized, 5, Some(reply_to.clone()));
+  let frame = frame_from_serialized_envelope(envelope).map_err(|err| format!("frame encoding: {:?}", err))?;
   assert_eq!(frame.reply_to.as_ref().map(ToString::to_string), Some(reply_to.to_string()));
 
-  let decoded_frame =
-    RemoteMessageFrame::new(frame.priority, frame.channel, frame.payload.clone(), frame.reply_to.clone());
+  let RemoteMessageFrame { priority, channel, payload, reply_to: reply_to_frame } = frame;
+  let decoded_frame = RemoteMessageFrame::new(priority, channel, payload, reply_to_frame);
   let decoded = envelope_from_frame(decoded_frame);
   let (envelope, _, _) = decoded.into_parts_with_channel();
   match envelope {
     | MessageEnvelope::User(user) => {
       let (_, metadata) = user.into_parts::<ThreadSafe>();
-      let metadata = metadata.expect("metadata expected");
+      let metadata = metadata.ok_or_else(|| "metadata expected".to_string())?;
       assert_eq!(metadata.responder_pid().map(ToString::to_string), Some(reply_to.to_string()));
     },
-    | MessageEnvelope::System(_) => panic!("expected user envelope"),
+    | MessageEnvelope::System(_) => return Err("expected user envelope".to_string()),
   }
+  Ok(())
 }

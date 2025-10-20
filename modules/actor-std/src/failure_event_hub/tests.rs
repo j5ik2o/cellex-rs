@@ -33,7 +33,7 @@ fn hub_forwards_events_to_subscribers() {
     ActorFailure::from_message("boom"),
     FailureMetadata::default(),
   ));
-  listener(event.clone());
+  listener(event);
 
   let events = storage.lock().unwrap_or_else(|err| err.into_inner());
   assert_eq!(events.len(), 1);

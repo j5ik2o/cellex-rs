@@ -3,7 +3,7 @@ mod tests;
 
 use std::{
   collections::VecDeque,
-  sync::{Arc, Mutex},
+  sync::{Arc, Mutex, MutexGuard},
 };
 
 use cellex_actor_core_rs::api::{
@@ -21,6 +21,14 @@ use cellex_utils_std_rs::{
 type PriorityQueueError<M> = Box<QueueError<PriorityEnvelope<M>>>;
 
 use crate::tokio_mailbox::NotifySignal;
+
+fn lock_mutex<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+  mutex.lock().unwrap_or_else(|err| err.into_inner())
+}
+
+fn lock_arc_mutex<'a, T>(mutex: &'a Arc<Mutex<T>>) -> MutexGuard<'a, T> {
+  mutex.lock().unwrap_or_else(|err| err.into_inner())
+}
 
 struct TokioPriorityLevels<M> {
   levels:             Arc<Vec<Mutex<VecDeque<PriorityEnvelope<M>>>>>,
@@ -47,7 +55,7 @@ impl<M> TokioPriorityLevels<M> {
   #[allow(clippy::result_large_err)]
   fn offer(&self, envelope: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     let idx = Self::level_index(envelope.priority(), self.levels.len());
-    let mut guard = self.levels[idx].lock().expect("priority queue poisoned");
+    let mut guard = lock_mutex(&self.levels[idx]);
     if self.capacity_per_level > 0 && guard.len() >= self.capacity_per_level {
       Err(QueueError::Full(envelope))
     } else {
@@ -56,10 +64,10 @@ impl<M> TokioPriorityLevels<M> {
     }
   }
 
-  #[allow(clippy::result_large_err)]
+  #[allow(clippy::result_large_err, clippy::unnecessary_wraps)]
   fn poll(&self) -> Result<Option<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {
     for level in (0..self.levels.len()).rev() {
-      let mut guard = self.levels[level].lock().expect("priority queue poisoned");
+      let mut guard = lock_mutex(&self.levels[level]);
       if let Some(envelope) = guard.pop_front() {
         return Ok(Some(envelope));
       }
@@ -69,13 +77,13 @@ impl<M> TokioPriorityLevels<M> {
 
   fn clean_up(&self) {
     for level in self.levels.iter() {
-      let mut guard = level.lock().expect("priority queue poisoned");
+      let mut guard = lock_mutex(level);
       guard.clear();
     }
   }
 
   fn len(&self) -> usize {
-    self.levels.iter().map(|level| level.lock().expect("priority queue poisoned").len()).sum()
+    self.levels.iter().map(|level| lock_mutex(level).len()).sum()
   }
 
   fn capacity(&self) -> QueueSize {
@@ -108,7 +116,7 @@ impl<M> TokioPriorityQueues<M> {
     if envelope.is_control() {
       self.control.offer(envelope)
     } else {
-      let mut guard = self.regular.lock().expect("regular queue poisoned");
+      let mut guard = lock_arc_mutex(&self.regular);
       if self.regular_capacity > 0 && guard.len() >= self.regular_capacity {
         Err(QueueError::Full(envelope))
       } else {
@@ -118,24 +126,24 @@ impl<M> TokioPriorityQueues<M> {
     }
   }
 
-  #[allow(clippy::result_large_err)]
+  #[allow(clippy::result_large_err, clippy::unnecessary_wraps)]
   fn poll(&self) -> Result<Option<PriorityEnvelope<M>>, QueueError<PriorityEnvelope<M>>> {
     if let Some(envelope) = self.control.poll()? {
       return Ok(Some(envelope));
     }
-    let mut guard = self.regular.lock().expect("regular queue poisoned");
+    let mut guard = lock_arc_mutex(&self.regular);
     Ok(guard.pop_front())
   }
 
   fn clean_up(&self) {
     self.control.clean_up();
-    let mut guard = self.regular.lock().expect("regular queue poisoned");
+    let mut guard = lock_arc_mutex(&self.regular);
     guard.clear();
   }
 
   fn len(&self) -> QueueSize {
     let control_len = self.control.len();
-    let regular_len = self.regular.lock().expect("regular queue poisoned").len();
+    let regular_len = lock_arc_mutex(&self.regular).len();
     QueueSize::limited(control_len.saturating_add(regular_len))
   }
 
@@ -255,6 +263,8 @@ impl TokioPriorityMailboxRuntime {
   ///
   /// A factory initialized with default regular queue capacity and default number of priority
   /// levels
+  #[allow(clippy::missing_const_for_fn)]
+  #[must_use]
   pub fn new(control_capacity_per_level: usize) -> Self {
     Self { control_capacity_per_level, regular_capacity: DEFAULT_CAPACITY, levels: PRIORITY_LEVELS }
   }
@@ -268,6 +278,8 @@ impl TokioPriorityMailboxRuntime {
   /// # Returns
   ///
   /// Factory instance with updated settings
+  #[allow(clippy::missing_const_for_fn)]
+  #[must_use]
   pub fn with_levels(mut self, levels: usize) -> Self {
     self.levels = levels.max(1);
     self
@@ -282,6 +294,8 @@ impl TokioPriorityMailboxRuntime {
   /// # Returns
   ///
   /// Factory instance with updated settings
+  #[allow(clippy::missing_const_for_fn)]
+  #[must_use]
   pub fn with_regular_capacity(mut self, capacity: usize) -> Self {
     self.regular_capacity = capacity;
     self
@@ -297,6 +311,7 @@ impl TokioPriorityMailboxRuntime {
   ///
   /// `(TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)` - Tuple of mailbox and sender
   /// handle
+  #[must_use]
   pub fn mailbox<M>(&self, options: MailboxOptions) -> (TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)
   where
     M: Element, {
@@ -309,14 +324,14 @@ impl TokioPriorityMailboxRuntime {
     (TokioPriorityMailbox { inner: mailbox }, TokioPriorityMailboxSender { inner: sender })
   }
 
-  fn resolve_control_capacity(&self, requested: QueueSize) -> usize {
+  const fn resolve_control_capacity(&self, requested: QueueSize) -> usize {
     match requested {
       | QueueSize::Limitless => self.control_capacity_per_level,
       | QueueSize::Limited(value) => value,
     }
   }
 
-  fn resolve_regular_capacity(&self, requested: QueueSize) -> usize {
+  const fn resolve_regular_capacity(&self, requested: QueueSize) -> usize {
     match requested {
       | QueueSize::Limitless => self.regular_capacity,
       | QueueSize::Limited(value) => value,
@@ -338,6 +353,7 @@ where
   ///
   /// `(TokioPriorityMailbox<M>, TokioPriorityMailboxSender<M>)` - Tuple of mailbox and sender
   /// handle
+  #[must_use]
   pub fn new(control_capacity_per_level: usize) -> (Self, TokioPriorityMailboxSender<M>) {
     TokioPriorityMailboxRuntime::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
   }
@@ -347,7 +363,8 @@ where
   /// # Returns
   ///
   /// An immutable reference to the internal mailbox
-  pub fn inner(&self) -> &QueueMailbox<TokioPriorityQueues<M>, NotifySignal> {
+  #[must_use]
+  pub const fn inner(&self) -> &QueueMailbox<TokioPriorityQueues<M>, NotifySignal> {
     &self.inner
   }
 
@@ -515,7 +532,8 @@ where
   /// # Returns
   ///
   /// An immutable reference to the internal producer
-  pub fn inner(&self) -> &QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal> {
+  #[must_use]
+  pub const fn inner(&self) -> &QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal> {
     &self.inner
   }
 

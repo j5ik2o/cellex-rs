@@ -93,6 +93,7 @@ where
   /// # Arguments
   ///
   /// * `hub` - The stream for distributing failure events
+  #[allow(clippy::missing_const_for_fn)]
   pub fn new(hub: E) -> Self {
     Self { hub, handler: None }
   }
@@ -111,6 +112,7 @@ where
   /// # Returns
   ///
   /// A reference to the `FailureEventStream`
+  #[allow(clippy::missing_const_for_fn)]
   pub fn hub(&self) -> &E {
     &self.hub
   }
@@ -120,6 +122,7 @@ where
   /// # Returns
   ///
   /// `Some(&FailureEventListener)` if a handler is set, otherwise `None`
+  #[allow(clippy::missing_const_for_fn)]
   pub fn handler(&self) -> Option<&FailureEventListener> {
     self.handler.as_ref()
   }
@@ -140,7 +143,7 @@ where
   /// * `info` - The failure information
   pub fn dispatch(&self, info: FailureInfo) {
     if let Some(handler) = self.handler.as_ref() {
-      handler(FailureEvent::RootEscalated(info.clone()));
+      handler(FailureEvent::RootEscalated(info));
     }
   }
 
@@ -150,8 +153,11 @@ where
   ///
   /// * `info` - The failure information
   pub fn emit(&self, info: FailureInfo) {
-    self.hub.listener()(FailureEvent::RootEscalated(info.clone()));
-    self.dispatch(info);
+    let event = FailureEvent::RootEscalated(info);
+    self.hub.listener()(event.clone());
+    if let Some(handler) = self.handler.as_ref() {
+      handler(event);
+    }
   }
 }
 
@@ -164,6 +170,7 @@ where
 /// # Returns
 ///
 /// `FailureMetadata` configured with the endpoint information
+#[must_use]
 pub fn placeholder_metadata(endpoint: &str) -> FailureMetadata {
   FailureMetadata::new().with_endpoint(endpoint.to_owned())
 }

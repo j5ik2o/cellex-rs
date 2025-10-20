@@ -1,19 +1,16 @@
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 
 use cellex_actor_core_rs::api::{
   failure_event_stream::FailureEventStream,
   supervision::{escalation::FailureEventListener, failure::FailureEvent},
 };
+use cellex_utils_core_rs::sync::ArcShared;
 use spin::Mutex;
 
 /// Simple FailureEventHub implementation for embedded environments.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct EmbeddedFailureEventHub {
-  inner: Arc<Mutex<EmbeddedFailureEventHubState>>,
+  inner: ArcShared<Mutex<EmbeddedFailureEventHubState>>,
 }
 
 #[cfg(not(target_has_atomic = "ptr"))]
@@ -29,7 +26,7 @@ struct EmbeddedFailureEventHubState {
 }
 
 pub struct EmbeddedFailureEventSubscription {
-  inner: Arc<Mutex<EmbeddedFailureEventHubState>>,
+  inner: ArcShared<Mutex<EmbeddedFailureEventHubState>>,
   id:    u64,
 }
 
@@ -45,13 +42,20 @@ impl EmbeddedFailureEventHub {
   /// # Returns
   ///
   /// A new event hub instance
+  #[must_use]
   pub fn new() -> Self {
-    Self { inner: Arc::new(Mutex::new(EmbeddedFailureEventHubState::default())) }
+    Self { inner: ArcShared::new(Mutex::new(EmbeddedFailureEventHubState::default())) }
   }
 
   fn snapshot_listeners(&self) -> Vec<FailureEventListener> {
     let locked = self.inner.lock();
     locked.listeners.iter().map(|(_, listener)| listener.clone()).collect()
+  }
+}
+
+impl Default for EmbeddedFailureEventHub {
+  fn default() -> Self {
+    Self::new()
   }
 }
 

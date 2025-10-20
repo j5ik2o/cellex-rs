@@ -37,6 +37,7 @@ where
   ///
   /// # Returns
   /// A new `TokioSystemHandle` for managing the actor system
+  #[must_use]
   pub fn start_local<AR>(runner: ActorSystemRunner<U, AR>) -> Self
   where
     U: cellex_utils_std_rs::Element + 'static,
@@ -52,6 +53,7 @@ where
   ///
   /// # Returns
   /// A `ShutdownToken` for controlling shutdown
+  #[must_use]
   pub fn shutdown_token(&self) -> ShutdownToken {
     self.shutdown.clone()
   }
@@ -70,6 +72,9 @@ where
   /// # Returns
   /// The result of system execution. The outer `Result` indicates task join errors,
   /// the inner `Result` indicates system execution errors.
+  ///
+  /// # Errors
+  /// Returns a [`tokio::task::JoinError`] when the underlying task join fails.
   pub async fn await_terminated(
     self,
   ) -> Result<Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>>, tokio::task::JoinError> {
@@ -87,6 +92,7 @@ where
   ///
   /// # Returns
   /// A `JoinHandle` for the listener task
+  #[must_use]
   pub fn spawn_ctrl_c_listener(&self) -> JoinHandle<()> {
     let token = self.shutdown.clone();
     tokio::spawn(async move {
@@ -134,7 +140,9 @@ where
   let mut worker_handles = Vec::with_capacity(worker_count.get());
 
   for _ in 0..worker_count.get() {
-    let worker = runner.ready_queue_worker().expect("ReadyQueue worker must be available when support is reported");
+    let Some(worker) = runner.ready_queue_worker() else {
+      return Err(QueueError::Disconnected);
+    };
     worker_handles.push(spawn_worker_task::<AR>(worker, shutdown.clone()));
   }
 
@@ -157,9 +165,9 @@ where
           continue;
         }
 
-        let worker =
-          runner.ready_queue_worker().expect("ReadyQueue worker must be obtainable while scheduler remains active");
-        remaining.push(spawn_worker_task::<AR>(worker, shutdown.clone()));
+        if let Some(worker) = runner.ready_queue_worker() {
+          remaining.push(spawn_worker_task::<AR>(worker, shutdown.clone()));
+        }
         worker_handles = remaining;
       },
       | Ok(Err(err)) => return Err(err),
@@ -201,12 +209,9 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   let shutdown_for_wait = shutdown.clone();
-  drive_ready_queue_worker(
-    worker,
-    shutdown,
-    || task::yield_now(),
-    move || wait_for_shutdown_signal(shutdown_for_wait.clone()),
-  )
+  drive_ready_queue_worker(worker, shutdown, task::yield_now, move || {
+    wait_for_shutdown_signal(shutdown_for_wait.clone())
+  })
   .await
 }
 
