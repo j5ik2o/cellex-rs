@@ -6,6 +6,8 @@ use alloc::{format, string::String};
 use core::task::{Context, Poll};
 use std::{future::Future, pin::Pin, sync::Arc, task::Wake};
 
+use cellex_actor_core_rs::api::mailbox::Mailbox;
+
 use super::*;
 
 type TestResult<T = ()> = Result<T, String>;

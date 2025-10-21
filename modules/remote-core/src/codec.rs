@@ -1,12 +1,14 @@
+mod remote_message_frame;
+mod remote_payload_frame;
+
 use cellex_actor_core_rs::api::{
-  mailbox::{
-    messages::{PriorityChannel, SystemMessage},
-    ThreadSafe,
-  },
+  mailbox::{messages::PriorityChannel, ThreadSafe},
   messaging::{MessageEnvelope, MessageMetadata},
   process::pid::Pid,
 };
 use cellex_serialization_core_rs::message::SerializedMessage;
+pub use remote_message_frame::RemoteMessageFrame;
+pub use remote_payload_frame::RemotePayloadFrame;
 
 use crate::remote_envelope::RemoteEnvelope;
 
@@ -16,39 +18,6 @@ pub enum RemoteCodecError {
   /// User metadata is currently unsupported for remote transport.
   #[error("user metadata is not supported in remote transport yet")]
   UnsupportedMetadata,
-}
-
-/// Transport frame generated from a [`RemoteEnvelope`] ready for serialization.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RemoteMessageFrame {
-  /// Priority assigned to the message.
-  pub priority: i8,
-  /// Channel classification (regular or control).
-  pub channel:  PriorityChannel,
-  /// Encoded payload.
-  pub payload:  RemotePayloadFrame,
-  /// Reply-to PID when present.
-  pub reply_to: Option<Pid>,
-}
-
-/// Payload variants for remote transport.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RemotePayloadFrame {
-  /// System message payload retained as-is.
-  System(SystemMessage),
-  /// User message encoded via the serialization layer.
-  User {
-    /// Serialized representation produced by the configured serializer.
-    serialized: SerializedMessage,
-  },
-}
-
-impl RemoteMessageFrame {
-  /// Creates a new frame.
-  #[must_use]
-  pub const fn new(priority: i8, channel: PriorityChannel, payload: RemotePayloadFrame, reply_to: Option<Pid>) -> Self {
-    Self { priority, channel, payload, reply_to }
-  }
 }
 
 /// Encodes a [`RemoteEnvelope`] carrying serialized user messages or system messages into a

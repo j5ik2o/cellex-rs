@@ -3,14 +3,16 @@
 #![deny(missing_docs)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 
+mod json_type_key;
+
 use cellex_serialization_core_rs::{
   error::{DeserializationError, SerializationError},
   id::SerializerId,
-  impl_type_key,
   message::SerializedMessage,
   serializer::Serializer,
 };
 use cellex_utils_core_rs::sync::ArcShared;
+pub use json_type_key::JsonTypeKey;
 use serde::{de::DeserializeOwned, Serialize};
 
 /// Serializer ID reserved for the `serde_json` backend.
@@ -81,9 +83,3 @@ impl Serializer for SerdeJsonSerializer {
 pub fn shared_json_serializer() -> ArcShared<SerdeJsonSerializer> {
   ArcShared::new(SerdeJsonSerializer::new())
 }
-
-/// Marker type representing JSON payloads within the serialization router.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct JsonTypeKey;
-
-impl_type_key!(JsonTypeKey, "cellex.serializer.json", SERDE_JSON_SERIALIZER_ID);

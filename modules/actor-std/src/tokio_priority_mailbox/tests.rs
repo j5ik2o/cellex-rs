@@ -1,4 +1,5 @@
-use cellex_utils_std_rs::{QueueSize, DEFAULT_PRIORITY};
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxOptions};
+use cellex_utils_std_rs::{QueueRw, QueueSize, DEFAULT_PRIORITY};
 
 use super::*;
 

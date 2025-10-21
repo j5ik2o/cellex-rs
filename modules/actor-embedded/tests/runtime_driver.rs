@@ -16,7 +16,7 @@ use cellex_actor_core_rs::api::{
     failure::{FailureEvent, FailureInfo, FailureMetadata},
   },
 };
-use cellex_actor_embedded_rs::{EmbeddedFailureEventHub, LocalMailboxRuntime};
+use cellex_actor_embedded_rs::{runtime_driver::EmbeddedFailureEventHub, LocalMailboxRuntime};
 
 #[test]
 fn embedded_actor_runtime_dispatches_message() {

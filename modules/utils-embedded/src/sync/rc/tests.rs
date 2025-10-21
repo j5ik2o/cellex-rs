@@ -1,4 +1,10 @@
 #![allow(clippy::disallowed_types)]
+extern crate alloc;
+
+use alloc::rc::Rc;
+
+use cellex_utils_core_rs::{Shared, StateCell};
+
 use super::*;
 
 #[test]

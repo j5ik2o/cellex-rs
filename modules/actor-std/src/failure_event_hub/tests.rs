@@ -2,13 +2,14 @@ use std::sync::{Arc as StdArc, Mutex as StdMutex};
 
 use cellex_actor_core_rs::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  failure_event_stream::FailureEventStream,
   supervision::{
     escalation::FailureEventListener,
     failure::{FailureEvent, FailureInfo, FailureMetadata},
   },
 };
 
-use super::*;
+use super::failure_event_hub_impl::FailureEventHub;
 
 impl FailureEventHub {
   fn listener_count(&self) -> usize {
