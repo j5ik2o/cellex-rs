@@ -36,13 +36,57 @@ impl Default for NoParentReexport {
 
 impl<'tcx> LateLintPass<'tcx> for NoParentReexport {
   fn check_item(&mut self, cx: &LateContext<'tcx>, item: &Item<'tcx>) {
-    if let ItemKind::Use(path, kind) = &item.kind {
-      self.evaluate_use(cx, item, path, *kind);
+    match &item.kind {
+      | ItemKind::Use(path, kind) => self.evaluate_use(cx, item, path, *kind),
+      | ItemKind::Mod(ident, _) => self.evaluate_mod(cx, item, ident.name),
+      | _ => {}
     }
   }
 }
 
 impl NoParentReexport {
+  fn evaluate_mod<'tcx>(&mut self, cx: &LateContext<'tcx>, item: &Item<'tcx>, module_name: Symbol) {
+    if has_allow_comment(cx, item.span) {
+      return;
+    }
+
+    if module_name.as_str() == "prelude" {
+      return;
+    }
+
+    // `mod foo { ... }` も `mod foo;` も対象とし、末端モジュールのみ判定する
+    let module = LocalModDefId::new_unchecked(item.owner_id.def_id);
+    if !self.is_leaf(cx, module) {
+      return;
+    }
+
+    let visibility = cx.tcx.visibility(item.owner_id.def_id);
+    let parent_scope = cx.tcx.parent_module_from_def_id(item.owner_id.def_id).to_def_id();
+
+    let snippet = cx.tcx.sess.source_map().span_to_snippet(item.span);
+    let vis_snippet = cx.tcx.sess.source_map().span_to_snippet(item.vis_span).ok();
+
+    let explicit_visibility = vis_snippet.as_ref().map(|text| !text.trim().is_empty()).unwrap_or(false);
+
+    let violates = match visibility {
+      | Visibility::Public => true,
+      | Visibility::Restricted(scope) => scope != parent_scope || explicit_visibility,
+    };
+
+    if !violates {
+      return;
+    }
+
+    // `pub mod` / `pub(crate) mod` 等を弾く
+    let detail = match snippet {
+      | Ok(snippet) => format!("宣言 `{}` に公開可視性が設定されています", snippet.trim()),
+      | Err(_) => format!("モジュール `{}` の宣言に公開可視性が設定されています", module_name.as_str()),
+    };
+
+    // inline module の場合でも `pub mod` は禁止
+    self.emit_leaf_mod_visibility_violation(cx, item.span, &detail);
+  }
+
   fn evaluate_use<'tcx>(&mut self, cx: &LateContext<'tcx>, item: &Item<'tcx>, path: &hir::UsePath<'tcx>, kind: UseKind) {
     if !is_public_use(cx, item) {
       return;
@@ -160,6 +204,15 @@ impl NoParentReexport {
       }
     });
   }
+
+  fn emit_leaf_mod_visibility_violation(&self, cx: &LateContext<'_>, span: Span, detail: &str) {
+    cx.span_lint(NO_PARENT_REEXPORT, span, |diag| {
+      diag.primary_message("末端モジュールの宣言では `mod` のみを使用してください");
+      diag.note("ルール: 末端モジュールを公開したい場合は親で `mod` のみ宣言し、`pub use` で公開します");
+      diag.note(format!("詳細: {}", detail));
+      diag.help("宣言から可視性修飾子を削除し、公開が必要なシンボルは末端モジュール内で `pub` を付けてください");
+    });
+  }
 }
 
 #[derive(Clone, Copy)]
@@ -242,6 +295,7 @@ fn scan_comment(segment: &str, token: &str) -> bool {
   }
   false
 }
+
 
 fn is_public_use(cx: &LateContext<'_>, item: &Item<'_>) -> bool {
   let sm = cx.tcx.sess.source_map();
