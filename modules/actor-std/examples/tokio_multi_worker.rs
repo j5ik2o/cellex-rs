@@ -8,7 +8,7 @@ use std::{
 use cellex_actor_core_rs::api::{
   actor::Props,
   actor_runtime::GenericActorRuntime,
-  actor_system::{ActorSystem, ActorSystemConfig},
+  actor_system::{GenericActorSystem, GenericActorSystemConfig},
 };
 use cellex_actor_std_rs::{TokioMailboxRuntime, TokioSystemHandle};
 use tokio::task::LocalSet;
@@ -18,9 +18,9 @@ async fn main() {
   let local = LocalSet::new();
   local
     .run_until(async move {
-      let mut system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime(
+      let mut system: GenericActorSystem<u32, _> = GenericActorSystem::new_with_actor_runtime(
         GenericActorRuntime::new(TokioMailboxRuntime),
-        ActorSystemConfig::default(),
+        GenericActorSystemConfig::default(),
       );
       let shutdown = system.shutdown_token();
       let mut root = system.root_context();

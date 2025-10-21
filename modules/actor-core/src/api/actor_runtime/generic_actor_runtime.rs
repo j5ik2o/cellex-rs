@@ -18,11 +18,10 @@ use crate::{
 };
 
 /// Helper alias mapping a runtime bundle back to its use
-/// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
 pub(crate) type BundleMailbox<MF> = MailboxOf<GenericActorRuntime<MF>>;
 
 /// Runtime bundle that decorates a use cellex_actor_core_rs::api::mailbox::MailboxRuntime; with
-/// ActorSystem-specific capabilities.
+/// GenericActorSystem-specific capabilities.
 #[derive(Clone)]
 pub struct GenericActorRuntime<MF>
 where

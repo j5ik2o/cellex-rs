@@ -9,7 +9,7 @@ use std::sync::Arc;
 use cellex_actor_core_rs::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath, Props},
   actor_runtime::GenericActorRuntime,
-  actor_system::ActorSystem,
+  actor_system::GenericActorSystem,
   failure::{
     failure_event_stream::{FailureEventListener, FailureEventStream},
     FailureEvent, FailureInfo, FailureMetadata,
@@ -20,7 +20,7 @@ use cellex_actor_embedded_rs::{runtime_driver::EmbeddedFailureEventHub, LocalMai
 #[test]
 fn embedded_actor_runtime_dispatches_message() {
   let hub = EmbeddedFailureEventHub::new();
-  let mut system: ActorSystem<u32, _> = ActorSystem::new_with_actor_runtime_and_event_stream(
+  let mut system: GenericActorSystem<u32, _> = GenericActorSystem::new_with_actor_runtime_and_event_stream(
     GenericActorRuntime::new(LocalMailboxRuntime::default()),
     &hub,
   );

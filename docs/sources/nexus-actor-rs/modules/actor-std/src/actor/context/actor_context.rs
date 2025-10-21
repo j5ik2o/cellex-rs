@@ -235,7 +235,7 @@ impl ActorContext {
     self
       .actor_system
       .upgrade()
-      .expect("ActorSystem dropped before ActorContext")
+      .expect("GenericActorSystem dropped before ActorContext")
   }
 
   fn base_context_handle(&self) -> ContextHandle {

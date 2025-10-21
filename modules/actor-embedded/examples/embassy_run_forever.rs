@@ -2,17 +2,17 @@
 mod sample {
   use core::sync::atomic::{AtomicU32, Ordering};
 
-  use cellex_actor_core_rs::{ActorSystem, ActorSystemConfig, Props};
+  use cellex_actor_core_rs::{GenericActorSystem, GenericActorSystemConfig, Props};
   use cellex_actor_embedded_rs::{define_embassy_dispatcher, embassy_actor_runtime, EmbassyActorRuntime};
   use embassy_executor::Executor;
   use static_cell::StaticCell;
 
   static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-  static SYSTEM: StaticCell<ActorSystem<u32, EmbassyActorRuntime, _>> = StaticCell::new();
+  static SYSTEM: StaticCell<GenericActorSystem<u32, EmbassyActorRuntime, _>> = StaticCell::new();
   pub static MESSAGE_SUM: AtomicU32 = AtomicU32::new(0);
 
   define_embassy_dispatcher!(
-    pub fn dispatcher(system: ActorSystem<u32, EmbassyActorRuntime, _>)
+    pub fn dispatcher(system: GenericActorSystem<u32, EmbassyActorRuntime, _>)
   );
 
   pub fn run() {
@@ -20,8 +20,8 @@ mod sample {
 
     executor.run(|spawner| {
       let actor_runtime = embassy_actor_runtime(spawner);
-      let system =
-        SYSTEM.init_with(|| ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default()));
+      let system = SYSTEM
+        .init_with(|| GenericActorSystem::new_with_actor_runtime(actor_runtime, GenericActorSystemConfig::default()));
 
       {
         let mut root = system.root_context();

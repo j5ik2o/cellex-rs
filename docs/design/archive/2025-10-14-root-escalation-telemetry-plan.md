@@ -31,10 +31,10 @@
 
 ### フェーズ2: `std` 向け実装と注入経路（進行中 → 主要機能完了）
 - `FailureSnapshot` / `FailureTelemetry` リファクタを適用し、`RootEscalationSink` がスナップショット経由で telemetry を呼び出すようにした。
-- `ActorSystemConfig::with_failure_telemetry` を追加し、`InternalActorSystemSettings` でデフォルト telemetry（`default_failure_telemetry()`）を自動注入する経路を整備済み。
+- `GenericActorSystemConfig::with_failure_telemetry` を追加し、`InternalActorSystemSettings` でデフォルト telemetry（`default_failure_telemetry()`）を自動注入する経路を整備済み。
 - 残タスクは `RootEscalationSink` のビルダー API 提供可否、および `NoopFailureTelemetry` の共有最適化。
 - Telemetry 拡張の将来案は `docs/rfc/2025-10-root-escalation-telemetry.md`（Draft）に整理済み。
-- `ActorSystemConfig::with_failure_telemetry_builder` を追加し、`TelemetryContext` を経由した初期化フックを提供。
+- `GenericActorSystemConfig::with_failure_telemetry_builder` を追加し、`TelemetryContext` を経由した初期化フックを提供。
 
 ### フェーズ3: `no_std` 運用確認（進行中）
 - `NoopFailureTelemetry` での運用確認は必要（`thumb` チェックは `./scripts/ci-check.sh all` に任せる）。
@@ -93,8 +93,8 @@
 - `description`: `String` に eagerly 変換し、`Cow` のライフタイム制約を取り除いた。
 - `tags`: 最大 `MAX_FAILURE_SNAPSHOT_TAGS` 個の `TelemetryTag` を保持し、`component` / `endpoint` / `transport` と任意タグを順序付きで展開。
 
-### ActorSystemConfig 連携メモ
-- `ActorSystemConfig::with_failure_telemetry` を追加し、アプリケーションが独自 telemetry を `FailureTelemetryShared` 経由で注入できるようにした。
+### GenericActorSystemConfig 連携メモ
+- `GenericActorSystemConfig::with_failure_telemetry` を追加し、アプリケーションが独自 telemetry を `FailureTelemetryShared` 経由で注入できるようにした。
 - `InternalActorSystemSettings` は config からのハンドルを優先し、設定が無い場合は `default_failure_telemetry()` を利用する。
 - `ReadyQueueScheduler` / `CompositeEscalationSink` まで `FailureTelemetryShared` を受け渡し、Root で一度だけ clone する構成。
 
@@ -155,7 +155,7 @@
 6. ドキュメント同期
    - ✅ 本計画書を更新し、フェーズ2の進捗を反映。
 7. API 拡張
-   - ✅ `TelemetryContext` / `FailureTelemetryBuilderShared` を追加し、`ActorSystemConfig::with_failure_telemetry_builder` および `with_failure_observation_config` を提供。
+   - ✅ `TelemetryContext` / `FailureTelemetryBuilderShared` を追加し、`GenericActorSystemConfig::with_failure_telemetry_builder` および `with_failure_observation_config` を提供。
 
 ## 残タスク追跡テンプレート案
 - [ ] RFC ドラフト共有（担当: TBD、期限: 2025-10-16）

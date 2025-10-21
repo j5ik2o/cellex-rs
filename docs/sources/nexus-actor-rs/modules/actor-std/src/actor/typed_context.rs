@@ -32,7 +32,7 @@ pub trait TypedSpawnerContext<M: Message>: TypedInfoPart<M> + TypedSpawnerPart +
 /// 同期スナップショット経由で Typed コンテキストの状態にアクセスするための補助トレイト。
 /// 既存の非同期 getter から移行する際の代替 API として利用する。
 pub trait TypedContextSyncView<M: Message>: Send + Sync {
-  /// `ActorSystem` をスナップショットから取得できる場合は返す。
+  /// `GenericActorSystem` をスナップショットから取得できる場合は返す。
   fn actor_system_snapshot(&self) -> Option<ActorSystem> {
     None
   }

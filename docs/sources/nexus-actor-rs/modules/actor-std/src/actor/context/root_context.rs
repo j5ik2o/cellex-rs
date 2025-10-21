@@ -166,7 +166,7 @@ impl RootContext {
           async move {
             let actor_system = weak_system
               .upgrade()
-              .expect("ActorSystem dropped before RootContext sender middleware");
+              .expect("GenericActorSystem dropped before RootContext sender middleware");
             let target = ExtendedPid::from(target_core);
             target
               .send_user_message(actor_system, envelope.get_message_handle())
@@ -277,7 +277,7 @@ impl RootContext {
     self
       .actor_system
       .upgrade()
-      .expect("ActorSystem dropped before RootContext")
+      .expect("GenericActorSystem dropped before RootContext")
   }
 
   fn guardian_strategy(&self) -> Option<SupervisorStrategyHandle> {

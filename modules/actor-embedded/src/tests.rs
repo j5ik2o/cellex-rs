@@ -14,7 +14,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use cellex_actor_core_rs::api::{
   actor::Props,
   actor_runtime::GenericActorRuntime,
-  actor_system::{ActorSystem, ActorSystemConfig},
+  actor_system::{GenericActorSystem, GenericActorSystemConfig},
 };
 use futures::task::{waker, ArcWake};
 
@@ -59,8 +59,8 @@ fn block_on<F: Future>(mut future: F) -> F::Output {
 fn typed_actor_system_dispatch_next_processes_message() -> TestResult {
   let mailbox_factory = LocalMailboxRuntime::default();
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
-  let mut system: ActorSystem<u32, _> =
-    ActorSystem::new_with_actor_runtime(actor_runtime, ActorSystemConfig::default());
+  let mut system: GenericActorSystem<u32, _> =
+    GenericActorSystem::new_with_actor_runtime(actor_runtime, GenericActorSystemConfig::default());
 
   let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
   let log_clone = log.clone();

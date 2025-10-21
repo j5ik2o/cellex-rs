@@ -13,8 +13,8 @@ use crate::TokioMailboxRuntime;
 ///
 /// Receives the priority mailbox producer and SystemMessage conversion closure,
 /// spawns an internal scheduler task, and returns a `ReceiveTimeoutScheduler`.
-/// Assigning it via `ActorSystemConfig::with_receive_timeout_factory` or
-/// `ActorSystemConfig::set_receive_timeout_scheduler_factory_shared_opt` enables
+/// Assigning it via `GenericActorSystemConfig::with_receive_timeout_scheduler_factory_shared_opt`
+/// or `GenericActorSystemConfig::set_receive_timeout_scheduler_factory_shared_opt` enables
 /// `ReceiveTimeout` support for the Tokio runtime.
 pub struct TokioReceiveTimeoutSchedulerFactory;
 

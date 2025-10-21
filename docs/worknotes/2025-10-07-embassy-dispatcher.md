@@ -26,7 +26,7 @@
 送信したメッセージの合計値をグローバルな `AtomicU32` へ記録する最小サンプルとして動作する。
 
 ```rust
-use cellex_actor_core_rs::{ActorRuntimeBundle, ActorSystem, ActorSystemConfig, MailboxOptions};
+use cellex_actor_core_rs::{ActorRuntimeBundle, ActorSystem, GenericActorSystemConfig, MailboxOptions};
 use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
 use embassy_executor::Spawner;
 use static_cell::StaticCell;
@@ -40,7 +40,7 @@ define_embassy_dispatcher!(
 pub fn start(spawner: &Spawner) {
   let runtime = LocalMailboxRuntime::default();
   let bundle = ActorRuntimeBundle::new(runtime).with_embassy_scheduler();
-  let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(bundle, ActorSystemConfig::default()));
+  let system = SYSTEM.init_with(|| ActorSystem::new_with_runtime(bundle, GenericActorSystemConfig::default()));
 
   // Embassy タスクとしてディスパッチを起動
   spawner.spawn(dispatcher(system)).expect("spawn dispatcher");
