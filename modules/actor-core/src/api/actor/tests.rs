@@ -49,7 +49,6 @@ use crate::{
       MailboxFactory,
     },
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender},
-    supervision::{escalation::FailureEventListener, failure::FailureEvent},
     test_support::TestMailboxFactory,
   },
   internal::message::InternalMessageSender,
@@ -325,7 +324,11 @@ use core::{
 use cellex_utils_core_rs::sync::ArcShared;
 use futures::{executor::block_on, future};
 
-use crate::api::{guardian::AlwaysRestart, mailbox::ThreadSafe};
+use crate::api::{
+  failure::{failure_event_stream::FailureEventListener, FailureEvent},
+  guardian::AlwaysRestart,
+  mailbox::ThreadSafe,
+};
 
 #[derive(Debug)]
 struct CounterExtension {
@@ -1072,11 +1075,11 @@ mod metrics_injection {
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
     actor_system::{ActorSystem, ActorSystemConfig},
-    failure_telemetry::FailureTelemetryShared,
+    failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
     mailbox::MailboxFactory,
     messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    supervision::{supervisor::Supervisor, telemetry::TelemetryObservationConfig},
+    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
     test_support::TestMailboxFactory,
   };
 
@@ -1129,21 +1132,13 @@ mod metrics_injection {
     ) {
     }
 
-    fn set_root_event_listener(
-      &mut self,
-      _listener: Option<crate::api::supervision::escalation::FailureEventListener>,
-    ) {
-    }
+    fn set_root_event_listener(&mut self, _listener: Option<FailureEventListener>) {}
 
-    fn set_root_escalation_handler(
-      &mut self,
-      _handler: Option<crate::api::supervision::escalation::FailureEventHandler>,
-    ) {
-    }
+    fn set_root_escalation_handler(&mut self, _handler: Option<FailureEventHandler>) {}
 
     fn set_root_failure_telemetry(&mut self, _telemetry: FailureTelemetryShared) {}
 
-    fn set_root_observation_config(&mut self, _config: TelemetryObservationConfig) {}
+    fn set_root_observation_config(&mut self, _config: FailureTelemetryObservationConfig) {}
 
     fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
       let mut slot = self.metrics.lock().unwrap();
@@ -1160,13 +1155,12 @@ mod metrics_injection {
     fn on_escalation(
       &mut self,
       _handler: Box<
-        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
-          + 'static,
+        dyn FnMut(&crate::api::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static,
       >,
     ) {
     }
 
-    fn take_escalations(&mut self) -> Vec<crate::api::supervision::failure::FailureInfo> {
+    fn take_escalations(&mut self) -> Vec<crate::api::failure::FailureInfo> {
       Vec::new()
     }
 

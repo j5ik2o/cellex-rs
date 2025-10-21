@@ -4,9 +4,7 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use core::cell::RefCell;
-#[cfg(feature = "std")]
-use std::cell::Cell;
+use core::cell::{Cell, RefCell};
 #[cfg(feature = "std")]
 use std::collections::VecDeque;
 #[cfg(feature = "std")]
@@ -26,42 +24,37 @@ use spin::RwLock;
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "std")]
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::{
-  api::{
-    actor::{
-      actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
-      shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
-    },
-    actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
-    actor_scheduler::{
-      actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
-      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-      ActorScheduler, ActorSchedulerSpawnContext,
-    },
-    actor_system::map_system::MapSystemShared,
-    extensions::Extensions,
-    guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::{
-      messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-      MailboxFactory, MailboxOptions,
-    },
-    messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
-    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    process::{
-      pid::{Pid, SystemId},
-      process_registry::ProcessRegistry,
-    },
-    receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    supervision::{
-      escalation::{FailureEventHandler, FailureEventListener},
-      failure::FailureInfo,
-      supervisor::{NoopSupervisor, Supervisor},
-    },
-    test_support::TestMailboxFactory,
+use crate::api::{
+  actor::{
+    actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
+    shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
   },
-  internal::mailbox::PriorityMailboxSpawnerHandle,
+  actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
+  actor_scheduler::{
+    actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
+    ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+    ActorScheduler, ActorSchedulerSpawnContext,
+  },
+  actor_system::map_system::MapSystemShared,
+  extensions::Extensions,
+  failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
+  guardian::{AlwaysRestart, GuardianStrategy},
+  mailbox::{
+    messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+    MailboxFactory, MailboxOptions,
+  },
+  messaging::{AnyMessage, MessageEnvelope},
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+  process::{
+    pid::{Pid, SystemId},
+    process_registry::ProcessRegistry,
+  },
+  supervision::{
+    escalation::FailureEventHandler,
+    supervisor::{NoopSupervisor, Supervisor},
+  },
+  test_support::TestMailboxFactory,
 };
-
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
@@ -723,11 +716,11 @@ fn scheduler_escalation_chain_reaches_root() {
     assert_eq!(snapshot.len(), 1);
   }
   let first_failure = collected.borrow()[0].clone();
-  let first_stage = first_failure.stage;
+  let first_stage = first_failure.failure_escalation_stage;
   assert!(first_stage.hops() >= 1, "child escalation should have hop count >= 1");
 
   let parent_failure = first_failure.escalate_to_parent().expect("parent failure info must exist");
-  let parent_stage = parent_failure.stage;
+  let parent_stage = parent_failure.failure_escalation_stage;
   assert!(parent_stage.hops() >= first_stage.hops(), "parent escalation hop count must be monotonic");
 
   let mut current = parent_failure.clone();
@@ -736,7 +729,7 @@ fn scheduler_escalation_chain_reaches_root() {
     root_failure = next.clone();
     current = next;
   }
-  let root_stage = root_failure.stage;
+  let root_stage = root_failure.failure_escalation_stage;
 
   assert_eq!(first_failure.path.segments().last().copied(), Some(first_failure.actor));
 
@@ -804,7 +797,10 @@ fn scheduler_requeues_failed_custom_escalation() {
   let attempts = Rc::new(Cell::new(0usize));
   let attempts_clone = attempts.clone();
   scheduler.on_escalation(move |info| {
-    assert!(info.stage.hops() >= 1, "escalation delivered to custom sink should already have propagated");
+    assert!(
+      info.failure_escalation_stage.hops() >= 1,
+      "escalation delivered to custom sink should already have propagated"
+    );
     let current = attempts_clone.get();
     attempts_clone.set(current + 1);
     if current == 0 {
@@ -854,7 +850,7 @@ fn scheduler_requeues_failed_custom_escalation() {
 fn scheduler_root_event_listener_broadcasts() {
   use std::sync::{Arc as StdArc, Mutex};
 
-  use crate::api::failure_event_stream::{tests::TestFailureEventStream, FailureEventStream};
+  use crate::api::failure::failure_event_stream::{tests::TestFailureEventStream, FailureEventStream};
 
   let mailbox_factory = TestMailboxFactory::unbounded();
   let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
@@ -865,7 +861,7 @@ fn scheduler_root_event_listener_broadcasts() {
   let received_clone = received.clone();
 
   let _subscription = hub.subscribe(FailureEventListener::new(move |event| match event {
-    | crate::api::supervision::failure::FailureEvent::RootEscalated(info) => {
+    | crate::api::failure::FailureEvent::RootEscalated(info) => {
       received_clone.lock().unwrap().push(info.clone());
     },
   }));

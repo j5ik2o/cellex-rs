@@ -55,9 +55,9 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use cellex_actor_core_rs::api::{
-  failure_event_stream::FailureEventStream,
-  supervision::{escalation::FailureEventListener, failure::FailureEvent},
+use cellex_actor_core_rs::api::failure::{
+  failure_event_stream::{FailureEventListener, FailureEventStream},
+  FailureEvent,
 };
 use cellex_remote_core_rs::RemoteFailureNotifier;
 

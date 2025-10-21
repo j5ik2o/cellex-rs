@@ -8,18 +8,17 @@ use cellex_actor_core_rs::api::{
   },
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
-  failure_telemetry::FailureTelemetryShared,
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+    FailureInfo,
+  },
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{
-    escalation::{FailureEventHandler, FailureEventListener},
-    failure::FailureInfo,
-    supervisor::Supervisor,
-    telemetry::TelemetryObservationConfig,
-  },
+  supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
 };
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;
@@ -93,7 +92,7 @@ where
     ReadyQueueScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
   }
 
-  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 

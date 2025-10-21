@@ -3,15 +3,18 @@ use core::marker::PhantomData;
 use std::time::Instant;
 
 use crate::api::{
-  failure_telemetry::FailureTelemetryShared,
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{
+      default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryObservationConfig, FailureTelemetryShared,
+    },
+    FailureEvent, FailureInfo,
+  },
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
-  supervision::{
-    escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener},
-    failure::{FailureEvent, FailureInfo},
-    telemetry::{default_failure_telemetry_shared, FailureSnapshot, TelemetryObservationConfig},
-  },
+  supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler},
 };
+
 /// `EscalationSink` implementation for root guardian.
 ///
 /// Handles failures at the root level of the actor system.
@@ -21,11 +24,11 @@ where
   MF: MailboxFactory,
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
-  event_handler:  Option<FailureEventHandler>,
-  event_listener: Option<FailureEventListener>,
-  telemetry:      FailureTelemetryShared,
-  observation:    TelemetryObservationConfig,
-  _marker:        PhantomData<MF>,
+  failure_event_handler_opt: Option<FailureEventHandler>,
+  failure_event_listener_opt: Option<FailureEventListener>,
+  failure_telemetry_shared: FailureTelemetryShared,
+  failure_telemetry_observation_config: FailureTelemetryObservationConfig,
+  _marker: PhantomData<MF>,
 }
 
 impl<MF> RootEscalationSink<MF>
@@ -40,11 +43,11 @@ where
   #[must_use]
   pub fn new() -> Self {
     Self {
-      event_handler:  None,
-      event_listener: None,
-      telemetry:      default_failure_telemetry_shared(),
-      observation:    TelemetryObservationConfig::default(),
-      _marker:        PhantomData,
+      failure_event_handler_opt: None,
+      failure_event_listener_opt: None,
+      failure_telemetry_shared: default_failure_telemetry_shared(),
+      failure_telemetry_observation_config: FailureTelemetryObservationConfig::default(),
+      _marker: PhantomData,
     }
   }
 
@@ -53,8 +56,8 @@ where
   /// # Arguments
   ///
   /// * `handler` - Failure event handler, or `None`
-  pub fn set_event_handler(&mut self, handler: Option<FailureEventHandler>) {
-    self.event_handler = handler;
+  pub fn set_failure_event_handler_opt(&mut self, handler: Option<FailureEventHandler>) {
+    self.failure_event_handler_opt = handler;
   }
 
   /// Sets the failure event listener.
@@ -62,30 +65,30 @@ where
   /// # Arguments
   ///
   /// * `listener` - Failure event listener, or `None`
-  pub fn set_event_listener(&mut self, listener: Option<FailureEventListener>) {
-    self.event_listener = listener;
+  pub fn set_failure_event_listener_opt(&mut self, listener: Option<FailureEventListener>) {
+    self.failure_event_listener_opt = listener;
   }
 
   /// Returns the currently registered telemetry implementation.
   #[must_use]
-  pub fn telemetry(&self) -> FailureTelemetryShared {
-    self.telemetry.clone()
+  pub fn failure_telemetry_shared(&self) -> FailureTelemetryShared {
+    self.failure_telemetry_shared.clone()
   }
 
   /// Sets the telemetry implementation.
-  pub fn set_telemetry(&mut self, telemetry: FailureTelemetryShared) {
-    self.telemetry = telemetry;
+  pub fn set_failure_telemetry_shared(&mut self, telemetry: FailureTelemetryShared) {
+    self.failure_telemetry_shared = telemetry;
   }
 
   /// Returns the telemetry observation config.
   #[must_use]
-  pub const fn observation_config(&self) -> &TelemetryObservationConfig {
-    &self.observation
+  pub const fn failure_telemetry_observation_config(&self) -> &FailureTelemetryObservationConfig {
+    &self.failure_telemetry_observation_config
   }
 
   /// Sets the telemetry observation config.
-  pub fn set_observation_config(&mut self, config: TelemetryObservationConfig) {
-    self.observation = config;
+  pub fn set_failure_telemetry_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
+    self.failure_telemetry_observation_config = config;
   }
 }
 
@@ -121,26 +124,28 @@ where
   fn handle(&mut self, info: FailureInfo, _already_handled: bool) -> Result<(), FailureInfo> {
     let snapshot = FailureSnapshot::from_failure_info(&info);
     #[cfg(feature = "std")]
-    let start = if self.observation.should_record_timing() && self.observation.metrics_sink().is_some() {
+    let start = if self.failure_telemetry_observation_config.should_record_timing()
+      && self.failure_telemetry_observation_config.metrics_sink().is_some()
+    {
       Some(Instant::now())
     } else {
       None
     };
 
-    self.telemetry.with_ref(|telemetry| telemetry.on_failure(&snapshot));
+    self.failure_telemetry_shared.with_ref(|telemetry| telemetry.on_failure(&snapshot));
 
     #[cfg(feature = "std")]
     let elapsed = start.map(|s| s.elapsed());
     #[cfg(not(feature = "std"))]
     let elapsed = None;
 
-    self.observation.observe(elapsed);
+    self.failure_telemetry_observation_config.observe(elapsed);
 
-    if let Some(handler) = self.event_handler.as_ref() {
+    if let Some(handler) = self.failure_event_handler_opt.as_ref() {
       handler(&info);
     }
 
-    if let Some(listener) = self.event_listener.as_ref() {
+    if let Some(listener) = self.failure_event_listener_opt.as_ref() {
       listener(FailureEvent::RootEscalated(info));
     }
 

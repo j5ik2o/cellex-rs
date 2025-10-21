@@ -4,7 +4,7 @@ use cellex_utils_core_rs::DEFAULT_PRIORITY;
 use super::SystemMessage;
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  supervision::failure::FailureInfo,
+  failure::FailureInfo,
 };
 
 #[test]

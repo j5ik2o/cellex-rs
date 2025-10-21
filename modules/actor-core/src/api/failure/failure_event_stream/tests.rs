@@ -5,8 +5,8 @@ use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
-use super::FailureEventStream;
-use crate::api::supervision::{escalation::FailureEventListener, failure::FailureEvent};
+use super::{FailureEventListener, FailureEventStream};
+use crate::api::failure::FailureEvent;
 
 /// In-memory implementation for testing only.
 #[allow(dead_code)]

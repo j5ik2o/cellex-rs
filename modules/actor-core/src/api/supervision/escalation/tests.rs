@@ -5,13 +5,12 @@ use std::sync::{Arc, Mutex};
 
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  failure_telemetry::FailureTelemetryShared,
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  supervision::{
-    escalation::{escalation_sink::EscalationSink, root_escalation_sink::RootEscalationSink},
-    failure::FailureInfo,
-    telemetry::{FailureSnapshot, FailureTelemetry, TelemetryObservationConfig},
+  failure::{
+    failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared},
+    FailureInfo,
   },
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+  supervision::escalation::{escalation_sink::EscalationSink, root_escalation_sink::RootEscalationSink},
   test_support::TestMailboxFactory,
 };
 
@@ -40,7 +39,7 @@ fn root_escalation_sink_invokes_telemetry() {
   let telemetry_shared = FailureTelemetryShared::new(telemetry_impl);
 
   let mut sink: RootEscalationSink<TestMailboxFactory> = RootEscalationSink::new();
-  sink.set_telemetry(telemetry_shared);
+  sink.set_failure_telemetry_shared(telemetry_shared);
 
   let failure = ActorFailure::from_message("boom");
   let info = FailureInfo::new(ActorId(1), ActorPath::new(), failure);
@@ -85,11 +84,12 @@ impl MetricsSink for RecordingMetricsSink {
 #[test]
 fn root_escalation_sink_records_metrics() {
   let (metrics_sink_impl, metrics_events) = RecordingMetricsSink::new();
-  let mut observation = TelemetryObservationConfig::new().with_metrics_sink(MetricsSinkShared::new(metrics_sink_impl));
+  let mut observation =
+    FailureTelemetryObservationConfig::new().with_metrics_sink(MetricsSinkShared::new(metrics_sink_impl));
   observation.set_record_timing(true);
 
   let mut sink: RootEscalationSink<TestMailboxFactory> = RootEscalationSink::new();
-  sink.set_observation_config(observation);
+  sink.set_failure_telemetry_observation_config(observation);
 
   let failure = ActorFailure::from_message("boom");
   let info = FailureInfo::new(ActorId(9), ActorPath::new(), failure);

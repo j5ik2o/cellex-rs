@@ -89,7 +89,7 @@
 - `path`: `ActorPath` を clone して保持し、`segments()` 参照をそのまま利用できるようにした。
 - `failure`: `ActorFailure` を clone で保持し、telemetry 側で `behavior()` などへアクセス可能にする。
 - `metadata`: `FailureMetadata` を clone して保持。タグやトランスポート情報はそのまま再利用。
-- `stage`: `EscalationStage` を保持し、ログ時に hop 数を確認できる。
+- `stage`: `FailureEscalationStage` を保持し、ログ時に hop 数を確認できる。
 - `description`: `String` に eagerly 変換し、`Cow` のライフタイム制約を取り除いた。
 - `tags`: 最大 `MAX_FAILURE_SNAPSHOT_TAGS` 個の `TelemetryTag` を保持し、`component` / `endpoint` / `transport` と任意タグを順序付きで展開。
 
@@ -123,7 +123,7 @@
 
 ## フェーズ3メモ（進行中）
 - `scripts/ci-check.sh no-std` を実行し、`alloc` のみの構成（`thumbv6m-none-eabi` 相当）でも `FailureTelemetryShared` / 観測フックがコンパイル可能であることを確認。（2025-10-14）
-- 観測設定が未指定の場合でも `TelemetryObservationConfig::new()` を用いて no-op 動作となるよう初期値を統一。
+- 観測設定が未指定の場合でも `FailureTelemetryObservationConfig::new()` を用いて no-op 動作となるよう初期値を統一。
 - `defmt` 連携案を `docs/design/D18-telemetry-defmt-next-actions.md` にまとめ、Builder API を通じた挿入が可能であることを確認。
 - `scripts/ci-check.sh all` を完走し、`std` / `no_std` 両構成および関連テストが成功することを確認。（2025-10-14）
 

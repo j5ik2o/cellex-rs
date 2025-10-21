@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
+use cellex_actor_core_rs::api::failure::failure_event_stream::FailureEventListener;
 
 /// Shared state for the embedded failure event hub.
 #[derive(Default)]

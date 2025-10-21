@@ -8,17 +8,16 @@ use crate::api::{
   actor::{actor_ref::PriorityActorRef, SpawnError},
   actor_scheduler::ActorSchedulerSpawnContext,
   actor_system::map_system::MapSystemShared,
-  failure_telemetry::FailureTelemetryShared,
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+    FailureInfo,
+  },
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{
-    escalation::{FailureEventHandler, FailureEventListener},
-    failure::FailureInfo,
-    supervisor::Supervisor,
-    telemetry::TelemetryObservationConfig,
-  },
+  supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
 };
 
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.
@@ -58,7 +57,7 @@ where
   fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared);
 
   /// Configures observation parameters used by failure telemetry.
-  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig);
+  fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig);
 
   /// Wires the parent guardian reference used for supervising spawned actors.
   fn set_parent_guardian(

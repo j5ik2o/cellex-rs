@@ -10,18 +10,17 @@ use crate::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::map_system::MapSystemShared,
-    failure_telemetry::FailureTelemetryShared,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      FailureInfo,
+    },
     guardian::GuardianStrategy,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{
-      escalation::{FailureEventHandler, FailureEventListener},
-      failure::FailureInfo,
-      supervisor::Supervisor,
-      telemetry::TelemetryObservationConfig,
-    },
+    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
   internal::actor::ActorCell,
 };
@@ -150,7 +149,7 @@ where
     self.core.set_root_failure_telemetry(telemetry)
   }
 
-  pub(crate) fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  pub(crate) fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     self.core.set_root_observation_config(config)
   }
 }

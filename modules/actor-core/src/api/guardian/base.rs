@@ -6,12 +6,13 @@ use super::{ChildRecord, GuardianStrategy};
 use crate::api::{
   actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming, SpawnError},
   actor_system::map_system::MapSystemShared,
+  failure::FailureInfo,
   mailbox::{
     messages::{PriorityEnvelope, SystemMessage},
     MailboxFactory, MailboxProducer,
   },
   messaging::AnyMessage,
-  supervision::{failure::FailureInfo, supervisor::SupervisorDirective},
+  supervision::supervisor::SupervisorDirective,
 };
 
 type ChildRoute<MF> = (PriorityActorRef<AnyMessage, MF>, MapSystemShared<AnyMessage>);

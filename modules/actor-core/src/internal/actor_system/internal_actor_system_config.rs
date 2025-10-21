@@ -1,16 +1,16 @@
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf},
   extensions::Extensions,
-  failure_telemetry::FailureTelemetryShared,
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryObservationConfig, FailureTelemetryShared},
+  },
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{
-    escalation::{FailureEventHandler, FailureEventListener},
-    telemetry::{default_failure_telemetry_shared, TelemetryObservationConfig},
-  },
+  supervision::escalation::FailureEventHandler,
 };
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
@@ -34,7 +34,7 @@ where
   /// Telemetry invoked when failures reach the root guardian.
   pub(crate) root_failure_telemetry_shared: FailureTelemetryShared,
   /// Observation config applied to telemetry calls.
-  pub(crate) root_observation_config: TelemetryObservationConfig,
+  pub(crate) root_observation_config: FailureTelemetryObservationConfig,
   /// Identifier assigned to the actor system for PID construction.
   pub(crate) system_id: SystemId,
   /// Optional node identifier associated with this actor system instance.
@@ -56,7 +56,7 @@ where
       metrics_sink_opt: None,
       extensions: Extensions::new(),
       root_failure_telemetry_shared: default_failure_telemetry_shared(),
-      root_observation_config: TelemetryObservationConfig::new(),
+      root_observation_config: FailureTelemetryObservationConfig::new(),
       system_id: SystemId::new("cellex"),
       node_id_opt: None,
     }

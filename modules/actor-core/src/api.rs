@@ -9,10 +9,8 @@ pub mod actor_system;
 #[cfg(feature = "alloc")]
 /// Extensions for actor system and actor runtime.
 pub mod extensions;
-/// Failure event stream for telemetry and monitoring.
-pub mod failure_event_stream;
-/// Shared failure telemetry infrastructure
-pub mod failure_telemetry;
+/// Failure information and metadata
+pub mod failure;
 /// Guardian supervision tree utilities used for internal actor bootstrapping.
 pub mod guardian;
 /// Mailbox implementations and message queueing.

@@ -4,13 +4,13 @@ use cellex_utils_core_rs::{
 };
 
 use super::{
-  failure_telemetry_shared::FailureTelemetryShared, telemetry_builder_fn::TelemetryBuilderFn,
-  telemetry_context::TelemetryContext,
+  failure_telemetry_builder_fn::FailureTelemetryBuilderFn, failure_telemetry_context::FailureTelemetryContext,
+  failure_telemetry_shared::FailureTelemetryShared,
 };
 
 /// Shared wrapper around a failure telemetry builder function.
 pub struct FailureTelemetryBuilderShared {
-  inner: ArcShared<dyn TelemetryBuilderFn>,
+  inner: ArcShared<dyn FailureTelemetryBuilderFn>,
 }
 
 impl FailureTelemetryBuilderShared {
@@ -18,14 +18,14 @@ impl FailureTelemetryBuilderShared {
   #[must_use]
   pub fn new<F>(builder: F) -> Self
   where
-    F: Fn(&TelemetryContext) -> FailureTelemetryShared + SharedBound + 'static, {
+    F: Fn(&FailureTelemetryContext) -> FailureTelemetryShared + SharedBound + 'static, {
     let shared = ArcShared::new(builder);
-    Self { inner: shared.into_dyn(|inner| inner as &dyn TelemetryBuilderFn) }
+    Self { inner: shared.into_dyn(|inner| inner as &dyn FailureTelemetryBuilderFn) }
   }
 
   /// Executes the builder to obtain a telemetry implementation.
   #[must_use]
-  pub fn build(&self, ctx: &TelemetryContext) -> FailureTelemetryShared {
+  pub fn build(&self, ctx: &FailureTelemetryContext) -> FailureTelemetryShared {
     self.inner.with_ref(|builder| builder.build(ctx))
   }
 }

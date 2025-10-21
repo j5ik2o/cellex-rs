@@ -2,10 +2,9 @@ use std::sync::{Arc as StdArc, Mutex as StdMutex};
 
 use cellex_actor_core_rs::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  failure_event_stream::FailureEventStream,
-  supervision::{
-    escalation::FailureEventListener,
-    failure::{FailureEvent, FailureInfo, FailureMetadata},
+  failure::{
+    failure_event_stream::{FailureEventListener, FailureEventStream},
+    FailureEvent, FailureInfo, FailureMetadata,
   },
 };
 

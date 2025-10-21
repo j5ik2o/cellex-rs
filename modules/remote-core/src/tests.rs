@@ -9,8 +9,11 @@ use cellex_actor_core_rs::api::{
     actor_failure::{ActorFailure, BehaviorFailure},
     ActorId, ActorPath,
   },
-  failure_event_stream::FailureEventStream,
-  failure_telemetry::FailureTelemetryShared,
+  failure::{
+    failure_event_stream::{FailureEventListener, FailureEventStream},
+    failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared},
+    FailureEvent, FailureInfo,
+  },
   mailbox::{
     messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
     ThreadSafe,
@@ -18,11 +21,7 @@ use cellex_actor_core_rs::api::{
   messaging::MessageEnvelope,
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
   process::pid::{NodeId, Pid, SystemId},
-  supervision::{
-    escalation::{EscalationSink, FailureEventListener, RootEscalationSink},
-    failure::{FailureEvent, FailureInfo},
-    telemetry::{FailureSnapshot, FailureTelemetry, TelemetryObservationConfig},
-  },
+  supervision::escalation::{EscalationSink, RootEscalationSink},
   test_support::TestMailboxFactory,
 };
 use cellex_actor_std_rs::FailureEventHub;
@@ -247,12 +246,12 @@ fn remote_failure_notifier_triggers_telemetry_metrics() {
   let (metrics_impl, metrics_events) = RecordingMetricsSink::new();
   let metrics = MetricsSinkShared::new(metrics_impl);
 
-  let mut observation = TelemetryObservationConfig::new().with_metrics_sink(metrics);
+  let mut observation = FailureTelemetryObservationConfig::new().with_metrics_sink(metrics);
   observation.set_record_timing(true);
 
   let mut root_sink: RootEscalationSink<TestMailboxFactory> = RootEscalationSink::new();
-  root_sink.set_telemetry(telemetry);
-  root_sink.set_observation_config(observation);
+  root_sink.set_failure_telemetry_shared(telemetry);
+  root_sink.set_failure_telemetry_observation_config(observation);
 
   let sink = Arc::new(Mutex::new(root_sink));
   let sink_clone: Arc<Mutex<RootEscalationSink<TestMailboxFactory>>> = Arc::clone(&sink);

@@ -4,6 +4,7 @@ use crate::{
   api::{
     actor_runtime::base::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ActorSchedulerHandleBuilder,
+    failure::failure_event_stream::FailureEventListener,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
@@ -11,7 +12,7 @@ use crate::{
       NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
       ReceiveTimeoutSchedulerFactoryShared,
     },
-    supervision::escalation::{FailureEventHandler, FailureEventListener},
+    supervision::escalation::FailureEventHandler,
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
 };
@@ -33,8 +34,8 @@ where
     Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, BundleMailbox<MF>>>,
   receive_timeout_scheduler_factory_provider_shared_opt:
     Option<ReceiveTimeoutSchedulerFactoryProviderShared<BundleMailbox<MF>>>,
-  root_event_listener_opt: Option<FailureEventListener>,
-  root_escalation_handler_opt: Option<FailureEventHandler>,
+  root_failure_event_listener_opt: Option<FailureEventListener>,
+  root_escalation_failure_event_handler_opt: Option<FailureEventHandler>,
   metrics_sink_opt: Option<MetricsSinkShared>,
 }
 
@@ -53,8 +54,8 @@ where
       receive_timeout_scheduler_factory_provider_shared_opt: Some(ReceiveTimeoutSchedulerFactoryProviderShared::new(
         NoopReceiveTimeoutSchedulerFactoryProvider,
       )),
-      root_event_listener_opt: None,
-      root_escalation_handler_opt: None,
+      root_failure_event_listener_opt: None,
+      root_escalation_failure_event_handler_opt: None,
       metrics_sink_opt: None,
     }
   }
@@ -134,27 +135,27 @@ where
 
   /// Returns the configured root failure event listener.
   #[must_use]
-  pub fn root_event_listener(&self) -> Option<FailureEventListener> {
-    self.root_event_listener_opt.clone()
+  pub fn root_failure_event_listener_opt(&self) -> Option<FailureEventListener> {
+    self.root_failure_event_listener_opt.clone()
   }
 
   /// Overrides the root failure event listener.
   #[must_use]
-  pub fn with_root_event_listener(mut self, listener: Option<FailureEventListener>) -> Self {
-    self.root_event_listener_opt = listener;
+  pub fn with_root_failure_event_listener_opt(mut self, listener: Option<FailureEventListener>) -> Self {
+    self.root_failure_event_listener_opt = listener;
     self
   }
 
   /// Returns the configured root escalation handler.
   #[must_use]
-  pub fn root_escalation_handler(&self) -> Option<FailureEventHandler> {
-    self.root_escalation_handler_opt.clone()
+  pub fn root_escalation_failure_event_handler_opt(&self) -> Option<FailureEventHandler> {
+    self.root_escalation_failure_event_handler_opt.clone()
   }
 
   /// Overrides the root escalation handler for the bundle.
   #[must_use]
-  pub fn with_root_escalation_handler(mut self, handler: Option<FailureEventHandler>) -> Self {
-    self.root_escalation_handler_opt = handler;
+  pub fn with_root_escalation_failure_event_handler_opt(mut self, handler: Option<FailureEventHandler>) -> Self {
+    self.root_escalation_failure_event_handler_opt = handler;
     self
   }
 
@@ -256,20 +257,20 @@ where
     GenericActorRuntime::with_receive_timeout_scheduler_factory_provider_shared_opt(self, driver)
   }
 
-  fn root_event_listener_opt(&self) -> Option<FailureEventListener> {
-    GenericActorRuntime::root_event_listener(self)
+  fn root_failure_event_listener_opt(&self) -> Option<FailureEventListener> {
+    GenericActorRuntime::root_failure_event_listener_opt(self)
   }
 
-  fn with_root_event_listener_opt(self, listener: Option<FailureEventListener>) -> Self {
-    GenericActorRuntime::with_root_event_listener(self, listener)
+  fn with_root_failure_event_listener_opt(self, listener: Option<FailureEventListener>) -> Self {
+    GenericActorRuntime::with_root_failure_event_listener_opt(self, listener)
   }
 
-  fn root_escalation_handler_opt(&self) -> Option<FailureEventHandler> {
-    GenericActorRuntime::root_escalation_handler(self)
+  fn root_escalation_failure_event_handler_opt(&self) -> Option<FailureEventHandler> {
+    GenericActorRuntime::root_escalation_failure_event_handler_opt(self)
   }
 
-  fn with_root_escalation_handler_opt(self, handler: Option<FailureEventHandler>) -> Self {
-    GenericActorRuntime::with_root_escalation_handler(self, handler)
+  fn with_root_escalation_failure_event_handler_opt(self, handler: Option<FailureEventHandler>) -> Self {
+    GenericActorRuntime::with_root_escalation_failure_event_handler_opt(self, handler)
   }
 
   fn metrics_sink_shared_opt(&self) -> Option<MetricsSinkShared> {

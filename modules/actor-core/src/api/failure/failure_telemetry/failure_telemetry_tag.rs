@@ -2,12 +2,12 @@ use alloc::borrow::Cow;
 
 /// Key/value pair attached to telemetry events.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TelemetryTag {
+pub struct FailureTelemetryTag {
   key:   Cow<'static, str>,
   value: Cow<'static, str>,
 }
 
-impl TelemetryTag {
+impl FailureTelemetryTag {
   /// Creates a new telemetry tag.
   #[must_use]
   pub fn new(key: impl Into<Cow<'static, str>>, value: impl Into<Cow<'static, str>>) -> Self {

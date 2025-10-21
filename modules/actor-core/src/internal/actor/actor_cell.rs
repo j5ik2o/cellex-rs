@@ -9,6 +9,7 @@ use crate::{
     actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
+    failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
     mailbox::{
       messages::{PriorityEnvelope, SystemMessage},
@@ -18,7 +19,7 @@ use crate::{
     metrics::MetricsSinkShared,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
-    supervision::{failure::FailureInfo, supervisor::Supervisor},
+    supervision::supervisor::Supervisor,
   },
   internal::{
     actor_context::{ChildSpawnSpec, InternalActorContext},

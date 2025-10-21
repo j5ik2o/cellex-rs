@@ -5,13 +5,15 @@ use cellex_utils_core_rs::ArcShared;
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   extensions::{Extension, Extensions},
-  failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared},
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryObservationConfig, FailureTelemetryShared},
+  },
   mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{escalation::FailureEventListener, telemetry::TelemetryObservationConfig},
 };
 
 /// Configuration options applied when constructing an
@@ -32,7 +34,7 @@ where
   /// Builder used to create telemetry implementations.
   failure_telemetry_builder_shared_opt: Option<FailureTelemetryBuilderShared>,
   /// Observation configuration applied to telemetry calls.
-  failure_observation_config_opt: Option<TelemetryObservationConfig>,
+  failure_observation_config_opt: Option<FailureTelemetryObservationConfig>,
   /// Extension registry configured for the actor system.
   extensions: Extensions,
   /// Default ReadyQueue worker count supplied by configuration.
@@ -111,7 +113,7 @@ where
 
   /// Sets telemetry observation configuration.
   #[must_use]
-  pub fn with_failure_observation_config_opt(mut self, config: Option<TelemetryObservationConfig>) -> Self {
+  pub fn with_failure_observation_config_opt(mut self, config: Option<FailureTelemetryObservationConfig>) -> Self {
     self.failure_observation_config_opt = config;
     self
   }
@@ -179,7 +181,7 @@ where
   }
 
   /// Mutable setter for telemetry observation config.
-  pub fn set_failure_observation_config_opt(&mut self, config: Option<TelemetryObservationConfig>) {
+  pub fn set_failure_observation_config_opt(&mut self, config: Option<FailureTelemetryObservationConfig>) {
     self.failure_observation_config_opt = config;
   }
 
@@ -220,7 +222,7 @@ where
     self.failure_telemetry_builder_shared_opt.clone()
   }
 
-  pub(crate) fn failure_observation_config_opt(&self) -> Option<TelemetryObservationConfig> {
+  pub(crate) fn failure_observation_config_opt(&self) -> Option<FailureTelemetryObservationConfig> {
     self.failure_observation_config_opt.clone()
   }
 

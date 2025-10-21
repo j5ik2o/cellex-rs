@@ -1,12 +1,12 @@
 use crate::api::{extensions::Extensions, metrics::MetricsSinkShared};
 
 /// Context provided to telemetry builders.
-pub struct TelemetryContext {
+pub struct FailureTelemetryContext {
   metrics:    Option<MetricsSinkShared>,
   extensions: Extensions,
 }
 
-impl TelemetryContext {
+impl FailureTelemetryContext {
   /// Creates a new telemetry context with optional metrics sink information.
   #[must_use]
   pub const fn new(metrics: Option<MetricsSinkShared>, extensions: Extensions) -> Self {

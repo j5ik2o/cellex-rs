@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use cellex_actor_core_rs::api::{
   actor::Props,
   actor_system::{ActorSystem, ActorSystemConfig},
-  failure_event_stream::FailureEventStream,
+  failure::failure_event_stream::FailureEventStream,
 };
 use cellex_actor_std_rs::{tokio_actor_runtime, FailureEventHub, TokioActorRuntime, TokioSystemHandle};
 

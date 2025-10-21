@@ -1,6 +1,6 @@
-use crate::api::{
-  failure_telemetry::FailureTelemetryShared,
-  supervision::telemetry::{failure_snapshot::FailureSnapshot, failure_telemetry::FailureTelemetry},
+#[cfg(feature = "std")]
+use crate::api::failure::failure_telemetry::{
+  failure_snapshot::FailureSnapshot, failure_telemetry::FailureTelemetry, FailureTelemetryShared,
 };
 
 #[cfg(feature = "std")]

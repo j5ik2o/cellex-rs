@@ -22,7 +22,6 @@ use crate::api::{
   },
   messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
   process::{pid::Pid, process_registry::ProcessRegistry},
-  supervision::failure::FailureInfo,
 };
 
 mod context_log_level;
@@ -35,7 +34,10 @@ pub use crate::api::actor::{
   message_adapter_ref::MessageAdapterRef, message_metadata_responder::MessageMetadataResponder,
 };
 use crate::{
-  api::actor::{actor_id::ActorId, actor_path::ActorPath},
+  api::{
+    actor::{actor_id::ActorId, actor_path::ActorPath},
+    failure::FailureInfo,
+  },
   internal::actor_context::InternalActorContext,
 };
 

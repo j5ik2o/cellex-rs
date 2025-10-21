@@ -13,7 +13,11 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
-    failure_telemetry::FailureTelemetryShared,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      FailureInfo,
+    },
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
     mailbox::{
       messages::{PriorityEnvelope, SystemMessage},
@@ -22,9 +26,7 @@ use crate::{
     messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{
-      escalation::EscalationSink, failure::FailureInfo, supervisor::Supervisor, telemetry::TelemetryObservationConfig,
-    },
+    supervision::{escalation::EscalationSink, supervisor::Supervisor},
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
 };
@@ -271,10 +273,7 @@ where
     self.escalation_sink.set_root_handler(handler);
   }
 
-  pub fn set_root_event_listener(
-    &mut self,
-    listener: Option<crate::api::supervision::escalation::FailureEventListener>,
-  ) {
+  pub fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
     self.escalation_sink.set_root_listener(listener);
   }
 
@@ -282,7 +281,7 @@ where
     self.escalation_sink.set_root_telemetry(telemetry);
   }
 
-  pub fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  pub fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     self.escalation_sink.set_root_observation_config(config);
   }
 

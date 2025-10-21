@@ -18,14 +18,14 @@ use crate::api::{
 };
 
 /// Registry maintaining PID → process handle mappings and a DeadLetter hub.
-pub struct ProcessRegistry<T, M> {
+pub struct ProcessRegistry<P, M> {
   system:       SystemId,
   node:         Option<NodeId>,
-  processes:    RwLock<BTreeMap<String, ArcShared<T>>>,
+  processes:    RwLock<BTreeMap<String, ArcShared<P>>>,
   dead_letters: RwLock<DeadLetterHub<M>>,
 }
 
-impl<T, M> ProcessRegistry<T, M> {
+impl<P, M> ProcessRegistry<P, M> {
   /// Creates a new process registry for the given system/node combination.
   #[must_use]
   pub const fn new(system: SystemId, node: Option<NodeId>) -> Self {
@@ -49,7 +49,7 @@ impl<T, M> ProcessRegistry<T, M> {
   }
 
   /// Registers a local process handle and returns its PID.
-  pub fn register_local(&self, path: ActorPath, handle: ArcShared<T>) -> Pid {
+  pub fn register_local(&self, path: ActorPath, handle: ArcShared<P>) -> Pid {
     let pid = match self.node.clone() {
       | Some(node) => Pid::new(self.system.clone(), path).with_node(node),
       | None => Pid::new(self.system.clone(), path),
@@ -65,7 +65,7 @@ impl<T, M> ProcessRegistry<T, M> {
   }
 
   /// Resolves a PID to a process handle, remote indicator, or unresolved.
-  pub fn resolve_pid(&self, pid: &Pid) -> ProcessResolution<T> {
+  pub fn resolve_pid(&self, pid: &Pid) -> ProcessResolution<P> {
     if pid.system() != &self.system {
       return ProcessResolution::Remote;
     }
@@ -81,7 +81,7 @@ impl<T, M> ProcessRegistry<T, M> {
   }
 
   /// Resolves the PID and, if not found, records a dead letter entry.
-  pub fn resolve_or_dead_letter(&self, pid: &Pid, message: M, reason: DeadLetterReason) -> Option<ArcShared<T>> {
+  pub fn resolve_or_dead_letter(&self, pid: &Pid, message: M, reason: DeadLetterReason) -> Option<ArcShared<P>> {
     self.resolve_or_dead_letter_with_remote(pid, message, reason, DeadLetterReason::NetworkUnreachable)
   }
 
@@ -92,7 +92,7 @@ impl<T, M> ProcessRegistry<T, M> {
     message: M,
     unresolved_reason: DeadLetterReason,
     remote_reason: DeadLetterReason,
-  ) -> Option<ArcShared<T>> {
+  ) -> Option<ArcShared<P>> {
     match self.resolve_pid(pid) {
       | ProcessResolution::Local(handle) => {
         let _ = message;
@@ -123,7 +123,7 @@ impl<T, M> ProcessRegistry<T, M> {
   }
 }
 
-impl<T, M> Default for ProcessRegistry<T, M> {
+impl<P, M> Default for ProcessRegistry<P, M> {
   fn default() -> Self {
     Self::new(SystemId::new("cellex"), None)
   }

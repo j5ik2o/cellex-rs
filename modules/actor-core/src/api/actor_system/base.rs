@@ -12,8 +12,10 @@ use crate::{
       actor_system_runner::ActorSystemRunner,
     },
     extensions::{serializer_extension_id, Extension, ExtensionId, Extensions, SerializerRegistryExtension},
-    failure_event_stream::FailureEventStream,
-    failure_telemetry::TelemetryContext,
+    failure::{
+      failure_event_stream::FailureEventStream,
+      failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryContext},
+    },
     guardian::AlwaysRestart,
     mailbox::messages::PriorityEnvelope,
     messaging::AnyMessage,
@@ -21,7 +23,6 @@ use crate::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
     },
-    supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::actor_system::{InternalActorSystem, InternalActorSystemConfig},
 };
@@ -63,8 +64,8 @@ where
   /// as it uses `NonZeroUsize::new(1)` which is guaranteed to succeed.
   #[allow(clippy::needless_pass_by_value)]
   pub fn new_with_actor_runtime(actor_runtime: AR, config: ActorSystemConfig<AR>) -> Self {
-    let root_listener_from_runtime = actor_runtime.root_event_listener_opt();
-    let root_handler_from_runtime = actor_runtime.root_escalation_handler_opt();
+    let root_listener_from_runtime = actor_runtime.root_failure_event_listener_opt();
+    let root_handler_from_runtime = actor_runtime.root_escalation_failure_event_handler_opt();
     let metrics_from_runtime = actor_runtime.metrics_sink_shared_opt();
     let scheduler_builder = actor_runtime.scheduler_builder_shared();
 
@@ -88,7 +89,7 @@ where
     let metrics_sink = config.metrics_sink_shared_opt().or(metrics_from_runtime);
     let telemetry_builder = config.failure_telemetry_builder_shared_opt();
     let root_failure_telemetry = if let Some(builder) = telemetry_builder {
-      let ctx = TelemetryContext::new(metrics_sink.clone(), extensions.clone());
+      let ctx = FailureTelemetryContext::new(metrics_sink.clone(), extensions.clone());
       builder.build(&ctx)
     } else {
       config.failure_telemetry_shared_opt().unwrap_or_else(default_failure_telemetry_shared)
