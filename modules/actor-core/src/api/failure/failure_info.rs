@@ -13,15 +13,15 @@ use crate::api::actor::{
 #[derive(Clone, Debug)]
 pub struct FailureInfo {
   /// ID of the actor where the failure occurred
-  pub actor:    ActorId,
+  pub actor:                    ActorId,
   /// Path of the actor where the failure occurred
-  pub path:     ActorPath,
+  pub path:                     ActorPath,
   /// Detailed failure payload
-  pub failure:  ActorFailure,
+  pub failure:                  ActorFailure,
   /// Metadata associated with the failure
-  pub metadata: FailureMetadata,
+  pub failure_metadata:         FailureMetadata,
   /// Escalation stage
-  pub stage:    FailureEscalationStage,
+  pub failure_escalation_stage: FailureEscalationStage,
 }
 
 impl FailureInfo {
@@ -56,7 +56,7 @@ impl FailureInfo {
     failure: ActorFailure,
     metadata: FailureMetadata,
   ) -> Self {
-    Self { actor, path, failure, metadata, stage: FailureEscalationStage::Initial }
+    Self { actor, path, failure, failure_metadata: metadata, failure_escalation_stage: FailureEscalationStage::Initial }
   }
 
   /// Sets metadata.
@@ -68,7 +68,7 @@ impl FailureInfo {
   /// `FailureInfo` instance with metadata set
   #[must_use]
   pub fn with_metadata(mut self, metadata: FailureMetadata) -> Self {
-    self.metadata = metadata;
+    self.failure_metadata = metadata;
     self
   }
 
@@ -81,7 +81,7 @@ impl FailureInfo {
   /// `FailureInfo` instance with escalation stage set
   #[must_use]
   pub const fn with_stage(mut self, stage: FailureEscalationStage) -> Self {
-    self.stage = stage;
+    self.failure_escalation_stage = stage;
     self
   }
 
@@ -136,11 +136,11 @@ impl FailureInfo {
     let parent_path = self.path.parent()?;
     let parent_actor = parent_path.last().unwrap_or(self.actor);
     Some(Self {
-      actor:    parent_actor,
-      path:     parent_path,
-      failure:  self.failure.clone(),
-      metadata: self.metadata.clone(),
-      stage:    self.stage.escalate(),
+      actor:                    parent_actor,
+      path:                     parent_path,
+      failure:                  self.failure.clone(),
+      failure_metadata:         self.failure_metadata.clone(),
+      failure_escalation_stage: self.failure_escalation_stage.escalate(),
     })
   }
 
@@ -168,8 +168,8 @@ impl PartialEq for FailureInfo {
     self.actor == other.actor
       && self.path == other.path
       && self.failure == other.failure
-      && self.metadata == other.metadata
-      && self.stage == other.stage
+      && self.failure_metadata == other.failure_metadata
+      && self.failure_escalation_stage == other.failure_escalation_stage
   }
 }
 

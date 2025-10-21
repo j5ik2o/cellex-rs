@@ -716,11 +716,11 @@ fn scheduler_escalation_chain_reaches_root() {
     assert_eq!(snapshot.len(), 1);
   }
   let first_failure = collected.borrow()[0].clone();
-  let first_stage = first_failure.stage;
+  let first_stage = first_failure.failure_escalation_stage;
   assert!(first_stage.hops() >= 1, "child escalation should have hop count >= 1");
 
   let parent_failure = first_failure.escalate_to_parent().expect("parent failure info must exist");
-  let parent_stage = parent_failure.stage;
+  let parent_stage = parent_failure.failure_escalation_stage;
   assert!(parent_stage.hops() >= first_stage.hops(), "parent escalation hop count must be monotonic");
 
   let mut current = parent_failure.clone();
@@ -729,7 +729,7 @@ fn scheduler_escalation_chain_reaches_root() {
     root_failure = next.clone();
     current = next;
   }
-  let root_stage = root_failure.stage;
+  let root_stage = root_failure.failure_escalation_stage;
 
   assert_eq!(first_failure.path.segments().last().copied(), Some(first_failure.actor));
 
@@ -797,7 +797,10 @@ fn scheduler_requeues_failed_custom_escalation() {
   let attempts = Rc::new(Cell::new(0usize));
   let attempts_clone = attempts.clone();
   scheduler.on_escalation(move |info| {
-    assert!(info.stage.hops() >= 1, "escalation delivered to custom sink should already have propagated");
+    assert!(
+      info.failure_escalation_stage.hops() >= 1,
+      "escalation delivered to custom sink should already have propagated"
+    );
     let current = attempts_clone.get();
     attempts_clone.set(current + 1);
     if current == 0 {

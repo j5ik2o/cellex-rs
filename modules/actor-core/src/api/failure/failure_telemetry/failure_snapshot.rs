@@ -30,10 +30,10 @@ impl FailureSnapshot {
       actor:       info.actor,
       path:        info.path.clone(),
       failure:     info.failure.clone(),
-      metadata:    info.metadata.clone(),
-      stage:       info.stage,
+      metadata:    info.failure_metadata.clone(),
+      stage:       info.failure_escalation_stage,
       description: info.description().into_owned(),
-      tags:        build_snapshot_tags(&info.metadata),
+      tags:        build_snapshot_tags(&info.failure_metadata),
     }
   }
 
