@@ -1,5 +1,10 @@
 mod queue_storage;
 
+#[cfg(feature = "alloc")]
+use core::cell::RefCell;
+#[cfg(all(feature = "alloc", feature = "std"))]
+use std::sync::Mutex;
+
 pub use queue_storage::QueueStorage;
 
 use super::mpsc::MpscBuffer;
@@ -38,39 +43,27 @@ pub trait RingBufferStorage<T> {
 }
 
 #[cfg(feature = "alloc")]
-mod mpsc_alloc_impls {
-  use core::cell::RefCell;
+impl<T> RingBufferStorage<T> for RefCell<MpscBuffer<T>> {
+  fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
+    let guard = self.borrow();
+    f(&guard)
+  }
 
-  use super::{MpscBuffer, RingBufferStorage};
-
-  impl<T> RingBufferStorage<T> for RefCell<MpscBuffer<T>> {
-    fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
-      let guard = self.borrow();
-      f(&guard)
-    }
-
-    fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
-      let mut guard = self.borrow_mut();
-      f(&mut guard)
-    }
+  fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
+    let mut guard = self.borrow_mut();
+    f(&mut guard)
   }
 }
 
 #[cfg(all(feature = "alloc", feature = "std"))]
-mod mpsc_std_impls {
-  use std::sync::Mutex;
+impl<T> RingBufferStorage<T> for Mutex<MpscBuffer<T>> {
+  fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
+    let guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    f(&guard)
+  }
 
-  use super::{MpscBuffer, RingBufferStorage};
-
-  impl<T> RingBufferStorage<T> for Mutex<MpscBuffer<T>> {
-    fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
-      let guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-      f(&guard)
-    }
-
-    fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
-      let mut guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-      f(&mut guard)
-    }
+  fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
+    let mut guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    f(&mut guard)
   }
 }
