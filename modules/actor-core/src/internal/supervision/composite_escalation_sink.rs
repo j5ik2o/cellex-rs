@@ -10,11 +10,12 @@ use crate::{
       FailureInfo,
     },
     mailbox::MailboxFactory,
-    supervision::escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
+    supervision::escalation::RootEscalationSink,
   },
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MapSystemShared},
+    supervision::{EscalationSink, FailureEventHandler},
   },
 };
 

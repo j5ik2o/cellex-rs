@@ -23,10 +23,10 @@ use cellex_actor_core_rs::{
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::pid::{NodeId, Pid, SystemId},
-    supervision::escalation::{EscalationSink, RootEscalationSink},
+    supervision::escalation::RootEscalationSink,
     test_support::TestMailboxFactory,
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::MessageEnvelope},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::MessageEnvelope, supervision::EscalationSink},
 };
 use cellex_actor_std_rs::FailureEventHub;
 use cellex_serialization_core_rs::{

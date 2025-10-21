@@ -4,19 +4,24 @@ use std::{
   sync::{Arc, Mutex, MutexGuard},
 };
 
-use cellex_actor_core_rs::api::{
-  actor::{
-    actor_failure::{ActorFailure, BehaviorFailure},
-    ActorId, ActorPath,
+use cellex_actor_core_rs::{
+  api::{
+    actor::{
+      actor_failure::{ActorFailure, BehaviorFailure},
+      ActorId, ActorPath,
+    },
+    failure::{
+      failure_event_stream::{FailureEventListener, FailureEventStream},
+      failure_telemetry::{
+        FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared,
+      },
+      FailureEvent, FailureInfo,
+    },
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    supervision::escalation::RootEscalationSink,
+    test_support::TestMailboxFactory,
   },
-  failure::{
-    failure_event_stream::{FailureEventListener, FailureEventStream},
-    failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared},
-    FailureEvent, FailureInfo,
-  },
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  supervision::escalation::{EscalationSink, RootEscalationSink},
-  test_support::TestMailboxFactory,
+  shared::supervision::EscalationSink,
 };
 use cellex_actor_std_rs::FailureEventHub;
 use cellex_remote_core_rs::RemoteFailureNotifier;

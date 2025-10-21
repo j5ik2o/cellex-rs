@@ -10,10 +10,9 @@ use crate::{
     mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    supervision::escalation::FailureEventHandler,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage, supervision::FailureEventHandler},
 };
 
 /// Helper alias mapping an actor runtime to its use

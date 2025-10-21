@@ -3,15 +3,20 @@
 #![allow(clippy::expect_used)]
 use std::sync::{Arc, Mutex};
 
-use crate::api::{
-  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  failure::{
-    failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared},
-    FailureInfo,
+use crate::{
+  api::{
+    actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+    failure::{
+      failure_telemetry::{
+        FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared,
+      },
+      FailureInfo,
+    },
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    supervision::escalation::RootEscalationSink,
+    test_support::TestMailboxFactory,
   },
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  supervision::escalation::{EscalationSink, RootEscalationSink},
-  test_support::TestMailboxFactory,
+  shared::supervision::EscalationSink,
 };
 
 #[derive(Clone, Default)]

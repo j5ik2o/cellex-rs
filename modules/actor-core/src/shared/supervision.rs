@@ -1,4 +1,6 @@
-//! Shared supervision abstractions reused across layers.
+//! Shared supervision abstractions used across API and internal layers.
 
-/// Escalation sink abstractions for failure propagation.
-pub mod escalation_sink; // allow module_wiring::no_parent_reexport
+/// Escalation sink for failure handling.
+mod escalation_sink;
+
+pub use escalation_sink::{EscalationSink, FailureEventHandler};
