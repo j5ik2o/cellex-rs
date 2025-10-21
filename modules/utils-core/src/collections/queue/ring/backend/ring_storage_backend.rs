@@ -1,7 +1,7 @@
 use super::ring_backend::RingBackend;
 use crate::collections::{
   queue::{
-    traits::{queue_base::QueueBase, queue_reader::QueueReader, queue_writer::QueueWriter},
+    traits::{QueueBase, QueueReader, QueueWriter},
     QueueHandle, QueueStorage,
   },
   QueueError, QueueSize,

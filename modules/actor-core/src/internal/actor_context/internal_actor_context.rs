@@ -7,7 +7,6 @@ use spin::RwLock;
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, ChildNaming},
-    actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{MailboxFactory, MailboxOptions, MailboxProducer},
     process::{pid::Pid, process_registry::ProcessRegistry},
@@ -15,7 +14,10 @@ use crate::{
     supervision::supervisor::Supervisor,
   },
   internal::{actor::InternalProps, actor_context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 type ActorProcessRegistryShared<MF> =

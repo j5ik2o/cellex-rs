@@ -42,7 +42,7 @@ use crate::{
       ActorId,
     },
     actor_runtime::{ActorRuntime, GenericActorRuntime, MailboxQueueOf, MailboxSignalOf},
-    actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig},
+    actor_system::{GenericActorSystem, GenericActorSystemConfig},
     extensions::{next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension},
     mailbox::{messages::SystemMessage, MailboxFactory},
     messaging::{MessageMetadata, MessageSender},
@@ -51,7 +51,7 @@ use crate::{
   internal::message::InternalMessageSender,
   shared::{
     mailbox::messages::PriorityEnvelope,
-    messaging::{AnyMessage, MessageEnvelope},
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
 
@@ -168,14 +168,17 @@ mod receive_timeout_injection {
   use crate::{
     api::{
       actor_runtime::ActorRuntime,
-      actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig},
+      actor_system::{GenericActorSystem, GenericActorSystemConfig},
       receive_timeout::{
         ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
         ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
       },
       test_support::TestMailboxFactory,
     },
-    shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+    shared::{
+      mailbox::messages::PriorityEnvelope,
+      messaging::{AnyMessage, MapSystemShared},
+    },
   };
 
   #[derive(Clone)]

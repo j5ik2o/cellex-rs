@@ -1,9 +1,9 @@
 /// Internal actor implementation
-pub(crate) mod actor;
-pub(crate) mod actor_context;
-pub(crate) mod actor_system;
-pub(crate) mod mailbox;
+pub(crate) mod actor; // allow module_wiring::no_parent_reexport
+pub(crate) mod actor_context; // allow module_wiring::no_parent_reexport
+pub(crate) mod actor_system; // allow module_wiring::no_parent_reexport
+pub(crate) mod mailbox; // allow module_wiring::no_parent_reexport
 /// Internal message metadata storage and dispatch primitives.
-pub mod message;
-pub(crate) mod runtime_state;
-pub(crate) mod supervision;
+pub mod message; // allow module_wiring::no_parent_reexport
+pub(crate) mod runtime_state; // allow module_wiring::no_parent_reexport
+pub(crate) mod supervision; // allow module_wiring::no_parent_reexport

@@ -7,7 +7,6 @@ use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
     actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-    actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
@@ -21,7 +20,10 @@ use crate::{
     actor_context::{ChildSpawnSpec, InternalActorContext},
     mailbox::PriorityMailboxSpawnerHandle,
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 type ActorCellProcessRegistryShared<MF> =

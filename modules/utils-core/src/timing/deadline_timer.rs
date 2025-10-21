@@ -1,11 +1,11 @@
 //! Common deadline timer types.
 
-pub mod deadline_timer_error;
-pub mod deadline_timer_expired;
-pub mod deadline_timer_key;
-pub mod deadline_timer_key_allocator;
-pub mod deadline_timer_trait;
-pub mod timer_deadline;
+mod deadline_timer_error;
+mod deadline_timer_expired;
+mod deadline_timer_key;
+mod deadline_timer_key_allocator;
+mod deadline_timer_trait;
+mod timer_deadline;
 
 pub use deadline_timer_error::DeadlineTimerError;
 pub use deadline_timer_expired::DeadlineTimerExpired;

@@ -4,7 +4,6 @@ use super::{CustomEscalationSink, ParentGuardianSink};
 use crate::{
   api::{
     actor::actor_ref::PriorityActorRef,
-    actor_system::map_system::MapSystemShared,
     failure::{
       failure_event_stream::FailureEventListener,
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
@@ -13,7 +12,10 @@ use crate::{
     mailbox::MailboxFactory,
     supervision::escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 /// Composes multiple sinks and applies them in order.

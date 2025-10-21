@@ -1,28 +1,28 @@
 //! Actor API aggregation module.
 
 /// Actor execution context
-pub mod actor_context;
+pub mod actor_context; // allow module_wiring::no_parent_reexport
 /// Actor failure information
-pub mod actor_failure;
+pub mod actor_failure; // allow module_wiring::no_parent_reexport
 mod actor_id;
 mod actor_path;
 /// Actor reference types
-pub mod actor_ref;
+pub mod actor_ref; // allow module_wiring::no_parent_reexport
 /// Ask pattern for request-response communication
-pub mod ask;
+pub mod ask; // allow module_wiring::no_parent_reexport
 /// Actor behavior definitions
-pub mod behavior;
+pub mod behavior; // allow module_wiring::no_parent_reexport
 mod child_naming;
 mod message_adapter_ref;
 mod message_metadata_responder;
 /// Actor spawn properties
 mod props;
 /// Root context for top-level actors
-pub mod root_context;
+pub mod root_context; // allow module_wiring::no_parent_reexport
 /// Shutdown coordination
-pub mod shutdown_token;
+pub mod shutdown_token; // allow module_wiring::no_parent_reexport
 /// Actor lifecycle signals
-pub mod signal;
+pub mod signal; // allow module_wiring::no_parent_reexport
 mod spawn;
 mod spawn_error;
 #[cfg(test)]

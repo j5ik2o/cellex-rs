@@ -3,8 +3,8 @@
 use core::time::Duration;
 
 use cellex_actor_core_rs::{
-  api::{actor_system::map_system::MapSystemShared, receive_timeout::ReceiveTimeoutScheduler},
-  shared::messaging::AnyMessage,
+  api::receive_timeout::ReceiveTimeoutScheduler,
+  shared::messaging::{AnyMessage, MapSystemShared},
 };
 use tokio::{
   sync::mpsc::{unbounded_channel, UnboundedSender},

@@ -6,11 +6,13 @@ use spin::RwLock;
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ChildNaming},
-    actor_system::map_system::MapSystemShared,
     mailbox::{MailboxFactory, MailboxOptions},
     process::{pid::Pid, process_registry::ProcessRegistry},
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 type SchedulerProcessRegistry<MF> =

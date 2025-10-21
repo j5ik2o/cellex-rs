@@ -36,7 +36,6 @@ use crate::{
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerSpawnContext,
     },
-    actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
     guardian::{AlwaysRestart, GuardianStrategy},
@@ -57,7 +56,7 @@ use crate::{
   },
   shared::{
     mailbox::messages::PriorityEnvelope,
-    messaging::{AnyMessage, MessageEnvelope},
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
 #[cfg(feature = "std")]

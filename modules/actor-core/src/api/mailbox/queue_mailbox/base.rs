@@ -3,10 +3,7 @@ use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
 use super::recv::QueueMailboxRecv;
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{
-    mailbox_handle::MailboxHandle, mailbox_producer::MailboxProducer, mailbox_signal::MailboxSignal,
-    queue_mailbox_producer::QueueMailboxProducer, Mailbox,
-  },
+  mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxHandle, MailboxProducer, MailboxSignal},
   metrics::{MetricsEvent, MetricsSinkShared},
 };
 

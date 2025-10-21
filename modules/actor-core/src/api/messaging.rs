@@ -1,6 +1,6 @@
 mod message_metadata;
 mod message_sender;
-pub(crate) mod metadata_storage;
+pub(crate) mod metadata_storage; // allow module_wiring::no_parent_reexport
 mod metadata_storage_mode;
 mod metadata_storage_record;
 mod user_message;

@@ -1,8 +1,8 @@
-pub mod queue_base;
-pub mod queue_handle;
-pub mod queue_reader;
-pub mod queue_rw;
-pub mod queue_writer;
+mod queue_base;
+mod queue_handle;
+mod queue_reader;
+mod queue_rw;
+mod queue_writer;
 
 pub use queue_base::QueueBase;
 pub use queue_handle::QueueHandle;

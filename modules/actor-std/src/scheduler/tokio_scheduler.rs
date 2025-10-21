@@ -7,7 +7,6 @@ use cellex_actor_core_rs::{
       ready_queue_scheduler::{ReadyQueueScheduler, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext,
     },
-    actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure::{
       failure_event_stream::FailureEventListener,
@@ -20,7 +19,10 @@ use cellex_actor_core_rs::{
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;

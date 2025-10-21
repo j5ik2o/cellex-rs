@@ -11,7 +11,6 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorId, ActorPath, SpawnError},
     actor_scheduler::ActorSchedulerSpawnContext,
-    actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure::{
       failure_event_stream::FailureEventListener,
@@ -25,7 +24,10 @@ use crate::{
     supervision::{escalation::EscalationSink, supervisor::Supervisor},
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 /// Simple scheduler implementation assuming priority mailboxes.

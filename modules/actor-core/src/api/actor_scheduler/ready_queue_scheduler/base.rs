@@ -17,7 +17,6 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
-    actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     failure::{
       failure_event_stream::FailureEventListener,
@@ -30,7 +29,10 @@ use crate::{
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.

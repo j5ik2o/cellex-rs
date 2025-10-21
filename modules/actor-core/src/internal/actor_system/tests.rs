@@ -16,7 +16,6 @@ use crate::{
   api::{
     actor::ActorPath,
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
-    actor_system::map_system::MapSystemShared,
     guardian::AlwaysRestart,
     mailbox::{messages::SystemMessage, MailboxOptions},
     messaging::MessageMetadata,
@@ -30,7 +29,7 @@ use crate::{
   internal::actor::InternalProps,
   shared::{
     mailbox::messages::PriorityEnvelope,
-    messaging::{AnyMessage, MessageEnvelope},
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
 

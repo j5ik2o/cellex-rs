@@ -9,7 +9,7 @@ use cellex_actor_core_rs::{
   },
   shared::messaging::MessageEnvelope,
 };
-use cellex_serialization_core_rs::message::SerializedMessage;
+use cellex_serialization_core_rs::SerializedMessage;
 pub use remote_message_frame::RemoteMessageFrame;
 pub use remote_payload_frame::RemotePayloadFrame;
 

@@ -19,7 +19,6 @@ use crate::{
       actor_ref::PriorityActorRef,
       ActorId, ActorPath, ChildNaming, SpawnError,
     },
-    actor_system::map_system::MapSystemShared,
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
       MailboxFactory,
@@ -29,7 +28,7 @@ use crate::{
   },
   shared::{
     mailbox::messages::PriorityEnvelope,
-    messaging::{AnyMessage, MessageEnvelope},
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
 

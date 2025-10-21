@@ -5,12 +5,10 @@ use cellex_utils_core_rs::QueueError;
 
 use crate::{
   api::{failure::FailureInfo, mailbox::MailboxFactory},
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage, supervision::escalation_sink::EscalationSink},
 };
 
 type FailureHandler = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static;
-
-use crate::api::supervision::escalation::EscalationSink;
 
 /// Sink based on custom handler.
 pub(crate) struct CustomEscalationSink<MF>

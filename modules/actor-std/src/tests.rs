@@ -7,7 +7,7 @@ use cellex_actor_core_rs::{
     actor::{actor_context::ActorContext, ActorId, ChildNaming, Props},
     actor_runtime::GenericActorRuntime,
     actor_scheduler::ActorSchedulerSpawnContext,
-    actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig, Spawn},
+    actor_system::{GenericActorSystem, GenericActorSystemConfig, Spawn},
     extensions::Extensions,
     mailbox::{messages::SystemMessage, MailboxOptions},
     process::{
@@ -17,7 +17,7 @@ use cellex_actor_core_rs::{
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::NoopSupervisor,
   },
-  shared::messaging::{AnyMessage, MessageEnvelope},
+  shared::messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use cellex_utils_std_rs::{sync::ArcStateCell, StateCell};

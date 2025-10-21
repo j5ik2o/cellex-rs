@@ -1,12 +1,14 @@
 use core::marker::PhantomData;
 
-use cellex_actor_core_rs::api::{
-  mailbox::{
-    messages::PriorityEnvelope,
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
-    Mailbox, MailboxOptions, QueueMailboxProducer,
+use cellex_actor_core_rs::{
+  api::{
+    mailbox::{
+      queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+      Mailbox, MailboxOptions, QueueMailboxProducer,
+    },
+    metrics::MetricsSinkShared,
   },
-  metrics::MetricsSinkShared,
+  shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_embedded_rs::{
   collections::queue::{priority::ArcPriorityQueue, ring::ArcRingQueue},

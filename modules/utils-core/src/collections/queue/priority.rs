@@ -1,5 +1,5 @@
-pub mod priority_message;
-pub mod priority_queue;
+mod priority_message;
+mod priority_queue;
 
 pub use priority_message::PriorityMessage;
 pub use priority_queue::PriorityQueue;

@@ -2,3 +2,4 @@
 
 pub mod mailbox;
 pub mod messaging;
+pub mod supervision;

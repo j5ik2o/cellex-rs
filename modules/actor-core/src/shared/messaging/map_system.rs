@@ -1,3 +1,8 @@
+//! Shared handle to a system message mapper function.
+//!
+//! This module provides `MapSystemShared`, which wraps a function that converts
+//! `SystemMessage` to user-defined message types, enabling type-safe system message handling.
+
 use core::ops::Deref;
 
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};

@@ -9,7 +9,6 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::ActorSchedulerSpawnContext,
-    actor_system::map_system::MapSystemShared,
     failure::{
       failure_event_stream::FailureEventListener,
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
@@ -22,7 +21,10 @@ use crate::{
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
   internal::actor::ActorCell,
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 pub(crate) struct ReadyQueueContext<MF, Strat>
