@@ -2,10 +2,8 @@ use alloc::{string::String, vec::Vec};
 
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  supervision::{
-    failure::{EscalationStage, FailureInfo, FailureMetadata},
-    telemetry::{build_snapshot_tags, TelemetryTag},
-  },
+  failure_telemetry::{build_snapshot_tags, TelemetryTag},
+  supervision::failure::{EscalationStage, FailureInfo, FailureMetadata},
 };
 
 /// Failure state captured for telemetry purposes.

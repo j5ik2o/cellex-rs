@@ -13,7 +13,7 @@ use crate::{
     },
     extensions::{serializer_extension_id, Extension, ExtensionId, Extensions, SerializerRegistryExtension},
     failure_event_stream::FailureEventStream,
-    failure_telemetry::TelemetryContext,
+    failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryContext},
     guardian::AlwaysRestart,
     mailbox::messages::PriorityEnvelope,
     messaging::AnyMessage,
@@ -21,7 +21,6 @@ use crate::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
     },
-    supervision::telemetry::default_failure_telemetry_shared,
   },
   internal::actor_system::{InternalActorSystem, InternalActorSystemConfig},
 };
@@ -88,7 +87,7 @@ where
     let metrics_sink = config.metrics_sink_shared_opt().or(metrics_from_runtime);
     let telemetry_builder = config.failure_telemetry_builder_shared_opt();
     let root_failure_telemetry = if let Some(builder) = telemetry_builder {
-      let ctx = TelemetryContext::new(metrics_sink.clone(), extensions.clone());
+      let ctx = FailureTelemetryContext::new(metrics_sink.clone(), extensions.clone());
       builder.build(&ctx)
     } else {
       config.failure_telemetry_shared_opt().unwrap_or_else(default_failure_telemetry_shared)

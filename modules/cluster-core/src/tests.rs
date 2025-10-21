@@ -10,12 +10,12 @@ use cellex_actor_core_rs::api::{
     ActorId, ActorPath,
   },
   failure_event_stream::{FailureEventListener, FailureEventStream},
-  failure_telemetry::FailureTelemetryShared,
+  failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared},
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
   supervision::{
     escalation::{EscalationSink, RootEscalationSink},
     failure::{FailureEvent, FailureInfo},
-    telemetry::{FailureSnapshot, FailureTelemetry, TelemetryObservationConfig},
+    telemetry::TelemetryObservationConfig,
   },
   test_support::TestMailboxFactory,
 };

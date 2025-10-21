@@ -3,11 +3,8 @@ use std::hint::black_box;
 
 use cellex_actor_core_rs::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  failure_telemetry::FailureTelemetryShared,
-  supervision::{
-    failure::FailureInfo,
-    telemetry::{FailureSnapshot, FailureTelemetry, NoopFailureTelemetry},
-  },
+  failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared, NoopFailureTelemetry},
+  supervision::failure::FailureInfo,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 

@@ -1,9 +1,11 @@
 use alloc::{borrow::Cow, vec::Vec};
 
-use super::telemetry_tag::TelemetryTag;
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
-use super::tracing_failure_telemetry::tracing_failure_telemetry;
-use crate::api::{failure_telemetry::FailureTelemetryShared, supervision::failure::FailureMetadata};
+use crate::api::failure_telemetry::tracing_failure_telemetry::tracing_failure_telemetry;
+use crate::api::{
+  failure_telemetry::{FailureTelemetryShared, TelemetryTag},
+  supervision::failure::FailureMetadata,
+};
 
 /// Maximum number of tags stored inside a `FailureSnapshot`.
 pub const MAX_FAILURE_SNAPSHOT_TAGS: usize = 8;
@@ -18,7 +20,7 @@ pub fn default_failure_telemetry_shared() -> FailureTelemetryShared {
 
   #[cfg(not(all(feature = "std", feature = "unwind-supervision")))]
   {
-    super::noop_failure_telemetry::noop_failure_telemetry_shared()
+    crate::api::failure_telemetry::noop_failure_telemetry_shared()
   }
 }
 

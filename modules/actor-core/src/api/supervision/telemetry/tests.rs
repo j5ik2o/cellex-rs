@@ -10,13 +10,10 @@ use std::{
 use tracing::subscriber::with_default;
 use tracing_subscriber::fmt;
 
-use super::*;
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  supervision::{
-    failure::{EscalationStage, FailureInfo, FailureMetadata},
-    telemetry::tracing_failure_telemetry::TracingFailureTelemetry,
-  },
+  failure_telemetry::{FailureSnapshot, FailureTelemetry, TracingFailureTelemetry},
+  supervision::failure::{EscalationStage, FailureInfo, FailureMetadata},
 };
 
 #[test]

@@ -1,6 +1,6 @@
 use cellex_utils_core_rs::SharedBound;
 
-use crate::api::supervision::telemetry::failure_snapshot::FailureSnapshot;
+use crate::api::failure_telemetry::failure_snapshot::FailureSnapshot;
 
 /// Telemetry hook invoked whenever a failure reaches the root escalation sink.
 pub trait FailureTelemetry: SharedBound {

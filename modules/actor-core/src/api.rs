@@ -9,6 +9,7 @@ pub mod actor_system;
 #[cfg(feature = "alloc")]
 /// Extensions for actor system and actor runtime.
 pub mod extensions;
+mod failure;
 /// Failure event stream for telemetry and monitoring.
 pub mod failure_event_stream;
 /// Shared failure telemetry infrastructure

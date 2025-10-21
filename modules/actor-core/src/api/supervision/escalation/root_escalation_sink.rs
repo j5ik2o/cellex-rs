@@ -4,13 +4,13 @@ use std::time::Instant;
 
 use crate::api::{
   failure_event_stream::FailureEventListener,
-  failure_telemetry::FailureTelemetryShared,
+  failure_telemetry::{default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryShared},
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   supervision::{
     escalation::escalation_sink::{EscalationSink, FailureEventHandler},
     failure::{FailureEvent, FailureInfo},
-    telemetry::{default_failure_telemetry_shared, FailureSnapshot, TelemetryObservationConfig},
+    telemetry::TelemetryObservationConfig,
   },
 };
 
