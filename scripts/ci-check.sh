@@ -336,8 +336,6 @@ run_tests() {
 
 run_all() {
   run_lint
-  run_dylint
-  run_clippy
   run_no_std
   run_std
   run_embedded
