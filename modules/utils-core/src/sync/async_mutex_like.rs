@@ -1,5 +1,7 @@
 mod spin_async_mutex;
 
+pub use spin_async_mutex::*;
+
 use alloc::boxed::Box;
 use core::ops::{Deref, DerefMut};
 
