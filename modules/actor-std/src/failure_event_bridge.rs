@@ -3,10 +3,12 @@ use tokio::sync::broadcast;
 
 /// A wrapper that distributes FailureEvent via Tokio broadcast channels.
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct TokioFailureEventBridge {
   sender: broadcast::Sender<FailureEvent>,
 }
 
+#[allow(dead_code)]
 impl TokioFailureEventBridge {
   /// Creates a new `TokioFailureEventBridge` instance.
   ///

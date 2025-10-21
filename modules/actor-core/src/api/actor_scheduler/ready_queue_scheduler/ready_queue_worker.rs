@@ -2,7 +2,7 @@ use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use futures::future::{select, Either, LocalBoxFuture};
 
 use crate::{
-  api::{actor::shutdown_token::ShutdownToken, mailbox::MailboxFactory},
+  api::{actor::ShutdownToken, mailbox::MailboxFactory},
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 

@@ -28,7 +28,7 @@ use crate::{
   api::{
     actor::{
       actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
-      shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
+      ActorHandlerFn, ActorId, ChildNaming, Props, ShutdownToken, SpawnError,
     },
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_scheduler::{
@@ -59,6 +59,7 @@ use crate::{
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
+
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]

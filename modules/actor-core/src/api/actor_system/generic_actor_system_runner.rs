@@ -4,7 +4,7 @@ use cellex_utils_core_rs::{ArcShared, Element, QueueError};
 
 use crate::{
   api::{
-    actor::shutdown_token::ShutdownToken,
+    actor::ShutdownToken,
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
     actor_system::GenericActorSystem,

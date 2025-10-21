@@ -55,7 +55,7 @@
 
 /// A failure event bridge module utilizing Tokio's broadcast channel.
 #[cfg(any(feature = "rt-multi-thread", feature = "rt-current-thread"))]
-pub mod failure_event_bridge; // allow module_wiring::no_parent_reexport
+mod failure_event_bridge;
 mod failure_event_hub;
 mod receive_timeout;
 mod runtime_driver;

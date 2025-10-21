@@ -1,9 +1,9 @@
 //! Messaging primitives shared between API and internal layers.
 
-pub mod any_message; // allow module_wiring::no_parent_reexport
-pub mod any_message_value; // allow module_wiring::no_parent_reexport
-pub mod map_system; // allow module_wiring::no_parent_reexport
-pub mod message_envelope; // allow module_wiring::no_parent_reexport
+mod any_message;
+mod any_message_value;
+mod map_system;
+mod message_envelope;
 
 pub use any_message::AnyMessage;
 pub use any_message_value::AnyMessageValue;

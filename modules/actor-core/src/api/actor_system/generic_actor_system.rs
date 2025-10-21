@@ -5,7 +5,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use crate::{
   api::{
-    actor::{actor_ref::PriorityActorRef, root_context::RootContext, shutdown_token::ShutdownToken},
+    actor::{actor_ref::PriorityActorRef, RootContext, ShutdownToken},
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
     actor_system::{ActorSystem, GenericActorSystemBuilder, GenericActorSystemConfig, GenericActorSystemRunner},
