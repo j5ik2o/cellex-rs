@@ -1,7 +1,9 @@
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::{sync::ArcShared, Element};
-use spin::Mutex;
+use cellex_utils_core_rs::{
+  sync::{sync_mutex_like::SyncMutexLike, ArcShared},
+  Element,
+};
 
 use super::{
   actor_context::ActorContext,
@@ -51,7 +53,7 @@ where
   pub fn new<F>(handler: F) -> Self
   where
     F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static, {
-    let handler_cell = ArcShared::new(Mutex::new(handler));
+    let handler_cell = ArcShared::new(AR::SyncMutex::new(handler));
     Self::with_behavior(move || {
       let handler_cell = handler_cell.clone();
       Behavior::stateless(move |ctx: &mut ActorContext<'_, '_, U, AR>, msg: U| {
@@ -80,7 +82,7 @@ where
   where
     F: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, U) -> Result<(), ActorFailure> + 'static,
     G: for<'r, 'ctx> FnMut(&mut ActorContext<'r, 'ctx, U, AR>, SystemMessage) + 'static, {
-    let handler_cell = ArcShared::new(Mutex::new(user_handler));
+    let handler_cell = ArcShared::new(AR::SyncMutex::new(user_handler));
     Self::with_behavior_and_system(
       move || {
         let handler_cell = handler_cell.clone();

@@ -1,4 +1,4 @@
-# Runtime Mutex Factory 設計
+# Runtime Mutex 抽象化設計
 
 ## 背景
 
@@ -12,41 +12,61 @@
 2. ランタイムが spin/std/tokio のいずれかの mutex を生成できるようにする。
 3. `ActorContext` や `InternalProps` などアクター内部からもランタイム依存の mutex を生成できるようにする。
 4. `no_std` / `std` / Tokio などの環境差異を隠蔽し、将来の差し替え（例えば `parking_lot`）にも柔軟に対応できるようにする。
+5. ランタイム構築時に使用する mutex 実装を選択できるようにする。
 
 ## 基本構成
 
-### 1. Factory クロージャを `ActorRuntime` から提供
+### 1. 関連型による Mutex 抽象化
 
-`ActorRuntime` に以下のような関連型と factory アクセサを追加するイメージ。
+`ActorRuntime` に以下のような関連型を追加:
 
 ```rust
-type SyncMutex<T>: SyncMutexLike<T>;
-type AsyncMutex<T>: AsyncMutexLike<T>;
-
-fn sync_mutex_factory(&self) -> Arc<dyn Fn<T>(T) -> Self::SyncMutex<T> + Send + Sync>;
-fn async_mutex_factory(&self) -> Arc<dyn Fn<T>(T) -> Self::AsyncMutex<T> + Send + Sync>;
+trait ActorRuntime {
+  type SyncMutex<T>: SyncMutexLike<T>;
+  type AsyncMutex<T: Send>: AsyncMutexLike<T>;
+  // ...
+}
 ```
 
 ポイント:
-- 関数ポインタではなく `Arc<dyn Fn>` を返すことで、クロージャ内で `Arc` クローンが自由にでき、スレッド間共有も安全。
-- ランタイム毎に適切な型（`SpinMutex` など）を包んだクロージャを提供する。
-- `AsyncMutex` は Tokio など async ランタイム向けで、`no_std` 環境では `SpinAsyncMutex` を返す。
+- ランタイム毎に適切な mutex 型を関連型として定義
+- コンパイル時に型が決定されるため、実行時オーバーヘッドなし
+- `no_std` 環境では `SpinSyncMutex` / `SpinAsyncMutex`
+- `std` 環境では `StdSyncMutex` / `TokioAsyncMutex`
 
-### 2. Factory を `ActorSystem` / `ActorContext` に注入
+### 2. ランタイム構築時の Mutex 選択
 
-- `GenericActorSystem::new_with_actor_runtime` など、アクターシステム生成時にランタイムから factory を取得し、`InternalActorContext` などへ保持させる。
-- `ActorContext` 内部に `Arc<dyn Fn<T>(T) -> MutexType>` の参照を持たせ、ハンドラ内で `ctx.make_sync_mutex(value)` のように呼び出せる API を提供。
-- これにより `Props` やハンドラは「ランタイムが提供する factory」を介して mutex を生成できる。
+将来的に、ランタイム構造体をジェネリックにすることで mutex 実装を選択可能に:
 
-### 3. `Props` の API を維持
+```rust
+// デフォルト: StdSyncMutex を使用
+struct TokioActorRuntime<M = StdSyncMutex> {
+  _mutex: PhantomData<M>,
+  // ...
+}
 
-- `Props::new` / `Props::with_behavior` は従来通りハンドラクロージャを受け取り、内部で mutex を直接生成しない。
-- 内部状態をロック付きで持ちたい場合は、ハンドラ内またはアダプタ初期化時に `ctx.make_sync_mutex` を使って生成する。
+// カスタム: SpinSyncMutex を使用
+let runtime = TokioActorRuntime::<SpinSyncMutex>::new(...);
+```
+
+### 3. `Props` などでの使用
+
+`Props` は `ActorRuntime` の関連型を直接使用:
+
+```rust
+impl<U, AR: ActorRuntime> Props<U, AR> {
+  pub fn new<F>(handler: F) -> Self {
+    let handler_cell = ArcShared::new(AR::SyncMutex::new(handler));
+    // ...
+  }
+}
+```
 
 ### 4. 既存の `spin::Mutex` 使用箇所の整理
 
-- ready queue、`Props` 初期化、各テスト等で直接 `spin::Mutex::new` が呼ばれている箇所を、 factory 経由のロック生成に置き換える。
-- `no_std` と `std` の動作差異を吸収するため、`SpinSyncMutex` / `StdSyncMutex` / `TokioAsyncMutex` などの薄いラッパ型を `utils-core` / `utils-std` に整備する。
+- `Props` 初期化: `AR::SyncMutex::new()` を使用
+- ランタイム固有実装 (TokioMailbox等): 具体的なラッパー型を直接使用
+- テストコード: 環境に応じた適切なラッパーを使用
 
 ## 実装ステップ
 
@@ -84,42 +104,66 @@ fn async_mutex_factory(&self) -> Arc<dyn Fn<T>(T) -> Self::AsyncMutex<T> + Send 
    - `StdSyncMutex` / `TokioAsyncMutex` (utils-std) は既存
 
 2. **ActorRuntime拡張** ✅
-   - `ActorRuntime` トレイトに関連型 `SyncMutex<T>` / `AsyncMutex<T: Send>` を追加
-   - factory アクセサ `sync_mutex_factory()` / `async_mutex_factory()` を追加
-   - `target_has_atomic = "ptr"` による条件付きコンパイルに対応
-     - atomic pointer サポートあり: `Send + Sync` 境界付きで `Arc` ベース
-     - atomic pointer サポートなし: `Rc` ベースで境界なし
+   - `ActorRuntime` トレイトに関連型 `SyncMutex<T>` / `AsyncMutexLike<T: Send>` を追加
    - `GenericActorRuntime` で各ランタイムに応じた実装を提供:
      - 関連型が `feature = "std"` により自動的に切り替わる
      - `no_std`: `SpinSyncMutex` / `SpinAsyncMutex`
      - `std`: `StdSyncMutex` / `TokioAsyncMutex`
-   - factory実装は `Self::SyncMutex` / `Self::AsyncMutex` を使用し、feature判定不要
-
-3. **テストの追加** ✅
-   - `modules/actor-core/src/api/actor_runtime/tests.rs` にfactory機能のテストを追加
-   - 同期 mutex, 非同期 mutex, factory のクローン可能性をテスト
-   - テストはすべてパス
+   - コンパイル時に型が決定されるため、実行時オーバーヘッドなし
 
 4. **ビルド・テスト確認** ✅
    - `ci-check.sh` で全構成 (no_std, std, tokio) のビルド・テストが成功
    - `thumbv6m-none-eabi` などの組み込みターゲットでもビルド成功
    - ドキュメント生成も問題なし
 
-### 保留項目
+### 実装完了項目
 
-3. **Factory の注入** (保留)
-   - `ActorContext` へのfactory注入は現時点では不要と判断
-   - 理由: 既存コードは`SyncMutexLike`などのトレイトを使用しており、直接`spin::Mutex::new`を呼んでいる箇所は限定的
-   - 将来的にコンテキスト内でmutexを動的生成する必要が生じた場合に実装
+5. **既存コードの置き換え** ✅
+   - `Props` (modules/actor-core/src/api/actor/props.rs)
+     - `spin::Mutex` から `AR::SyncMutex` (関連型経由) に変更
+     - `Props::new` および `Props::with_system_handler` で適用
+   - `TokioPriorityMailbox` queues (modules/actor-std/src/tokio_priority_mailbox/queues.rs)
+     - `std::sync::Mutex` から `StdSyncMutex` ラッパーに変更
+     - `TokioPriorityLevels` および `TokioPriorityQueues` で適用
+   - すべてのテストがパス、ci-check成功
 
-4. **既存コードの置き換え** (保留)
-   - 既存の`spin::Mutex`使用箇所の調査完了
-   - 主にテストコードとスケジューラ内部での使用を確認
-   - 現時点ではユーザーAPIに影響がなく、パフォーマンス問題も報告されていないため保留
-   - factory機構は整備済みのため、必要に応じて段階的に置き換え可能
+### 設計判断
 
-### 今後の課題
+**関連型のみの採用**
 
-- ActorContext/InternalActorContext へのfactory注入 (必要性が生じた場合)
-- Props初期化時のmutex生成をfactory経由に変更 (パフォーマンス改善が必要な場合)
-- ready queue等のスケジューラ内部でのfactory活用 (ランタイム依存の最適化が必要な場合)
+- **静的構築時 (Props等)**: `AR::SyncMutex::new()` を直接使用
+  - コンパイル時に型が決定されるため、実行時オーバーヘッドなし
+  - 関連型により適切なmutex実装が静的に解決される
+
+- **ランタイム固有実装 (TokioMailbox等)**: 具体的なラッパー型を直接使用
+  - 特定のランタイム専用の実装であり、動的な切り替えが不要
+  - 例: `StdSyncMutex`, `TokioAsyncMutex`
+
+- **Factory関数は不要**:
+  - 当初はfactory関数による動的生成を検討したが、関連型だけで要件を満たせることが判明
+  - ランタイム構築時にmutex実装を選択したい場合は、ランタイム構造体をジェネリック化すればよい
+  - 例: `TokioActorRuntime<M = StdSyncMutex>` のように型パラメータで指定
+
+### 将来の拡張可能性
+
+**ランタイム構造体のジェネリック化** (将来の拡張として)
+
+```rust
+struct GenericActorRuntime<MF, SM = SpinSyncMutex, AM = SpinAsyncMutex> {
+  _sync_mutex: PhantomData<SM>,
+  _async_mutex: PhantomData<AM>,
+  // ...
+}
+
+impl<MF, SM, AM> ActorRuntime for GenericActorRuntime<MF, SM, AM>
+where
+  SM: SyncMutexLike<T>,
+  AM: AsyncMutexLike<T>,
+{
+  type SyncMutex<T> = SM;
+  type AsyncMutex<T: Send> = AM;
+  // ...
+}
+```
+
+これにより、同じランタイムでも異なるmutex実装を選択可能に。

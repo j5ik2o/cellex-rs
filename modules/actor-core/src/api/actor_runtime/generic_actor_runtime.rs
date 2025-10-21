@@ -318,36 +318,4 @@ where
   fn scheduler_builder_shared_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
-
-  // sync_mutex_factory implementations with target_has_atomic consideration
-  #[cfg(target_has_atomic = "ptr")]
-  fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
-  where
-    T: 'static, {
-    ArcShared::new(|value| Self::SyncMutex::new(value))
-      .into_dyn(|f| f as &(dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync))
-  }
-
-  #[cfg(not(target_has_atomic = "ptr"))]
-  fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T>>
-  where
-    T: 'static, {
-    ArcShared::new(|value| Self::SyncMutex::new(value)).into_dyn(|f| f as &dyn Fn(T) -> Self::SyncMutex<T>)
-  }
-
-  // async_mutex_factory implementations with target_has_atomic consideration
-  #[cfg(target_has_atomic = "ptr")]
-  fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
-  where
-    T: Send + 'static, {
-    ArcShared::new(|value| Self::AsyncMutex::new(value))
-      .into_dyn(|f| f as &(dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync))
-  }
-
-  #[cfg(not(target_has_atomic = "ptr"))]
-  fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T>>
-  where
-    T: Send + 'static, {
-    ArcShared::new(|value| Self::AsyncMutex::new(value)).into_dyn(|f| f as &dyn Fn(T) -> Self::AsyncMutex<T>)
-  }
 }

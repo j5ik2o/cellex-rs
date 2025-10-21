@@ -1,21 +1,21 @@
-use std::{
-  collections::VecDeque,
-  sync::{Arc, Mutex, MutexGuard},
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use cellex_actor_core_rs::shared::mailbox::messages::PriorityEnvelope;
-use cellex_utils_std_rs::{QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter};
+use cellex_utils_std_rs::{
+  sync::{StdMutexGuard, StdSyncMutex},
+  QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
+};
 
-fn lock_mutex<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
-  mutex.lock().unwrap_or_else(|err| err.into_inner())
+fn lock_mutex<'a, T>(mutex: &'a StdSyncMutex<T>) -> StdMutexGuard<'a, T> {
+  mutex.lock()
 }
 
-fn lock_arc_mutex<'a, T>(mutex: &'a Arc<Mutex<T>>) -> MutexGuard<'a, T> {
-  mutex.lock().unwrap_or_else(|err| err.into_inner())
+fn lock_arc_mutex<'a, T>(mutex: &'a Arc<StdSyncMutex<T>>) -> StdMutexGuard<'a, T> {
+  mutex.lock()
 }
 
 pub(super) struct TokioPriorityLevels<M> {
-  levels:             Arc<Vec<Mutex<VecDeque<PriorityEnvelope<M>>>>>,
+  levels:             Arc<Vec<StdSyncMutex<VecDeque<PriorityEnvelope<M>>>>>,
   capacity_per_level: usize,
 }
 
@@ -27,7 +27,7 @@ impl<M> Clone for TokioPriorityLevels<M> {
 
 impl<M> TokioPriorityLevels<M> {
   pub(super) fn new(levels: usize, capacity_per_level: usize) -> Self {
-    let storage = (0..levels).map(|_| Mutex::new(VecDeque::new())).collect();
+    let storage = (0..levels).map(|_| StdSyncMutex::new(VecDeque::new())).collect();
     Self { levels: Arc::new(storage), capacity_per_level }
   }
 
@@ -82,7 +82,7 @@ impl<M> TokioPriorityLevels<M> {
 
 pub struct TokioPriorityQueues<M> {
   control:          TokioPriorityLevels<M>,
-  regular:          Arc<Mutex<VecDeque<PriorityEnvelope<M>>>>,
+  regular:          Arc<StdSyncMutex<VecDeque<PriorityEnvelope<M>>>>,
   regular_capacity: usize,
 }
 
@@ -90,7 +90,7 @@ impl<M> TokioPriorityQueues<M> {
   pub(super) fn new(levels: usize, control_per_level: usize, regular_capacity: usize) -> Self {
     Self {
       control: TokioPriorityLevels::new(levels, control_per_level),
-      regular: Arc::new(Mutex::new(VecDeque::new())),
+      regular: Arc::new(StdSyncMutex::new(VecDeque::new())),
       regular_capacity,
     }
   }
