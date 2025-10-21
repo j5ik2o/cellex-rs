@@ -13,15 +13,14 @@ use cellex_actor_core_rs::api::{
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{
-    escalation::FailureEventHandler, supervisor::Supervisor,
-    telemetry::TelemetryObservationConfig,
-  },
+  supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
 };
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;
 use cellex_actor_core_rs::api::failure::failure_event_stream::FailureEventListener;
-use cellex_actor_core_rs::api::failure::failure_telemetry::FailureTelemetryShared;
+use cellex_actor_core_rs::api::failure::failure_telemetry::{
+  FailureTelemetryObservationConfig, FailureTelemetryShared,
+};
 use cellex_actor_core_rs::api::failure::FailureInfo;
 
 /// Tokio scheduler wrapper.
@@ -93,7 +92,7 @@ where
     ReadyQueueScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
   }
 
-  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 

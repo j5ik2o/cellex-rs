@@ -10,10 +10,11 @@ use crate::api::{
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::telemetry::TelemetryObservationConfig,
 };
 use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared};
+use crate::api::failure::failure_telemetry::{
+  FailureTelemetryBuilderShared, FailureTelemetryObservationConfig, FailureTelemetryShared,
+};
 
 /// Configuration options applied when constructing an
 /// [`ActorSystem`](crate::api::actor_system::ActorSystem).
@@ -33,7 +34,7 @@ where
   /// Builder used to create telemetry implementations.
   failure_telemetry_builder_shared_opt: Option<FailureTelemetryBuilderShared>,
   /// Observation configuration applied to telemetry calls.
-  failure_observation_config_opt: Option<TelemetryObservationConfig>,
+  failure_observation_config_opt: Option<FailureTelemetryObservationConfig>,
   /// Extension registry configured for the actor system.
   extensions: Extensions,
   /// Default ReadyQueue worker count supplied by configuration.
@@ -112,7 +113,10 @@ where
 
   /// Sets telemetry observation configuration.
   #[must_use]
-  pub fn with_failure_observation_config_opt(mut self, config: Option<TelemetryObservationConfig>) -> Self {
+  pub fn with_failure_observation_config_opt(
+    mut self,
+    config: Option<FailureTelemetryObservationConfig>,
+  ) -> Self {
     self.failure_observation_config_opt = config;
     self
   }
@@ -180,7 +184,10 @@ where
   }
 
   /// Mutable setter for telemetry observation config.
-  pub fn set_failure_observation_config_opt(&mut self, config: Option<TelemetryObservationConfig>) {
+  pub fn set_failure_observation_config_opt(
+    &mut self,
+    config: Option<FailureTelemetryObservationConfig>,
+  ) {
     self.failure_observation_config_opt = config;
   }
 
@@ -221,7 +228,7 @@ where
     self.failure_telemetry_builder_shared_opt.clone()
   }
 
-  pub(crate) fn failure_observation_config_opt(&self) -> Option<TelemetryObservationConfig> {
+  pub(crate) fn failure_observation_config_opt(&self) -> Option<FailureTelemetryObservationConfig> {
     self.failure_observation_config_opt.clone()
   }
 

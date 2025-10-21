@@ -2,14 +2,14 @@
 
 ## 目的
 
-- `FailureTelemetryBuilderShared` / `TelemetryObservationConfig` を利用して、`defmt` ベースの telemetry 実装が `no_std` プロファイルでも組み込めることを確認する。
+- `FailureTelemetryBuilderShared` / `FailureTelemetryObservationConfig` を利用して、`defmt` ベースの telemetry 実装が `no_std` プロファイルでも組み込めることを確認する。
 - 追加コンポーネントが `alloc` だけで構成できるかを確認し、今後のフェーズ3拡張（組み込み向けログ）に備える。
 
 ## 方針
 
 1. `panic-probe` + `defmt` を利用した最小 telemetry を想定。
 2. ビルダー API を使い、`ActorSystemConfig::with_failure_telemetry_builder` 経由で `defmt` 版を注入する。
-3. 観測フック (`TelemetryObservationConfig`) は `MetricsSink` 未設定でも no-op であることを確認。
+3. 観測フック (`FailureTelemetryObservationConfig`) は `MetricsSink` 未設定でも no-op であることを確認。
 
 ## サンプルコード
 
@@ -37,7 +37,7 @@ let config = ActorSystemConfig::default()
 ```
 
 - `TelemetryContext` の `metrics_sink` / `extensions` は所有型なので、`no_std` ビルドでも所有権を移すだけで完結。
-- 観測設定を指定しない場合は、`TelemetryObservationConfig::new()` が戻るため、`Instant` を使用しない no-op。
+- 観測設定を指定しない場合は、`FailureTelemetryObservationConfig::new()` が戻るため、`Instant` を使用しない no-op。
 
 ## 確認事項
 

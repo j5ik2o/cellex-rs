@@ -1,13 +1,13 @@
 use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
 
-/// Configuration controlling telemetry observations.
+/// Configuration controlling failure telemetry observations.
 #[derive(Clone, Default, Debug)]
-pub struct TelemetryObservationConfig {
+pub struct FailureTelemetryObservationConfig {
   metrics:       Option<MetricsSinkShared>,
   record_timing: bool,
 }
 
-impl TelemetryObservationConfig {
+impl FailureTelemetryObservationConfig {
   /// Creates a new configuration instance.
   #[must_use]
   pub fn new() -> Self {

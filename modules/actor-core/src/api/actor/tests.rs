@@ -1076,10 +1076,12 @@ mod metrics_injection {
     mailbox::MailboxFactory,
     messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    supervision::{escalation::FailureEventHandler, supervisor::Supervisor, telemetry::TelemetryObservationConfig},
+    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
     test_support::TestMailboxFactory,
   };
-  use crate::api::failure::failure_telemetry::FailureTelemetryShared;
+  use crate::api::failure::failure_telemetry::{
+    FailureTelemetryObservationConfig, FailureTelemetryShared,
+  };
 
   #[derive(Clone)]
   struct TaggedSink {
@@ -1136,7 +1138,7 @@ mod metrics_injection {
 
     fn set_root_failure_telemetry(&mut self, _telemetry: FailureTelemetryShared) {}
 
-    fn set_root_observation_config(&mut self, _config: TelemetryObservationConfig) {}
+    fn set_root_observation_config(&mut self, _config: FailureTelemetryObservationConfig) {}
 
     fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
       let mut slot = self.metrics.lock().unwrap();

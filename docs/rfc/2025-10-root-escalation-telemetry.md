@@ -51,16 +51,16 @@ RootEscalationSink に導入した `FailureTelemetry` 抽象は、スナップ�
 
 2. メトリクス観測フック
    - `FailureTelemetryShared::with_ref` の呼び出し前後で `Instant::now()` を取得し、差分を `MetricsEvent::TelemetryInvoked`（新設）として記録。
-   - Overhead を避けるため、観測フックは `TelemetryObservationConfig` で切り替え可能にする。
+   - Overhead を避けるため、観測フックは `FailureTelemetryObservationConfig` で切り替え可能にする。
    - **API スケッチ**:
      ```rust
-     pub struct TelemetryObservationConfig {
+     pub struct FailureTelemetryObservationConfig {
        pub metrics: Option<MetricsSinkShared>,
        pub capture_timing: bool,
      }
 
      impl FailureTelemetryShared {
-       pub fn with_ref_observed<R>(&self, cfg: &TelemetryObservationConfig, f: impl FnOnce(&dyn FailureTelemetry) -> R) -> R;
+       pub fn with_ref_observed<R>(&self, cfg: &FailureTelemetryObservationConfig, f: impl FnOnce(&dyn FailureTelemetry) -> R) -> R;
      }
      ```
 
@@ -90,7 +90,7 @@ RootEscalationSink に導入した `FailureTelemetry` 抽象は、スナップ�
 ## 実装フェーズ（案）
 
 1. **フェーズ A**: `FailureSnapshot` のタグ拡張 + 単純な `TelemetryTag` API 実装
-2. **フェーズ B**: メトリクス観測フックと `TelemetryObservationConfig`
+2. **フェーズ B**: メトリクス観測フックと `FailureTelemetryObservationConfig`
 3. **フェーズ C**: Builder API 導入と `ActorSystemConfig` / `RootEscalationSink` の改修
 4. **フェーズ D**: ドキュメント & ベンチマーク更新、アプリケーション側へのガイド提供
 

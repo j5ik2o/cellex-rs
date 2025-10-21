@@ -8,11 +8,10 @@ use crate::api::{
   messaging::AnyMessage,
   supervision::{
     escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
-    telemetry::TelemetryObservationConfig,
   },
 };
 use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::FailureTelemetryShared;
+use crate::api::failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared};
 use crate::api::failure::FailureInfo;
 
 /// Composes multiple sinks and applies them in order.
@@ -52,40 +51,40 @@ where
 
   pub(crate) fn set_root_handler(&mut self, handler: Option<FailureEventHandler>) {
     if let Some(root) = self.root.as_mut() {
-      root.set_event_handler(handler);
+      root.set_failure_event_handler_opt(handler);
     } else {
       let mut sink = RootEscalationSink::<MF>::new();
-      sink.set_event_handler(handler);
+      sink.set_failure_event_handler_opt(handler);
       self.root = Some(sink);
     }
   }
 
   pub(crate) fn set_root_listener(&mut self, listener: Option<FailureEventListener>) {
     if let Some(root) = self.root.as_mut() {
-      root.set_event_listener(listener);
+      root.set_failure_event_listener_opt(listener);
     } else if let Some(listener) = listener {
       let mut sink = RootEscalationSink::<MF>::new();
-      sink.set_event_listener(Some(listener));
+      sink.set_failure_event_listener_opt(Some(listener));
       self.root = Some(sink);
     }
   }
 
   pub(crate) fn set_root_telemetry(&mut self, telemetry: FailureTelemetryShared) {
     if let Some(root) = self.root.as_mut() {
-      root.set_telemetry(telemetry);
+      root.set_failure_telemetry_shared(telemetry);
     } else {
       let mut sink = RootEscalationSink::<MF>::new();
-      sink.set_telemetry(telemetry);
+      sink.set_failure_telemetry_shared(telemetry);
       self.root = Some(sink);
     }
   }
 
-  pub(crate) fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  pub(crate) fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     if let Some(root) = self.root.as_mut() {
-      root.set_observation_config(config);
+      root.set_failure_telemetry_observation_config(config);
     } else {
       let mut sink = RootEscalationSink::<MF>::new();
-      sink.set_observation_config(config);
+      sink.set_failure_telemetry_observation_config(config);
       self.root = Some(sink);
     }
   }

@@ -23,14 +23,13 @@ use crate::api::{
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{
-    escalation::FailureEventHandler, supervisor::Supervisor,
-    telemetry::TelemetryObservationConfig,
-  },
+  supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
 };
-use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::FailureTelemetryShared;
-use crate::api::failure::FailureInfo;
+use crate::api::failure::{
+  failure_event_stream::FailureEventListener,
+  failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+  FailureInfo,
+};
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.
 pub struct ReadyQueueScheduler<MF, Strat = AlwaysRestart>
@@ -156,7 +155,7 @@ where
   }
 
   /// Configures telemetry observation parameters such as sampling and filters.
-  pub fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  pub fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     let mut ctx = self.context.lock();
     ctx.set_root_observation_config(config);
   }
@@ -298,7 +297,7 @@ where
     ReadyQueueScheduler::set_root_failure_telemetry(self, telemetry)
   }
 
-  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     ReadyQueueScheduler::set_root_observation_config(self, config)
   }
 

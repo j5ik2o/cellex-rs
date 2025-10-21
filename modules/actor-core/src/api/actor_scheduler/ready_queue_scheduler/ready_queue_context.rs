@@ -15,16 +15,15 @@ use crate::{
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{
-      escalation::FailureEventHandler, supervisor::Supervisor,
-      telemetry::TelemetryObservationConfig,
-    },
+    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
   internal::actor::ActorCell,
 };
-use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::FailureTelemetryShared;
-use crate::api::failure::FailureInfo;
+use crate::api::failure::{
+  failure_event_stream::FailureEventListener,
+  failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+  FailureInfo,
+};
 
 pub(crate) struct ReadyQueueContext<MF, Strat>
 where
@@ -150,7 +149,7 @@ where
     self.core.set_root_failure_telemetry(telemetry)
   }
 
-  pub(crate) fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  pub(crate) fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     self.core.set_root_observation_config(config)
   }
 }

@@ -21,15 +21,15 @@ use crate::{
     messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{
-      escalation::EscalationSink, supervisor::Supervisor, telemetry::TelemetryObservationConfig,
-    },
+    supervision::{escalation::EscalationSink, supervisor::Supervisor},
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
 };
-use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::FailureTelemetryShared;
-use crate::api::failure::FailureInfo;
+use crate::api::failure::{
+  failure_event_stream::FailureEventListener,
+  failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+  FailureInfo,
+};
 
 /// Simple scheduler implementation assuming priority mailboxes.
 pub(crate) struct ReadyQueueSchedulerCore<MF, Strat = AlwaysRestart>
@@ -281,7 +281,7 @@ where
     self.escalation_sink.set_root_telemetry(telemetry);
   }
 
-  pub fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  pub fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     self.escalation_sink.set_root_observation_config(config);
   }
 

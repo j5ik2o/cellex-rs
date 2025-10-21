@@ -4,9 +4,9 @@ use alloc::{boxed::Box, vec::Vec};
 
 use cellex_actor_core_rs::{
   ActorScheduler, AlwaysRestart, ArcShared, Extensions, FailureEventHandler, FailureEventListener, FailureInfo,
-  FailureTelemetryShared, GenericActorRuntime, GuardianStrategy, InternalActorRef, MailboxRuntime, MapSystemShared,
-  MetricsSinkShared, PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker, ReceiveTimeoutFactoryShared,
-  SchedulerBuilder, SchedulerSpawnContext, Supervisor, TelemetryObservationConfig,
+  FailureTelemetryObservationConfig, FailureTelemetryShared, GenericActorRuntime, GuardianStrategy, InternalActorRef,
+  MailboxRuntime, MapSystemShared, MetricsSinkShared, PriorityEnvelope, ReadyQueueScheduler, ReadyQueueWorker,
+  ReceiveTimeoutFactoryShared, SchedulerBuilder, SchedulerSpawnContext, Supervisor,
 };
 use cellex_utils_embedded_rs::Element;
 use embassy_executor::Spawner;
@@ -86,7 +86,7 @@ where
     ReadyQueueScheduler::set_root_failure_telemetry(&mut self.inner, telemetry);
   }
 
-  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig) {
+  fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig) {
     ReadyQueueScheduler::set_root_observation_config(&mut self.inner, config);
   }
 

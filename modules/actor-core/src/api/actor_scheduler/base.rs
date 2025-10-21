@@ -13,12 +13,12 @@ use crate::api::{
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
-    escalation::FailureEventHandler, supervisor::Supervisor,
-    telemetry::TelemetryObservationConfig,
+    escalation::FailureEventHandler,
+    supervisor::Supervisor,
   },
 };
 use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::FailureTelemetryShared;
+use crate::api::failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared};
 use crate::api::failure::FailureInfo;
 
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.
@@ -58,7 +58,7 @@ where
   fn set_root_failure_telemetry(&mut self, telemetry: FailureTelemetryShared);
 
   /// Configures observation parameters used by failure telemetry.
-  fn set_root_observation_config(&mut self, config: TelemetryObservationConfig);
+  fn set_root_observation_config(&mut self, config: FailureTelemetryObservationConfig);
 
   /// Wires the parent guardian reference used for supervising spawned actors.
   fn set_parent_guardian(
