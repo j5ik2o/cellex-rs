@@ -20,6 +20,7 @@ usage() {
   clippy                 : cargo clippy --workspace --all-targets -- -D warnings を実行します
   no-std                 : no_std 対応チェック (core/utils) を実行します
   std                    : std フィーチャーでのテストを実行します
+  doc                    : ドキュメントテストを test-support フィーチャー付きで実行します
   embedded / embassy     : embedded 系 (utils / actor) のチェックとテストを実行します
   test                   : ワークスペース全体のテストを実行します
   all                    : 上記すべてを順番に実行します (引数なし時と同じ)
@@ -296,6 +297,11 @@ run_std() {
   run_cargo test -p cellex-cluster-core-rs || return 1
 }
 
+run_doc_tests() {
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --doc --no-default-features --features alloc,test-support"
+  run_cargo test -p cellex-actor-core-rs --doc --no-default-features --features alloc,test-support || return 1
+}
+
 run_embedded() {
   log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-embedded-rs --no-default-features --features rc"
   run_cargo check -p cellex-utils-embedded-rs --no-default-features --features rc || return 1
@@ -330,14 +336,15 @@ run_embedded() {
 }
 
 run_tests() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --verbose"
-  run_cargo test --workspace --verbose || return 1
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --verbose --lib --bins --tests --benches --examples"
+  run_cargo test --workspace --verbose --lib --bins --tests --benches --examples || return 1
 }
 
 run_all() {
   run_lint || return 1
   run_no_std || return 1
   run_std || return 1
+  run_doc_tests || return 1
   run_embedded || return 1
   run_tests || return 1
 }
@@ -409,6 +416,10 @@ main() {
         ;;
       std)
         run_std || return 1
+        shift
+        ;;
+      doc|docs)
+        run_doc_tests || return 1
         shift
         ;;
       embedded|embassy)
