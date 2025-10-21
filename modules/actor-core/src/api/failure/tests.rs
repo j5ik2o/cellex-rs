@@ -1,7 +1,7 @@
 #![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
-use super::{FailureEscalationStage, FailureInfo};
+use super::{metadata::FailureEscalationStage, FailureInfo};
 use crate::api::actor::{actor_failure::ActorFailure, ActorId, ActorPath};
 
 #[test]

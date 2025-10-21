@@ -7,7 +7,6 @@ pub mod metadata;
 pub use failure_event::FailureEvent;
 pub use failure_info::FailureInfo;
 pub use failure_metadata::FailureMetadata;
-pub use metadata::FailureEscalationStage;
 
 /// Failure event stream for telemetry and monitoring.
 pub mod failure_event_stream;

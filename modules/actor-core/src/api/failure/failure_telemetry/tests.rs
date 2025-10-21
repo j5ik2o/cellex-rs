@@ -7,7 +7,7 @@ use super::{
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
   extensions::Extensions,
-  failure::{FailureEscalationStage, FailureInfo, FailureMetadata},
+  failure::{metadata::FailureEscalationStage, FailureInfo, FailureMetadata},
 };
 
 #[test]

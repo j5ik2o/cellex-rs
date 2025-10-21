@@ -4,7 +4,8 @@ use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
   failure::{
     failure_telemetry::{build_snapshot_tags, FailureTelemetryTag},
-    FailureEscalationStage, FailureInfo, FailureMetadata,
+    metadata::FailureEscalationStage,
+    FailureInfo, FailureMetadata,
   },
 };
 

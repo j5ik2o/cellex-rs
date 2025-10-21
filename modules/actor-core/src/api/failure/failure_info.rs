@@ -3,7 +3,7 @@ mod tests;
 
 use alloc::borrow::Cow;
 
-use super::{FailureEscalationStage, FailureMetadata};
+use super::{metadata::FailureEscalationStage, FailureMetadata};
 use crate::api::actor::{
   actor_failure::{ActorFailure, BehaviorFailure},
   ActorId, ActorPath,
