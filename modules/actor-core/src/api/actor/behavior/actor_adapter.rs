@@ -14,6 +14,7 @@ use crate::{
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
+    TypedHandlerBridge,
   },
 };
 
@@ -165,5 +166,30 @@ where
       }
     }
     Ok(())
+  }
+}
+
+impl<U, AR> TypedHandlerBridge<U, AR> for ActorAdapter<U, AR>
+where
+  U: Element,
+  AR: ActorRuntime + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  MailboxConcurrencyOf<AR>: MetadataStorageMode,
+{
+  fn handle_user(&mut self, ctx: &mut ActorContext<'_, '_, U, AR>, message: U) -> Result<(), ActorFailure> {
+    ActorAdapter::handle_user(self, ctx, message)
+  }
+
+  fn handle_system(
+    &mut self,
+    ctx: &mut ActorContext<'_, '_, U, AR>,
+    message: SystemMessage,
+  ) -> Result<(), ActorFailure> {
+    ActorAdapter::handle_system(self, ctx, message)
+  }
+
+  fn supervisor_config(&self) -> SupervisorStrategyConfig {
+    ActorAdapter::supervisor_config(self)
   }
 }

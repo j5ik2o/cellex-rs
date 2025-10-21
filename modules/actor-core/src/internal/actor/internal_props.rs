@@ -13,6 +13,7 @@ use crate::{
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
+    TypedHandlerBridge,
   },
 };
 
@@ -41,14 +42,15 @@ where
   }
 }
 
-pub(crate) fn internal_props_from_adapter<U, AR>(
+pub(crate) fn internal_props_from_adapter<U, AR, T>(
   options: MailboxOptions,
   map_system: MapSystemShared<AnyMessage>,
-  mut adapter: crate::api::actor::behavior::ActorAdapter<U, AR>,
+  mut adapter: T,
 ) -> InternalProps<MailboxOf<AR>>
 where
   U: Element,
   AR: ActorRuntime + 'static,
+  T: TypedHandlerBridge<U, AR> + 'static,
   MailboxOf<AR>: MailboxFactory + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
