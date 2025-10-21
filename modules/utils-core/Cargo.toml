@@ -17,3 +17,4 @@ std = ["alloc"]
 [dependencies]
 async-trait = { workspace = true }
 critical-section = { workspace = true, optional = false }
+spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "rwlock"] }

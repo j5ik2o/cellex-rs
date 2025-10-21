@@ -10,6 +10,8 @@ mod rc_shared;
 mod shared;
 mod state;
 mod static_ref_shared;
+mod mutex_like;
+mod async_mutex_like;
 
 pub use arc_shared::ArcShared;
 pub use flag::Flag;
@@ -19,3 +21,5 @@ pub use rc_shared::RcShared;
 pub use shared::{SendBound, Shared, SharedBound, SharedDyn};
 pub use state::StateCell;
 pub use static_ref_shared::StaticRefShared;
+pub use mutex_like::{MutexLike, MutexLikeGuard};
+pub use async_mutex_like::{AsyncMutexLike, AsyncMutexLikeGuard};
