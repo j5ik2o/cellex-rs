@@ -1,9 +1,3 @@
-use alloc::boxed::Box;
-#[cfg(not(target_has_atomic = "ptr"))]
-use alloc::rc::Rc as Arc;
-#[cfg(target_has_atomic = "ptr")]
-use alloc::sync::Arc;
-
 #[cfg(not(feature = "std"))]
 use cellex_utils_core_rs::sync::{async_mutex_like::SpinAsyncMutex, sync_mutex_like::SpinSyncMutex};
 use cellex_utils_core_rs::{sync::ArcShared, Element};
@@ -329,35 +323,30 @@ where
   fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
   where
     T: 'static, {
-    let arc: Arc<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync> =
-      Arc::from(Box::new(|value| SpinSyncMutex::new(value)) as Box<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>);
-    ArcShared::from_arc_for_testing_dont_use_production(arc)
+    ArcShared::new(|value| SpinSyncMutex::new(value))
+      .into_dyn(|f| f as &(dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync))
   }
 
   #[cfg(feature = "std")]
   fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
   where
     T: 'static, {
-    let arc: Arc<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync> =
-      Arc::from(Box::new(|value| StdSyncMutex::new(value)) as Box<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>);
-    ArcShared::from_arc_for_testing_dont_use_production(arc)
+    ArcShared::new(|value| StdSyncMutex::new(value)).into_dyn(|f| f as &(dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync))
   }
 
   #[cfg(not(feature = "std"))]
   fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
   where
     T: Send + 'static, {
-    let arc: Arc<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync> =
-      Arc::from(Box::new(|value| SpinAsyncMutex::new(value)) as Box<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>);
-    ArcShared::from_arc_for_testing_dont_use_production(arc)
+    ArcShared::new(|value| SpinAsyncMutex::new(value))
+      .into_dyn(|f| f as &(dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync))
   }
 
   #[cfg(feature = "std")]
   fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
   where
     T: Send + 'static, {
-    let arc: Arc<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync> =
-      Arc::from(Box::new(|value| TokioAsyncMutex::new(value)) as Box<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>);
-    ArcShared::from_arc_for_testing_dont_use_production(arc)
+    ArcShared::new(|value| TokioAsyncMutex::new(value))
+      .into_dyn(|f| f as &(dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync))
   }
 }
