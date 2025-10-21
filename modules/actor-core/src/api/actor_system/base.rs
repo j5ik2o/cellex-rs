@@ -62,8 +62,8 @@ where
   /// as it uses `NonZeroUsize::new(1)` which is guaranteed to succeed.
   #[allow(clippy::needless_pass_by_value)]
   pub fn new_with_actor_runtime(actor_runtime: AR, config: ActorSystemConfig<AR>) -> Self {
-    let root_listener_from_runtime = actor_runtime.root_event_listener_opt();
-    let root_handler_from_runtime = actor_runtime.root_escalation_handler_opt();
+    let root_listener_from_runtime = actor_runtime.root_failure_event_listener_opt();
+    let root_handler_from_runtime = actor_runtime.root_escalation_failure_event_handler_opt();
     let metrics_from_runtime = actor_runtime.metrics_sink_shared_opt();
     let scheduler_builder = actor_runtime.scheduler_builder_shared();
 

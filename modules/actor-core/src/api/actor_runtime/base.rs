@@ -85,18 +85,18 @@ pub trait ActorRuntime: Clone {
     Self: Sized;
 
   /// Returns the root failure event listener configured for the runtime.
-  fn root_event_listener_opt(&self) -> Option<FailureEventListener>;
+  fn root_failure_event_listener_opt(&self) -> Option<FailureEventListener>;
 
   /// Overrides the root failure event listener.
-  fn with_root_event_listener_opt(self, listener: Option<FailureEventListener>) -> Self
+  fn with_root_failure_event_listener_opt(self, listener: Option<FailureEventListener>) -> Self
   where
     Self: Sized;
 
   /// Returns the root escalation handler configured for the runtime.
-  fn root_escalation_handler_opt(&self) -> Option<FailureEventHandler>;
+  fn root_escalation_failure_event_handler_opt(&self) -> Option<FailureEventHandler>;
 
   /// Overrides the root escalation handler.
-  fn with_root_escalation_handler_opt(self, handler: Option<FailureEventHandler>) -> Self
+  fn with_root_escalation_failure_event_handler_opt(self, handler: Option<FailureEventHandler>) -> Self
   where
     Self: Sized;
 
