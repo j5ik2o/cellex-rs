@@ -1,6 +1,7 @@
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf},
   extensions::Extensions,
+  failure_event_stream::FailureEventListener,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
@@ -8,7 +9,7 @@ use crate::api::{
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
-    escalation::{FailureEventHandler, FailureEventListener},
+    escalation::FailureEventHandler,
     telemetry::{default_failure_telemetry_shared, TelemetryObservationConfig},
   },
 };

@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests;
 
+use alloc::vec::Vec;
+
 use cellex_utils_core_rs::{
   PriorityMessage, PriorityQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, PRIORITY_LEVELS,
 };
@@ -37,11 +39,11 @@ where
 
 impl<E, RM> Clone for ArcPriorityQueue<E, RM>
 where
-  E: Clone,
   RM: RawMutex,
 {
   fn clone(&self) -> Self {
-    Self { inner: self.inner.clone() }
+    let levels: Vec<_> = self.inner.levels().iter().cloned().collect();
+    Self { inner: PriorityQueue::new(levels) }
   }
 }
 

@@ -3,15 +3,17 @@ use core::marker::PhantomData;
 use std::time::Instant;
 
 use crate::api::{
+  failure_event_stream::FailureEventListener,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   supervision::{
-    escalation::escalation_sink::{EscalationSink, FailureEventHandler, FailureEventListener},
+    escalation::escalation_sink::{EscalationSink, FailureEventHandler},
     failure::{FailureEvent, FailureInfo},
     telemetry::{default_failure_telemetry_shared, FailureSnapshot, TelemetryObservationConfig},
   },
 };
+
 /// `EscalationSink` implementation for root guardian.
 ///
 /// Handles failures at the root level of the actor system.

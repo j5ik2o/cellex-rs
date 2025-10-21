@@ -18,6 +18,7 @@ use crate::api::{
   actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
+  failure_event_stream::FailureEventListener,
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
@@ -25,9 +26,7 @@ use crate::api::{
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
-    escalation::{FailureEventHandler, FailureEventListener},
-    failure::FailureInfo,
-    supervisor::Supervisor,
+    escalation::FailureEventHandler, failure::FailureInfo, supervisor::Supervisor,
     telemetry::TelemetryObservationConfig,
   },
 };

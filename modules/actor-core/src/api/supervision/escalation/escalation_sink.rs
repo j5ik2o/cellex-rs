@@ -1,7 +1,7 @@
 use cellex_utils_core_rs::Element;
 
 use crate::api::{
-  failure_telemetry::{FailureEventHandlerShared, FailureEventListenerShared},
+  failure_telemetry::FailureEventHandlerShared,
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   supervision::failure::FailureInfo,
 };
@@ -11,11 +11,6 @@ use crate::api::{
 /// Receives actor failure information and performs tasks like logging or notifications to
 /// monitoring systems.
 pub type FailureEventHandler = FailureEventHandlerShared;
-
-/// Listener for receiving failure events as a stream.
-///
-/// Subscribes to failure events from the entire actor system and executes custom processing.
-pub type FailureEventListener = FailureEventListenerShared;
 
 /// Sink for controlling how `FailureInfo` is propagated upward.
 ///

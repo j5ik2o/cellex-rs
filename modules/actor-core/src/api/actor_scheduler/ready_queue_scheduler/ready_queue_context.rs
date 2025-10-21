@@ -10,6 +10,7 @@ use crate::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::map_system::MapSystemShared,
+    failure_event_stream::FailureEventListener,
     failure_telemetry::FailureTelemetryShared,
     guardian::GuardianStrategy,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
@@ -17,9 +18,7 @@ use crate::{
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{
-      escalation::{FailureEventHandler, FailureEventListener},
-      failure::FailureInfo,
-      supervisor::Supervisor,
+      escalation::FailureEventHandler, failure::FailureInfo, supervisor::Supervisor,
       telemetry::TelemetryObservationConfig,
     },
   },

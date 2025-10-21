@@ -4,6 +4,7 @@ use crate::{
   api::{
     actor_runtime::base::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ActorSchedulerHandleBuilder,
+    failure_event_stream::FailureEventListener,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
@@ -11,7 +12,7 @@ use crate::{
       NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
       ReceiveTimeoutSchedulerFactoryShared,
     },
-    supervision::escalation::{FailureEventHandler, FailureEventListener},
+    supervision::escalation::FailureEventHandler,
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
 };

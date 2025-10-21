@@ -3,7 +3,12 @@ pub(crate) mod tests;
 
 use cellex_utils_core_rs::sync::{SendBound, SharedBound};
 
-use crate::api::supervision::escalation::FailureEventListener;
+use crate::api::failure_telemetry::FailureEventListenerShared;
+
+/// Listener for receiving failure events as a stream.
+///
+/// Subscribes to failure events from the entire actor system and executes custom processing.
+pub type FailureEventListener = FailureEventListenerShared;
 
 /// Stream abstraction for distributing FailureEvent externally.
 ///

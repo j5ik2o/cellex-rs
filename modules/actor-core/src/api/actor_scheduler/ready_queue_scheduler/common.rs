@@ -13,6 +13,7 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
+    failure_event_stream::FailureEventListener,
     failure_telemetry::FailureTelemetryShared,
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
     mailbox::{
@@ -271,10 +272,7 @@ where
     self.escalation_sink.set_root_handler(handler);
   }
 
-  pub fn set_root_event_listener(
-    &mut self,
-    listener: Option<crate::api::supervision::escalation::FailureEventListener>,
-  ) {
+  pub fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>) {
     self.escalation_sink.set_root_listener(listener);
   }
 

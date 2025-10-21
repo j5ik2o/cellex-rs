@@ -40,6 +40,7 @@ use crate::{
     },
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
+    failure_event_stream::FailureEventListener,
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
@@ -53,7 +54,7 @@ use crate::{
     },
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
     supervision::{
-      escalation::{FailureEventHandler, FailureEventListener},
+      escalation::FailureEventHandler,
       failure::FailureInfo,
       supervisor::{NoopSupervisor, Supervisor},
     },

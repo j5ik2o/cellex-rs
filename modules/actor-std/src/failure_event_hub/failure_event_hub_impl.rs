@@ -1,8 +1,8 @@
 use std::sync::{atomic::Ordering, Arc};
 
 use cellex_actor_core_rs::api::{
-  failure_event_stream::FailureEventStream,
-  supervision::{escalation::FailureEventListener, failure::FailureEvent},
+  failure_event_stream::{FailureEventListener, FailureEventStream},
+  supervision::failure::FailureEvent,
 };
 
 use super::{failure_event_hub_inner::FailureEventHubInner, FailureEventSubscription};

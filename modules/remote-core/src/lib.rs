@@ -62,11 +62,8 @@ pub mod codec;
 pub mod remote_envelope;
 
 use cellex_actor_core_rs::api::{
-  failure_event_stream::FailureEventStream,
-  supervision::{
-    escalation::FailureEventListener,
-    failure::{FailureEvent, FailureInfo, FailureMetadata},
-  },
+  failure_event_stream::{FailureEventListener, FailureEventStream},
+  supervision::failure::{FailureEvent, FailureInfo, FailureMetadata},
 };
 
 #[cfg(test)]

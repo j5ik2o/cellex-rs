@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicU64, Mutex, MutexGuard};
 
-use cellex_actor_core_rs::api::supervision::escalation::FailureEventListener;
+use cellex_actor_core_rs::api::failure_event_stream::FailureEventListener;
 
 pub(super) struct FailureEventHubInner {
   pub(super) next_id:   AtomicU64,

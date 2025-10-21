@@ -4,11 +4,12 @@ use super::{CustomEscalationSink, ParentGuardianSink};
 use crate::api::{
   actor::actor_ref::PriorityActorRef,
   actor_system::map_system::MapSystemShared,
+  failure_event_stream::FailureEventListener,
   failure_telemetry::FailureTelemetryShared,
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   supervision::{
-    escalation::{EscalationSink, FailureEventHandler, FailureEventListener, RootEscalationSink},
+    escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
     failure::FailureInfo,
     telemetry::TelemetryObservationConfig,
   },

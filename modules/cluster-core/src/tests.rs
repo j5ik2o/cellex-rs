@@ -9,11 +9,11 @@ use cellex_actor_core_rs::api::{
     actor_failure::{ActorFailure, BehaviorFailure},
     ActorId, ActorPath,
   },
-  failure_event_stream::FailureEventStream,
+  failure_event_stream::{FailureEventListener, FailureEventStream},
   failure_telemetry::FailureTelemetryShared,
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
   supervision::{
-    escalation::{EscalationSink, FailureEventListener, RootEscalationSink},
+    escalation::{EscalationSink, RootEscalationSink},
     failure::{FailureEvent, FailureInfo},
     telemetry::{FailureSnapshot, FailureTelemetry, TelemetryObservationConfig},
   },

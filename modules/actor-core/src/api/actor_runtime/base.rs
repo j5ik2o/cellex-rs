@@ -3,11 +3,12 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 use crate::{
   api::{
     actor_scheduler::ActorSchedulerHandleBuilder,
+    failure_event_stream::FailureEventListener,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    supervision::escalation::{FailureEventHandler, FailureEventListener},
+    supervision::escalation::FailureEventHandler,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
 };

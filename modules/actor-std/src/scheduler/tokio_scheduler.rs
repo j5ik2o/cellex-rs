@@ -8,6 +8,7 @@ use cellex_actor_core_rs::api::{
   },
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
+  failure_event_stream::FailureEventListener,
   failure_telemetry::FailureTelemetryShared,
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
@@ -15,9 +16,7 @@ use cellex_actor_core_rs::api::{
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
-    escalation::{FailureEventHandler, FailureEventListener},
-    failure::FailureInfo,
-    supervisor::Supervisor,
+    escalation::FailureEventHandler, failure::FailureInfo, supervisor::Supervisor,
     telemetry::TelemetryObservationConfig,
   },
 };

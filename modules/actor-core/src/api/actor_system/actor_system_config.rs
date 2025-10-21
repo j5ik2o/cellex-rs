@@ -5,13 +5,14 @@ use cellex_utils_core_rs::ArcShared;
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   extensions::{Extension, Extensions},
+  failure_event_stream::FailureEventListener,
   failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared},
   mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{escalation::FailureEventListener, telemetry::TelemetryObservationConfig},
+  supervision::telemetry::TelemetryObservationConfig,
 };
 
 /// Configuration options applied when constructing an

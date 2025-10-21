@@ -9,7 +9,7 @@ use cellex_actor_core_rs::api::{
     actor_failure::{ActorFailure, BehaviorFailure},
     ActorId, ActorPath,
   },
-  failure_event_stream::FailureEventStream,
+  failure_event_stream::{FailureEventListener, FailureEventStream},
   failure_telemetry::FailureTelemetryShared,
   mailbox::{
     messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
@@ -19,7 +19,7 @@ use cellex_actor_core_rs::api::{
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
   process::pid::{NodeId, Pid, SystemId},
   supervision::{
-    escalation::{EscalationSink, FailureEventListener, RootEscalationSink},
+    escalation::{EscalationSink, RootEscalationSink},
     failure::{FailureEvent, FailureInfo},
     telemetry::{FailureSnapshot, FailureTelemetry, TelemetryObservationConfig},
   },
