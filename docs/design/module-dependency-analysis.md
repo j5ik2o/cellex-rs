@@ -27,18 +27,69 @@
    - `api/internal` の双方で使う抽象を `modules/actor-core/src/shared/` に移動し、`shared` → `utils` だけを参照するよう整理する。  
    - 具体候補: メールボックス境界トレイト、`AnyMessage`/`PriorityEnvelope` ラッパ、`MapSystemShared` などランタイム横断で共通な型。
 
-### shared 候補の暫定リスト
+### shared 候補の棚卸し（2025-10-21）
 
-| 種別 | 現在位置 | 利用箇所 | 移動検討メモ |
+#### 完了済み（shared へ移設済み）
+
+| 種別 | 旧所在地 | 影響範囲 | 備考 |
 | --- | --- | --- | --- |
-| `AnyMessage`, `AnyMessageValue` | `api/messaging` → `shared/messaging` | internal の runtime_state, supervision, mailbox など | 2025-10-21 時点で shared へ移設済み。API からの再エクスポートを維持しつつ internal 依存を `crate::shared` 経由に切り替え。 |
-| `MessageEnvelope` 系 | `api/messaging` | internal の runtime_state, supervision, mailbox など | type-erasure としてランタイム全体で共通。`PriorityEnvelope` 依存があるため shared 移行は第2段階で検討。 |
-| `PriorityEnvelope` | `api/mailbox/messages` | internal/mailbox, ready_queue | メールボックスとスケジューラ双方で必要。 |
-| `MailboxFactory` トレイトと関連ハンドル | `api/mailbox` | internal/runtime_state, internal/mailbox | ユーザ API に露出するため、shared に移した後 API で re-export する必要あり。 |
-| `MapSystemShared` | `api/actor_system/map_system.rs` | internal/supervision/composite_escalation_sink.rs ほか | system message 変換の共有ハンドル。shared で保管し internal から直接参照可能にする。 |
-| `FailureTelemetryShared` 系 | `api/failure/...` | internal/supervision/* | 監視系で両レイヤが利用。shared へ移設し API からは再エクスポート。 |
-| `ActorSchedulerHandleBuilder` | `api/actor_scheduler` | internal/runtime_state.rs | ランタイム初期化の共通設定。shared 化しビルダー実装を API 層に露出するか要検討。 |
-| `Shared` ラッパ型 | `utils` | api/internal 共通 | 既に utils から直接利用しており shared へ移さない。共有依存の好例として残す。 |
+| `AnyMessage`, `AnyMessageValue` | `api/messaging` | internal runtime_state / mailbox / supervision | `shared/messaging` へ移行済み。API 側は再エクスポートのみ保持。 |
+| `MessageEnvelope` | `api/messaging` | internal runtime_state / actor_system / supervision | `shared/messaging` へ移設済み。既存テストも shared 側へ移動。 |
+| `PriorityEnvelope` | `api/mailbox/messages` | queue mailbox / ready queue / actor_system | `shared/mailbox/messages` へ移設済み。API からは re-export を廃止。 |
+
+#### shared 移設 TODO（機械実装プラン）
+
+以下は自動化エージェント（Claude Code 等）が直接実施できるレベルまで分解した作業項目です。**再エクスポート禁止**のルールに従い、移設後は API 層からの `pub use` を残さないこと。各タスクは「ファイル移動 → `mod`/`use` 更新 → 旧ファイル削除 → テスト」という順序で実行する。
+
+##### 1. `MapSystemShared`
+1. `modules/actor-core/src/api/actor_system/map_system.rs` を `modules/actor-core/src/shared/messaging/map_system.rs` へ移動。モジュール先頭に英語の doc コメントを追加し、`crate::shared::messaging` 参照に変更する。
+2. `modules/actor-core/src/shared/messaging.rs` に `pub mod map_system;` と `pub use map_system::MapSystemShared;` を追記。
+3. API 側の `mod map_system;` と関連 `pub use` を削除。`modules/actor-core/src/api/actor_system/mod.rs` を更新。
+4. `rg "MapSystemShared"` の結果を `crate::shared::messaging::MapSystemShared` へ置換（`internal/actor/internal_props.rs`, `internal/supervision/*`, `modules/actor-std/src/tests.rs` 等）。
+5. 元ファイル削除後に `cargo +nightly fmt` → `./scripts/ci-check.sh all` → `makers ci-check -- dylint` を実行。
+
+##### 2. `MailboxFactory` 系抽象
+1. 以下のファイルを shared へ移す：
+   - `api/mailbox/mailbox_factory.rs` → `shared/mailbox/factory.rs`
+   - `api/mailbox/mailbox_handle.rs` → `shared/mailbox/handle.rs`
+   - `api/mailbox/mailbox_options.rs` → `shared/mailbox/options.rs`
+   - `api/mailbox/mailbox_producer.rs` → `shared/mailbox/producer.rs`
+   - `api/mailbox/mailbox_signal.rs` → `shared/mailbox/signal.rs`
+2. `modules/actor-core/src/shared/mailbox.rs` を `pub mod factory;` などで更新し、必要なモジュールを公開（`pub use` は付けない）。
+3. API 側 `modules/actor-core/src/api/mailbox/mod.rs` から上記ファイルの `mod` 宣言と `pub use` を削除。
+4. `rg "api::mailbox"` を `shared::mailbox` に置換。派生クレート (`actor-std`, `actor-embedded`, ベンチ) も含めて修正。
+5. 旧ファイルを削除し、フォーマットと CI コマンドを実行。
+
+##### 3. 監視系抽象 (`EscalationSink` など)
+1. `modules/actor-core/src/api/supervision/escalation/escalation_sink.rs` を `shared/supervision/escalation_sink.rs` へ移動。`shared/supervision/mod.rs` を新設し `pub mod escalation_sink;` を定義。
+2. API 側 `modules/actor-core/src/api/supervision/escalation/mod.rs` は shared の型を `use` するだけに変更し、再エクスポートは行わない。
+3. `rg "EscalationSink"` を `crate::shared::supervision::escalation_sink::EscalationSink` に更新（internal supervision 実装、actor-system, tests など）。
+4. 旧 API ファイルを削除し、フォーマット＆ CI を実行。
+
+##### 4. `ActorAdapter` ブリッジ抽象
+1. `modules/actor-core/src/shared/actor/mod.rs` を新規作成し、`pub trait TypedHandlerBridge<M, AR>` 等 internal が必要とする最小限のメソッドを定義。System メッセージマッパーもここで抽象化する。
+2. API の `ActorAdapter` (`api/actor/behavior/actor_adapter.rs`) は shared トレイトの具象実装としてリファクタ。構造体は残しつつ `impl TypedHandlerBridge` を提供。
+3. `internal/actor/internal_props.rs` で `crate::api::actor::behavior::ActorAdapter` を直接使用している箇所を shared トレイトに依存するよう変更（ジェネリック引数 `T: TypedHandlerBridge<...>` など）。
+4. `MapSystemShared::new` の呼び出しも shared 側へ移設後の API に合わせて更新。
+5. 単体テスト (`cargo test -p cellex-actor-core-rs`) を実行し動作確認。
+
+##### 5. Telemetry 共有型
+1. `modules/actor-core/src/api/failure/failure_telemetry.rs` から共有 struct (`FailureTelemetryShared`, `FailureTelemetryBuilderShared`, `FailureTelemetryContext`) を切り出し、`shared/failure/telemetry.rs` を新規作成。
+2. `shared/failure/mod.rs` を追加し、`pub mod telemetry;` を設定。必要に応じて `pub use telemetry::{FailureTelemetryShared, ...};` を記述。
+3. API 側ファイルは DSL・構成体のみ残し、共有型は `use crate::shared::failure::telemetry::...;` を利用。
+4. `rg "FailureTelemetryShared"` で import を更新し、旧定義を削除。
+5. フォーマット & CI を実行。
+
+##### 6. その他（テスト専用依存）
+- `PriorityActorRef` や `MessageSender` など internal テストが依存する API 型は、shared 移設ではなくテストダブルを internal に導入する案を検討。必要に応じて専用タスクを別途起票（現時点では保留）。
+
+各タスク完了後の共通作業:
+
+1. `cargo +nightly fmt`
+2. `./scripts/ci-check.sh all`
+3. `makers ci-check -- dylint`
+
+失敗したコマンドがあればログを記録し、インポート漏れや `mod` 宣言忘れを解消してから再実行すること。
 2. **API 層の境界インタフェース化**  
    - `ActorContext::spawn_child` など API 側で internal 型を直接返さず、共有インタフェース経由で internal 実装に委譲する。  
    - 例: `InternalProps` を生成するファクトリトレイトを shared に置き、internal 側が実装する。
