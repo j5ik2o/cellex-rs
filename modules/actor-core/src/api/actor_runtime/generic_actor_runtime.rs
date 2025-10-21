@@ -1,4 +1,14 @@
+use alloc::boxed::Box;
+#[cfg(not(target_has_atomic = "ptr"))]
+use alloc::rc::Rc as Arc;
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;
+
+#[cfg(not(feature = "std"))]
+use cellex_utils_core_rs::sync::{async_mutex_like::SpinAsyncMutex, sync_mutex_like::SpinSyncMutex};
 use cellex_utils_core_rs::{sync::ArcShared, Element};
+#[cfg(feature = "std")]
+use cellex_utils_std_rs::sync::{StdSyncMutex, TokioAsyncMutex};
 
 use crate::{
   api::{
@@ -216,7 +226,15 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
+  #[cfg(not(feature = "std"))]
+  type AsyncMutex<T: Send> = SpinAsyncMutex<T>;
+  #[cfg(feature = "std")]
+  type AsyncMutex<T: Send> = TokioAsyncMutex<T>;
   type MailboxFactory = MF;
+  #[cfg(not(feature = "std"))]
+  type SyncMutex<T> = SpinSyncMutex<T>;
+  #[cfg(feature = "std")]
+  type SyncMutex<T> = StdSyncMutex<T>;
 
   fn mailbox_factory(&self) -> &Self::MailboxFactory {
     GenericActorRuntime::mailbox_factory(self)
@@ -305,5 +323,41 @@ where
 
   fn scheduler_builder_shared_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
+  }
+
+  #[cfg(not(feature = "std"))]
+  fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
+  where
+    T: 'static, {
+    let arc: Arc<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync> =
+      Arc::from(Box::new(|value| SpinSyncMutex::new(value)) as Box<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>);
+    ArcShared::from_arc_for_testing_dont_use_production(arc)
+  }
+
+  #[cfg(feature = "std")]
+  fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
+  where
+    T: 'static, {
+    let arc: Arc<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync> =
+      Arc::from(Box::new(|value| StdSyncMutex::new(value)) as Box<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>);
+    ArcShared::from_arc_for_testing_dont_use_production(arc)
+  }
+
+  #[cfg(not(feature = "std"))]
+  fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
+  where
+    T: Send + 'static, {
+    let arc: Arc<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync> =
+      Arc::from(Box::new(|value| SpinAsyncMutex::new(value)) as Box<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>);
+    ArcShared::from_arc_for_testing_dont_use_production(arc)
+  }
+
+  #[cfg(feature = "std")]
+  fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
+  where
+    T: Send + 'static, {
+    let arc: Arc<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync> =
+      Arc::from(Box::new(|value| TokioAsyncMutex::new(value)) as Box<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>);
+    ArcShared::from_arc_for_testing_dont_use_production(arc)
   }
 }

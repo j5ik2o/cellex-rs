@@ -6,6 +6,8 @@
 
 mod base;
 mod generic_actor_runtime;
+#[cfg(test)]
+mod tests;
 
 pub use base::*;
 pub use generic_actor_runtime::GenericActorRuntime;

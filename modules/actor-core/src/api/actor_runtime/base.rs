@@ -1,4 +1,7 @@
-use cellex_utils_core_rs::{sync::ArcShared, Element};
+use cellex_utils_core_rs::{
+  sync::{async_mutex_like::AsyncMutexLike, sync_mutex_like::SyncMutexLike, ArcShared},
+  Element,
+};
 
 use crate::{
   api::{
@@ -42,6 +45,16 @@ pub trait ActorRuntime: Clone {
   /// Underlying use MailboxFactory; retained by this actor
   /// runtime facade.
   type MailboxFactory: MailboxFactory + Clone + 'static;
+
+  /// Synchronous mutex type provided by this runtime.
+  type SyncMutex<T>: SyncMutexLike<T>;
+
+  /// Asynchronous mutex type provided by this runtime.
+  ///
+  /// Note: `T` must implement `Send` for async mutex implementations that
+  /// require cross-thread safety (e.g., Tokio). For no_std environments,
+  /// this bound may be relaxed.
+  type AsyncMutex<T: Send>: AsyncMutexLike<T>;
 
   /// Returns a shared reference to the underlying use
   fn mailbox_factory(&self) -> &Self::MailboxFactory;
@@ -125,7 +138,26 @@ pub trait ActorRuntime: Clone {
   fn scheduler_builder_shared_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>;
 
   /// Overrides the scheduler builder using a shared handle.
-  fn with_scheduler_builder_shared_builder_shared(self, builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>) -> Self
+  fn with_scheduler_builder_shared_builder_shared(
+    self,
+    builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>,
+  ) -> Self
   where
     Self: Sized;
+
+  /// Returns a factory function for creating synchronous mutexes.
+  ///
+  /// The returned factory is a shared Arc-wrapped closure that can be cloned
+  /// and passed across threads to create runtime-appropriate mutex instances.
+  fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
+  where
+    T: 'static;
+
+  /// Returns a factory function for creating asynchronous mutexes.
+  ///
+  /// The returned factory is a shared Arc-wrapped closure that can be cloned
+  /// and passed across threads to create runtime-appropriate async mutex instances.
+  fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
+  where
+    T: Send + 'static;
 }

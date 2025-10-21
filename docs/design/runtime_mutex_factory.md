@@ -73,3 +73,45 @@ fn async_mutex_factory(&self) -> Arc<dyn Fn<T>(T) -> Self::AsyncMutex<T> + Send 
 - ユーザー API (`Props::new`, `ActorRef::tell` など) を変更せず、内部で最適な mutex を使い分けるには「ランタイムが factory を提供し、コンテキストやアダプタがそれを使う」設計が有効。
 - 追加で必要なのは、mutex ラッパと factory 注入の仕組み、そして既存 `spin::Mutex` 使用箇所の置き換え。
 - この設計により、Tokio ランタイム上でのデッドロックや CPU ビジーを避けつつ、組み込み環境の `no_std` 互換性も維持できる。
+
+## 実装状況
+
+### 完了項目
+
+1. **共通トレイトとラッパ型の整備** ✅
+   - `SyncMutexLike` / `AsyncMutexLike` トレイトは既存
+   - `SpinSyncMutex` / `SpinAsyncMutex` (utils-core) は既存
+   - `StdSyncMutex` / `TokioAsyncMutex` (utils-std) は既存
+
+2. **ActorRuntime拡張** ✅
+   - `ActorRuntime` トレイトに関連型 `SyncMutex<T>` / `AsyncMutex<T: Send>` を追加
+   - factory アクセサ `sync_mutex_factory()` / `async_mutex_factory()` を追加
+   - `GenericActorRuntime` で各ランタイムに応じた実装を提供:
+     - `no_std`: `SpinSyncMutex` / `SpinAsyncMutex`
+     - `std`: `StdSyncMutex` / `TokioAsyncMutex`
+
+3. **テストの追加** ✅
+   - `modules/actor-core/src/api/actor_runtime/tests.rs` にfactory機能のテストを追加
+   - 同期 mutex, 非同期 mutex, factory のクローン可能性をテスト
+
+4. **ビルド・テスト確認** ✅
+   - `ci-check.sh` で全構成 (no_std, std, tokio) のビルド・テストが成功
+
+### 保留項目
+
+3. **Factory の注入** (保留)
+   - `ActorContext` へのfactory注入は現時点では不要と判断
+   - 理由: 既存コードは`SyncMutexLike`などのトレイトを使用しており、直接`spin::Mutex::new`を呼んでいる箇所は限定的
+   - 将来的にコンテキスト内でmutexを動的生成する必要が生じた場合に実装
+
+4. **既存コードの置き換え** (保留)
+   - 既存の`spin::Mutex`使用箇所の調査完了
+   - 主にテストコードとスケジューラ内部での使用を確認
+   - 現時点ではユーザーAPIに影響がなく、パフォーマンス問題も報告されていないため保留
+   - factory機構は整備済みのため、必要に応じて段階的に置き換え可能
+
+### 今後の課題
+
+- ActorContext/InternalActorContext へのfactory注入 (必要性が生じた場合)
+- Props初期化時のmutex生成をfactory経由に変更 (パフォーマンス改善が必要な場合)
+- ready queue等のスケジューラ内部でのfactory活用 (ランタイム依存の最適化が必要な場合)

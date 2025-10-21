@@ -18,7 +18,7 @@ pub trait SyncMutexLike<T> {
   /// Consumes the mutex and returns the inner value.
   fn into_inner(self) -> T;
 
-  /// Locks the mutex and returns a guard to the protected value。
+  /// Locks the mutex and returns a guard to the protected value.
   fn lock(&self) -> Self::Guard<'_>;
 }
 

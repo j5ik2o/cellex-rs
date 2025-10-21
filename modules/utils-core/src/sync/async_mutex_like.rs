@@ -1,11 +1,10 @@
 mod spin_async_mutex;
 
-pub use spin_async_mutex::*;
-
 use alloc::boxed::Box;
 use core::ops::{Deref, DerefMut};
 
 use async_trait::async_trait;
+pub use spin_async_mutex::*;
 
 /// Async-aware mutex abstraction.
 #[async_trait(?Send)]
