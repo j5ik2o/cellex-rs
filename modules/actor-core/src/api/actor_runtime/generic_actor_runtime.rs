@@ -284,7 +284,7 @@ where
     GenericActorRuntime::with_metrics_sink_shared(self, sink)
   }
 
-  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
+  fn priority_mailbox_spawner_handle<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
   where
     M: Element,
     MailboxQueueOf<Self, PriorityEnvelope<M>>: Clone,
@@ -292,18 +292,18 @@ where
     GenericActorRuntime::priority_mailbox_spawner(self)
   }
 
-  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self {
+  fn with_actor_scheduler_handle_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self {
     GenericActorRuntime::with_scheduler_builder(self, builder)
   }
 
-  fn with_scheduler_builder_shared(
+  fn with_scheduler_builder_shared_builder_shared(
     self,
     builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>,
   ) -> Self {
     GenericActorRuntime::with_scheduler_builder_shared(self, builder)
   }
 
-  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
+  fn scheduler_builder_shared_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
 }

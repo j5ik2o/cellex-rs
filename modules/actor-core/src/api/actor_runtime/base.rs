@@ -54,7 +54,6 @@ pub trait ActorRuntime: Clone {
     Self: Sized;
 
   /// Returns the shared handle to the underlying use
-  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   fn mailbox_factory_shared(&self) -> ArcShared<Self::MailboxFactory>;
 
   /// Returns the receive-timeout scheduler factory configured for this runtime.
@@ -63,7 +62,6 @@ pub trait ActorRuntime: Clone {
   ) -> Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>>;
 
   /// Overrides the receive-timeout scheduler factory using the base use
-  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime; type.
   fn with_receive_timeout_scheduler_factory_shared(
     self,
     factory: ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MailboxOf<Self>>,
@@ -114,22 +112,22 @@ pub trait ActorRuntime: Clone {
     Self: Sized;
 
   /// Returns a priority mailbox spawner handle without exposing the internal factory.
-  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
+  fn priority_mailbox_spawner_handle<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
   where
     M: Element,
     MailboxQueueOf<Self, PriorityEnvelope<M>>: Clone,
     MailboxSignalOf<Self>: Clone;
 
   /// Overrides the scheduler builder used during actor system construction.
-  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self
+  fn with_actor_scheduler_handle_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self
   where
     Self: Sized;
 
   /// Returns the scheduler builder configured for this runtime.
-  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>;
+  fn scheduler_builder_shared_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>;
 
   /// Overrides the scheduler builder using a shared handle.
-  fn with_scheduler_builder_shared(self, builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>) -> Self
+  fn with_scheduler_builder_shared_builder_shared(self, builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>) -> Self
   where
     Self: Sized;
 }

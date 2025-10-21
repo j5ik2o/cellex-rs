@@ -64,7 +64,7 @@ where
     let root_listener_from_runtime = actor_runtime.root_failure_event_listener_opt();
     let root_handler_from_runtime = actor_runtime.root_escalation_failure_event_handler_opt();
     let metrics_from_runtime = actor_runtime.metrics_sink_shared_opt();
-    let scheduler_builder = actor_runtime.scheduler_builder_shared();
+    let scheduler_builder = actor_runtime.scheduler_builder_shared_builder_shared();
 
     let system_id = config.system_id().clone();
     let node_id = config.node_id_opt();
