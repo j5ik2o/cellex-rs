@@ -1,9 +1,13 @@
 use alloc::vec::Vec;
 
+use cellex_utils_core_rs::sync::ArcShared;
+
 use super::*;
 use crate::{
   error::{DeserializationError, SerializationError},
   message::SerializedMessage,
+  registry::InMemorySerializerRegistry,
+  BindingError, Serializer, SerializerId,
 };
 
 #[derive(Clone, Debug)]

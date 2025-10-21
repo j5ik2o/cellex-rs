@@ -2,6 +2,7 @@
 
 extern crate rustc_hir;
 extern crate rustc_span;
+extern crate rustc_middle;
 
 use std::{
   collections::{hash_map::Entry, HashMap},
@@ -54,8 +55,12 @@ impl<'tcx> LateLintPass<'tcx> for MultipleTypeDefinitions {
       return;
     }
 
-    let kind_label = describe_kind(&item.kind);
     let def_id = item.owner_id.def_id.to_def_id();
+    if !cx.tcx.visibility(def_id).is_public() {
+      return;
+    }
+
+    let kind_label = describe_kind(&item.kind);
     let name = cx.tcx.item_name(def_id).to_string();
 
     match self.tracked.entry(path.clone()) {

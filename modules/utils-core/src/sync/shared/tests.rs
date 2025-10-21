@@ -3,7 +3,7 @@ extern crate alloc;
 
 #[allow(clippy::disallowed_types)]
 use alloc::rc::Rc;
-use core::cell::RefCell;
+use core::{cell::RefCell, ops::Deref};
 
 use super::*;
 

@@ -3,15 +3,17 @@
 #![deny(missing_docs)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 
+mod prost_type_key;
+
 use cellex_serialization_core_rs::{
   error::{DeserializationError, SerializationError},
   id::SerializerId,
-  impl_type_key,
   message::SerializedMessage,
   serializer::Serializer,
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use prost::Message;
+pub use prost_type_key::ProstTypeKey;
 
 /// Serializer ID reserved for the `prost` backend.
 pub const PROST_SERIALIZER_ID: SerializerId = SerializerId::new(2);
@@ -81,9 +83,3 @@ impl Serializer for ProstSerializer {
 pub fn shared_prost_serializer() -> ArcShared<ProstSerializer> {
   ArcShared::new(ProstSerializer::new())
 }
-
-/// Marker type representing Prost-encoded payload bindings.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ProstTypeKey;
-
-impl_type_key!(ProstTypeKey, "cellex.serializer.prost", PROST_SERIALIZER_ID);

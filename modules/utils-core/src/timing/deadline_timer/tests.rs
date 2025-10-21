@@ -1,7 +1,7 @@
 #![allow(clippy::disallowed_types)]
 extern crate std;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 
 use super::*;
 

@@ -37,6 +37,7 @@ where
 
 impl<E, RM> Clone for ArcPriorityQueue<E, RM>
 where
+  E: Clone,
   RM: RawMutex,
 {
   fn clone(&self) -> Self {

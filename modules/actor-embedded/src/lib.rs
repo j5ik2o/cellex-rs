@@ -62,7 +62,8 @@ mod arc_priority_mailbox;
 mod local_mailbox;
 #[cfg(feature = "embassy_executor")]
 mod receive_timeout;
-mod runtime_driver;
+/// Runtime driver for failure event handling in embedded environments.
+pub mod runtime_driver;
 #[cfg(feature = "embassy_executor")]
 mod scheduler;
 mod spawn;
@@ -82,7 +83,6 @@ mod embassy_dispatcher;
 pub use local_mailbox::{LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
 #[cfg(feature = "embassy_executor")]
 pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
-pub use runtime_driver::EmbeddedFailureEventHub;
 #[cfg(feature = "embassy_executor")]
 pub use scheduler::{embassy_scheduler_builder, EmbassyActorRuntimeExt, EmbassyScheduler};
 pub use spawn::ImmediateSpawner;

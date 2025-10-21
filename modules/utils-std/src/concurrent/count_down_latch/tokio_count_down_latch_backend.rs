@@ -1,0 +1,55 @@
+//! Tokio countdown latch backend implementation.
+
+#![allow(clippy::disallowed_types)]
+use std::sync::{
+  atomic::{AtomicUsize, Ordering},
+  Arc,
+};
+
+use async_trait::async_trait;
+use cellex_utils_core_rs::CountDownLatchBackend;
+use tokio::sync::Notify;
+
+struct State {
+  count:  AtomicUsize,
+  notify: Notify,
+}
+
+/// Backend implementation of countdown latch using Tokio runtime
+///
+/// A synchronization primitive that causes tasks to wait until the specified number of countdowns
+/// complete. When the count reaches zero, all waiting tasks are released.
+#[derive(Clone)]
+pub struct TokioCountDownLatchBackend {
+  inner: Arc<State>,
+}
+
+#[async_trait(?Send)]
+impl CountDownLatchBackend for TokioCountDownLatchBackend {
+  fn new(count: usize) -> Self {
+    Self { inner: Arc::new(State { count: AtomicUsize::new(count), notify: Notify::new() }) }
+  }
+
+  async fn count_down(&self) {
+    let state = self.inner.clone();
+    let prev = state.count.fetch_sub(1, Ordering::SeqCst);
+    assert!(prev > 0, "CountDownLatch::count_down called more times than initial count");
+    if prev == 1 {
+      state.notify.notify_waiters();
+    }
+  }
+
+  async fn wait(&self) {
+    let state = self.inner.clone();
+    loop {
+      if state.count.load(Ordering::SeqCst) == 0 {
+        break;
+      }
+      let notified = state.notify.notified();
+      if state.count.load(Ordering::SeqCst) == 0 {
+        break;
+      }
+      notified.await;
+    }
+  }
+}
