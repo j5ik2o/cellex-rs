@@ -23,12 +23,12 @@ use crate::{
       messages::{PriorityEnvelope, SystemMessage},
       Mailbox, MailboxFactory, MailboxProducer, MailboxSignal,
     },
-    messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::EscalationSink, supervisor::Supervisor},
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
+  shared::messaging::AnyMessage,
 };
 
 /// Simple scheduler implementation assuming priority mailboxes.

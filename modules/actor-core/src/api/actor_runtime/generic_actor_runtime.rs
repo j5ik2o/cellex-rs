@@ -6,7 +6,6 @@ use crate::{
     actor_scheduler::ActorSchedulerHandleBuilder,
     failure::failure_event_stream::FailureEventListener,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{
       NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
@@ -15,6 +14,7 @@ use crate::{
     supervision::escalation::FailureEventHandler,
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
+  shared::messaging::AnyMessage,
 };
 
 /// Helper alias mapping a runtime bundle back to its use

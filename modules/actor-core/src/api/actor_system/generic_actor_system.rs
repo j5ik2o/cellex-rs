@@ -16,13 +16,13 @@ use crate::{
     },
     guardian::AlwaysRestart,
     mailbox::messages::PriorityEnvelope,
-    messaging::AnyMessage,
     process::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
     },
   },
   internal::actor_system::{InternalActorSystem, InternalGenericActorSystemConfig},
+  shared::messaging::AnyMessage,
 };
 
 type GenericActorProcessRegistryHandle<AR> =

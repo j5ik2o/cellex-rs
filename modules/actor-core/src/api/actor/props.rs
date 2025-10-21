@@ -16,9 +16,10 @@ use crate::{
       messages::{PriorityEnvelope, SystemMessage},
       MailboxFactory, MailboxOptions,
     },
-    messaging::{AnyMessage, MetadataStorageMode},
+    messaging::MetadataStorageMode,
   },
   internal::actor::{internal_props_from_adapter, InternalProps},
+  shared::messaging::AnyMessage,
 };
 
 /// Properties that hold configuration for actor spawning.

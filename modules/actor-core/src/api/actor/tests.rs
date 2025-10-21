@@ -48,10 +48,11 @@ use crate::{
       messages::{PriorityEnvelope, SystemMessage},
       MailboxFactory,
     },
-    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender},
+    messaging::{MessageEnvelope, MessageMetadata, MessageSender},
     test_support::TestMailboxFactory,
   },
   internal::message::InternalMessageSender,
+  shared::messaging::AnyMessage,
 };
 
 type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
@@ -164,16 +165,18 @@ mod receive_timeout_injection {
   use futures::executor::block_on;
 
   use super::{TestRuntime, *};
-  use crate::api::{
-    actor_runtime::ActorRuntime,
-    actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig},
-    mailbox::messages::PriorityEnvelope,
-    messaging::AnyMessage,
-    receive_timeout::{
-      ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
-      ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
+  use crate::{
+    api::{
+      actor_runtime::ActorRuntime,
+      actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig},
+      mailbox::messages::PriorityEnvelope,
+      receive_timeout::{
+        ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
+        ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
+      },
+      test_support::TestMailboxFactory,
     },
-    test_support::TestMailboxFactory,
+    shared::messaging::AnyMessage,
   };
 
   #[derive(Clone)]
@@ -1083,16 +1086,18 @@ mod metrics_injection {
   use std::sync::{Arc, Mutex};
 
   use super::*;
-  use crate::api::{
-    actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
-    actor_system::{GenericActorSystem, GenericActorSystemConfig},
-    failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-    mailbox::MailboxFactory,
-    messaging::AnyMessage,
-    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
-    test_support::TestMailboxFactory,
+  use crate::{
+    api::{
+      actor::{actor_ref::PriorityActorRef, SpawnError},
+      actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
+      actor_system::{GenericActorSystem, GenericActorSystemConfig},
+      failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      mailbox::MailboxFactory,
+      metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+      supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
+      test_support::TestMailboxFactory,
+    },
+    shared::messaging::AnyMessage,
   };
 
   #[derive(Clone)]

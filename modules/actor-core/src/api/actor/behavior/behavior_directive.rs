@@ -1,10 +1,13 @@
 use cellex_utils_core_rs::Element;
 
-use crate::api::{
-  actor::behavior::Behavior,
-  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::messages::PriorityEnvelope,
-  messaging::{AnyMessage, MetadataStorageMode},
+use crate::{
+  api::{
+    actor::behavior::Behavior,
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+    mailbox::messages::PriorityEnvelope,
+    messaging::MetadataStorageMode,
+  },
+  shared::messaging::AnyMessage,
 };
 
 /// State transition directive after user message processing.

@@ -1,10 +1,12 @@
 use alloc::string::String;
 
-use crate::api::{
-  actor::{actor_ref::PriorityActorRef, ActorId, ActorPath},
-  actor_system::map_system::MapSystemShared,
-  mailbox::MailboxFactory,
-  messaging::AnyMessage,
+use crate::{
+  api::{
+    actor::{actor_ref::PriorityActorRef, ActorId, ActorPath},
+    actor_system::map_system::MapSystemShared,
+    mailbox::MailboxFactory,
+  },
+  shared::messaging::AnyMessage,
 };
 
 #[allow(dead_code)]

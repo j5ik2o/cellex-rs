@@ -24,36 +24,39 @@ use spin::RwLock;
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "std")]
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::api::{
-  actor::{
-    actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
-    shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
+use crate::{
+  api::{
+    actor::{
+      actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
+      shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
+    },
+    actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
+    actor_scheduler::{
+      actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
+      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+      ActorScheduler, ActorSchedulerSpawnContext,
+    },
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
+    guardian::{AlwaysRestart, GuardianStrategy},
+    mailbox::{
+      messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+      MailboxFactory, MailboxOptions,
+    },
+    messaging::MessageEnvelope,
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    process::{
+      pid::{Pid, SystemId},
+      process_registry::ProcessRegistry,
+    },
+    supervision::{
+      escalation::FailureEventHandler,
+      supervisor::{NoopSupervisor, Supervisor},
+    },
+    test_support::TestMailboxFactory,
   },
-  actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
-  actor_scheduler::{
-    actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
-    ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-    ActorScheduler, ActorSchedulerSpawnContext,
-  },
-  actor_system::map_system::MapSystemShared,
-  extensions::Extensions,
-  failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
-  guardian::{AlwaysRestart, GuardianStrategy},
-  mailbox::{
-    messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-    MailboxFactory, MailboxOptions,
-  },
-  messaging::{AnyMessage, MessageEnvelope},
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  process::{
-    pid::{Pid, SystemId},
-    process_registry::ProcessRegistry,
-  },
-  supervision::{
-    escalation::FailureEventHandler,
-    supervisor::{NoopSupervisor, Supervisor},
-  },
-  test_support::TestMailboxFactory,
+  shared::messaging::AnyMessage,
 };
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]

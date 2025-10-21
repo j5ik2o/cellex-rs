@@ -17,12 +17,12 @@ use crate::{
     },
     guardian::GuardianStrategy,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
   internal::actor::ActorCell,
+  shared::messaging::AnyMessage,
 };
 
 pub(crate) struct ReadyQueueContext<MF, Strat>

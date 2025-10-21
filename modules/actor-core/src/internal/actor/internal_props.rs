@@ -8,9 +8,10 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_system::map_system::MapSystemShared,
     mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
-    messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
+    messaging::{MessageEnvelope, MetadataStorageMode},
   },
   internal::actor_context::InternalActorContext,
+  shared::messaging::AnyMessage,
 };
 
 pub(crate) struct InternalProps<MF>

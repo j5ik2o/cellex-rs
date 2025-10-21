@@ -2,17 +2,19 @@ use core::marker::PhantomData;
 #[cfg(feature = "std")]
 use std::time::Instant;
 
-use crate::api::{
-  failure::{
-    failure_event_stream::FailureEventListener,
-    failure_telemetry::{
-      default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryObservationConfig, FailureTelemetryShared,
+use crate::{
+  api::{
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{
+        default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryObservationConfig, FailureTelemetryShared,
+      },
+      FailureEvent, FailureInfo,
     },
-    FailureEvent, FailureInfo,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler},
   },
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
-  supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler},
+  shared::messaging::AnyMessage,
 };
 
 /// `EscalationSink` implementation for root guardian.

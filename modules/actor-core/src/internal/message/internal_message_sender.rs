@@ -2,10 +2,12 @@ use core::marker::PhantomData;
 
 use cellex_utils_core_rs::{ArcShared, QueueError, SharedBound, DEFAULT_PRIORITY};
 
-use crate::api::{
-  actor::actor_ref::PriorityActorRef,
-  mailbox::{messages::PriorityEnvelope, MailboxConcurrency, MailboxFactory, ThreadSafe},
-  messaging::AnyMessage,
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    mailbox::{messages::PriorityEnvelope, MailboxConcurrency, MailboxFactory, ThreadSafe},
+  },
+  shared::messaging::AnyMessage,
 };
 
 #[cfg(target_has_atomic = "ptr")]

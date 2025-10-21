@@ -10,12 +10,12 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
     mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxProducer},
-    messaging::AnyMessage,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::ReceiveTimeoutScheduler,
     supervision::supervisor::Supervisor,
   },
   internal::{actor::InternalProps, actor_context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
+  shared::messaging::AnyMessage,
 };
 
 type ActorProcessRegistryShared<MF> =

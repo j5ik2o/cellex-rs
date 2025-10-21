@@ -5,9 +5,10 @@ use cellex_utils_core_rs::{Element, QueueError};
 use crate::{
   api::{
     mailbox::{messages::PriorityEnvelope, MailboxConcurrency, ThreadSafe},
-    messaging::{AnyMessage, MessageEnvelope},
+    messaging::MessageEnvelope,
   },
   internal::message::InternalMessageSender,
+  shared::messaging::AnyMessage,
 };
 
 /// Type-safe dispatcher. Wraps the internal dispatcher and automatically envelopes user messages.

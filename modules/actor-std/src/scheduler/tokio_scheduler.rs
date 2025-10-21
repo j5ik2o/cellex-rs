@@ -1,24 +1,26 @@
 use std::{boxed::Box, vec::Vec};
 
-use cellex_actor_core_rs::api::{
-  actor::{actor_ref::PriorityActorRef, SpawnError},
-  actor_scheduler::{
-    ready_queue_scheduler::{ReadyQueueScheduler, ReadyQueueWorker},
-    ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext,
+use cellex_actor_core_rs::{
+  api::{
+    actor::{actor_ref::PriorityActorRef, SpawnError},
+    actor_scheduler::{
+      ready_queue_scheduler::{ReadyQueueScheduler, ReadyQueueWorker},
+      ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext,
+    },
+    actor_system::map_system::MapSystemShared,
+    extensions::Extensions,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      FailureInfo,
+    },
+    guardian::{AlwaysRestart, GuardianStrategy},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    metrics::MetricsSinkShared,
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  actor_system::map_system::MapSystemShared,
-  extensions::Extensions,
-  failure::{
-    failure_event_stream::FailureEventListener,
-    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-    FailureInfo,
-  },
-  guardian::{AlwaysRestart, GuardianStrategy},
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
-  metrics::MetricsSinkShared,
-  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
+  shared::messaging::AnyMessage,
 };
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;

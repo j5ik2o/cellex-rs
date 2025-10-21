@@ -1,16 +1,20 @@
-use crate::api::{
-  actor_runtime::{ActorRuntime, MailboxOf},
-  extensions::Extensions,
-  failure::{
-    failure_event_stream::FailureEventListener,
-    failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryObservationConfig, FailureTelemetryShared},
+use crate::{
+  api::{
+    actor_runtime::{ActorRuntime, MailboxOf},
+    extensions::Extensions,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{
+        default_failure_telemetry_shared, FailureTelemetryObservationConfig, FailureTelemetryShared,
+      },
+    },
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    metrics::MetricsSinkShared,
+    process::pid::{NodeId, SystemId},
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::escalation::FailureEventHandler,
   },
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
-  metrics::MetricsSinkShared,
-  process::pid::{NodeId, SystemId},
-  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::escalation::FailureEventHandler,
+  shared::messaging::AnyMessage,
 };
 
 /// Internal configuration used while assembling [`InternalActorSystem`].

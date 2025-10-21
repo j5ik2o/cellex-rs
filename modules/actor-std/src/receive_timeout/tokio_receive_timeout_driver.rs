@@ -1,8 +1,8 @@
 //! `TokioReceiveTimeoutDriver` implementation.
 
-use cellex_actor_core_rs::api::{
-  messaging::AnyMessage,
-  receive_timeout::{ReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryShared},
+use cellex_actor_core_rs::{
+  api::receive_timeout::{ReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryShared},
+  shared::messaging::AnyMessage,
 };
 
 use super::tokio_receive_timeout_scheduler_factory::TokioReceiveTimeoutSchedulerFactory;

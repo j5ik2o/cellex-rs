@@ -7,9 +7,10 @@ use std::hint::black_box;
 use cellex_actor_core_rs::{
   api::{
     mailbox::{messages::PriorityEnvelope, SingleThread, ThreadSafe},
-    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    messaging::{MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
   },
   internal::message::InternalMessageSender,
+  shared::messaging::AnyMessage,
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};

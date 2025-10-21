@@ -12,7 +12,7 @@ use crate::{
       messages::{PriorityEnvelope, SystemMessage},
       MailboxFactory,
     },
-    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    messaging::{MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
       pid::Pid,
@@ -20,6 +20,7 @@ use crate::{
     },
   },
   internal::message::InternalMessageSender,
+  shared::messaging::AnyMessage,
 };
 
 type ActorProcessRegistry<AR> =

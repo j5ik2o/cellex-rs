@@ -3,18 +3,20 @@ use core::{convert::Infallible, future::Future, pin::Pin};
 
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
-use crate::api::{
-  actor::{root_context::RootContext, shutdown_token::ShutdownToken},
-  actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-  actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
-  guardian::GuardianStrategy,
-  mailbox::messages::PriorityEnvelope,
-  messaging::AnyMessage,
+use crate::{
+  api::{
+    actor::{root_context::RootContext, shutdown_token::ShutdownToken},
+    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
+    guardian::GuardianStrategy,
+    mailbox::messages::PriorityEnvelope,
+  },
+  shared::messaging::AnyMessage,
 };
 
-/// 共通のアクターシステムインタフェース。
+/// Common actor system interface.
 ///
-/// ランタイム駆動やテスト用ヘルパから必要とされる最小限の操作を公開する。
+/// Exposes the minimum set of operations that runtime drivers and test helpers rely on.
 pub trait ActorSystem<U, AR, Strat>
 where
   U: Element,
@@ -22,22 +24,22 @@ where
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: GuardianStrategy<MailboxOf<AR>>, {
-  /// システム全体のシャットダウントークンを取得する。
+  /// Returns the shutdown token shared across the entire system.
   fn shutdown_token(&self) -> ShutdownToken;
 
-  /// ルートコンテキストを借用する。
+  /// Borrows the root context for spawning and coordination.
   fn root_context(&mut self) -> RootContext<'_, U, AR, Strat>;
 
-  /// ReadyQueue のワーカハンドルを取得する。
+  /// Returns the handle for ReadyQueue workers when available.
   fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MailboxOf<AR>>>>;
 
-  /// ReadyQueue によるスケジューリングをサポートしているか判定する。
+  /// Indicates whether the runtime supports ReadyQueue-based scheduling.
   fn supports_ready_queue(&self) -> bool;
 
-  /// キューが空になるまで同期的にメッセージを処理する。
+  /// Drains the ready queue synchronously until it becomes empty.
   fn run_until_idle(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>;
 
-  /// 条件が満たされるまでメッセージディスパッチを継続する。
+  /// Continues dispatching messages until the supplied predicate returns `false`.
   fn run_until<'a, F>(
     &'a mut self,
     should_continue: F,
@@ -45,12 +47,12 @@ where
   where
     F: FnMut() -> bool + 'a;
 
-  /// 明示的に停止されるまでメッセージディスパッチを継続する。
+  /// Continues dispatching messages until explicitly stopped.
   fn run_forever(
     &mut self,
   ) -> Pin<Box<dyn Future<Output = Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>>> + '_>>;
 
-  /// 次のメッセージを一件処理する。
+  /// Processes the next available message exactly once.
   fn dispatch_next(
     &mut self,
   ) -> Pin<Box<dyn Future<Output = Result<(), QueueError<PriorityEnvelope<AnyMessage>>>> + '_>>;

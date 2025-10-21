@@ -5,15 +5,17 @@ use cellex_utils_core_rs::{
   SharedBound,
 };
 
-use crate::api::{
-  actor_scheduler::{
-    actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
-    ActorSchedulerHandleFactoryFn,
+use crate::{
+  api::{
+    actor_scheduler::{
+      actor_scheduler_handle::ActorSchedulerHandle, ready_queue_scheduler::ReadyQueueScheduler,
+      ActorSchedulerHandleFactoryFn,
+    },
+    extensions::Extensions,
+    guardian::GuardianStrategy,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
   },
-  extensions::Extensions,
-  guardian::GuardianStrategy,
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
+  shared::messaging::AnyMessage,
 };
 
 /// Factory wrapper used to construct scheduler instances with consistent runtime configuration.

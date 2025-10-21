@@ -14,7 +14,6 @@ use crate::{
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     process::{
       pid::{NodeId, SystemId},
@@ -22,6 +21,7 @@ use crate::{
     },
   },
   internal::actor_system::internal_actor_system_config::InternalGenericActorSystemConfig,
+  shared::messaging::AnyMessage,
 };
 
 type ActorSystemProcessRegistryShared<AR> =

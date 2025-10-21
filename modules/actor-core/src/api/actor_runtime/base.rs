@@ -5,12 +5,12 @@ use crate::{
     actor_scheduler::ActorSchedulerHandleBuilder,
     failure::failure_event_stream::FailureEventListener,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
     supervision::escalation::FailureEventHandler,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
+  shared::messaging::AnyMessage,
 };
 
 /// Helper alias mapping an actor runtime to its use

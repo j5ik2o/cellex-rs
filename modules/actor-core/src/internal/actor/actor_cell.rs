@@ -15,7 +15,6 @@ use crate::{
       messages::{PriorityEnvelope, SystemMessage},
       Mailbox, MailboxFactory, MailboxHandle, MailboxProducer,
     },
-    messaging::AnyMessage,
     metrics::MetricsSinkShared,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
@@ -25,6 +24,7 @@ use crate::{
     actor_context::{ChildSpawnSpec, InternalActorContext},
     mailbox::PriorityMailboxSpawnerHandle,
   },
+  shared::messaging::AnyMessage,
 };
 
 type ActorCellProcessRegistryShared<MF> =

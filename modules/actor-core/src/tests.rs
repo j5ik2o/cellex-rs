@@ -4,9 +4,9 @@ use alloc::format;
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 
 use super::*;
-use crate::api::{
-  mailbox::messages::{PriorityEnvelope, SystemMessage},
-  messaging::AnyMessage,
+use crate::{
+  api::mailbox::messages::{PriorityEnvelope, SystemMessage},
+  shared::messaging::AnyMessage,
 };
 
 /// Ensures `PriorityEnvelope::from_system` marks the envelope as a control message.

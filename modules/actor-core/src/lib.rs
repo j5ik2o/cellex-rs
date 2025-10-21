@@ -78,6 +78,8 @@ mod tests;
 pub mod api;
 /// Internal implementation details
 pub mod internal;
+/// Shared abstractions reused by api/internal
+pub mod shared;
 
 /// Function type alias for converting system messages to message type.
 #[cfg(target_has_atomic = "ptr")]

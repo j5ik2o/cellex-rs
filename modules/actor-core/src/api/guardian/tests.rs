@@ -12,20 +12,23 @@ use cellex_utils_core_rs::DEFAULT_PRIORITY;
 use spin::Mutex;
 
 use super::*;
-use crate::api::{
-  actor::{
-    actor_failure::{ActorFailure, BehaviorFailure},
-    actor_ref::PriorityActorRef,
-    ActorId, ActorPath, ChildNaming, SpawnError,
+use crate::{
+  api::{
+    actor::{
+      actor_failure::{ActorFailure, BehaviorFailure},
+      actor_ref::PriorityActorRef,
+      ActorId, ActorPath, ChildNaming, SpawnError,
+    },
+    actor_system::map_system::MapSystemShared,
+    mailbox::{
+      messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+      MailboxFactory,
+    },
+    messaging::MessageEnvelope,
+    supervision::supervisor::SupervisorDirective,
+    test_support::TestMailboxFactory,
   },
-  actor_system::map_system::MapSystemShared,
-  mailbox::{
-    messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-    MailboxFactory,
-  },
-  messaging::{AnyMessage, MessageEnvelope},
-  supervision::supervisor::SupervisorDirective,
-  test_support::TestMailboxFactory,
+  shared::messaging::AnyMessage,
 };
 
 fn system_mapper() -> MapSystemShared<AnyMessage> {

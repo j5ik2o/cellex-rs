@@ -15,11 +15,11 @@ use crate::{
     extensions::Extensions,
     guardian::GuardianStrategy,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::actor::InternalProps,
+  shared::messaging::AnyMessage,
 };
 
 type RootProcessRegistryShared<AR> =

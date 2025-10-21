@@ -1,17 +1,19 @@
 use cellex_utils_core_rs::QueueError;
 
 use super::{CustomEscalationSink, ParentGuardianSink};
-use crate::api::{
-  actor::actor_ref::PriorityActorRef,
-  actor_system::map_system::MapSystemShared,
-  failure::{
-    failure_event_stream::FailureEventListener,
-    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-    FailureInfo,
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    actor_system::map_system::MapSystemShared,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      FailureInfo,
+    },
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    supervision::escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
   },
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
-  supervision::escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
+  shared::messaging::AnyMessage,
 };
 
 /// Composes multiple sinks and applies them in order.

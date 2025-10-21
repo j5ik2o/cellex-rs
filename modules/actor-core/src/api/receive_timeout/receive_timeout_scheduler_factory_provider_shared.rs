@@ -4,9 +4,9 @@ use super::{
   receive_timeout_scheduler_factory_provider::ReceiveTimeoutSchedulerFactoryProvider,
   receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared,
 };
-use crate::api::{
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
+use crate::{
+  api::mailbox::{messages::PriorityEnvelope, MailboxFactory},
+  shared::messaging::AnyMessage,
 };
 
 /// Shared wrapper around a [`ReceiveTimeoutSchedulerFactoryProvider`] implementation.

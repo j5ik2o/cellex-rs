@@ -3,11 +3,13 @@ use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
 use super::ready_queue_context::ReadyQueueContext;
-use crate::api::{
-  actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
-  guardian::GuardianStrategy,
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
+use crate::{
+  api::{
+    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
+    guardian::GuardianStrategy,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+  },
+  shared::messaging::AnyMessage,
 };
 
 pub(crate) struct ReadyQueueWorkerImpl<MF, Strat>

@@ -9,11 +9,11 @@ use crate::{
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
     process::pid::Pid,
     supervision::supervisor::Supervisor,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
+  shared::messaging::AnyMessage,
 };
 
 /// Information required when spawning child actors.

@@ -1,11 +1,14 @@
 use cellex_utils_core_rs::Element;
 
 use super::{Behavior, BehaviorDirective};
-use crate::api::{
-  actor::{actor_context::ActorContext, actor_failure::ActorFailure, behavior::supervise_builder::SuperviseBuilder},
-  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::messages::PriorityEnvelope,
-  messaging::{AnyMessage, MetadataStorageMode},
+use crate::{
+  api::{
+    actor::{actor_context::ActorContext, actor_failure::ActorFailure, behavior::supervise_builder::SuperviseBuilder},
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+    mailbox::messages::PriorityEnvelope,
+    messaging::MetadataStorageMode,
+  },
+  shared::messaging::AnyMessage,
 };
 
 /// Behavior DSL builder.

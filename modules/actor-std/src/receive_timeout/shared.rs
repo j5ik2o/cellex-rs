@@ -2,9 +2,9 @@
 
 use core::time::Duration;
 
-use cellex_actor_core_rs::api::{
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
+use cellex_actor_core_rs::{
+  api::mailbox::{messages::PriorityEnvelope, MailboxFactory},
+  shared::messaging::AnyMessage,
 };
 use cellex_utils_std_rs::{
   timing::TokioDeadlineTimer, DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,

@@ -22,7 +22,7 @@ use crate::{
       messages::{PriorityEnvelope, SystemMessage},
       MailboxOptions,
     },
-    messaging::{AnyMessage, MessageEnvelope, MessageMetadata},
+    messaging::{MessageEnvelope, MessageMetadata},
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
       pid::{NodeId, Pid, SystemId},
@@ -31,6 +31,7 @@ use crate::{
     test_support::TestMailboxFactory,
   },
   internal::actor::InternalProps,
+  shared::messaging::AnyMessage,
 };
 
 #[cfg(feature = "std")]
