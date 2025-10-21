@@ -5,14 +5,14 @@
 /// # Usage
 /// ```rust
 /// use cellex_actor_embedded_rs::{define_embassy_dispatcher, LocalMailboxRuntime};
-/// use cellex_actor_core_rs::{GenericActorRuntime, ActorSystem, ActorSystemConfig};
+/// use cellex_actor_core_rs::{GenericActorRuntime, GenericActorSystem, GenericActorSystemConfig};
 /// use embassy_executor::Spawner;
 ///
 /// define_embassy_dispatcher!(
-///   pub fn dispatcher(system: ActorSystem<u32, LocalMailboxRuntime>)
+///   pub fn dispatcher(system: GenericActorSystem<u32, LocalMailboxRuntime>)
 /// );
 ///
-/// fn start(spawner: &Spawner, system: &'static mut ActorSystem<u32, LocalMailboxRuntime>) {
+/// fn start(spawner: &Spawner, system: &'static mut GenericActorSystem<u32, LocalMailboxRuntime>) {
 ///   spawner.spawn(dispatcher(system)).expect("spawn dispatcher");
 /// }
 /// ```

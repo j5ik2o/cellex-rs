@@ -8,7 +8,7 @@
 ## 方針
 
 1. `panic-probe` + `defmt` を利用した最小 telemetry を想定。
-2. ビルダー API を使い、`ActorSystemConfig::with_failure_telemetry_builder` 経由で `defmt` 版を注入する。
+2. ビルダー API を使い、`GenericActorSystemConfig::with_failure_telemetry_builder` 経由で `defmt` 版を注入する。
 3. 観測フック (`FailureTelemetryObservationConfig`) は `MetricsSink` 未設定でも no-op であることを確認。
 
 ## サンプルコード
@@ -31,7 +31,7 @@ fn defmt_builder(_ctx: &TelemetryContext) -> FailureTelemetryShared {
 }
 
 let builder = FailureTelemetryBuilderShared::new(defmt_builder);
-let config = ActorSystemConfig::default()
+let config = GenericActorSystemConfig::default()
   .with_failure_telemetry_builder(Some(builder))
   .with_failure_observation_config(None); // no metrics => no-op 観測
 ```

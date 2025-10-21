@@ -21,7 +21,7 @@ use crate::{
       process_registry::ProcessRegistry,
     },
   },
-  internal::actor_system::internal_actor_system_config::InternalActorSystemConfig,
+  internal::actor_system::internal_actor_system_config::InternalGenericActorSystemConfig,
 };
 
 type ActorSystemProcessRegistryShared<AR> =
@@ -58,10 +58,10 @@ where
   <MailboxOf<AR> as MailboxFactory>::Signal: Clone,
 {
   pub fn new(actor_runtime: AR) -> Self {
-    Self::new_with_config(actor_runtime, InternalActorSystemConfig::default())
+    Self::new_with_config(actor_runtime, InternalGenericActorSystemConfig::default())
   }
 
-  pub fn new_with_config(actor_runtime: AR, config: InternalActorSystemConfig<AR>) -> Self {
+  pub fn new_with_config(actor_runtime: AR, config: InternalGenericActorSystemConfig<AR>) -> Self {
     let scheduler_builder = ArcShared::new(ActorSchedulerHandleBuilder::<MailboxOf<AR>>::ready_queue());
     Self::new_with_config_and_builder(actor_runtime, &scheduler_builder, config)
   }
@@ -69,9 +69,9 @@ where
   pub fn new_with_config_and_builder(
     actor_runtime: AR,
     scheduler_builder: &ArcShared<ActorSchedulerHandleBuilder<MailboxOf<AR>>>,
-    config: InternalActorSystemConfig<AR>,
+    config: InternalGenericActorSystemConfig<AR>,
   ) -> Self {
-    let InternalActorSystemConfig {
+    let InternalGenericActorSystemConfig {
       root_event_listener_opt: root_event_listener,
       root_escalation_handler_opt: root_escalation_handler,
       receive_timeout_scheduler_factory_shared_opt,

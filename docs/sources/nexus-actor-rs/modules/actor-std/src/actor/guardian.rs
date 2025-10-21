@@ -35,7 +35,7 @@ impl GuardiansValue {
     self
       .actor_system
       .upgrade()
-      .expect("ActorSystem dropped before GuardiansValue")
+      .expect("GenericActorSystem dropped before GuardiansValue")
   }
 
   pub async fn get_guardian_pid(&self, s: SupervisorStrategyHandle) -> ExtendedPid {

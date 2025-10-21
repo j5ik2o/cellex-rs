@@ -14,7 +14,7 @@ use crate::api::{
 };
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
-pub struct InternalActorSystemConfig<AR>
+pub struct InternalGenericActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,
@@ -41,7 +41,7 @@ where
   pub(crate) node_id_opt: Option<NodeId>,
 }
 
-impl<AR> Default for InternalActorSystemConfig<AR>
+impl<AR> Default for InternalGenericActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone,
   MailboxOf<AR>: MailboxFactory + Clone,

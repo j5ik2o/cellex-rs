@@ -4,7 +4,7 @@ use cellex_actor_core_rs::api::{
   actor::shutdown_token::ShutdownToken,
   actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   actor_scheduler::ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-  actor_system::ActorSystemRunner,
+  actor_system::GenericActorSystemRunner,
   mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
 };
@@ -38,7 +38,7 @@ where
   /// # Returns
   /// A new `TokioSystemHandle` for managing the actor system
   #[must_use]
-  pub fn start_local<AR>(runner: ActorSystemRunner<U, AR>) -> Self
+  pub fn start_local<AR>(runner: GenericActorSystemRunner<U, AR>) -> Self
   where
     U: cellex_utils_std_rs::Element + 'static,
     AR: ActorRuntime + 'static,
@@ -104,7 +104,7 @@ where
 }
 
 async fn run_runner<U, AR>(
-  runner: ActorSystemRunner<U, AR>,
+  runner: GenericActorSystemRunner<U, AR>,
 ) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>>
 where
   U: Element + 'static,
@@ -128,7 +128,7 @@ where
 }
 
 async fn run_ready_queue_workers<U, AR>(
-  runner: ActorSystemRunner<U, AR>,
+  runner: GenericActorSystemRunner<U, AR>,
   worker_count: NonZeroUsize,
 ) -> Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>>
 where

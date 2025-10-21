@@ -90,7 +90,7 @@ impl SenderContextHandle {
           target = "nexus::context_registry",
           system_id,
           pid = %self_pid.id(),
-          "ActorSystem not found for provided system_id"
+          "GenericActorSystem not found for provided system_id"
         );
         return None;
       }

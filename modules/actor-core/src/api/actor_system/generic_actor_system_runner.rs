@@ -6,7 +6,7 @@ use crate::api::{
   actor::shutdown_token::ShutdownToken,
   actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
-  actor_system::ActorSystem,
+  actor_system::GenericActorSystem,
   guardian::AlwaysRestart,
   mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
@@ -14,20 +14,20 @@ use crate::api::{
 
 /// Execution runner for the actor system.
 ///
-/// Wraps `ActorSystem` and provides an interface for execution on an asynchronous runtime.
-pub struct ActorSystemRunner<U, AR, Strat = AlwaysRestart>
+/// Wraps `GenericActorSystem` and provides an interface for execution on an asynchronous runtime.
+pub struct GenericActorSystemRunner<U, AR, Strat = AlwaysRestart>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone,
   Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>, {
-  pub(crate) system:                   ActorSystem<U, AR, Strat>,
+  pub(crate) system:                   GenericActorSystem<U, AR, Strat>,
   pub(crate) ready_queue_worker_count: NonZeroUsize,
   pub(crate) _marker:                  PhantomData<U>,
 }
 
-impl<U, AR, Strat> ActorSystemRunner<U, AR, Strat>
+impl<U, AR, Strat> GenericActorSystemRunner<U, AR, Strat>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
@@ -105,7 +105,7 @@ where
   /// # Returns
   /// Internal actor system
   #[must_use]
-  pub fn into_inner(self) -> ActorSystem<U, AR, Strat> {
+  pub fn into_inner(self) -> GenericActorSystem<U, AR, Strat> {
     self.system
   }
 }

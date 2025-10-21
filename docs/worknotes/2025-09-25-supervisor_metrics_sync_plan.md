@@ -120,7 +120,7 @@
    - 監督戦略テストを更新し同期 API を使用。`strategy_one_for_one` / `strategy_all_for_one` / `strategy_restarting` は `ActorSystem::metrics_foreach` を直接呼び出し、`SupervisorHandle::metrics_sink` 依存を段階的に解消済み (2025-09-25)。
 
 4. **ステップ 3: Config / Extension アクセスの同期化**
-   - `ActorSystemConfig` を `Arc` 共有できる形に変更し、`get_config()` 同期アクセスでの差し替えを完了。（実績済み）
+   - `GenericActorSystemConfig` を `Arc` 共有できる形に変更し、`get_config()` 同期アクセスでの差し替えを完了。（実績済み）
    - Extension 取得をキャッシュし、await を最小化。
 
 5. **ステップ 4: レガシー async API の削除**

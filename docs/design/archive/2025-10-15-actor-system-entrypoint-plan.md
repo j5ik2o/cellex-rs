@@ -48,7 +48,7 @@
     where
       P: Into<Props<M, GenericActorRuntime<TokioMailboxRuntime>>>,
     {
-      // GenericActorRuntime + ActorSystem::builder で Guardian を起動し、
+      // GenericActorRuntime + GenericActorSystem::builder で Guardian を起動し、
       // ActorSystemRunner + TokioSystemHandle を内部で構築する
     }
 

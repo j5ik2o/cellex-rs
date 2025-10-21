@@ -6,8 +6,8 @@ mod sample {
   };
 
   use cellex_actor_core_rs::{
-    actor::context::RootContext, drive_ready_queue_worker, ActorSystem, ActorSystemConfig, ArcShared, DynMessage,
-    MailboxOf, Props, ReadyQueueWorker, ShutdownToken,
+    actor::context::RootContext, drive_ready_queue_worker, ArcShared, DynMessage, GenericActorSystem,
+    GenericActorSystemConfig, MailboxOf, Props, ReadyQueueWorker, ShutdownToken,
   };
   use cellex_actor_embedded_rs::{embassy_actor_runtime, EmbassyActorRuntime};
   use embassy_executor::{Executor, Spawner};
@@ -16,7 +16,7 @@ mod sample {
   use static_cell::StaticCell;
 
   static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-  static SYSTEM: StaticCell<ActorSystem<u32, EmbassyActorRuntime>> = StaticCell::new();
+  static SYSTEM: StaticCell<GenericActorSystem<u32, EmbassyActorRuntime>> = StaticCell::new();
   static MESSAGE_SUM: AtomicU32 = AtomicU32::new(0);
 
   #[embassy_executor::task]
@@ -63,8 +63,8 @@ mod sample {
     executor.run(|spawner| {
       let configured_worker_count = NonZeroUsize::new(3).expect("non-zero worker count");
       let actor_runtime = embassy_actor_runtime(spawner);
-      let config = ActorSystemConfig::default().with_ready_queue_worker_count(Some(configured_worker_count));
-      let system = SYSTEM.init_with(|| ActorSystem::new_with_actor_runtime(actor_runtime, config));
+      let config = GenericActorSystemConfig::default().with_ready_queue_worker_count_opt(Some(configured_worker_count));
+      let system = SYSTEM.init_with(|| GenericActorSystem::new_with_actor_runtime(actor_runtime, config));
       let shutdown = system.shutdown_token();
       let worker_count = configured_worker_count;
 

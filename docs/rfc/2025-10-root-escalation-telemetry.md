@@ -19,13 +19,13 @@ RootEscalationSink に導入した `FailureTelemetry` 抽象は、スナップ�
 
 1. `FailureSnapshot` に可変長タグ群を追加し、アプリケーション側で任意のキー/値情報を付与できるようにする。
 2. Telemetry 呼び出し経路に累積処理時間や呼び出し回数を観測する仕組みを導入する。
-3. `ActorSystemConfig` / `RootEscalationSink` へ Builder API を追加し、初期化時の拡張ポイントを明示化する。
+3. `GenericActorSystemConfig` / `RootEscalationSink` へ Builder API を追加し、初期化時の拡張ポイントを明示化する。
 
 ## 要件
 
 - **タグ拡張**: `FailureSnapshot` に `TelemetryTag` の固定長バッファ（当初は 4 個）を追加し、ヒープ確保を伴わない形で key/value を格納できるようにする。no_std 環境では `heapless::Vec` 相当を検討し、std では `SmallVec` 互換型を導入する。
 - **メトリクス**: Telemetry 呼び出し時間を `MetricsSink` に記録するオプションフックを追加し、feature flag ではなく runtime 設定で ON/OFF 可能にする。
-- **DX 改善**: `FailureTelemetryBuilder` (仮称) を設計し、`ActorSystemConfig::with_failure_telemetry_builder` 経由で初期化するパターンを提供する。
+- **DX 改善**: `FailureTelemetryBuilder` (仮称) を設計し、`GenericActorSystemConfig::with_failure_telemetry_builder` 経由で初期化するパターンを提供する。
 - **互換性**: 現在の `FailureTelemetry` トレイトは破壊的変更が許容されるが、呼び出しシグネチャは極力維持する。必要なら `FailureTelemetryExt` などの追加トレイトで拡張。
 
 ## 提案概要
@@ -65,7 +65,7 @@ RootEscalationSink に導入した `FailureTelemetry` 抽象は、スナップ�
      ```
 
 3. Builder API
-   - `ActorSystemConfig::with_failure_telemetry_builder` を追加し、`
+   - `GenericActorSystemConfig::with_failure_telemetry_builder` を追加し、`
      Fn(TelemetryContext) -> FailureTelemetryShared` を受け取る。
    - `RootEscalationSink` には `apply_builder` メソッドを追加し、Builder に環境情報（Runtime 拡張、MetricsSink 等）を渡せるようにする。
    - `TelemetryContext` は `alloc` のみで動作し、`no_std` ターゲットでも同一 API を利用できるようにする。
@@ -78,7 +78,7 @@ RootEscalationSink に導入した `FailureTelemetry` 抽象は、スナップ�
 
      pub type FailureTelemetryBuilder = dyn Fn(&TelemetryContext) -> FailureTelemetryShared + Send + Sync + 'static;
 
-     impl<R> ActorSystemConfig<R> {
+     impl<R> GenericActorSystemConfig<R> {
        pub fn with_failure_telemetry_builder(mut self, builder: ArcShared<FailureTelemetryBuilder>) -> Self;
      }
 
@@ -91,7 +91,7 @@ RootEscalationSink に導入した `FailureTelemetry` 抽象は、スナップ�
 
 1. **フェーズ A**: `FailureSnapshot` のタグ拡張 + 単純な `TelemetryTag` API 実装
 2. **フェーズ B**: メトリクス観測フックと `FailureTelemetryObservationConfig`
-3. **フェーズ C**: Builder API 導入と `ActorSystemConfig` / `RootEscalationSink` の改修
+3. **フェーズ C**: Builder API 導入と `GenericActorSystemConfig` / `RootEscalationSink` の改修
 4. **フェーズ D**: ドキュメント & ベンチマーク更新、アプリケーション側へのガイド提供
 
 ## 未解決事項

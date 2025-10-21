@@ -5,5 +5,5 @@ mod internal_root_context;
 mod tests;
 
 pub(crate) use internal_actor_system::InternalActorSystem;
-pub(crate) use internal_actor_system_config::InternalActorSystemConfig;
+pub(crate) use internal_actor_system_config::InternalGenericActorSystemConfig;
 pub(crate) use internal_root_context::InternalRootContext;

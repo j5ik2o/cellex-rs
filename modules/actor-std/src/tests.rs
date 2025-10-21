@@ -7,7 +7,7 @@ use cellex_actor_core_rs::{
     actor::{actor_context::ActorContext, ActorId, ChildNaming, Props},
     actor_runtime::GenericActorRuntime,
     actor_scheduler::ActorSchedulerSpawnContext,
-    actor_system::{map_system::MapSystemShared, ActorSystem, ActorSystemConfig, Spawn},
+    actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig, Spawn},
     extensions::Extensions,
     mailbox::{messages::SystemMessage, MailboxOptions},
     messaging::{AnyMessage, MessageEnvelope},
@@ -69,8 +69,10 @@ async fn test_actor_loop_updates_state_multi_thread() -> TestResult {
 }
 
 async fn run_typed_actor_system_handles_user_messages() -> TestResult {
-  let mut system: ActorSystem<u32, _> =
-    ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(TokioMailboxRuntime), ActorSystemConfig::default());
+  let mut system: GenericActorSystem<u32, _> = GenericActorSystem::new_with_actor_runtime(
+    GenericActorRuntime::new(TokioMailboxRuntime),
+    GenericActorSystemConfig::default(),
+  );
 
   let log: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
   let log_clone = log.clone();
@@ -92,12 +94,12 @@ async fn run_typed_actor_system_handles_user_messages() -> TestResult {
 
 async fn run_receive_timeout_triggers() -> TestResult {
   let mailbox_factory = TokioMailboxRuntime;
-  let mut config: ActorSystemConfig<TokioActorRuntime> = ActorSystemConfig::default();
+  let mut config: GenericActorSystemConfig<TokioActorRuntime> = GenericActorSystemConfig::default();
   config.set_receive_timeout_scheduler_factory_shared_opt(Some(ReceiveTimeoutSchedulerFactoryShared::new(
     TokioReceiveTimeoutSchedulerFactory::new(),
   )));
-  let mut system: ActorSystem<u32, _> =
-    ActorSystem::new_with_actor_runtime(GenericActorRuntime::new(mailbox_factory), config);
+  let mut system: GenericActorSystem<u32, _> =
+    GenericActorSystem::new_with_actor_runtime(GenericActorRuntime::new(mailbox_factory), config);
 
   let timeout_log: Arc<Mutex<Vec<SystemMessage>>> = Arc::new(Mutex::new(Vec::new()));
   let props = Props::with_system_handler(

@@ -228,7 +228,7 @@ impl DeadLetterProcess {
     self
       .actor_system
       .upgrade()
-      .expect("ActorSystem dropped before DeadLetterProcess")
+      .expect("GenericActorSystem dropped before DeadLetterProcess")
   }
 }
 

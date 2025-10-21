@@ -1,7 +1,7 @@
 # Root Escalation Telemetry：次アクション
 
 ## 現状メモ
-- `FailureTelemetry` 抽象と `SerializerRegistryExtension` 経由のデフォルト注入が実装済みで、`ActorSystemConfig::with_failure_telemetry_builder` から差し替え可能。
+- `FailureTelemetry` 抽象と `SerializerRegistryExtension` 経由のデフォルト注入が実装済みで、`GenericActorSystemConfig::with_failure_telemetry_builder` から差し替え可能。
 - `FailureTelemetryShared` / `FailureTelemetryObservationConfig` が追加され、基本的なメトリクス連携は行える。
 
 ## 優先タスク

@@ -4,25 +4,25 @@ use cellex_utils_core_rs::Element;
 
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
-  actor_system::{ActorSystem, ActorSystemConfig},
+  actor_system::{GenericActorSystem, GenericActorSystemConfig},
   mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
 };
 
-/// Builder that constructs an [`ActorSystem`] by applying configuration overrides on top of a
+/// Builder that constructs a [`GenericActorSystem`] by applying configuration overrides on top of a
 /// runtime preset.
-pub struct ActorSystemBuilder<U, AR>
+pub struct GenericActorSystemBuilder<U, AR>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
   MailboxSignalOf<AR>: Clone, {
   actor_runtime: AR,
-  config:        ActorSystemConfig<AR>,
+  config:        GenericActorSystemConfig<AR>,
   _marker:       PhantomData<U>,
 }
 
-impl<U, AR> ActorSystemBuilder<U, AR>
+impl<U, AR> GenericActorSystemBuilder<U, AR>
 where
   U: Element,
   AR: ActorRuntime + Clone + 'static,
@@ -32,7 +32,7 @@ where
   /// Creates a new builder with default configuration.
   #[must_use]
   pub fn new(actor_runtime: AR) -> Self {
-    Self { actor_runtime, config: ActorSystemConfig::default(), _marker: PhantomData }
+    Self { actor_runtime, config: GenericActorSystemConfig::default(), _marker: PhantomData }
   }
 
   /// Returns a reference to the runtime preset owned by the builder.
@@ -48,18 +48,18 @@ where
 
   /// Returns a reference to the configuration being accumulated.
   #[must_use]
-  pub const fn config(&self) -> &ActorSystemConfig<AR> {
+  pub const fn config(&self) -> &GenericActorSystemConfig<AR> {
     &self.config
   }
 
   /// Returns a mutable reference to the configuration being accumulated.
-  pub const fn config_mut(&mut self) -> &mut ActorSystemConfig<AR> {
+  pub const fn config_mut(&mut self) -> &mut GenericActorSystemConfig<AR> {
     &mut self.config
   }
 
   /// Replaces the configuration with the provided value.
   #[must_use]
-  pub fn with_config(mut self, config: ActorSystemConfig<AR>) -> Self {
+  pub fn with_config(mut self, config: GenericActorSystemConfig<AR>) -> Self {
     self.config = config;
     self
   }
@@ -68,14 +68,14 @@ where
   #[must_use]
   pub fn configure<F>(mut self, configure: F) -> Self
   where
-    F: FnOnce(&mut ActorSystemConfig<AR>), {
+    F: FnOnce(&mut GenericActorSystemConfig<AR>), {
     configure(&mut self.config);
     self
   }
 
-  /// Consumes the builder and constructs an [`ActorSystem`].
+  /// Consumes the builder and constructs an [`GenericActorSystem`].
   #[must_use]
-  pub fn build(self) -> ActorSystem<U, AR> {
-    ActorSystem::new_with_actor_runtime(self.actor_runtime, self.config)
+  pub fn build(self) -> GenericActorSystem<U, AR> {
+    GenericActorSystem::new_with_actor_runtime(self.actor_runtime, self.config)
   }
 }

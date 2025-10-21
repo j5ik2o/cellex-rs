@@ -41,7 +41,7 @@ impl ActorFutureInner {
     self
       .actor_system
       .upgrade()
-      .expect("ActorSystem dropped before ActorFutureInner")
+      .expect("GenericActorSystem dropped before ActorFutureInner")
   }
 }
 

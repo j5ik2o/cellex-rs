@@ -16,9 +16,9 @@ use crate::api::{
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
 };
 
-/// Configuration options applied when constructing an
-/// [`ActorSystem`](crate::api::actor_system::ActorSystem).
-pub struct ActorSystemConfig<AR>
+/// Configuration options applied when constructing a
+/// [`GenericActorSystem`](crate::api::actor_system::GenericActorSystem).
+pub struct GenericActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
@@ -45,7 +45,7 @@ where
   node_id_opt: Option<NodeId>,
 }
 
-impl<AR> Default for ActorSystemConfig<AR>
+impl<AR> Default for GenericActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
@@ -67,7 +67,7 @@ where
   }
 }
 
-impl<AR> ActorSystemConfig<AR>
+impl<AR> GenericActorSystemConfig<AR>
 where
   AR: ActorRuntime + Clone + 'static,
   MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
@@ -123,6 +123,12 @@ where
   pub const fn with_ready_queue_worker_count_opt(mut self, worker_count: Option<NonZeroUsize>) -> Self {
     self.ready_queue_worker_count_opt = worker_count;
     self
+  }
+
+  /// Convenience helper to set the ReadyQueue worker count explicitly.
+  #[must_use]
+  pub fn with_ready_queue_worker_count(self, worker_count: NonZeroUsize) -> Self {
+    self.with_ready_queue_worker_count_opt(Some(worker_count))
   }
 
   /// Sets the system identifier used for PID construction.
@@ -188,6 +194,11 @@ where
   /// Mutable setter for the default ReadyQueue worker count.
   pub const fn set_ready_queue_worker_count_opt(&mut self, worker_count: Option<NonZeroUsize>) {
     self.ready_queue_worker_count_opt = worker_count;
+  }
+
+  /// Mutable setter for the ReadyQueue worker count.
+  pub fn set_ready_queue_worker_count(&mut self, worker_count: NonZeroUsize) {
+    self.ready_queue_worker_count_opt = Some(worker_count);
   }
 
   /// Mutable setter for the system identifier.

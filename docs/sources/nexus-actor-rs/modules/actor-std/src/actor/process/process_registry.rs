@@ -45,7 +45,7 @@ impl ProcessRegistry {
     self
       .actor_system
       .upgrade()
-      .expect("ActorSystem dropped before ProcessRegistry")
+      .expect("GenericActorSystem dropped before ProcessRegistry")
   }
 
   pub fn register_address_resolver(&self, handler: AddressResolver) {
