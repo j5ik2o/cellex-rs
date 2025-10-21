@@ -15,7 +15,7 @@
   - モジュールごとのBefore/After比較
   - 具体的な改善提案
 
-- **[module-dependency-analysis.md](module-dependency-analysis.md)** - 依存関係分析
+- **[module-dependency-analysis.md](archive/module-dependency-analysis.md)** - 依存関係分析
   - 循環依存の検出(3箇所)
   - 設計原則違反の特定(shared→api依存)
   - 依存関係改善のロードマップ
@@ -28,7 +28,7 @@
   - 12ヶ月のDeprecationスケジュール
 
 ### 技術的設計
-- **[synchronization-abstraction.md](./synchronization-abstraction.md)** - 同期プリミティブの抽象化
+- **[synchronization-abstraction.md](archive/synchronization-abstraction.md)** - 同期プリミティブの抽象化
   - `spin::Mutex` vs `tokio::Mutex` vs `std::Mutex`
   - ランタイム別の最適化戦略
   - `RuntimeMutex<T>` 抽象化の設計と実装計画
@@ -120,7 +120,7 @@ api → internal → shared
 - **状態**: 提案
 - **決定**: Feature flagベースの条件コンパイルを採用
 - **理由**: シンプル、ゼロコスト、後方互換性
-- **詳細**: [synchronization-abstraction.md](./synchronization-abstraction.md)
+- **詳細**: [synchronization-abstraction.md](archive/synchronization-abstraction.md)
 
 ### ADR-002: Scheduler モジュールの簡略化
 - **状態**: 計画中
@@ -132,7 +132,7 @@ api → internal → shared
 - **状態**: Critical
 - **決定**: trait-based抽象化による依存方向の逆転
 - **理由**: レイヤー分離の徹底、保守性の向上
-- **詳細**: [module-dependency-analysis.md](module-dependency-analysis.md#循環依存の検出)
+- **詳細**: [module-dependency-analysis.md](archive/module-dependency-analysis.md#循環依存の検出)
 
 ## 貢献ガイドライン
 
