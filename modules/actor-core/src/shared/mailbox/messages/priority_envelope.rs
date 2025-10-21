@@ -1,6 +1,8 @@
+//! Priority-aware envelope shared between API and internal code.
+
 use cellex_utils_core_rs::{Element, PriorityMessage, DEFAULT_PRIORITY};
 
-use crate::api::mailbox::messages::{priority_channel::PriorityChannel, system_message::SystemMessage};
+use crate::api::mailbox::messages::{PriorityChannel, SystemMessage};
 
 /// Envelope type that stores priority and channel information for messages.
 #[derive(Debug)]

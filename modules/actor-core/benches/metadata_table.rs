@@ -6,11 +6,14 @@ use std::hint::black_box;
 
 use cellex_actor_core_rs::{
   api::{
-    mailbox::{messages::PriorityEnvelope, SingleThread, ThreadSafe},
-    messaging::{MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    mailbox::{SingleThread, ThreadSafe},
+    messaging::{MessageMetadata, MessageSender, MetadataStorageMode},
   },
   internal::message::InternalMessageSender,
-  shared::messaging::AnyMessage,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MessageEnvelope},
+  },
 };
 use cellex_utils_core_rs::sync::ArcShared;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};

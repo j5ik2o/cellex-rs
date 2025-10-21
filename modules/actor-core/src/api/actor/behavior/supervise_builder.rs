@@ -5,10 +5,9 @@ use crate::{
   api::{
     actor::behavior::supervisor_strategy::SupervisorStrategy,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::messages::PriorityEnvelope,
     messaging::MetadataStorageMode,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Builder for setting supervisor strategy.

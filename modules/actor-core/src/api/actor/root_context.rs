@@ -10,11 +10,10 @@ use crate::{
     actor::{actor_ref::ActorRef, props::Props, ChildNaming, SpawnError},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::messages::PriorityEnvelope,
     messaging::MetadataStorageMode,
   },
   internal::actor_system::InternalRootContext,
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Context for operating root actors.

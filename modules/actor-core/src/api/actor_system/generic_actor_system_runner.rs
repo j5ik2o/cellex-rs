@@ -9,9 +9,8 @@ use crate::{
     actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
     actor_system::GenericActorSystem,
     guardian::AlwaysRestart,
-    mailbox::messages::PriorityEnvelope,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Execution runner for the actor system.

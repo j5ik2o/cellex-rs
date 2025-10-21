@@ -25,12 +25,12 @@ use crate::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.

@@ -15,14 +15,13 @@ use crate::{
       failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryContext},
     },
     guardian::AlwaysRestart,
-    mailbox::messages::PriorityEnvelope,
     process::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
     },
   },
   internal::actor_system::{InternalActorSystem, InternalGenericActorSystemConfig},
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type GenericActorProcessRegistryHandle<AR> =

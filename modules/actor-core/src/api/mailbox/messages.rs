@@ -1,11 +1,9 @@
 //! Priority-aware message utilities shared across the public API.
 
 mod priority_channel;
-mod priority_envelope;
 mod system_message;
 
 pub use priority_channel::PriorityChannel;
-pub use priority_envelope::PriorityEnvelope;
 pub use system_message::SystemMessage;
 
 #[cfg(target_has_atomic = "ptr")]

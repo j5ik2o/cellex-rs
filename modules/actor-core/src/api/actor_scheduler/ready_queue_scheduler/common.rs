@@ -19,16 +19,13 @@ use crate::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      Mailbox, MailboxFactory, MailboxProducer, MailboxSignal,
-    },
+    mailbox::{messages::SystemMessage, Mailbox, MailboxFactory, MailboxProducer, MailboxSignal},
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::EscalationSink, supervisor::Supervisor},
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Simple scheduler implementation assuming priority mailboxes.

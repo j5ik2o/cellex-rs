@@ -8,12 +8,12 @@ use crate::{
     actor::{ActorHandlerFn, ActorId, ActorPath, ChildNaming},
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     process::pid::Pid,
     supervision::supervisor::Supervisor,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Information required when spawning child actors.

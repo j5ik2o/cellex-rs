@@ -13,9 +13,9 @@ use crate::{
     },
     extensions::Extensions,
     guardian::GuardianStrategy,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Factory wrapper used to construct scheduler instances with consistent runtime configuration.

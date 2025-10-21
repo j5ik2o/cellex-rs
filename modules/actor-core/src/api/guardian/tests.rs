@@ -21,14 +21,16 @@ use crate::{
     },
     actor_system::map_system::MapSystemShared,
     mailbox::{
-      messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+      messages::{PriorityChannel, SystemMessage},
       MailboxFactory,
     },
-    messaging::MessageEnvelope,
     supervision::supervisor::SupervisorDirective,
     test_support::TestMailboxFactory,
   },
-  shared::messaging::AnyMessage,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MessageEnvelope},
+  },
 };
 
 fn system_mapper() -> MapSystemShared<AnyMessage> {

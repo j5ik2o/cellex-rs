@@ -1,4 +1,4 @@
-use cellex_actor_core_rs::api::mailbox::messages::{PriorityChannel, PriorityEnvelope};
+use cellex_actor_core_rs::{api::mailbox::messages::PriorityChannel, shared::mailbox::messages::PriorityEnvelope};
 
 /// Transport-level wrapper that preserves priority and channel information across remote hops.
 #[derive(Debug, Clone)]

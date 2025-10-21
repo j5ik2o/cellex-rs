@@ -1,10 +1,12 @@
-use cellex_actor_core_rs::api::{
-  mailbox::{
-    messages::PriorityEnvelope,
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
-    Mailbox, MailboxOptions,
+use cellex_actor_core_rs::{
+  api::{
+    mailbox::{
+      queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+      Mailbox, MailboxOptions,
+    },
+    metrics::MetricsSinkShared,
   },
-  metrics::MetricsSinkShared,
+  shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_std_rs::{Element, QueueSize};
 

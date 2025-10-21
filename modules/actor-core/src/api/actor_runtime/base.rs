@@ -4,13 +4,13 @@ use crate::{
   api::{
     actor_scheduler::ActorSchedulerHandleBuilder,
     failure::failure_event_stream::FailureEventListener,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
     supervision::escalation::FailureEventHandler,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Helper alias mapping an actor runtime to its use

@@ -12,14 +12,11 @@ use crate::{
   api::{
     actor::behavior::SupervisorStrategyConfig,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      MailboxFactory, MailboxOptions,
-    },
+    mailbox::{messages::SystemMessage, MailboxFactory, MailboxOptions},
     messaging::MetadataStorageMode,
   },
   internal::actor::{internal_props_from_adapter, InternalProps},
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Properties that hold configuration for actor spawning.

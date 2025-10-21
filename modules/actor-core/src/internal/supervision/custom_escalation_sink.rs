@@ -4,11 +4,8 @@ use core::marker::PhantomData;
 use cellex_utils_core_rs::QueueError;
 
 use crate::{
-  api::{
-    failure::FailureInfo,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  },
-  shared::messaging::AnyMessage,
+  api::{failure::FailureInfo, mailbox::MailboxFactory},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type FailureHandler = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static;

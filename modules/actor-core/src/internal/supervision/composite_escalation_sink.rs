@@ -10,10 +10,10 @@ use crate::{
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
       FailureInfo,
     },
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     supervision::escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Composes multiple sinks and applies them in order.

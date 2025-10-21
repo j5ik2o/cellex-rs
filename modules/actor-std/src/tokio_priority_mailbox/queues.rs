@@ -3,7 +3,7 @@ use std::{
   sync::{Arc, Mutex, MutexGuard},
 };
 
-use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
+use cellex_actor_core_rs::shared::mailbox::messages::PriorityEnvelope;
 use cellex_utils_std_rs::{QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter};
 
 fn lock_mutex<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {

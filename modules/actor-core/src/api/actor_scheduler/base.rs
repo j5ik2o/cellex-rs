@@ -14,12 +14,12 @@ use crate::{
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
       FailureInfo,
     },
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.

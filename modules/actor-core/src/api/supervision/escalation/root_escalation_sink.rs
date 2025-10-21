@@ -11,10 +11,10 @@ use crate::{
       },
       FailureEvent, FailureInfo,
     },
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler},
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// `EscalationSink` implementation for root guardian.

@@ -14,12 +14,12 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     extensions::Extensions,
     guardian::GuardianStrategy,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::actor::InternalProps,
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type RootProcessRegistryShared<AR> =

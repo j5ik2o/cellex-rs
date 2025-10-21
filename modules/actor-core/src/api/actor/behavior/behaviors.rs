@@ -5,10 +5,9 @@ use crate::{
   api::{
     actor::{actor_context::ActorContext, actor_failure::ActorFailure, behavior::supervise_builder::SuperviseBuilder},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::messages::PriorityEnvelope,
     messaging::MetadataStorageMode,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Behavior DSL builder.

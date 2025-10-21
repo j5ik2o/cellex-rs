@@ -17,14 +17,14 @@ use crate::{
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      MailboxFactory,
-    },
-    messaging::{MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    mailbox::{messages::SystemMessage, MailboxFactory},
+    messaging::{MessageMetadata, MessageSender, MetadataStorageMode},
     process::{pid::Pid, process_registry::ProcessRegistry},
   },
-  shared::messaging::AnyMessage,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MessageEnvelope},
+  },
 };
 
 mod context_log_level;

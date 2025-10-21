@@ -2,7 +2,7 @@ use alloc::string::String;
 
 use cellex_utils_core_rs::{Element, QueueError};
 
-use crate::api::mailbox::messages::PriorityEnvelope;
+use crate::shared::mailbox::messages::PriorityEnvelope;
 
 /// Errors that can occur while spawning an actor through the scheduler.
 #[derive(Debug)]

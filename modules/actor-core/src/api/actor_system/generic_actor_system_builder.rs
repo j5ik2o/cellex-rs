@@ -6,9 +6,8 @@ use crate::{
   api::{
     actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
     actor_system::{GenericActorSystem, GenericActorSystemConfig},
-    mailbox::messages::PriorityEnvelope,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Builder that constructs a [`GenericActorSystem`] by applying configuration overrides on top of a

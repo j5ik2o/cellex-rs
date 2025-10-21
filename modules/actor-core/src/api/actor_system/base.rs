@@ -9,9 +9,8 @@ use crate::{
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
     guardian::GuardianStrategy,
-    mailbox::messages::PriorityEnvelope,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Common actor system interface.

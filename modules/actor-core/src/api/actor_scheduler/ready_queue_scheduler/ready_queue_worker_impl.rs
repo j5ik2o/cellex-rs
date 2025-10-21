@@ -5,11 +5,9 @@ use spin::Mutex;
 use super::ready_queue_context::ReadyQueueContext;
 use crate::{
   api::{
-    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
-    guardian::GuardianStrategy,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker, guardian::GuardianStrategy, mailbox::MailboxFactory,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 pub(crate) struct ReadyQueueWorkerImpl<MF, Strat>

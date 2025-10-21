@@ -8,13 +8,10 @@ use crate::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming, SpawnError},
     actor_system::map_system::MapSystemShared,
     failure::FailureInfo,
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      MailboxFactory, MailboxProducer,
-    },
+    mailbox::{messages::SystemMessage, MailboxFactory, MailboxProducer},
     supervision::supervisor::SupervisorDirective,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type ChildRoute<MF> = (PriorityActorRef<AnyMessage, MF>, MapSystemShared<AnyMessage>);

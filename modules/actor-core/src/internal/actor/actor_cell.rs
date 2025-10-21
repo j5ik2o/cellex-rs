@@ -11,10 +11,7 @@ use crate::{
     extensions::Extensions,
     failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      Mailbox, MailboxFactory, MailboxHandle, MailboxProducer,
-    },
+    mailbox::{messages::SystemMessage, Mailbox, MailboxFactory, MailboxHandle, MailboxProducer},
     metrics::MetricsSinkShared,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
@@ -24,7 +21,7 @@ use crate::{
     actor_context::{ChildSpawnSpec, InternalActorContext},
     mailbox::PriorityMailboxSpawnerHandle,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type ActorCellProcessRegistryShared<MF> =

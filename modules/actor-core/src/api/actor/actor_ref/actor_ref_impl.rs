@@ -8,11 +8,8 @@ use crate::{
   api::{
     actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      MailboxFactory,
-    },
-    messaging::{MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
+    mailbox::{messages::SystemMessage, MailboxFactory},
+    messaging::{MessageMetadata, MessageSender, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
       pid::Pid,
@@ -20,7 +17,10 @@ use crate::{
     },
   },
   internal::message::InternalMessageSender,
-  shared::messaging::AnyMessage,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MessageEnvelope},
+  },
 };
 
 type ActorProcessRegistry<AR> =

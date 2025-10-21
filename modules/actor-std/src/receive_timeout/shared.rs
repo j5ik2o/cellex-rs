@@ -3,8 +3,8 @@
 use core::time::Duration;
 
 use cellex_actor_core_rs::{
-  api::mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  shared::messaging::AnyMessage,
+  api::mailbox::MailboxFactory,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 use cellex_utils_std_rs::{
   timing::TokioDeadlineTimer, DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,

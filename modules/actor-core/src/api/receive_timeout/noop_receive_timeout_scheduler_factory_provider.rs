@@ -1,12 +1,12 @@
 use crate::{
   api::{
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     receive_timeout::{
       noop_receive_timeout_scheduler_factory::NoopReceiveTimeoutSchedulerFactory,
       ReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryShared,
     },
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Driver that always provides [`NoopReceiveTimeoutSchedulerFactory`].

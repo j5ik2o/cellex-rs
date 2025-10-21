@@ -1,6 +1,6 @@
-use cellex_actor_core_rs::api::{
-  mailbox::{messages::PriorityEnvelope, QueueMailboxProducer},
-  metrics::MetricsSinkShared,
+use cellex_actor_core_rs::{
+  api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared},
+  shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_std_rs::Element;
 

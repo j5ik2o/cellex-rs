@@ -7,10 +7,10 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ChildNaming},
     actor_system::map_system::MapSystemShared,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
+    mailbox::{MailboxFactory, MailboxOptions},
     process::{pid::Pid, process_registry::ProcessRegistry},
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type SchedulerProcessRegistry<MF> =

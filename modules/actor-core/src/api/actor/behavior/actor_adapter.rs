@@ -9,10 +9,13 @@ use crate::{
     actor::{actor_context::ActorContext, actor_failure::ActorFailure},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
     actor_system::map_system::MapSystemShared,
-    mailbox::messages::{PriorityEnvelope, SystemMessage},
-    messaging::{MessageEnvelope, MetadataStorageMode},
+    mailbox::messages::SystemMessage,
+    messaging::MetadataStorageMode,
   },
-  shared::messaging::AnyMessage,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MessageEnvelope},
+  },
 };
 
 /// Adapter that bridges Behavior to untyped runtime.

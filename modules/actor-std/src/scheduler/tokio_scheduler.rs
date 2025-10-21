@@ -15,12 +15,12 @@ use cellex_actor_core_rs::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;

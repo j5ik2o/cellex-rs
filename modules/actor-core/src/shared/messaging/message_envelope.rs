@@ -1,8 +1,13 @@
+//! Message envelope shared between API and internal code.
+
 use cellex_utils_core_rs::Element;
 
-use crate::api::{
-  mailbox::messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-  messaging::{MessageMetadata, MetadataStorageMode, UserMessage},
+use crate::{
+  api::{
+    mailbox::messages::{PriorityChannel, SystemMessage},
+    messaging::{MessageMetadata, MetadataStorageMode, UserMessage},
+  },
+  shared::mailbox::messages::PriorityEnvelope,
 };
 
 #[cfg(test)]

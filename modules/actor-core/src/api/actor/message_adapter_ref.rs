@@ -4,9 +4,8 @@ use crate::{
   api::{
     actor::{actor_context::AdapterFn, actor_ref::ActorRef},
     actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
-    mailbox::messages::PriorityEnvelope,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Reference to a message adapter.

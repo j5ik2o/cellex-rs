@@ -41,10 +41,9 @@ use crate::{
     failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
-      messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
+      messages::{PriorityChannel, SystemMessage},
       MailboxFactory, MailboxOptions,
     },
-    messaging::MessageEnvelope,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::{
       pid::{Pid, SystemId},
@@ -56,7 +55,10 @@ use crate::{
     },
     test_support::TestMailboxFactory,
   },
-  shared::messaging::AnyMessage,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MessageEnvelope},
+  },
 };
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]

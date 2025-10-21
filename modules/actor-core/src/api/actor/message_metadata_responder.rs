@@ -7,14 +7,17 @@ use crate::{
       ask::{AskError, AskResult},
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::{MessageEnvelope, MessageMetadata, MetadataStorageMode},
+    mailbox::MailboxFactory,
+    messaging::{MessageMetadata, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
       process_registry::ProcessResolution,
     },
   },
-  shared::messaging::AnyMessage,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MessageEnvelope},
+  },
 };
 
 /// Trait allowing message metadata to respond to the original sender.

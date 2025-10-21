@@ -1,8 +1,8 @@
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 
-use crate::api::{
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  receive_timeout::ReceiveTimeoutSchedulerFactory,
+use crate::{
+  api::{mailbox::MailboxFactory, receive_timeout::ReceiveTimeoutSchedulerFactory},
+  shared::mailbox::messages::PriorityEnvelope,
 };
 
 /// Shared wrapper around a `ReceiveTimeoutSchedulerFactory` implementation.

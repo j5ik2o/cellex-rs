@@ -4,10 +4,9 @@ use crate::{
   api::{
     actor::behavior::Behavior,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::messages::PriorityEnvelope,
     messaging::MetadataStorageMode,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// State transition directive after user message processing.

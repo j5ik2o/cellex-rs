@@ -10,12 +10,11 @@ use crate::{
       failure_event_stream::FailureEventListener,
       failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryObservationConfig, FailureTelemetryShared},
     },
-    mailbox::messages::PriorityEnvelope,
     metrics::MetricsSinkShared,
     process::pid::{NodeId, SystemId},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   },
-  shared::messaging::AnyMessage,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Configuration options applied when constructing a
