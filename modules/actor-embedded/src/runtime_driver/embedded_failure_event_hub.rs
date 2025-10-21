@@ -1,12 +1,9 @@
 use alloc::vec::Vec;
 
-use cellex_actor_core_rs::api::{
-  failure_event_stream::{FailureEventListener, FailureEventStream},
-  supervision::failure::FailureEvent,
-};
+use cellex_actor_core_rs::api::failure::failure_event_stream::{FailureEventListener, FailureEventStream};
 use cellex_utils_core_rs::sync::ArcShared;
 use spin::Mutex;
-
+use cellex_actor_core_rs::api::failure::FailureEvent;
 use super::{shared::EmbeddedFailureEventHubState, EmbeddedFailureEventSubscription};
 
 /// Simple FailureEventHub implementation for embedded environments.

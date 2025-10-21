@@ -5,15 +5,15 @@ use std::sync::{Arc, Mutex};
 
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared},
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
   supervision::{
     escalation::{escalation_sink::EscalationSink, root_escalation_sink::RootEscalationSink},
-    failure::FailureInfo,
     telemetry::TelemetryObservationConfig,
   },
   test_support::TestMailboxFactory,
 };
+use crate::api::failure::failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared};
+use crate::api::failure::FailureInfo;
 
 #[derive(Clone, Default)]
 struct RecordingTelemetry {

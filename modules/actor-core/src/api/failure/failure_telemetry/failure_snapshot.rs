@@ -1,10 +1,8 @@
 use alloc::{string::String, vec::Vec};
 
-use crate::api::{
-  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  failure_telemetry::{build_snapshot_tags, TelemetryTag},
-  supervision::failure::{EscalationStage, FailureInfo, FailureMetadata},
-};
+use crate::api::actor::{actor_failure::ActorFailure, ActorId, ActorPath};
+use crate::api::failure::{EscalationStage, FailureInfo, FailureMetadata};
+use crate::api::failure::failure_telemetry::{build_snapshot_tags, FailureTelemetryTag};
 
 /// Failure state captured for telemetry purposes.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,7 +13,7 @@ pub struct FailureSnapshot {
   metadata:    FailureMetadata,
   stage:       EscalationStage,
   description: String,
-  tags:        Vec<TelemetryTag>,
+  tags:        Vec<FailureTelemetryTag>,
 }
 
 impl FailureSnapshot {
@@ -72,7 +70,7 @@ impl FailureSnapshot {
 
   /// Returns telemetry tags attached to the snapshot.
   #[must_use]
-  pub fn tags(&self) -> &[TelemetryTag] {
+  pub fn tags(&self) -> &[FailureTelemetryTag] {
     &self.tags
   }
 }

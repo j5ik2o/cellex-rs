@@ -61,10 +61,8 @@ pub mod codec;
 /// Transport-layer envelope utilities.
 pub mod remote_envelope;
 
-use cellex_actor_core_rs::api::{
-  failure_event_stream::{FailureEventListener, FailureEventStream},
-  supervision::failure::{FailureEvent, FailureInfo, FailureMetadata},
-};
+use cellex_actor_core_rs::api::failure::failure_event_stream::{FailureEventListener, FailureEventStream};
+use cellex_actor_core_rs::api::failure::{FailureEvent, FailureInfo, FailureMetadata};
 
 #[cfg(test)]
 mod tests;

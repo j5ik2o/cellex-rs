@@ -1,11 +1,9 @@
 use alloc::{borrow::Cow, vec::Vec};
 
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
-use crate::api::failure_telemetry::tracing_failure_telemetry::tracing_failure_telemetry;
-use crate::api::{
-  failure_telemetry::{FailureTelemetryShared, TelemetryTag},
-  supervision::failure::FailureMetadata,
-};
+use crate::api::failure::failure_telemetry::tracing_failure_telemetry::tracing_failure_telemetry;
+use crate::api::failure::failure_telemetry::{FailureTelemetryShared, FailureTelemetryTag};
+use crate::api::failure::FailureMetadata;
 
 /// Maximum number of tags stored inside a `FailureSnapshot`.
 pub const MAX_FAILURE_SNAPSHOT_TAGS: usize = 8;
@@ -20,26 +18,26 @@ pub fn default_failure_telemetry_shared() -> FailureTelemetryShared {
 
   #[cfg(not(all(feature = "std", feature = "unwind-supervision")))]
   {
-    crate::api::failure_telemetry::noop_failure_telemetry_shared()
+    crate::api::failure::failure_telemetry::noop_failure_telemetry_shared()
   }
 }
 
-pub(crate) fn build_snapshot_tags(metadata: &FailureMetadata) -> Vec<TelemetryTag> {
+pub(crate) fn build_snapshot_tags(metadata: &FailureMetadata) -> Vec<FailureTelemetryTag> {
   let mut tags = Vec::new();
 
   if let Some(component) = metadata.component.as_ref() {
     if tags.len() < MAX_FAILURE_SNAPSHOT_TAGS {
-      tags.push(TelemetryTag::new(Cow::Borrowed("component"), Cow::Owned(component.clone())));
+      tags.push(FailureTelemetryTag::new(Cow::Borrowed("component"), Cow::Owned(component.clone())));
     }
   }
   if let Some(endpoint) = metadata.endpoint.as_ref() {
     if tags.len() < MAX_FAILURE_SNAPSHOT_TAGS {
-      tags.push(TelemetryTag::new(Cow::Borrowed("endpoint"), Cow::Owned(endpoint.clone())));
+      tags.push(FailureTelemetryTag::new(Cow::Borrowed("endpoint"), Cow::Owned(endpoint.clone())));
     }
   }
   if let Some(transport) = metadata.transport.as_ref() {
     if tags.len() < MAX_FAILURE_SNAPSHOT_TAGS {
-      tags.push(TelemetryTag::new(Cow::Borrowed("transport"), Cow::Owned(transport.clone())));
+      tags.push(FailureTelemetryTag::new(Cow::Borrowed("transport"), Cow::Owned(transport.clone())));
     }
   }
 
@@ -47,7 +45,7 @@ pub(crate) fn build_snapshot_tags(metadata: &FailureMetadata) -> Vec<TelemetryTa
     if tags.len() >= MAX_FAILURE_SNAPSHOT_TAGS {
       break;
     }
-    tags.push(TelemetryTag::new(Cow::Owned(key.clone()), Cow::Owned(value.clone())));
+    tags.push(FailureTelemetryTag::new(Cow::Owned(key.clone()), Cow::Owned(value.clone())));
   }
 
   tags

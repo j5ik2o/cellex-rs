@@ -10,11 +10,9 @@ use std::{
 use tracing::subscriber::with_default;
 use tracing_subscriber::fmt;
 
-use crate::api::{
-  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
-  failure_telemetry::{FailureSnapshot, FailureTelemetry, TracingFailureTelemetry},
-  supervision::failure::{EscalationStage, FailureInfo, FailureMetadata},
-};
+use crate::api::actor::{actor_failure::ActorFailure, ActorId, ActorPath};
+use crate::api::failure::{EscalationStage, FailureInfo, FailureMetadata};
+use crate::api::failure::failure_telemetry::{FailureSnapshot, FailureTelemetry, TracingFailureTelemetry};
 
 #[test]
 fn failure_snapshot_captures_core_fields() {

@@ -3,7 +3,6 @@ use cellex_utils_core_rs::{sync::ArcShared, Element};
 use crate::{
   api::{
     actor_scheduler::ActorSchedulerHandleBuilder,
-    failure_event_stream::FailureEventListener,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
@@ -12,6 +11,7 @@ use crate::{
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
 };
+use crate::api::failure::failure_event_stream::FailureEventListener;
 
 /// Helper alias mapping an actor runtime to its use
 /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.

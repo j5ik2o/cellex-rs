@@ -1,6 +1,6 @@
 use spin::Once;
 
-use crate::api::failure_telemetry::{
+use crate::api::failure::failure_telemetry::{
   failure_snapshot::FailureSnapshot, failure_telemetry::FailureTelemetry, FailureTelemetryShared,
 };
 

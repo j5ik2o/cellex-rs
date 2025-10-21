@@ -49,7 +49,6 @@ use crate::{
       MailboxFactory,
     },
     messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender},
-    supervision::failure::FailureEvent,
     test_support::TestMailboxFactory,
   },
   internal::message::InternalMessageSender,
@@ -325,7 +324,9 @@ use core::{
 use cellex_utils_core_rs::sync::ArcShared;
 use futures::{executor::block_on, future};
 
-use crate::api::{failure_event_stream::FailureEventListener, guardian::AlwaysRestart, mailbox::ThreadSafe};
+use crate::api::{guardian::AlwaysRestart, mailbox::ThreadSafe};
+use crate::api::failure::failure_event_stream::FailureEventListener;
+use crate::api::failure::FailureEvent;
 
 #[derive(Debug)]
 struct CounterExtension {
@@ -1072,13 +1073,13 @@ mod metrics_injection {
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
     actor_system::{ActorSystem, ActorSystemConfig},
-    failure_telemetry::FailureTelemetryShared,
     mailbox::MailboxFactory,
     messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor, telemetry::TelemetryObservationConfig},
     test_support::TestMailboxFactory,
   };
+  use crate::api::failure::failure_telemetry::FailureTelemetryShared;
 
   #[derive(Clone)]
   struct TaggedSink {
@@ -1152,13 +1153,13 @@ mod metrics_injection {
     fn on_escalation(
       &mut self,
       _handler: Box<
-        dyn FnMut(&crate::api::supervision::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
+        dyn FnMut(&crate::api::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
           + 'static,
       >,
     ) {
     }
 
-    fn take_escalations(&mut self) -> Vec<crate::api::supervision::failure::FailureInfo> {
+    fn take_escalations(&mut self) -> Vec<crate::api::failure::FailureInfo> {
       Vec::new()
     }
 

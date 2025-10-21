@@ -9,8 +9,6 @@ use cellex_actor_core_rs::api::{
     actor_failure::{ActorFailure, BehaviorFailure},
     ActorId, ActorPath,
   },
-  failure_event_stream::{FailureEventListener, FailureEventStream},
-  failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared},
   mailbox::{
     messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
     ThreadSafe,
@@ -20,7 +18,6 @@ use cellex_actor_core_rs::api::{
   process::pid::{NodeId, Pid, SystemId},
   supervision::{
     escalation::{EscalationSink, RootEscalationSink},
-    failure::{FailureEvent, FailureInfo},
     telemetry::TelemetryObservationConfig,
   },
   test_support::TestMailboxFactory,
@@ -32,7 +29,9 @@ use cellex_serialization_core_rs::{
 use cellex_serialization_json_rs::{shared_json_serializer, SerdeJsonSerializer, SERDE_JSON_SERIALIZER_ID};
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
-
+use cellex_actor_core_rs::api::failure::{FailureEvent, FailureInfo};
+use cellex_actor_core_rs::api::failure::failure_event_stream::{FailureEventListener, FailureEventStream};
+use cellex_actor_core_rs::api::failure::failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared};
 use super::{placeholder_metadata, RemoteFailureNotifier};
 use crate::{
   codec::{

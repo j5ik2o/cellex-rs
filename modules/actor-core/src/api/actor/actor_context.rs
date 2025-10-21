@@ -22,7 +22,6 @@ use crate::api::{
   },
   messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender, MetadataStorageMode},
   process::{pid::Pid, process_registry::ProcessRegistry},
-  supervision::failure::FailureInfo,
 };
 
 mod context_log_level;
@@ -38,6 +37,7 @@ use crate::{
   api::actor::{actor_id::ActorId, actor_path::ActorPath},
   internal::actor_context::InternalActorContext,
 };
+use crate::api::failure::FailureInfo;
 
 type ActorRegistryShared<AR> =
   ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;

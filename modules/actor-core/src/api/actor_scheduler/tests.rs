@@ -6,8 +6,6 @@
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use core::cell::RefCell;
 #[cfg(feature = "std")]
-use std::cell::Cell;
-#[cfg(feature = "std")]
 use std::collections::VecDeque;
 #[cfg(feature = "std")]
 use std::sync::{Arc, Mutex};
@@ -26,43 +24,35 @@ use spin::RwLock;
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "std")]
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::{
-  api::{
-    actor::{
-      actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
-      shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
-    },
-    actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
-    actor_scheduler::{
-      actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
-      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-      ActorScheduler, ActorSchedulerSpawnContext,
-    },
-    actor_system::map_system::MapSystemShared,
-    extensions::Extensions,
-    failure_event_stream::FailureEventListener,
-    guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::{
-      messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-      MailboxFactory, MailboxOptions,
-    },
-    messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
-    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    process::{
-      pid::{Pid, SystemId},
-      process_registry::ProcessRegistry,
-    },
-    receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
-    supervision::{
-      escalation::FailureEventHandler,
-      failure::FailureInfo,
-      supervisor::{NoopSupervisor, Supervisor},
-    },
-    test_support::TestMailboxFactory,
+use crate::api::{
+  actor::{
+    actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
+    shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
   },
-  internal::mailbox::PriorityMailboxSpawnerHandle,
+  actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
+  actor_scheduler::{
+    actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
+    ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+    ActorScheduler, ActorSchedulerSpawnContext,
+  },
+  actor_system::map_system::MapSystemShared,
+  extensions::Extensions
+  ,
+  guardian::{AlwaysRestart, GuardianStrategy},
+  mailbox::{
+    messages::{PriorityEnvelope, SystemMessage},
+    MailboxFactory, MailboxOptions,
+  },
+  messaging::{AnyMessage, MessageEnvelope},
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+  process::{
+    pid::{Pid, SystemId},
+    process_registry::ProcessRegistry,
+  }
+  ,
+  supervision::supervisor::{NoopSupervisor, Supervisor},
+  test_support::TestMailboxFactory,
 };
-
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
@@ -855,7 +845,7 @@ fn scheduler_requeues_failed_custom_escalation() {
 fn scheduler_root_event_listener_broadcasts() {
   use std::sync::{Arc as StdArc, Mutex};
 
-  use crate::api::failure_event_stream::{tests::TestFailureEventStream, FailureEventStream};
+  use crate::api::failure::failure_event_stream::{tests::TestFailureEventStream, FailureEventStream};
 
   let mailbox_factory = TestMailboxFactory::unbounded();
   let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysEscalate> =
@@ -866,7 +856,7 @@ fn scheduler_root_event_listener_broadcasts() {
   let received_clone = received.clone();
 
   let _subscription = hub.subscribe(FailureEventListener::new(move |event| match event {
-    | crate::api::supervision::failure::FailureEvent::RootEscalated(info) => {
+    | crate::api::failure::FailureEvent::RootEscalated(info) => {
       received_clone.lock().unwrap().push(info.clone());
     },
   }));

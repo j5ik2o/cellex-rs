@@ -4,27 +4,28 @@ use core::{cell::RefCell, cmp::Reverse, marker::PhantomData};
 use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared};
 
 use crate::{
-  api::{
-    actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
-    actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-    actor_system::map_system::MapSystemShared,
-    extensions::Extensions,
-    guardian::{Guardian, GuardianStrategy},
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      Mailbox, MailboxFactory, MailboxHandle, MailboxProducer,
+    api::{
+        actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
+        actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
+        actor_system::map_system::MapSystemShared,
+        extensions::Extensions,
+        guardian::{Guardian, GuardianStrategy},
+        mailbox::{
+            messages::{PriorityEnvelope, SystemMessage},
+            Mailbox, MailboxFactory, MailboxHandle, MailboxProducer,
+        },
+        messaging::AnyMessage,
+        metrics::MetricsSinkShared,
+        process::{pid::Pid, process_registry::ProcessRegistry},
+        receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
+        supervision::supervisor::Supervisor,
     },
-    messaging::AnyMessage,
-    metrics::MetricsSinkShared,
-    process::{pid::Pid, process_registry::ProcessRegistry},
-    receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
-    supervision::{failure::FailureInfo, supervisor::Supervisor},
-  },
-  internal::{
-    actor_context::{ChildSpawnSpec, InternalActorContext},
-    mailbox::PriorityMailboxSpawnerHandle,
-  },
+    internal::{
+        actor_context::{ChildSpawnSpec, InternalActorContext},
+        mailbox::PriorityMailboxSpawnerHandle,
+    },
 };
+use crate::api::failure::FailureInfo;
 
 type ActorCellProcessRegistryShared<MF> =
   ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MF>, ArcShared<PriorityEnvelope<AnyMessage>>>>;

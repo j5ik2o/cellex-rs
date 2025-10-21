@@ -1,8 +1,6 @@
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf},
   extensions::Extensions,
-  failure_event_stream::FailureEventListener,
-  failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryShared},
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
@@ -10,6 +8,8 @@ use crate::api::{
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{escalation::FailureEventHandler, telemetry::TelemetryObservationConfig},
 };
+use crate::api::failure::failure_event_stream::FailureEventListener;
+use crate::api::failure::failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryShared};
 
 /// Internal configuration used while assembling [`InternalActorSystem`].
 pub struct InternalActorSystemConfig<AR>

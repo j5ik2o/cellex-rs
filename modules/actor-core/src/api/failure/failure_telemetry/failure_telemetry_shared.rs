@@ -3,7 +3,7 @@ use cellex_utils_core_rs::{
   Shared,
 };
 
-use crate::api::failure_telemetry::FailureTelemetry;
+use crate::api::failure::failure_telemetry::FailureTelemetry;
 
 /// Shared wrapper around a [`FailureTelemetry`] implementation.
 pub struct FailureTelemetryShared {

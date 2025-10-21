@@ -8,17 +8,18 @@ use crate::api::{
   actor::{actor_ref::PriorityActorRef, SpawnError},
   actor_scheduler::ActorSchedulerSpawnContext,
   actor_system::map_system::MapSystemShared,
-  failure_event_stream::FailureEventListener,
-  failure_telemetry::FailureTelemetryShared,
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{
-    escalation::FailureEventHandler, failure::FailureInfo, supervisor::Supervisor,
+    escalation::FailureEventHandler, supervisor::Supervisor,
     telemetry::TelemetryObservationConfig,
   },
 };
+use crate::api::failure::failure_event_stream::FailureEventListener;
+use crate::api::failure::failure_telemetry::FailureTelemetryShared;
+use crate::api::failure::FailureInfo;
 
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.
 #[allow(dead_code)]

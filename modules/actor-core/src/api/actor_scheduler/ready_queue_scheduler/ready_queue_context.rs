@@ -10,20 +10,21 @@ use crate::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::map_system::MapSystemShared,
-    failure_event_stream::FailureEventListener,
-    failure_telemetry::FailureTelemetryShared,
     guardian::GuardianStrategy,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::{
-      escalation::FailureEventHandler, failure::FailureInfo, supervisor::Supervisor,
+      escalation::FailureEventHandler, supervisor::Supervisor,
       telemetry::TelemetryObservationConfig,
     },
   },
   internal::actor::ActorCell,
 };
+use crate::api::failure::failure_event_stream::FailureEventListener;
+use crate::api::failure::failure_telemetry::FailureTelemetryShared;
+use crate::api::failure::FailureInfo;
 
 pub(crate) struct ReadyQueueContext<MF, Strat>
 where

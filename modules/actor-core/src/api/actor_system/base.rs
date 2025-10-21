@@ -12,8 +12,6 @@ use crate::{
       actor_system_runner::ActorSystemRunner,
     },
     extensions::{serializer_extension_id, Extension, ExtensionId, Extensions, SerializerRegistryExtension},
-    failure_event_stream::FailureEventStream,
-    failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryContext},
     guardian::AlwaysRestart,
     mailbox::messages::PriorityEnvelope,
     messaging::AnyMessage,
@@ -24,6 +22,8 @@ use crate::{
   },
   internal::actor_system::{InternalActorSystem, InternalActorSystemConfig},
 };
+use crate::api::failure::failure_event_stream::FailureEventStream;
+use crate::api::failure::failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryContext};
 
 type ActorProcessRegistryHandle<AR> =
   ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;

@@ -1,6 +1,6 @@
 use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
 
-use crate::api::supervision::failure::FailureInfo;
+use crate::api::failure::FailureInfo;
 
 #[cfg(target_has_atomic = "ptr")]
 type FailureEventHandlerFn = dyn Fn(&FailureInfo) + Send + Sync;

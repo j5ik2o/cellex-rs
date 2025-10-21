@@ -4,7 +4,6 @@ use crate::{
   api::{
     actor_runtime::base::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ActorSchedulerHandleBuilder,
-    failure_event_stream::FailureEventListener,
     mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     metrics::MetricsSinkShared,
@@ -16,6 +15,7 @@ use crate::{
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
 };
+use crate::api::failure::failure_event_stream::FailureEventListener;
 
 /// Helper alias mapping a runtime bundle back to its use
 /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.

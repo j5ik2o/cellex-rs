@@ -5,8 +5,6 @@ use cellex_utils_core_rs::ArcShared;
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   extensions::{Extension, Extensions},
-  failure_event_stream::FailureEventListener,
-  failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared},
   mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
@@ -14,6 +12,8 @@ use crate::api::{
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::telemetry::TelemetryObservationConfig,
 };
+use crate::api::failure::failure_event_stream::FailureEventListener;
+use crate::api::failure::failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryShared};
 
 /// Configuration options applied when constructing an
 /// [`ActorSystem`](crate::api::actor_system::ActorSystem).

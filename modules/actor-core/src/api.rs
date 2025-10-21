@@ -9,11 +9,6 @@ pub mod actor_system;
 #[cfg(feature = "alloc")]
 /// Extensions for actor system and actor runtime.
 pub mod extensions;
-mod failure;
-/// Failure event stream for telemetry and monitoring.
-pub mod failure_event_stream;
-/// Shared failure telemetry infrastructure
-pub mod failure_telemetry;
 /// Guardian supervision tree utilities used for internal actor bootstrapping.
 pub mod guardian;
 /// Mailbox implementations and message queueing.
@@ -30,3 +25,5 @@ pub mod receive_timeout;
 pub mod supervision;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
+/// Failure information and metadata
+pub mod failure;

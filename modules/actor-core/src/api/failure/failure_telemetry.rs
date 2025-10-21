@@ -7,7 +7,7 @@ mod failure_telemetry_builder_shared;
 mod failure_telemetry_context;
 mod failure_telemetry_shared;
 mod noop_failure_telemetry;
-mod telemetry_tag;
+mod failure_telemetry_tag;
 #[cfg(test)]
 mod tests;
 mod tracing_failure_telemetry;
@@ -22,5 +22,5 @@ pub use failure_telemetry_builder_shared::FailureTelemetryBuilderShared;
 pub use failure_telemetry_context::FailureTelemetryContext;
 pub use failure_telemetry_shared::FailureTelemetryShared;
 pub use noop_failure_telemetry::{noop_failure_telemetry_shared, NoopFailureTelemetry};
-pub use telemetry_tag::TelemetryTag;
+pub use failure_telemetry_tag::FailureTelemetryTag;
 pub use tracing_failure_telemetry::*;
