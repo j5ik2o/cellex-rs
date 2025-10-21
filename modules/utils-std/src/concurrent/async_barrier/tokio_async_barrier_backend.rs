@@ -1,8 +1,6 @@
 //! Tokio async barrier backend implementation.
 
 #![allow(clippy::disallowed_types)]
-#![allow(unknown_lints)]
-#![allow(multiple_type_definitions)]
 use std::sync::{
   atomic::{AtomicUsize, Ordering},
   Arc,
