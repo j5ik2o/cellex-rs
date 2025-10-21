@@ -1,5 +1,7 @@
 #[allow(clippy::disallowed_types)]
 mod arc_shared;
+/// Async-aware mutex abstractions shared across runtimes.
+pub mod async_mutex_like;
 #[allow(clippy::disallowed_types)]
 mod flag;
 /// Helper traits for shared function and factory closures.
@@ -10,8 +12,8 @@ mod rc_shared;
 mod shared;
 mod state;
 mod static_ref_shared;
-mod mutex_like;
-mod async_mutex_like;
+/// Synchronous mutex abstractions shared across runtimes.
+pub mod sync_mutex_like;
 
 pub use arc_shared::ArcShared;
 pub use flag::Flag;
@@ -21,5 +23,3 @@ pub use rc_shared::RcShared;
 pub use shared::{SendBound, Shared, SharedBound, SharedDyn};
 pub use state::StateCell;
 pub use static_ref_shared::StaticRefShared;
-pub use mutex_like::{MutexLike, MutexLikeGuard};
-pub use async_mutex_like::{AsyncMutexLike, AsyncMutexLikeGuard};
