@@ -7,10 +7,13 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use cellex_utils_core_rs::sync::ArcShared;
 use spin::Mutex;
 
-use super::{DeadLetterReason, NodeId, Pid, ProcessRegistry, ProcessResolution, SystemId};
+use super::{ProcessRegistry, ProcessResolution};
 use crate::api::{
   actor::{ActorId, ActorPath},
-  process::dead_letter::{DeadLetter, DeadLetterListener},
+  process::{
+    dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
+    pid::{NodeId, Pid, SystemId},
+  },
 };
 
 fn sample_path() -> ActorPath {
