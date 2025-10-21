@@ -319,34 +319,35 @@ where
     GenericActorRuntime::scheduler_builder(self)
   }
 
-  #[cfg(not(feature = "std"))]
+  // sync_mutex_factory implementations with target_has_atomic consideration
+  #[cfg(target_has_atomic = "ptr")]
   fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
   where
     T: 'static, {
-    ArcShared::new(|value| SpinSyncMutex::new(value))
+    ArcShared::new(|value| Self::SyncMutex::new(value))
       .into_dyn(|f| f as &(dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync))
   }
 
-  #[cfg(feature = "std")]
-  fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync>
+  #[cfg(not(target_has_atomic = "ptr"))]
+  fn sync_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::SyncMutex<T>>
   where
     T: 'static, {
-    ArcShared::new(|value| StdSyncMutex::new(value)).into_dyn(|f| f as &(dyn Fn(T) -> Self::SyncMutex<T> + Send + Sync))
+    ArcShared::new(|value| Self::SyncMutex::new(value)).into_dyn(|f| f as &dyn Fn(T) -> Self::SyncMutex<T>)
   }
 
-  #[cfg(not(feature = "std"))]
+  // async_mutex_factory implementations with target_has_atomic consideration
+  #[cfg(target_has_atomic = "ptr")]
   fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
   where
     T: Send + 'static, {
-    ArcShared::new(|value| SpinAsyncMutex::new(value))
+    ArcShared::new(|value| Self::AsyncMutex::new(value))
       .into_dyn(|f| f as &(dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync))
   }
 
-  #[cfg(feature = "std")]
-  fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync>
+  #[cfg(not(target_has_atomic = "ptr"))]
+  fn async_mutex_factory<T>(&self) -> ArcShared<dyn Fn(T) -> Self::AsyncMutex<T>>
   where
     T: Send + 'static, {
-    ArcShared::new(|value| TokioAsyncMutex::new(value))
-      .into_dyn(|f| f as &(dyn Fn(T) -> Self::AsyncMutex<T> + Send + Sync))
+    ArcShared::new(|value| Self::AsyncMutex::new(value)).into_dyn(|f| f as &dyn Fn(T) -> Self::AsyncMutex<T>)
   }
 }

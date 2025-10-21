@@ -1,7 +1,5 @@
 //! Tests for runtime mutex factory functionality
 
-use cellex_utils_core_rs::sync::sync_mutex_like::SyncMutexLike;
-
 use crate::api::{
   actor_runtime::{ActorRuntime, GenericActorRuntime},
   test_support::TestMailboxFactory,
@@ -9,6 +7,8 @@ use crate::api::{
 
 #[test]
 fn test_sync_mutex_factory() {
+  use cellex_utils_core_rs::sync::sync_mutex_like::SyncMutexLike;
+
   let runtime = GenericActorRuntime::new(TestMailboxFactory::default());
   let factory = runtime.sync_mutex_factory::<i32>();
 
@@ -46,6 +46,8 @@ async fn test_async_mutex_factory() {
 
 #[test]
 fn test_factory_can_be_cloned() {
+  use cellex_utils_core_rs::sync::sync_mutex_like::SyncMutexLike;
+
   let runtime = GenericActorRuntime::new(TestMailboxFactory::default());
   let factory1 = runtime.sync_mutex_factory::<String>();
   let factory2 = factory1.clone();

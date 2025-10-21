@@ -86,16 +86,24 @@ fn async_mutex_factory(&self) -> Arc<dyn Fn<T>(T) -> Self::AsyncMutex<T> + Send 
 2. **ActorRuntime拡張** ✅
    - `ActorRuntime` トレイトに関連型 `SyncMutex<T>` / `AsyncMutex<T: Send>` を追加
    - factory アクセサ `sync_mutex_factory()` / `async_mutex_factory()` を追加
+   - `target_has_atomic = "ptr"` による条件付きコンパイルに対応
+     - atomic pointer サポートあり: `Send + Sync` 境界付きで `Arc` ベース
+     - atomic pointer サポートなし: `Rc` ベースで境界なし
    - `GenericActorRuntime` で各ランタイムに応じた実装を提供:
+     - 関連型が `feature = "std"` により自動的に切り替わる
      - `no_std`: `SpinSyncMutex` / `SpinAsyncMutex`
      - `std`: `StdSyncMutex` / `TokioAsyncMutex`
+   - factory実装は `Self::SyncMutex` / `Self::AsyncMutex` を使用し、feature判定不要
 
 3. **テストの追加** ✅
    - `modules/actor-core/src/api/actor_runtime/tests.rs` にfactory機能のテストを追加
    - 同期 mutex, 非同期 mutex, factory のクローン可能性をテスト
+   - テストはすべてパス
 
 4. **ビルド・テスト確認** ✅
    - `ci-check.sh` で全構成 (no_std, std, tokio) のビルド・テストが成功
+   - `thumbv6m-none-eabi` などの組み込みターゲットでもビルド成功
+   - ドキュメント生成も問題なし
 
 ### 保留項目
 
