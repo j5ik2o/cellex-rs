@@ -19,6 +19,7 @@ std = [
   "futures/executor",
   "dep:cellex-serialization-json-rs",
   "dep:cellex-serialization-prost-rs",
+  "dep:cellex-utils-std-rs",
   "dep:tokio",
 ]
 unwind-supervision = ["std"]
@@ -32,6 +33,7 @@ cellex-serialization-json-rs = { path = "../serialization-json", optional = true
 cellex-serialization-postcard-rs = { path = "../serialization-postcard", optional = true }
 cellex-serialization-prost-rs = { path = "../serialization-prost", optional = true }
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
+cellex-utils-std-rs = { path = "../utils-std", optional = true }
 critical-section = { workspace = true, default-features = false }
 futures = { workspace = true, default-features = false, features = ["alloc"] }
 portable-atomic = { workspace = true, default-features = false, features = ["critical-section"] }

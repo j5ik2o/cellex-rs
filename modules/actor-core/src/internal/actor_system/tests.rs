@@ -16,13 +16,9 @@ use crate::{
   api::{
     actor::ActorPath,
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
-    actor_system::map_system::MapSystemShared,
     guardian::AlwaysRestart,
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      MailboxOptions,
-    },
-    messaging::{AnyMessage, MessageEnvelope, MessageMetadata},
+    mailbox::{messages::SystemMessage, MailboxOptions},
+    messaging::MessageMetadata,
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
       pid::{NodeId, Pid, SystemId},
@@ -31,6 +27,10 @@ use crate::{
     test_support::TestMailboxFactory,
   },
   internal::actor::InternalProps,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
+  },
 };
 
 #[cfg(feature = "std")]

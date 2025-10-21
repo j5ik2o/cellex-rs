@@ -3,7 +3,7 @@ use core::cell::UnsafeCell;
 use cellex_utils_core_rs::QueueError;
 use portable_atomic::{AtomicU8, Ordering};
 
-use crate::api::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage};
+use crate::shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage};
 
 #[cfg(not(target_has_atomic = "ptr"))]
 mod local_waker {

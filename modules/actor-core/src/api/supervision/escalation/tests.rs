@@ -10,7 +10,7 @@ use crate::api::{
     FailureInfo,
   },
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  supervision::escalation::{escalation_sink::EscalationSink, root_escalation_sink::RootEscalationSink},
+  supervision::escalation::{EscalationSink, RootEscalationSink},
   test_support::TestMailboxFactory,
 };
 

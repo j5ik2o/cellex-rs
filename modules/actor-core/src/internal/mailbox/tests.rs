@@ -1,9 +1,12 @@
 #![allow(clippy::disallowed_types)]
 use cellex_utils_core_rs::{QueueSize, DEFAULT_PRIORITY};
 
-use crate::api::mailbox::{
-  messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-  MailboxOptions,
+use crate::{
+  api::mailbox::{
+    messages::{PriorityChannel, SystemMessage},
+    MailboxOptions,
+  },
+  shared::mailbox::messages::PriorityEnvelope,
 };
 
 #[test]

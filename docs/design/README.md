@@ -15,7 +15,7 @@
   - モジュールごとのBefore/After比較
   - 具体的な改善提案
 
-- **[module-dependency-analysis.md](./module-dependency-analysis.md)** - 依存関係分析
+- **[module-dependency-analysis.md](module-dependency-analysis.md)** - 依存関係分析
   - 循環依存の検出(3箇所)
   - 設計原則違反の特定(shared→api依存)
   - 依存関係改善のロードマップ
@@ -132,7 +132,7 @@ api → internal → shared
 - **状態**: Critical
 - **決定**: trait-based抽象化による依存方向の逆転
 - **理由**: レイヤー分離の徹底、保守性の向上
-- **詳細**: [module-dependency-analysis.md](./module-dependency-analysis.md#循環依存の検出)
+- **詳細**: [module-dependency-analysis.md](module-dependency-analysis.md#循環依存の検出)
 
 ## 貢献ガイドライン
 

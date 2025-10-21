@@ -1,12 +1,15 @@
 mod remote_message_frame;
 mod remote_payload_frame;
 
-use cellex_actor_core_rs::api::{
-  mailbox::{messages::PriorityChannel, ThreadSafe},
-  messaging::{MessageEnvelope, MessageMetadata},
-  process::pid::Pid,
+use cellex_actor_core_rs::{
+  api::{
+    mailbox::{messages::PriorityChannel, ThreadSafe},
+    messaging::MessageMetadata,
+    process::pid::Pid,
+  },
+  shared::messaging::MessageEnvelope,
 };
-use cellex_serialization_core_rs::message::SerializedMessage;
+use cellex_serialization_core_rs::SerializedMessage;
 pub use remote_message_frame::RemoteMessageFrame;
 pub use remote_payload_frame::RemotePayloadFrame;
 

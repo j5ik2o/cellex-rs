@@ -16,8 +16,9 @@ use core::future::Future;
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use crate::{
-  api::messaging::{AnyMessage, MessageEnvelope, MessageSender, MetadataStorageMode},
+  api::messaging::{MessageSender, MetadataStorageMode},
   internal::message::InternalMessageSender,
+  shared::messaging::{AnyMessage, MessageEnvelope},
 };
 
 /// Helper function to create an `AskFuture` with timeout.

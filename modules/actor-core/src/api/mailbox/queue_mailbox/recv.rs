@@ -8,7 +8,7 @@ use core::{
 use cellex_utils_core_rs::{Element, QueueError, QueueRw};
 
 use super::base::QueueMailbox;
-use crate::api::mailbox::mailbox_signal::MailboxSignal;
+use crate::api::mailbox::MailboxSignal;
 
 /// Future for receiving messages.
 pub struct QueueMailboxRecv<'a, Q, S, M>

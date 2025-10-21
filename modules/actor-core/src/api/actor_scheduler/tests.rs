@@ -24,37 +24,42 @@ use spin::RwLock;
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "std")]
 use crate::api::supervision::supervisor::SupervisorDirective;
-use crate::api::{
-  actor::{
-    actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
-    shutdown_token::ShutdownToken, ActorHandlerFn, ActorId, ChildNaming, Props, SpawnError,
+use crate::{
+  api::{
+    actor::{
+      actor_context::ActorContext, actor_failure::BehaviorFailure, actor_ref::PriorityActorRef, behavior::Behavior,
+      ActorHandlerFn, ActorId, ChildNaming, Props, ShutdownToken, SpawnError,
+    },
+    actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
+    actor_scheduler::{
+      actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
+      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+      ActorScheduler, ActorSchedulerSpawnContext,
+    },
+    extensions::Extensions,
+    failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
+    guardian::{AlwaysRestart, GuardianStrategy},
+    mailbox::{
+      messages::{PriorityChannel, SystemMessage},
+      MailboxFactory, MailboxOptions,
+    },
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    process::{
+      pid::{Pid, SystemId},
+      process_registry::ProcessRegistry,
+    },
+    supervision::{
+      escalation::FailureEventHandler,
+      supervisor::{NoopSupervisor, Supervisor},
+    },
+    test_support::TestMailboxFactory,
   },
-  actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
-  actor_scheduler::{
-    actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
-    ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
-    ActorScheduler, ActorSchedulerSpawnContext,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
-  actor_system::map_system::MapSystemShared,
-  extensions::Extensions,
-  failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
-  guardian::{AlwaysRestart, GuardianStrategy},
-  mailbox::{
-    messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-    MailboxFactory, MailboxOptions,
-  },
-  messaging::{AnyMessage, MessageEnvelope},
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  process::{
-    pid::{Pid, SystemId},
-    process_registry::ProcessRegistry,
-  },
-  supervision::{
-    escalation::FailureEventHandler,
-    supervisor::{NoopSupervisor, Supervisor},
-  },
-  test_support::TestMailboxFactory,
 };
+
 #[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]

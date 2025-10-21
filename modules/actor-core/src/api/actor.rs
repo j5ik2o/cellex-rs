@@ -18,11 +18,11 @@ mod message_metadata_responder;
 /// Actor spawn properties
 mod props;
 /// Root context for top-level actors
-pub mod root_context;
+mod root_context;
 /// Shutdown coordination
-pub mod shutdown_token;
+mod shutdown_token;
 /// Actor lifecycle signals
-pub mod signal;
+mod signal;
 mod spawn;
 mod spawn_error;
 #[cfg(test)]
@@ -35,6 +35,9 @@ pub use child_naming::ChildNaming;
 pub use message_adapter_ref::MessageAdapterRef;
 pub use message_metadata_responder::MessageMetadataResponder;
 pub use props::Props;
+pub use root_context::RootContext;
+pub use shutdown_token::ShutdownToken;
+pub use signal::Signal;
 pub use spawn::Spawn;
 pub use spawn_error::SpawnError;
 pub use timer::Timer;

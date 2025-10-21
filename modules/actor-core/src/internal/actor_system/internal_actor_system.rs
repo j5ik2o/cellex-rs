@@ -13,8 +13,7 @@ use crate::{
     actor_scheduler::{ready_queue_scheduler::ReadyQueueWorker, ActorSchedulerHandle, ActorSchedulerHandleBuilder},
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
+    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     process::{
       pid::{NodeId, SystemId},
@@ -22,6 +21,7 @@ use crate::{
     },
   },
   internal::actor_system::internal_actor_system_config::InternalGenericActorSystemConfig,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type ActorSystemProcessRegistryShared<AR> =

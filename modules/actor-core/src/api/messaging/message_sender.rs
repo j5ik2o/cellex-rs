@@ -3,11 +3,12 @@ use core::marker::PhantomData;
 use cellex_utils_core_rs::{Element, QueueError};
 
 use crate::{
-  api::{
-    mailbox::{messages::PriorityEnvelope, MailboxConcurrency, ThreadSafe},
+  api::mailbox::{MailboxConcurrency, ThreadSafe},
+  internal::message::InternalMessageSender,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MessageEnvelope},
   },
-  internal::message::InternalMessageSender,
 };
 
 /// Type-safe dispatcher. Wraps the internal dispatcher and automatically envelopes user messages.

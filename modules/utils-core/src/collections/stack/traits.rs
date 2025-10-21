@@ -1,9 +1,9 @@
-pub mod stack_backend;
-pub mod stack_base;
-pub mod stack_handle;
-pub mod stack_mut;
-pub mod stack_storage;
-pub mod stack_storage_backend;
+mod stack_backend;
+mod stack_base;
+mod stack_handle;
+mod stack_mut;
+mod stack_storage;
+mod stack_storage_backend;
 
 pub use stack_backend::StackBackend;
 pub use stack_base::StackBase;

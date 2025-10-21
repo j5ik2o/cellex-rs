@@ -4,20 +4,24 @@ use async_trait::async_trait;
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
-use crate::api::{
-  actor::{actor_ref::PriorityActorRef, SpawnError},
-  actor_scheduler::ActorSchedulerSpawnContext,
-  actor_system::map_system::MapSystemShared,
-  failure::{
-    failure_event_stream::FailureEventListener,
-    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-    FailureInfo,
+use crate::{
+  api::{
+    actor::{actor_ref::PriorityActorRef, SpawnError},
+    actor_scheduler::ActorSchedulerSpawnContext,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      FailureInfo,
+    },
+    mailbox::MailboxFactory,
+    metrics::MetricsSinkShared,
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
-  metrics::MetricsSinkShared,
-  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 /// Scheduler interface wiring actor spawning, execution, and escalation plumbing.

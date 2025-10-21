@@ -6,11 +6,14 @@ use crate::{
   api::{
     actor::{actor_context::ActorContext, actor_failure::ActorFailure, ActorHandlerFn},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    actor_system::map_system::MapSystemShared,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
-    messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
+    mailbox::{MailboxFactory, MailboxOptions},
+    messaging::MetadataStorageMode,
   },
   internal::actor_context::InternalActorContext,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
+  },
 };
 
 pub(crate) struct InternalProps<MF>

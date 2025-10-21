@@ -2,7 +2,7 @@ use core::fmt;
 
 use cellex_utils_core_rs::QueueError;
 
-use crate::api::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage};
+use crate::shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage};
 
 /// Errors that can occur during `ask` processing.
 #[derive(Debug)]

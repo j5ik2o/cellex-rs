@@ -1,11 +1,13 @@
 use cellex_utils_core_rs::Element;
 
 use super::{Behavior, SupervisorStrategyConfig};
-use crate::api::{
-  actor::behavior::supervisor_strategy::SupervisorStrategy,
-  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::messages::PriorityEnvelope,
-  messaging::{AnyMessage, MetadataStorageMode},
+use crate::{
+  api::{
+    actor::behavior::supervisor_strategy::SupervisorStrategy,
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+    messaging::MetadataStorageMode,
+  },
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Builder for setting supervisor strategy.

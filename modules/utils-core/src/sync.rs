@@ -1,5 +1,7 @@
 #[allow(clippy::disallowed_types)]
 mod arc_shared;
+/// Async-aware mutex abstractions shared across runtimes.
+pub mod async_mutex_like;
 #[allow(clippy::disallowed_types)]
 mod flag;
 /// Helper traits for shared function and factory closures.
@@ -10,6 +12,8 @@ mod rc_shared;
 mod shared;
 mod state;
 mod static_ref_shared;
+/// Synchronous mutex abstractions shared across runtimes.
+pub mod sync_mutex_like;
 
 pub use arc_shared::ArcShared;
 pub use flag::Flag;

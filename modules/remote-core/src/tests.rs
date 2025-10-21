@@ -4,25 +4,29 @@ use std::{
   sync::{Arc, Mutex, MutexGuard},
 };
 
-use cellex_actor_core_rs::api::{
-  actor::{
-    actor_failure::{ActorFailure, BehaviorFailure},
-    ActorId, ActorPath,
+use cellex_actor_core_rs::{
+  api::{
+    actor::{
+      actor_failure::{ActorFailure, BehaviorFailure},
+      ActorId, ActorPath,
+    },
+    failure::{
+      failure_event_stream::{FailureEventListener, FailureEventStream},
+      failure_telemetry::{
+        FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared,
+      },
+      FailureEvent, FailureInfo,
+    },
+    mailbox::{
+      messages::{PriorityChannel, SystemMessage},
+      ThreadSafe,
+    },
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    process::pid::{NodeId, Pid, SystemId},
+    supervision::escalation::{EscalationSink, RootEscalationSink},
+    test_support::TestMailboxFactory,
   },
-  failure::{
-    failure_event_stream::{FailureEventListener, FailureEventStream},
-    failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryObservationConfig, FailureTelemetryShared},
-    FailureEvent, FailureInfo,
-  },
-  mailbox::{
-    messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
-    ThreadSafe,
-  },
-  messaging::MessageEnvelope,
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  process::pid::{NodeId, Pid, SystemId},
-  supervision::escalation::{EscalationSink, RootEscalationSink},
-  test_support::TestMailboxFactory,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::MessageEnvelope},
 };
 use cellex_actor_std_rs::FailureEventHub;
 use cellex_serialization_core_rs::{

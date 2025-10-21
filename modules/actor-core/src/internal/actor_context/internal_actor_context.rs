@@ -7,15 +7,17 @@ use spin::RwLock;
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, ChildNaming},
-    actor_system::map_system::MapSystemShared,
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxProducer},
-    messaging::AnyMessage,
+    mailbox::{MailboxFactory, MailboxOptions, MailboxProducer},
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::ReceiveTimeoutScheduler,
     supervision::supervisor::Supervisor,
   },
   internal::{actor::InternalProps, actor_context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 type ActorProcessRegistryShared<MF> =

@@ -6,14 +6,16 @@ use spin::RwLock;
 use crate::{
   api::{
     actor::{ActorHandlerFn, ActorId, ActorPath, ChildNaming},
-    actor_system::map_system::MapSystemShared,
     extensions::Extensions,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
+    mailbox::MailboxFactory,
     process::pid::Pid,
     supervision::supervisor::Supervisor,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 /// Information required when spawning child actors.

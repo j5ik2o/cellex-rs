@@ -42,16 +42,17 @@ use crate::{
       ActorId,
     },
     actor_runtime::{ActorRuntime, GenericActorRuntime, MailboxQueueOf, MailboxSignalOf},
-    actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig},
+    actor_system::{GenericActorSystem, GenericActorSystemConfig},
     extensions::{next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension},
-    mailbox::{
-      messages::{PriorityEnvelope, SystemMessage},
-      MailboxFactory,
-    },
-    messaging::{AnyMessage, MessageEnvelope, MessageMetadata, MessageSender},
+    mailbox::{messages::SystemMessage, MailboxFactory},
+    messaging::{MessageMetadata, MessageSender},
     test_support::TestMailboxFactory,
   },
   internal::message::InternalMessageSender,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
+  },
 };
 
 type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
@@ -164,16 +165,20 @@ mod receive_timeout_injection {
   use futures::executor::block_on;
 
   use super::{TestRuntime, *};
-  use crate::api::{
-    actor_runtime::ActorRuntime,
-    actor_system::{map_system::MapSystemShared, GenericActorSystem, GenericActorSystemConfig},
-    mailbox::messages::PriorityEnvelope,
-    messaging::AnyMessage,
-    receive_timeout::{
-      ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
-      ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
+  use crate::{
+    api::{
+      actor_runtime::ActorRuntime,
+      actor_system::{GenericActorSystem, GenericActorSystemConfig},
+      receive_timeout::{
+        ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory, ReceiveTimeoutSchedulerFactoryProvider,
+        ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared,
+      },
+      test_support::TestMailboxFactory,
     },
-    test_support::TestMailboxFactory,
+    shared::{
+      mailbox::messages::PriorityEnvelope,
+      messaging::{AnyMessage, MapSystemShared},
+    },
   };
 
   #[derive(Clone)]
@@ -1083,16 +1088,18 @@ mod metrics_injection {
   use std::sync::{Arc, Mutex};
 
   use super::*;
-  use crate::api::{
-    actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
-    actor_system::{GenericActorSystem, GenericActorSystemConfig},
-    failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-    mailbox::MailboxFactory,
-    messaging::AnyMessage,
-    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
-    test_support::TestMailboxFactory,
+  use crate::{
+    api::{
+      actor::{actor_ref::PriorityActorRef, SpawnError},
+      actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
+      actor_system::{GenericActorSystem, GenericActorSystemConfig},
+      failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      mailbox::MailboxFactory,
+      metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+      supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
+      test_support::TestMailboxFactory,
+    },
+    shared::messaging::AnyMessage,
   };
 
   #[derive(Clone)]

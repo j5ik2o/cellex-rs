@@ -1,9 +1,8 @@
 //! `TokioReceiveTimeoutSchedulerFactory` implementation.
 
-use cellex_actor_core_rs::api::{
-  actor_system::map_system::MapSystemShared,
-  messaging::AnyMessage,
-  receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory},
+use cellex_actor_core_rs::{
+  api::receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactory},
+  shared::messaging::{AnyMessage, MapSystemShared},
 };
 
 use super::{shared::TokioSender, tokio_receive_timeout_scheduler::TokioReceiveTimeoutScheduler};

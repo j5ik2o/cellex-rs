@@ -1,13 +1,14 @@
-use crate::api::{
-  actor::actor_ref::PriorityActorRef,
-  actor_system::map_system::MapSystemShared,
-  failure::FailureInfo,
-  mailbox::{
-    messages::{PriorityEnvelope, SystemMessage},
-    MailboxFactory, MailboxProducer,
+use crate::{
+  api::{
+    actor::actor_ref::PriorityActorRef,
+    failure::FailureInfo,
+    mailbox::{messages::SystemMessage, MailboxFactory, MailboxProducer},
+    supervision::escalation::EscalationSink,
   },
-  messaging::AnyMessage,
-  supervision::escalation::EscalationSink,
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 /// Sink that forwards `SystemMessage::Escalate` to parent Guardian.

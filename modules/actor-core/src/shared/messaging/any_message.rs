@@ -1,10 +1,12 @@
+//! Type-erased message container shared across layers.
+
 use alloc::boxed::Box;
 use core::{
   any::{Any, TypeId},
   fmt::{self, Debug},
 };
 
-use super::any_message_value::AnyMessageValue;
+use super::AnyMessageValue;
 
 #[cfg(target_has_atomic = "ptr")]
 type DynMessageInner = dyn Any + Send + Sync;
@@ -12,7 +14,7 @@ type DynMessageInner = dyn Any + Send + Sync;
 #[cfg(not(target_has_atomic = "ptr"))]
 type DynMessageInner = dyn Any;
 
-/// Type-erased message used across the public API.
+/// Type-erased message used across the runtime.
 pub struct AnyMessage {
   inner: Box<DynMessageInner>,
 }
@@ -86,11 +88,11 @@ const fn assert_send_dyn<T: Send>() {}
 const fn assert_sync_dyn<T: Sync>() {}
 
 #[cfg(target_has_atomic = "ptr")]
+const fn assert_static_dyn<T: 'static>() {}
+
+#[cfg(target_has_atomic = "ptr")]
 const _: () = {
   assert_send_dyn::<AnyMessage>();
   assert_sync_dyn::<AnyMessage>();
   assert_static_dyn::<AnyMessage>();
 };
-
-#[cfg(target_has_atomic = "ptr")]
-const fn assert_static_dyn<T: 'static>() {}

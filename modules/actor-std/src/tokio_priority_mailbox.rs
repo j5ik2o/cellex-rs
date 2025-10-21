@@ -6,7 +6,7 @@ mod queues;
 mod runtime;
 mod sender;
 
-use cellex_actor_core_rs::api::mailbox::messages::PriorityEnvelope;
+use cellex_actor_core_rs::shared::mailbox::messages::PriorityEnvelope;
 use cellex_utils_std_rs::QueueError;
 
 type PriorityQueueError<M> = Box<QueueError<PriorityEnvelope<M>>>;

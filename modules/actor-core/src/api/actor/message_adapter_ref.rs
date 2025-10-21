@@ -1,10 +1,11 @@
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
-use crate::api::{
-  actor::{actor_context::AdapterFn, actor_ref::ActorRef},
-  actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
-  mailbox::messages::PriorityEnvelope,
-  messaging::AnyMessage,
+use crate::{
+  api::{
+    actor::{actor_context::AdapterFn, actor_ref::ActorRef},
+    actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
+  },
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Reference to a message adapter.

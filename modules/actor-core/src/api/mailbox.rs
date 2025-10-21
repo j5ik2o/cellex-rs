@@ -8,16 +8,6 @@ use crate::api::metrics::MetricsSinkShared;
 
 /// Mailbox concurrency modes
 mod mailbox_concurrency;
-/// use cellex_actor_core_rs::api::mailbox::MailboxRuntime; abstraction
-mod mailbox_factory;
-/// Mailbox handle trait
-mod mailbox_handle;
-/// Mailbox configuration options
-mod mailbox_options;
-/// use cellex_actor_core_rs::api::mailbox::MailboxRuntime; trait
-mod mailbox_producer;
-/// Mailbox signaling mechanisms
-mod mailbox_signal;
 pub mod messages;
 /// Queue-based mailbox implementation
 pub mod queue_mailbox;
@@ -29,21 +19,19 @@ mod single_thread;
 mod thread_safe;
 
 pub use mailbox_concurrency::*;
-pub use mailbox_factory::*;
-pub use mailbox_handle::*;
-pub use mailbox_options::*;
-pub use mailbox_producer::*;
-pub use mailbox_signal::*;
 pub use queue_mailbox_producer::*;
 pub use single_thread::*;
 pub use thread_safe::*;
 
 use crate::api::actor_scheduler::ready_queue_scheduler::ReadyQueueHandle;
-
-/// Type alias for mailbox and producer pair.
-///
-/// A pair of receiver and sender handles returned when creating a mailbox.
-pub type MailboxPair<H, P> = (H, P);
+// Re-export shared mailbox types
+pub use crate::shared::mailbox::{
+  factory::{MailboxFactory, MailboxPair},
+  handle::MailboxHandle,
+  options::MailboxOptions,
+  producer::MailboxProducer,
+  signal::MailboxSignal,
+};
 
 /// Mailbox abstraction that decouples message queue implementations from core logic.
 ///

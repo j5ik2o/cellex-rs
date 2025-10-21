@@ -1,9 +1,8 @@
 use cellex_utils_core_rs::sync::{ArcShared, Shared};
 
-use crate::api::{
-  actor_scheduler::ActorSchedulerHandleBuilder,
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
+use crate::{
+  api::{actor_scheduler::ActorSchedulerHandleBuilder, mailbox::MailboxFactory},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Internal state container for `GenericActorRuntime`.

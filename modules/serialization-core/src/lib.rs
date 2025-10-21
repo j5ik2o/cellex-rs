@@ -7,14 +7,14 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod error;
-pub mod id;
-pub mod message;
-pub mod registry;
+mod error;
+mod id;
+mod message;
+mod registry;
 #[cfg(feature = "alloc")]
-pub mod routing;
-pub mod serializer;
-pub mod type_key;
+mod routing;
+mod serializer;
+mod type_key;
 
 pub use error::{DeserializationError, RegistryError, SerializationError};
 pub use id::{SerializerId, TEST_ECHO_SERIALIZER_ID, USER_DEFINED_START};

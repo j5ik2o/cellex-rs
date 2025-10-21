@@ -2,14 +2,15 @@ use core::{convert::Infallible, marker::PhantomData, num::NonZeroUsize};
 
 use cellex_utils_core_rs::{ArcShared, Element, QueueError};
 
-use crate::api::{
-  actor::shutdown_token::ShutdownToken,
-  actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-  actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
-  actor_system::GenericActorSystem,
-  guardian::AlwaysRestart,
-  mailbox::messages::PriorityEnvelope,
-  messaging::AnyMessage,
+use crate::{
+  api::{
+    actor::ShutdownToken,
+    actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
+    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
+    actor_system::GenericActorSystem,
+    guardian::AlwaysRestart,
+  },
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Execution runner for the actor system.

@@ -1,9 +1,9 @@
 //! Shared ownership utilities.
 
-pub mod send_bound;
-pub mod shared_bound;
-pub mod shared_dyn;
-pub mod shared_trait;
+mod send_bound;
+mod shared_bound;
+mod shared_dyn;
+mod shared_trait;
 
 pub use send_bound::SendBound;
 pub use shared_bound::SharedBound;

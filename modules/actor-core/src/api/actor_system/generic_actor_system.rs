@@ -5,7 +5,7 @@ use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
 
 use crate::{
   api::{
-    actor::{actor_ref::PriorityActorRef, root_context::RootContext, shutdown_token::ShutdownToken},
+    actor::{actor_ref::PriorityActorRef, RootContext, ShutdownToken},
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
     actor_system::{ActorSystem, GenericActorSystemBuilder, GenericActorSystemConfig, GenericActorSystemRunner},
@@ -15,14 +15,13 @@ use crate::{
       failure_telemetry::{default_failure_telemetry_shared, FailureTelemetryContext},
     },
     guardian::AlwaysRestart,
-    mailbox::messages::PriorityEnvelope,
-    messaging::AnyMessage,
     process::{
       pid::{NodeId, SystemId},
       process_registry::ProcessRegistry,
     },
   },
   internal::actor_system::{InternalActorSystem, InternalGenericActorSystemConfig},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 type GenericActorProcessRegistryHandle<AR> =
@@ -65,7 +64,7 @@ where
     let root_listener_from_runtime = actor_runtime.root_failure_event_listener_opt();
     let root_handler_from_runtime = actor_runtime.root_escalation_failure_event_handler_opt();
     let metrics_from_runtime = actor_runtime.metrics_sink_shared_opt();
-    let scheduler_builder = actor_runtime.scheduler_builder_shared();
+    let scheduler_builder = actor_runtime.scheduler_builder_shared_builder_shared();
 
     let system_id = config.system_id().clone();
     let node_id = config.node_id_opt();

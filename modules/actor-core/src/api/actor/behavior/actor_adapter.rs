@@ -4,12 +4,17 @@ use core::mem;
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use super::{Behavior, BehaviorDirective, Signal, SignalFn, SupervisorStrategyConfig, SystemHandlerFn};
-use crate::api::{
-  actor::{actor_context::ActorContext, actor_failure::ActorFailure},
-  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  actor_system::map_system::MapSystemShared,
-  mailbox::messages::{PriorityEnvelope, SystemMessage},
-  messaging::{AnyMessage, MessageEnvelope, MetadataStorageMode},
+use crate::{
+  api::{
+    actor::{actor_context::ActorContext, actor_failure::ActorFailure},
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+    mailbox::messages::SystemMessage,
+    messaging::MetadataStorageMode,
+  },
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
+  },
 };
 
 /// Adapter that bridges Behavior to untyped runtime.

@@ -2,11 +2,12 @@ use core::marker::PhantomData;
 
 use cellex_utils_core_rs::Element;
 
-use crate::api::{
-  actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
-  actor_system::{GenericActorSystem, GenericActorSystemConfig},
-  mailbox::messages::PriorityEnvelope,
-  messaging::AnyMessage,
+use crate::{
+  api::{
+    actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
+    actor_system::{GenericActorSystem, GenericActorSystemConfig},
+  },
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Builder that constructs a [`GenericActorSystem`] by applying configuration overrides on top of a

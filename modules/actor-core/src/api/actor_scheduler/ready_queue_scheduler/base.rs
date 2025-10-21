@@ -13,22 +13,26 @@ use super::{
   ready_queue_state::ReadyQueueState,
   ready_queue_worker::ReadyQueueWorker,
 };
-use crate::api::{
-  actor::{actor_ref::PriorityActorRef, SpawnError},
-  actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
-  actor_system::map_system::MapSystemShared,
-  extensions::Extensions,
-  failure::{
-    failure_event_stream::FailureEventListener,
-    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-    FailureInfo,
+use crate::{
+  api::{
+    actor::{actor_ref::PriorityActorRef, SpawnError},
+    actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
+    extensions::Extensions,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      FailureInfo,
+    },
+    guardian::{AlwaysRestart, GuardianStrategy},
+    mailbox::MailboxFactory,
+    metrics::MetricsSinkShared,
+    receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
   },
-  guardian::{AlwaysRestart, GuardianStrategy},
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
-  metrics::MetricsSinkShared,
-  receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-  supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
+  shared::{
+    mailbox::messages::PriorityEnvelope,
+    messaging::{AnyMessage, MapSystemShared},
+  },
 };
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.

@@ -2,7 +2,7 @@ use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw, SharedBound};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::mailbox_signal::MailboxSignal,
+  mailbox::MailboxSignal,
   metrics::{MetricsEvent, MetricsSinkShared},
 };
 

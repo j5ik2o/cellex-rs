@@ -1,12 +1,15 @@
+#[cfg(not(feature = "std"))]
+use cellex_utils_core_rs::sync::{async_mutex_like::SpinAsyncMutex, sync_mutex_like::SpinSyncMutex};
 use cellex_utils_core_rs::{sync::ArcShared, Element};
+#[cfg(feature = "std")]
+use cellex_utils_std_rs::sync::{StdSyncMutex, TokioAsyncMutex};
 
 use crate::{
   api::{
     actor_runtime::base::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ActorSchedulerHandleBuilder,
     failure::failure_event_stream::FailureEventListener,
-    mailbox::{messages::PriorityEnvelope, MailboxFactory},
-    messaging::AnyMessage,
+    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::{
       NoopReceiveTimeoutSchedulerFactoryProvider, ReceiveTimeoutSchedulerFactoryProviderShared,
@@ -15,6 +18,7 @@ use crate::{
     supervision::escalation::FailureEventHandler,
   },
   internal::{mailbox::PriorityMailboxSpawnerHandle, runtime_state::GenericActorRuntimeState},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Helper alias mapping a runtime bundle back to its use
@@ -216,7 +220,15 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
+  #[cfg(not(feature = "std"))]
+  type AsyncMutex<T: Send> = SpinAsyncMutex<T>;
+  #[cfg(feature = "std")]
+  type AsyncMutex<T: Send> = TokioAsyncMutex<T>;
   type MailboxFactory = MF;
+  #[cfg(not(feature = "std"))]
+  type SyncMutex<T> = SpinSyncMutex<T>;
+  #[cfg(feature = "std")]
+  type SyncMutex<T> = StdSyncMutex<T>;
 
   fn mailbox_factory(&self) -> &Self::MailboxFactory {
     GenericActorRuntime::mailbox_factory(self)
@@ -284,7 +296,7 @@ where
     GenericActorRuntime::with_metrics_sink_shared(self, sink)
   }
 
-  fn priority_mailbox_spawner<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
+  fn priority_mailbox_spawner_handle<M>(&self) -> PriorityMailboxSpawnerHandle<M, Self::MailboxFactory>
   where
     M: Element,
     MailboxQueueOf<Self, PriorityEnvelope<M>>: Clone,
@@ -292,18 +304,18 @@ where
     GenericActorRuntime::priority_mailbox_spawner(self)
   }
 
-  fn with_scheduler_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self {
+  fn with_actor_scheduler_handle_builder(self, builder: ActorSchedulerHandleBuilder<Self::MailboxFactory>) -> Self {
     GenericActorRuntime::with_scheduler_builder(self, builder)
   }
 
-  fn with_scheduler_builder_shared(
+  fn with_scheduler_builder_shared_builder_shared(
     self,
     builder: ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>>,
   ) -> Self {
     GenericActorRuntime::with_scheduler_builder_shared(self, builder)
   }
 
-  fn scheduler_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
+  fn scheduler_builder_shared_builder_shared(&self) -> ArcShared<ActorSchedulerHandleBuilder<Self::MailboxFactory>> {
     GenericActorRuntime::scheduler_builder(self)
   }
 }

@@ -3,10 +3,13 @@ use alloc::boxed::Box;
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 
 use super::{actor_context::ActorContext, actor_failure::ActorFailure, signal::Signal};
-use crate::api::{
-  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::messages::{PriorityEnvelope, SystemMessage},
-  messaging::{AnyMessage, MetadataStorageMode},
+use crate::{
+  api::{
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+    mailbox::messages::SystemMessage,
+    messaging::MetadataStorageMode,
+  },
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 mod actor_adapter;

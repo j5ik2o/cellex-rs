@@ -2,17 +2,20 @@ use alloc::boxed::Box;
 
 use cellex_utils_core_rs::{sync::ArcShared, Element};
 
-use crate::api::{
-  actor::{
-    actor_context::ActorContext,
-    actor_failure::ActorFailure,
-    behavior::{
-      behavior_directive::BehaviorDirective, supervisor_strategy_config::SupervisorStrategyConfig, ReceiveFn, SignalFn,
+use crate::{
+  api::{
+    actor::{
+      actor_context::ActorContext,
+      actor_failure::ActorFailure,
+      behavior::{
+        behavior_directive::BehaviorDirective, supervisor_strategy_config::SupervisorStrategyConfig, ReceiveFn,
+        SignalFn,
+      },
     },
+    actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
+    messaging::MetadataStorageMode,
   },
-  actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxQueueOf, MailboxSignalOf},
-  mailbox::messages::PriorityEnvelope,
-  messaging::{AnyMessage, MetadataStorageMode},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 /// Struct that holds the internal state of Behavior.

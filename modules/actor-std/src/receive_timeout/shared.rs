@@ -2,9 +2,9 @@
 
 use core::time::Duration;
 
-use cellex_actor_core_rs::api::{
-  mailbox::{messages::PriorityEnvelope, MailboxFactory},
-  messaging::AnyMessage,
+use cellex_actor_core_rs::{
+  api::mailbox::MailboxFactory,
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 use cellex_utils_std_rs::{
   timing::TokioDeadlineTimer, DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,
@@ -46,7 +46,7 @@ pub(super) async fn wait_for_expired(
 pub(super) async fn run_scheduler(
   mut commands: UnboundedReceiver<Command>,
   sender: TokioSender,
-  map_system: cellex_actor_core_rs::api::actor_system::map_system::MapSystemShared<AnyMessage>,
+  map_system: cellex_actor_core_rs::shared::messaging::MapSystemShared<AnyMessage>,
 ) {
   use cellex_actor_core_rs::api::mailbox::messages::SystemMessage;
 
