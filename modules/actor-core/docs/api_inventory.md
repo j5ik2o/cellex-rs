@@ -10,7 +10,7 @@
 | messaging | `MessageEnvelope` | `modules/actor-core/src/api/messaging/message_envelope.rs` | ユーザーメッセージとシステムメッセージの橋渡し |
 | identity | `ActorId`, `ActorPath` | `modules/actor-core/src/api/identity/{actor_id.rs,actor_path.rs}` | ルーティング／名前解決用 ID 型 |
 | system-support | `Mailbox`, `MailboxRuntime`, `MailboxSignal`, `PriorityEnvelope`, `SystemMessage`, `Spawn`, `Timer` | `modules/actor-core/src/api/actor/system_support.rs`（実体は `runtime/mailbox/*` など） | std/embedded 両対応の抽象境界。`ActorSystem` 初期化は `ActorSystem::new_with_runtime_and_event_stream` 経由に一本化 |
-| supervision | `Supervisor`, `SupervisorDirective`, `NoopSupervisor`, `FailureEvent`, `EscalationStage`, `EscalationSink`, `FailureEventHandler`, `FailureEventListener`, `RootEscalationSink` | `modules/actor-core/src/api/supervision/*.rs` | ユーザー拡張ポイントとして公開する監督/失敗ハンドラ |
+| supervision | `Supervisor`, `SupervisorDirective`, `NoopSupervisor`, `FailureEvent`, `FailureEscalationStage`, `EscalationSink`, `FailureEventHandler`, `FailureEventListener`, `RootEscalationSink` | `modules/actor-core/src/api/supervision/*.rs` | ユーザー拡張ポイントとして公開する監督/失敗ハンドラ |
 | shared | `Shared`, `StateCell` | 外部クレート (`cellex_utils_core_rs`) を `api/shared.rs` で再エクスポート | 共有状態抽象 |
 | event_stream | `FailureEventStream` | `modules/actor-core/src/api/event_stream.rs` | 実装は `actor-std` / `actor-embedded` など外部クレート側で提供 |
 

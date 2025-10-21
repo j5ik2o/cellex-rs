@@ -89,7 +89,7 @@
 - `path`: `ActorPath` を clone して保持し、`segments()` 参照をそのまま利用できるようにした。
 - `failure`: `ActorFailure` を clone で保持し、telemetry 側で `behavior()` などへアクセス可能にする。
 - `metadata`: `FailureMetadata` を clone して保持。タグやトランスポート情報はそのまま再利用。
-- `stage`: `EscalationStage` を保持し、ログ時に hop 数を確認できる。
+- `stage`: `FailureEscalationStage` を保持し、ログ時に hop 数を確認できる。
 - `description`: `String` に eagerly 変換し、`Cow` のライフタイム制約を取り除いた。
 - `tags`: 最大 `MAX_FAILURE_SNAPSHOT_TAGS` 個の `TelemetryTag` を保持し、`component` / `endpoint` / `transport` と任意タグを順序付きで展開。
 

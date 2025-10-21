@@ -2,8 +2,10 @@ use alloc::{borrow::Cow, vec::Vec};
 
 #[cfg(all(feature = "std", feature = "unwind-supervision"))]
 use crate::api::failure::failure_telemetry::tracing_failure_telemetry::tracing_failure_telemetry;
-use crate::api::failure::failure_telemetry::{FailureTelemetryShared, FailureTelemetryTag};
-use crate::api::failure::FailureMetadata;
+use crate::api::failure::{
+  failure_telemetry::{FailureTelemetryShared, FailureTelemetryTag},
+  FailureMetadata,
+};
 
 /// Maximum number of tags stored inside a `FailureSnapshot`.
 pub const MAX_FAILURE_SNAPSHOT_TAGS: usize = 8;

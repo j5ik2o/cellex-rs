@@ -1,8 +1,9 @@
 use cellex_utils_core_rs::Element;
 
-use crate::api::mailbox::{messages::PriorityEnvelope, MailboxFactory};
-use crate::api::failure::failure_telemetry::FailureEventHandlerShared;
-use crate::api::failure::FailureInfo;
+use crate::api::{
+  failure::{failure_telemetry::FailureEventHandlerShared, FailureInfo},
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
+};
 
 /// Handler for notifying failure events externally.
 ///

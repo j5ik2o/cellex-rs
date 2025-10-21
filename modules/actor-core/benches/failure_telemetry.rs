@@ -1,10 +1,14 @@
 #![allow(clippy::disallowed_types)]
 use std::hint::black_box;
 
-use cellex_actor_core_rs::api::actor::{actor_failure::ActorFailure, ActorId, ActorPath};
+use cellex_actor_core_rs::api::{
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  failure::{
+    failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared, NoopFailureTelemetry},
+    FailureInfo,
+  },
+};
 use criterion::{criterion_group, criterion_main, Criterion};
-use cellex_actor_core_rs::api::failure::failure_telemetry::{FailureSnapshot, FailureTelemetry, FailureTelemetryShared, NoopFailureTelemetry};
-use cellex_actor_core_rs::api::failure::FailureInfo;
 
 fn snapshot_fixture() -> FailureSnapshot {
   let failure = ActorFailure::from_message("bench failure");

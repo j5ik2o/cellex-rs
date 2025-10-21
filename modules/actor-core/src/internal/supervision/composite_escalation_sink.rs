@@ -4,15 +4,15 @@ use super::{CustomEscalationSink, ParentGuardianSink};
 use crate::api::{
   actor::actor_ref::PriorityActorRef,
   actor_system::map_system::MapSystemShared,
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+    FailureInfo,
+  },
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
-  supervision::{
-    escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
-  },
+  supervision::escalation::{EscalationSink, FailureEventHandler, RootEscalationSink},
 };
-use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared};
-use crate::api::failure::FailureInfo;
 
 /// Composes multiple sinks and applies them in order.
 pub(crate) struct CompositeEscalationSink<MF>

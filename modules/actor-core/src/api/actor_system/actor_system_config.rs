@@ -5,15 +5,15 @@ use cellex_utils_core_rs::ArcShared;
 use crate::api::{
   actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
   extensions::{Extension, Extensions},
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{FailureTelemetryBuilderShared, FailureTelemetryObservationConfig, FailureTelemetryShared},
+  },
   mailbox::messages::PriorityEnvelope,
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   process::pid::{NodeId, SystemId},
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-};
-use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::failure_telemetry::{
-  FailureTelemetryBuilderShared, FailureTelemetryObservationConfig, FailureTelemetryShared,
 };
 
 /// Configuration options applied when constructing an
@@ -113,10 +113,7 @@ where
 
   /// Sets telemetry observation configuration.
   #[must_use]
-  pub fn with_failure_observation_config_opt(
-    mut self,
-    config: Option<FailureTelemetryObservationConfig>,
-  ) -> Self {
+  pub fn with_failure_observation_config_opt(mut self, config: Option<FailureTelemetryObservationConfig>) -> Self {
     self.failure_observation_config_opt = config;
     self
   }
@@ -184,10 +181,7 @@ where
   }
 
   /// Mutable setter for telemetry observation config.
-  pub fn set_failure_observation_config_opt(
-    &mut self,
-    config: Option<FailureTelemetryObservationConfig>,
-  ) {
+  pub fn set_failure_observation_config_opt(&mut self, config: Option<FailureTelemetryObservationConfig>) {
     self.failure_observation_config_opt = config;
   }
 

@@ -3,7 +3,7 @@ mod tests;
 
 use alloc::borrow::Cow;
 
-use super::{EscalationStage, FailureMetadata};
+use super::{FailureEscalationStage, FailureMetadata};
 use crate::api::actor::{
   actor_failure::{ActorFailure, BehaviorFailure},
   ActorId, ActorPath,
@@ -21,7 +21,7 @@ pub struct FailureInfo {
   /// Metadata associated with the failure
   pub metadata: FailureMetadata,
   /// Escalation stage
-  pub stage:    EscalationStage,
+  pub stage:    FailureEscalationStage,
 }
 
 impl FailureInfo {
@@ -56,7 +56,7 @@ impl FailureInfo {
     failure: ActorFailure,
     metadata: FailureMetadata,
   ) -> Self {
-    Self { actor, path, failure, metadata, stage: EscalationStage::Initial }
+    Self { actor, path, failure, metadata, stage: FailureEscalationStage::Initial }
   }
 
   /// Sets metadata.
@@ -80,7 +80,7 @@ impl FailureInfo {
   /// # Returns
   /// `FailureInfo` instance with escalation stage set
   #[must_use]
-  pub const fn with_stage(mut self, stage: EscalationStage) -> Self {
+  pub const fn with_stage(mut self, stage: FailureEscalationStage) -> Self {
     self.stage = stage;
     self
   }

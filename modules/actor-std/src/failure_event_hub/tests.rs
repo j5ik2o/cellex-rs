@@ -1,8 +1,13 @@
 use std::sync::{Arc as StdArc, Mutex as StdMutex};
 
-use cellex_actor_core_rs::api::actor::{actor_failure::ActorFailure, ActorId, ActorPath};
-use cellex_actor_core_rs::api::failure::{FailureEvent, FailureInfo, FailureMetadata};
-use cellex_actor_core_rs::api::failure::failure_event_stream::{FailureEventListener, FailureEventStream};
+use cellex_actor_core_rs::api::{
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  failure::{
+    failure_event_stream::{FailureEventListener, FailureEventStream},
+    FailureEvent, FailureInfo, FailureMetadata,
+  },
+};
+
 use super::failure_event_hub_impl::FailureEventHub;
 
 impl FailureEventHub {

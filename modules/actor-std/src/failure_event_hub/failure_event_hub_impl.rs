@@ -1,7 +1,10 @@
 use std::sync::{atomic::Ordering, Arc};
 
-use cellex_actor_core_rs::api::failure::failure_event_stream::{FailureEventListener, FailureEventStream};
-use cellex_actor_core_rs::api::failure::FailureEvent;
+use cellex_actor_core_rs::api::failure::{
+  failure_event_stream::{FailureEventListener, FailureEventStream},
+  FailureEvent,
+};
+
 use super::{failure_event_hub_inner::FailureEventHubInner, FailureEventSubscription};
 
 /// FailureEventStream implementation for std.

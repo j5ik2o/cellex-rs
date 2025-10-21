@@ -10,9 +10,11 @@ use cellex_actor_core_rs::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath, Props},
   actor_runtime::GenericActorRuntime,
   actor_system::ActorSystem,
+  failure::{
+    failure_event_stream::{FailureEventListener, FailureEventStream},
+    FailureEvent, FailureInfo, FailureMetadata,
+  },
 };
-use cellex_actor_core_rs::api::failure::{FailureEvent, FailureInfo, FailureMetadata};
-use cellex_actor_core_rs::api::failure::failure_event_stream::{FailureEventListener, FailureEventStream};
 use cellex_actor_embedded_rs::{runtime_driver::EmbeddedFailureEventHub, LocalMailboxRuntime};
 
 #[test]

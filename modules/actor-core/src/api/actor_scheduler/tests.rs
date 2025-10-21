@@ -4,7 +4,7 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use core::cell::RefCell;
+use core::cell::{Cell, RefCell};
 #[cfg(feature = "std")]
 use std::collections::VecDeque;
 #[cfg(feature = "std")]
@@ -36,11 +36,11 @@ use crate::api::{
     ActorScheduler, ActorSchedulerSpawnContext,
   },
   actor_system::map_system::MapSystemShared,
-  extensions::Extensions
-  ,
+  extensions::Extensions,
+  failure::{failure_event_stream::FailureEventListener, FailureEvent, FailureInfo},
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{
-    messages::{PriorityEnvelope, SystemMessage},
+    messages::{PriorityChannel, PriorityEnvelope, SystemMessage},
     MailboxFactory, MailboxOptions,
   },
   messaging::{AnyMessage, MessageEnvelope},
@@ -48,9 +48,11 @@ use crate::api::{
   process::{
     pid::{Pid, SystemId},
     process_registry::ProcessRegistry,
-  }
-  ,
-  supervision::supervisor::{NoopSupervisor, Supervisor},
+  },
+  supervision::{
+    escalation::FailureEventHandler,
+    supervisor::{NoopSupervisor, Supervisor},
+  },
   test_support::TestMailboxFactory,
 };
 #[cfg(feature = "std")]

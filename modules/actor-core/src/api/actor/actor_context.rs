@@ -34,10 +34,12 @@ pub use crate::api::actor::{
   message_adapter_ref::MessageAdapterRef, message_metadata_responder::MessageMetadataResponder,
 };
 use crate::{
-  api::actor::{actor_id::ActorId, actor_path::ActorPath},
+  api::{
+    actor::{actor_id::ActorId, actor_path::ActorPath},
+    failure::FailureInfo,
+  },
   internal::actor_context::InternalActorContext,
 };
-use crate::api::failure::FailureInfo;
 
 type ActorRegistryShared<AR> =
   ArcShared<ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>>;

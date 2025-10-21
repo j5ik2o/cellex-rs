@@ -18,17 +18,17 @@ use crate::api::{
   actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+    FailureInfo,
+  },
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
   metrics::MetricsSinkShared,
   receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
-};
-use crate::api::failure::{
-  failure_event_stream::FailureEventListener,
-  failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-  FailureInfo,
 };
 
 /// Ready-queue based actor scheduler that coordinates execution and escalation handling.

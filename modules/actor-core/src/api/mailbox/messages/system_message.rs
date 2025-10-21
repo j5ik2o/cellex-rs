@@ -1,7 +1,6 @@
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 
-use crate::api::actor::ActorId;
-use crate::api::failure::FailureInfo;
+use crate::api::{actor::ActorId, failure::FailureInfo};
 
 #[cfg(test)]
 mod tests;

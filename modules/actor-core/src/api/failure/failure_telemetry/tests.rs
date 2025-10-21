@@ -7,7 +7,7 @@ use super::{
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
   extensions::Extensions,
-  failure::{EscalationStage, FailureInfo, FailureMetadata},
+  failure::{FailureEscalationStage, FailureInfo, FailureMetadata},
 };
 
 #[test]
@@ -24,13 +24,15 @@ fn telemetry_builder_shared_invokes_closure() {
 mod std_tests {
   #![allow(clippy::unwrap_used)]
 
-  use super::*;
   use std::{
     io::Write,
     sync::{Arc, Mutex},
   };
+
   use tracing::subscriber::with_default;
   use tracing_subscriber::fmt;
+
+  use super::*;
 
   #[test]
   fn failure_snapshot_captures_core_fields() {
@@ -39,7 +41,7 @@ mod std_tests {
     let path = ActorPath::new().push_child(ActorId(42));
     let failure = ActorFailure::from_message("test failure");
     let info = FailureInfo::new_with_metadata(ActorId(42), path.clone(), failure.clone(), metadata.clone())
-      .with_stage(EscalationStage::Escalated { hops: 2 });
+      .with_stage(FailureEscalationStage::Escalated { hops: 2 });
 
     let snapshot = FailureSnapshot::from_failure_info(&info);
 
@@ -47,11 +49,10 @@ mod std_tests {
     assert_eq!(snapshot.path(), &path);
     assert_eq!(snapshot.failure(), &failure);
     assert_eq!(snapshot.metadata(), &metadata);
-    assert_eq!(snapshot.stage(), EscalationStage::Escalated { hops: 2 });
+    assert_eq!(snapshot.stage(), FailureEscalationStage::Escalated { hops: 2 });
     assert_eq!(snapshot.description(), info.description().as_ref());
 
-    let tags: Vec<_> =
-      snapshot.tags().iter().map(|tag| (tag.key().to_string(), tag.value().to_string())).collect();
+    let tags: Vec<_> = snapshot.tags().iter().map(|tag| (tag.key().to_string(), tag.value().to_string())).collect();
     assert!(tags.contains(&("component".to_string(), "runtime".to_string())));
     assert!(tags.contains(&("transport".to_string(), "loopback".to_string())));
     assert!(tags.contains(&("key".to_string(), "value".to_string())));
@@ -79,7 +80,7 @@ mod std_tests {
     let path = ActorPath::new();
     let failure = ActorFailure::from_message("log check");
     let info = FailureInfo::new_with_metadata(ActorId(7), path, failure, metadata)
-      .with_stage(EscalationStage::Escalated { hops: 3 });
+      .with_stage(FailureEscalationStage::Escalated { hops: 3 });
     let snapshot = FailureSnapshot::from_failure_info(&info);
 
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));

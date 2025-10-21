@@ -2,8 +2,10 @@
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 
 use super::SystemMessage;
-use crate::api::actor::{actor_failure::ActorFailure, ActorId, ActorPath};
-use crate::api::failure::FailureInfo;
+use crate::api::{
+  actor::{actor_failure::ActorFailure, ActorId, ActorPath},
+  failure::FailureInfo,
+};
 
 #[test]
 fn priority_table_matches_expected_values() {

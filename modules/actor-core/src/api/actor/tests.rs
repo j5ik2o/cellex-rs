@@ -324,9 +324,11 @@ use core::{
 use cellex_utils_core_rs::sync::ArcShared;
 use futures::{executor::block_on, future};
 
-use crate::api::{guardian::AlwaysRestart, mailbox::ThreadSafe};
-use crate::api::failure::failure_event_stream::FailureEventListener;
-use crate::api::failure::FailureEvent;
+use crate::api::{
+  failure::{failure_event_stream::FailureEventListener, FailureEvent},
+  guardian::AlwaysRestart,
+  mailbox::ThreadSafe,
+};
 
 #[derive(Debug)]
 struct CounterExtension {
@@ -1073,14 +1075,12 @@ mod metrics_injection {
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
     actor_system::{ActorSystem, ActorSystemConfig},
+    failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
     mailbox::MailboxFactory,
     messaging::AnyMessage,
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
     test_support::TestMailboxFactory,
-  };
-  use crate::api::failure::failure_telemetry::{
-    FailureTelemetryObservationConfig, FailureTelemetryShared,
   };
 
   #[derive(Clone)]
@@ -1155,8 +1155,7 @@ mod metrics_injection {
     fn on_escalation(
       &mut self,
       _handler: Box<
-        dyn FnMut(&crate::api::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>
-          + 'static,
+        dyn FnMut(&crate::api::failure::FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static,
       >,
     ) {
     }

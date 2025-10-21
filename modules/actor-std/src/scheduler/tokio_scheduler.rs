@@ -8,6 +8,11 @@ use cellex_actor_core_rs::api::{
   },
   actor_system::map_system::MapSystemShared,
   extensions::Extensions,
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+    FailureInfo,
+  },
   guardian::{AlwaysRestart, GuardianStrategy},
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
@@ -17,11 +22,6 @@ use cellex_actor_core_rs::api::{
 };
 use cellex_utils_core_rs::{sync::ArcShared, QueueError};
 use tokio::task::yield_now;
-use cellex_actor_core_rs::api::failure::failure_event_stream::FailureEventListener;
-use cellex_actor_core_rs::api::failure::failure_telemetry::{
-  FailureTelemetryObservationConfig, FailureTelemetryShared,
-};
-use cellex_actor_core_rs::api::failure::FailureInfo;
 
 /// Tokio scheduler wrapper.
 ///

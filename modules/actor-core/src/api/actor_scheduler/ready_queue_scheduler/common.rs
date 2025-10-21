@@ -13,6 +13,11 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     actor_system::map_system::MapSystemShared,
     extensions::Extensions,
+    failure::{
+      failure_event_stream::FailureEventListener,
+      failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
+      FailureInfo,
+    },
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
     mailbox::{
       messages::{PriorityEnvelope, SystemMessage},
@@ -24,11 +29,6 @@ use crate::{
     supervision::{escalation::EscalationSink, supervisor::Supervisor},
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
-};
-use crate::api::failure::{
-  failure_event_stream::FailureEventListener,
-  failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-  FailureInfo,
 };
 
 /// Simple scheduler implementation assuming priority mailboxes.

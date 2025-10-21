@@ -3,19 +3,16 @@ use core::marker::PhantomData;
 use std::time::Instant;
 
 use crate::api::{
+  failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{
+      default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryObservationConfig, FailureTelemetryShared,
+    },
+    FailureEvent, FailureInfo,
+  },
   mailbox::{messages::PriorityEnvelope, MailboxFactory},
   messaging::AnyMessage,
-  supervision::{
-    escalation::escalation_sink::{EscalationSink, FailureEventHandler},
-  },
-};
-use crate::api::failure::{
-  failure_event_stream::FailureEventListener,
-  failure_telemetry::{
-    default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryObservationConfig, FailureTelemetryShared,
-  },
-  FailureEvent,
-  FailureInfo,
+  supervision::escalation::escalation_sink::{EscalationSink, FailureEventHandler},
 };
 
 /// `EscalationSink` implementation for root guardian.
@@ -27,11 +24,11 @@ where
   MF: MailboxFactory,
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
-  failure_event_handler_opt:  Option<FailureEventHandler>,
+  failure_event_handler_opt: Option<FailureEventHandler>,
   failure_event_listener_opt: Option<FailureEventListener>,
-  failure_telemetry_shared:      FailureTelemetryShared,
-  failure_telemetry_observation_config:    FailureTelemetryObservationConfig,
-  _marker:        PhantomData<MF>,
+  failure_telemetry_shared: FailureTelemetryShared,
+  failure_telemetry_observation_config: FailureTelemetryObservationConfig,
+  _marker: PhantomData<MF>,
 }
 
 impl<MF> RootEscalationSink<MF>
@@ -46,11 +43,11 @@ where
   #[must_use]
   pub fn new() -> Self {
     Self {
-      failure_event_handler_opt:  None,
+      failure_event_handler_opt: None,
       failure_event_listener_opt: None,
-      failure_telemetry_shared:      default_failure_telemetry_shared(),
-      failure_telemetry_observation_config:    FailureTelemetryObservationConfig::default(),
-      _marker:        PhantomData,
+      failure_telemetry_shared: default_failure_telemetry_shared(),
+      failure_telemetry_observation_config: FailureTelemetryObservationConfig::default(),
+      _marker: PhantomData,
     }
   }
 
@@ -127,7 +124,9 @@ where
   fn handle(&mut self, info: FailureInfo, _already_handled: bool) -> Result<(), FailureInfo> {
     let snapshot = FailureSnapshot::from_failure_info(&info);
     #[cfg(feature = "std")]
-    let start = if self.failure_telemetry_observation_config.should_record_timing() && self.failure_telemetry_observation_config.metrics_sink().is_some() {
+    let start = if self.failure_telemetry_observation_config.should_record_timing()
+      && self.failure_telemetry_observation_config.metrics_sink().is_some()
+    {
       Some(Instant::now())
     } else {
       None
