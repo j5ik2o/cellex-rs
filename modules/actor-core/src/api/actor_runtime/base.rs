@@ -39,16 +39,14 @@ pub type MailboxConcurrencyOf<R> = <MailboxOf<R> as MailboxFactory>::Concurrency
 /// - Scheduler builder configuration
 #[allow(dead_code)]
 pub trait ActorRuntime: Clone {
-  /// Underlying use cellex_actor_core_rs::api::mailbox::MailboxRuntime; retained by this actor
+  /// Underlying use MailboxFactory; retained by this actor
   /// runtime facade.
   type MailboxFactory: MailboxFactory + Clone + 'static;
 
   /// Returns a shared reference to the underlying use
-  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   fn mailbox_factory(&self) -> &Self::MailboxFactory;
 
   /// Consumes `self` and returns the underlying use
-  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
   fn into_mailbox_factory(self) -> Self::MailboxFactory
   where
     Self: Sized;
