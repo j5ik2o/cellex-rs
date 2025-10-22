@@ -1,7 +1,8 @@
 //! MailboxOptions - Mailbox configuration
 
-use super::OverflowStrategy;
 use core::num::NonZeroUsize;
+
+use super::OverflowStrategy;
 
 /// Mailbox configuration options
 #[derive(Debug, Clone)]

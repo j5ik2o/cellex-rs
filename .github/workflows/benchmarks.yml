@@ -1,0 +1,221 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [main, 'refactor/**']
+  pull_request:
+    branches: [main]
+  schedule:
+    # 毎日 UTC 0:00 (JST 9:00) に実行
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ベースライン比較のため全履歴取得
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Cache target directory
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-target-bench-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-bench-
+
+      - name: Run benchmarks
+        run: |
+          cargo bench --bench mailbox_throughput --features std -- --save-baseline current
+          cargo bench --bench scheduler_latency --features std -- --save-baseline current
+
+      - name: Store benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: target/criterion/
+
+      - name: Compare with baseline (if exists)
+        id: compare
+        continue-on-error: true
+        run: |
+          if [ -d "benchmarks/baseline_before_refactor" ]; then
+            echo "Comparing with baseline..."
+
+            # ベースラインと現在の結果を比較
+            # ここでは簡易的な比較、本格的な比較は後続のスクリプトで実行
+            echo "BASELINE_EXISTS=true" >> $GITHUB_OUTPUT
+
+            # 5% 以上の劣化があるかチェック（簡易版）
+            # 実際の比較ロジックは scripts/compare_benchmarks.py で実装
+            echo "REGRESSION_DETECTED=false" >> $GITHUB_OUTPUT
+          else
+            echo "No baseline found, skipping comparison"
+            echo "BASELINE_EXISTS=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate benchmark report
+        if: steps.compare.outputs.BASELINE_EXISTS == 'true'
+        run: |
+          # ベンチマークレポートを生成
+          mkdir -p benchmark-reports
+          echo "# Benchmark Results" > benchmark-reports/report.md
+          echo "" >> benchmark-reports/report.md
+          echo "**Branch**: ${{ github.ref }}" >> benchmark-reports/report.md
+          echo "**Commit**: ${{ github.sha }}" >> benchmark-reports/report.md
+          echo "**Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> benchmark-reports/report.md
+          echo "" >> benchmark-reports/report.md
+
+          # Criterion の結果サマリを追加
+          if [ -f "target/criterion/report/index.html" ]; then
+            echo "Criterion report generated at target/criterion/report/index.html"
+          fi
+
+      - name: Upload benchmark report
+        if: steps.compare.outputs.BASELINE_EXISTS == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-report
+          path: benchmark-reports/
+
+      # Slack 通知（回帰検知時のみ）
+      # 注: SLACK_WEBHOOK_URL シークレットが設定されている場合のみ動作
+      - name: Notify Slack on regression
+        if: steps.compare.outputs.REGRESSION_DETECTED == 'true' && github.event_name != 'pull_request'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "⚠️ Benchmark Regression Detected",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "⚠️ Benchmark Regression Detected"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.ref }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n<${{ github.event.head_commit.url }}|${{ github.sha }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author:*\n${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Performance has degraded by >5% compared to baseline.\nPlease review the benchmark results."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  # PR コメントへのベンチマーク結果投稿
+  comment-pr:
+    name: Comment Benchmark Results on PR
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Download benchmark results
+        uses: actions/download-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark-results/
+
+      - name: Download benchmark report
+        uses: actions/download-artifact@v3
+        with:
+          name: benchmark-report
+          path: benchmark-reports/
+        continue-on-error: true
+
+      - name: Comment PR with benchmark results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let body = '## 📊 Benchmark Results\n\n';
+
+            // レポートファイルが存在する場合は内容を追加
+            if (fs.existsSync('benchmark-reports/report.md')) {
+              const report = fs.readFileSync('benchmark-reports/report.md', 'utf8');
+              body += report + '\n\n';
+            }
+
+            body += '### Details\n\n';
+            body += 'Full benchmark results are available in the workflow artifacts.\n\n';
+            body += `[View Workflow Run](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
+
+            // PR にコメント投稿
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

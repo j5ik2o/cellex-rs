@@ -1,8 +1,9 @@
 //! InvokeResult - Message invocation outcomes
 
-use super::{ResumeCondition, SuspendReason};
 use alloc::string::String;
 use core::time::Duration;
+
+use super::{ResumeCondition, SuspendReason};
 
 /// Result of message invocation
 #[derive(Debug, Clone, PartialEq)]

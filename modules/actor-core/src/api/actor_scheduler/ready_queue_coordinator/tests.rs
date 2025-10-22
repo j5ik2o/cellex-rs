@@ -1,8 +1,9 @@
 //! Tests for ReadyQueueCoordinator
 
-use super::*;
 use alloc::string::ToString;
 use core::time::Duration;
+
+use super::*;
 #[cfg(feature = "std")]
 use crate::api::actor_scheduler::default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
 

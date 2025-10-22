@@ -3,12 +3,13 @@
 //! This module provides the default implementation using std collections.
 //! This is a Phase 0 prototype implementation.
 
-use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinator};
 use core::task::{Context, Poll};
 use std::{
   collections::{HashSet, VecDeque},
   sync::{Arc, Mutex},
 };
+
+use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinator};
 
 /// Internal state for the coordinator
 struct CoordinatorState {

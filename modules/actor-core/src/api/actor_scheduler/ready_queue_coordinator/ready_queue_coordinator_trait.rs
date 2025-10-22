@@ -1,8 +1,9 @@
 //! ReadyQueueCoordinator trait - Ready queue coordination interface
 
-use super::{InvokeResult, MailboxIndex};
 use alloc::vec::Vec;
 use core::task::{Context, Poll};
+
+use super::{InvokeResult, MailboxIndex};
 
 /// Trait for ready queue coordination
 ///

@@ -1,7 +1,8 @@
 //! ResumeCondition - Conditions for resuming suspended actors
 
-use super::SignalKey;
 use core::time::Duration;
+
+use super::SignalKey;
 
 /// Condition for resuming a suspended actor
 #[derive(Debug, Clone, PartialEq)]
