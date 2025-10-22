@@ -1,20 +1,19 @@
 #![allow(clippy::disallowed_types)]
 #![cfg(feature = "arc")]
 
+mod arc_rw_lock_backend;
 #[cfg(all(test, feature = "std"))]
 mod tests;
-mod arc_rw_lock_backend;
 
 use alloc::{boxed::Box, sync::Arc};
 
+pub use arc_rw_lock_backend::{ArcCsSynchronizedRw, ArcLocalSynchronizedRw, ArcRwLockBackend, ArcSynchronizedRw};
 use async_trait::async_trait;
 use cellex_utils_core_rs::{Synchronized as CoreSynchronized, SynchronizedMutexBackend};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   mutex::{Mutex, MutexGuard},
 };
-
-pub use arc_rw_lock_backend::{ArcCsSynchronizedRw, ArcLocalSynchronizedRw, ArcRwLockBackend, ArcSynchronizedRw};
 
 /// Backend implementation for mutex-based synchronization using `Arc`
 ///

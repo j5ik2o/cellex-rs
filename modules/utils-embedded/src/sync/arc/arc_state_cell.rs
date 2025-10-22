@@ -1,7 +1,8 @@
 #![allow(clippy::disallowed_types)]
 
 use alloc::sync::Arc;
-use cellex_utils_core_rs::{MpscBuffer, RingBuffer, RingBufferStorage, StateCell, QueueStorage};
+
+use cellex_utils_core_rs::{MpscBuffer, QueueStorage, RingBuffer, RingBufferStorage, StateCell};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex},
   mutex::{Mutex, MutexGuard},

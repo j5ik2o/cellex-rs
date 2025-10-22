@@ -1,6 +1,7 @@
 #![allow(clippy::disallowed_types)]
 
 use alloc::{boxed::Box, sync::Arc};
+
 use async_trait::async_trait;
 use cellex_utils_core_rs::{SynchronizedRw as CoreSynchronizedRw, SynchronizedRwBackend};
 use embassy_sync::{

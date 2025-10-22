@@ -11,7 +11,6 @@
 //! - Ask pattern (Request-Response)
 //! - Mailboxes and dispatchers
 //! - Event stream
-#![allow(cfg_std_forbid)]
 #![deny(missing_docs)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 #![deny(rustdoc::broken_intra_doc_links)]
@@ -60,7 +59,7 @@
 #![deny(clippy::naive_bytecount)]
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::cmp_null)]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![allow(clippy::result_large_err)]
 #![allow(unknown_lints)]
 #![deny(cfg_std_forbid)]

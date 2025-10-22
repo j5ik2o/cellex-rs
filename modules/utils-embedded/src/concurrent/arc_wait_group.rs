@@ -1,7 +1,6 @@
 #![allow(clippy::disallowed_types)]
 #![cfg(feature = "arc")]
 
-
 use alloc::{boxed::Box, sync::Arc};
 use core::sync::atomic::{AtomicUsize, Ordering};
 
@@ -83,4 +82,3 @@ pub type ArcLocalWaitGroup = CoreWaitGroup<ArcWaitGroupBackend<CriticalSectionRa
 ///
 /// Uses critical section signal backend.
 pub type ArcCsWaitGroup = ArcLocalWaitGroup;
-

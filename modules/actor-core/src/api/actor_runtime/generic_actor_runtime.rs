@@ -1,4 +1,7 @@
-use cellex_utils_core_rs::{sync::{async_mutex_like::SpinAsyncMutex, sync_mutex_like::SpinSyncMutex, ArcShared}, Element};
+use cellex_utils_core_rs::{
+  sync::{async_mutex_like::SpinAsyncMutex, sync_mutex_like::SpinSyncMutex, ArcShared},
+  Element,
+};
 
 use crate::{
   api::{

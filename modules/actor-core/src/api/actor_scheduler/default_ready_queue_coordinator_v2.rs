@@ -22,12 +22,16 @@
 use alloc::{
   collections::{BTreeSet, VecDeque},
   sync::Arc,
+  vec::Vec,
 };
 use core::task::{Context, Poll};
 
 use spin::Mutex;
 
 use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
+
+#[cfg(test)]
+mod tests;
 
 /// Internal state for the coordinator
 struct CoordinatorState {
@@ -46,7 +50,6 @@ struct CoordinatorState {
 ///
 /// All operations acquire the Mutex:
 /// ```rust
-/// # #[cfg(feature = "std")] {
 /// # use std::sync::Arc;
 /// # use cellex_actor_core_rs::api::actor_scheduler::{
 /// #   DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex
@@ -210,6 +213,3 @@ impl ReadyQueueCoordinatorV2 for DefaultReadyQueueCoordinatorV2 {
 // - Arc<Mutex<CoordinatorState>>: thread-safe
 unsafe impl Send for DefaultReadyQueueCoordinatorV2 {}
 unsafe impl Sync for DefaultReadyQueueCoordinatorV2 {}
-
-#[cfg(test)]
-mod tests;

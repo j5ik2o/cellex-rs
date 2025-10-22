@@ -18,9 +18,9 @@
 use alloc::vec::Vec;
 use core::task::{Context, Poll};
 
-use super::DefaultReadyQueueCoordinatorV2;
-use super::LockFreeCoordinatorV2;
-use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
+use super::{
+  DefaultReadyQueueCoordinatorV2, InvokeResult, LockFreeCoordinatorV2, MailboxIndex, ReadyQueueCoordinatorV2,
+};
 
 #[cfg(test)]
 mod tests;
@@ -31,7 +31,6 @@ mod tests;
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(feature = "std")] {
 /// # use cellex_actor_core_rs::api::actor_scheduler::AdaptiveCoordinator;
 /// // Low concurrency scenario (web server with 4 cores)
 /// let coordinator = AdaptiveCoordinator::new(32, 4);
@@ -116,43 +115,43 @@ impl AdaptiveCoordinator {
 impl ReadyQueueCoordinatorV2 for AdaptiveCoordinator {
   fn register_ready(&self, idx: MailboxIndex) {
     match self {
-      Self::Locked(coord) => coord.register_ready(idx),
-      Self::LockFree(coord) => coord.register_ready(idx),
+      | Self::Locked(coord) => coord.register_ready(idx),
+      | Self::LockFree(coord) => coord.register_ready(idx),
     }
   }
 
   fn unregister(&self, idx: MailboxIndex) {
     match self {
-      Self::Locked(coord) => coord.unregister(idx),
-      Self::LockFree(coord) => coord.unregister(idx),
+      | Self::Locked(coord) => coord.unregister(idx),
+      | Self::LockFree(coord) => coord.unregister(idx),
     }
   }
 
   fn drain_ready_cycle(&self, max_batch: usize, out: &mut Vec<MailboxIndex>) {
     match self {
-      Self::Locked(coord) => coord.drain_ready_cycle(max_batch, out),
-      Self::LockFree(coord) => coord.drain_ready_cycle(max_batch, out),
+      | Self::Locked(coord) => coord.drain_ready_cycle(max_batch, out),
+      | Self::LockFree(coord) => coord.drain_ready_cycle(max_batch, out),
     }
   }
 
   fn poll_wait_signal(&self, cx: &mut Context<'_>) -> Poll<()> {
     match self {
-      Self::Locked(coord) => coord.poll_wait_signal(cx),
-      Self::LockFree(coord) => coord.poll_wait_signal(cx),
+      | Self::Locked(coord) => coord.poll_wait_signal(cx),
+      | Self::LockFree(coord) => coord.poll_wait_signal(cx),
     }
   }
 
   fn handle_invoke_result(&self, idx: MailboxIndex, result: InvokeResult) {
     match self {
-      Self::Locked(coord) => coord.handle_invoke_result(idx, result),
-      Self::LockFree(coord) => coord.handle_invoke_result(idx, result),
+      | Self::Locked(coord) => coord.handle_invoke_result(idx, result),
+      | Self::LockFree(coord) => coord.handle_invoke_result(idx, result),
     }
   }
 
   fn throughput_hint(&self) -> usize {
     match self {
-      Self::Locked(coord) => coord.throughput_hint(),
-      Self::LockFree(coord) => coord.throughput_hint(),
+      | Self::Locked(coord) => coord.throughput_hint(),
+      | Self::LockFree(coord) => coord.throughput_hint(),
     }
   }
 }

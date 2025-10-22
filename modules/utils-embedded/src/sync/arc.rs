@@ -1,15 +1,14 @@
 #![allow(clippy::disallowed_types)]
+mod arc_state_cell;
 #[cfg(test)]
 mod tests;
-mod arc_state_cell;
 
 use alloc::sync::Arc;
 
+pub use arc_state_cell::{ArcCsStateCell, ArcLocalStateCell, ArcStateCell};
 use cellex_utils_core_rs::{
   MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, Shared, StackBackend, StackHandle,
 };
-
-pub use arc_state_cell::{ArcCsStateCell, ArcLocalStateCell, ArcStateCell};
 
 /// `Arc`-based shared reference type for embedded environments.
 ///

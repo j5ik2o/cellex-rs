@@ -15,7 +15,7 @@
 //! - Slightly higher latency for single-threaded scenarios (~5-10%)
 //! - Best suited for 5+ concurrent threads
 
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec::Vec};
 use core::{
   sync::atomic::{AtomicBool, Ordering},
   task::{Context, Poll},
@@ -25,6 +25,9 @@ use crossbeam_queue::SegQueue;
 use dashmap::DashSet;
 
 use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinator};
+
+#[cfg(test)]
+mod tests;
 
 /// Lock-free implementation of ReadyQueueCoordinator
 ///
@@ -67,7 +70,8 @@ impl LockFreeCoordinator {
   ///
   /// # Example
   ///
-  /// ```ignore
+  /// ```rust
+  /// # use cellex_actor_core_rs::api::actor_scheduler::LockFreeCoordinator;
   /// let coordinator = LockFreeCoordinator::new(32);
   /// ```
   pub fn new(throughput: usize) -> Self {
@@ -190,6 +194,3 @@ impl Clone for LockFreeCoordinator {
 // All operations are thread-safe
 unsafe impl Send for LockFreeCoordinator {}
 unsafe impl Sync for LockFreeCoordinator {}
-
-#[cfg(test)]
-mod tests;

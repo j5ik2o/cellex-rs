@@ -12,22 +12,15 @@ repository = "https://github.com/j5ik2o/cellex-rs"
 [features]
 default = ["alloc"]
 alloc = []
-std = [
-  "alloc",
-  "tracing",
-  "futures/std",
-  "futures/executor",
-  "json",
-  "prost",
-  "dep:cellex-utils-std-rs",
-  "dep:tokio",
-]
-tokio = []
+tracing-support = ["tracing", "tracing/std"]
 json = ["dep:cellex-serialization-json-rs"]
 prost = ["dep:cellex-serialization-prost-rs"]
-unwind-supervision = ["tracing"]
+unwind-supervision = ["tracing-support"]
 postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
+
+# 便利な組み合わせフィーチャー
+full = ["alloc", "tracing-support", "json", "prost"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -36,15 +29,13 @@ cellex-serialization-json-rs = { path = "../serialization-json", optional = true
 cellex-serialization-postcard-rs = { path = "../serialization-postcard", optional = true }
 cellex-serialization-prost-rs = { path = "../serialization-prost", optional = true }
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
-cellex-utils-std-rs = { path = "../utils-std", optional = true }
 critical-section = { workspace = true, default-features = false }
 crossbeam-queue = { version = "0.3" }
 dashmap = { version = "6.0" }
 futures = { workspace = true, default-features = false, features = ["alloc"] }
 portable-atomic = { workspace = true, default-features = false, features = ["critical-section"] }
 spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "once", "portable_atomic", "rwlock"] }
-tokio = { workspace = true, optional = true, default-features = false, features = ["macros", "rt", "rt-multi-thread", "sync", "time", "signal"] }
-tracing = { workspace = true, features = ["std"], optional = true }
+tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
@@ -55,19 +46,19 @@ tracing-subscriber = { workspace = true, features = ["fmt"] }
 [[bench]]
 name = "metadata_table"
 harness = false
-required-features = ["std"]
+required-features = ["full"]
 
 [[bench]]
 name = "failure_telemetry"
 harness = false
-required-features = ["std"]
+required-features = ["full"]
 
 [[bench]]
 name = "mailbox_throughput"
 harness = false
-required-features = ["std"]
+required-features = ["full"]
 
 [[bench]]
 name = "scheduler_latency"
 harness = false
-required-features = ["std"]
+required-features = ["full"]

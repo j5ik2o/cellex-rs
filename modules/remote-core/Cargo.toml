@@ -6,9 +6,8 @@ description = "Remote messaging core scaffolding"
 license = "MIT OR Apache-2.0"
 
 [features]
-default = ["std"]
+default = ["alloc"]
 alloc = []
-std = ["alloc", "cellex-actor-core-rs/std"]
 
 [dependencies]
 cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc", "test-support"] }

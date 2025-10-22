@@ -1,7 +1,6 @@
 #![allow(clippy::disallowed_types)]
 #![cfg(feature = "arc")]
 
-
 use alloc::{boxed::Box, sync::Arc};
 use core::sync::atomic::{AtomicUsize, Ordering};
 
@@ -77,4 +76,3 @@ pub type ArcLocalAsyncBarrier = CoreAsyncBarrier<ArcAsyncBarrierBackend<Critical
 ///
 /// Uses critical section signal backend.
 pub type ArcCsAsyncBarrier = ArcLocalAsyncBarrier;
-

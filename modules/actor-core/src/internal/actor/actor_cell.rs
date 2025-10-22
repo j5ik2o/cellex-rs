@@ -1,3 +1,6 @@
+#[cfg(feature = "unwind-supervision")]
+extern crate std;
+
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, cmp::Reverse, marker::PhantomData};
 
@@ -33,7 +36,6 @@ pub(crate) struct ActorCell<MF, Strat>
 where
   MF: MailboxFactory + Clone + 'static,
   Strat: GuardianStrategy<MF>, {
-  #[cfg_attr(not(feature = "std"), allow(dead_code))]
   actor_id: ActorId,
   map_system: MapSystemShared<AnyMessage>,
   watchers: Vec<ActorId>,

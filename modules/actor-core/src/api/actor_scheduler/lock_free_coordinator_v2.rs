@@ -16,7 +16,7 @@
 //! - 4 threads: ~1.5 ms (expect 5x improvement over V1)
 //! - 8 threads: ~3.5 ms (expect 5x improvement over V1)
 
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec::Vec};
 use core::{
   sync::atomic::{AtomicBool, Ordering},
   task::{Context, Poll},
@@ -26,6 +26,9 @@ use crossbeam_queue::SegQueue;
 use dashmap::DashSet;
 
 use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
+
+#[cfg(test)]
+mod tests;
 
 /// Lock-free coordinator with interior mutability (V2)
 ///
@@ -37,8 +40,12 @@ use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
 /// # Concurrency Model
 ///
 /// All operations are safe for concurrent access:
-/// ```ignore
+/// ```rust,no_run
+/// # use alloc::sync::Arc;
+/// # use cellex_actor_core_rs::api::actor_scheduler::{LockFreeCoordinatorV2, MailboxIndex};
 /// let coord = Arc::new(LockFreeCoordinatorV2::new(32));
+/// # let idx1 = MailboxIndex::new(0, 0);
+/// # let idx2 = MailboxIndex::new(1, 0);
 ///
 /// // Thread 1
 /// coord.register_ready(idx1); // No lock needed!
@@ -75,8 +82,9 @@ impl LockFreeCoordinatorV2 {
   ///
   /// # Examples
   ///
-  /// ```ignore
-  /// use std::sync::Arc;
+  /// ```rust
+  /// # use alloc::sync::Arc;
+  /// # use cellex_actor_core_rs::api::actor_scheduler::LockFreeCoordinatorV2;
   /// let coord = Arc::new(LockFreeCoordinatorV2::new(32));
   /// // Can be shared across threads without Mutex!
   /// ```
@@ -93,9 +101,13 @@ impl LockFreeCoordinatorV2 {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust,no_run
+  /// # use alloc::sync::Arc;
+  /// # use cellex_actor_core_rs::api::actor_scheduler::LockFreeCoordinatorV2;
+  /// # async fn example() {
   /// let coord = Arc::new(LockFreeCoordinatorV2::new(32));
   /// coord.wait_for_signal().await;
+  /// # }
   /// ```
   pub async fn wait_for_signal(&self) {
     use futures::future::poll_fn;
@@ -196,6 +208,3 @@ impl ReadyQueueCoordinatorV2 for LockFreeCoordinatorV2 {
 // - AtomicBool: atomic operations
 unsafe impl Send for LockFreeCoordinatorV2 {}
 unsafe impl Sync for LockFreeCoordinatorV2 {}
-
-#[cfg(test)]
-mod tests;
