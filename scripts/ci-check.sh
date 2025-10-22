@@ -76,6 +76,8 @@ run_dylint() {
   lint_filters=()
   local -a module_filters
   module_filters=()
+  local -a trailing_args
+  trailing_args=()
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -98,9 +100,10 @@ run_dylint() {
       --)
         shift
         while [[ $# -gt 0 ]]; do
-          lint_filters+=("$1")
+          trailing_args+=("$1")
           shift
         done
+        break
         ;;
       -h|--help)
         echo "利用例: scripts/ci-check.sh dylint -n mod-file-lint -m cellex-actor-core-rs" >&2
@@ -253,7 +256,6 @@ run_dylint() {
   fi
 
   local -a common_dylint_args=("${dylint_args[@]}" "--no-build" "--no-metadata")
-  local -a trailing_args=("--all-features")
   local -a hardware_packages=("rp2040-hw-tests" "rp2350-hw-tests" "wio-terminal-hw-tests")
   local -a main_package_args=()
   local -a hardware_targets=()
@@ -332,8 +334,16 @@ PY
   if [[ ${#main_package_args[@]} -gt 0 ]]; then
     main_invocation=("${main_package_args[@]}" "${common_dylint_args[@]}")
     local log_main="${main_invocation[*]}"
-    log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_main} -- ${trailing_args[*]} (RUSTFLAGS=${rustflags_value})"
-    RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${main_invocation[@]}" -- "${trailing_args[@]}" || return 1
+    local log_trailing=""
+    if [[ ${#trailing_args[@]} -gt 0 ]]; then
+      log_trailing=" -- ${trailing_args[*]}"
+    fi
+    log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_main}${log_trailing} (RUSTFLAGS=${rustflags_value})"
+    if [[ ${#trailing_args[@]} -gt 0 ]]; then
+      RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${main_invocation[@]}" -- "${trailing_args[@]}" || return 1
+    else
+      RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${main_invocation[@]}" || return 1
+    fi
   fi
 
   if [[ ${#hardware_targets[@]} -gt 0 ]]; then
@@ -341,8 +351,16 @@ PY
     for pkg in "${hardware_targets[@]}"; do
       local -a pkg_invocation=("-p" "${pkg}" "${common_dylint_args[@]}")
       local log_pkg="${pkg_invocation[*]}"
-      log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_pkg} -- ${trailing_args[*]} (RUSTFLAGS=${rustflags_value})"
-      RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${pkg_invocation[@]}" -- "${trailing_args[@]}" || return 1
+      local log_trailing=""
+      if [[ ${#trailing_args[@]} -gt 0 ]]; then
+        log_trailing=" -- ${trailing_args[*]}"
+      fi
+      log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_pkg}${log_trailing} (RUSTFLAGS=${rustflags_value})"
+      if [[ ${#trailing_args[@]} -gt 0 ]]; then
+        RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${pkg_invocation[@]}" -- "${trailing_args[@]}" || return 1
+      else
+        RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${pkg_invocation[@]}" || return 1
+      fi
     done
   fi
 }
