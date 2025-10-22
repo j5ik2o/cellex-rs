@@ -48,15 +48,13 @@ use crate::{
       pid::{Pid, SystemId},
       process_registry::ProcessRegistry,
     },
-    supervision::{
-      escalation::FailureEventHandler,
-      supervisor::{NoopSupervisor, Supervisor},
-    },
+    supervision::supervisor::{NoopSupervisor, Supervisor},
     test_support::TestMailboxFactory,
   },
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
+    supervision::FailureEventHandler,
   },
 };
 

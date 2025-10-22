@@ -1096,10 +1096,10 @@ mod metrics_injection {
       failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
       mailbox::MailboxFactory,
       metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-      supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
+      supervision::supervisor::Supervisor,
       test_support::TestMailboxFactory,
     },
-    shared::messaging::AnyMessage,
+    shared::{messaging::AnyMessage, supervision::FailureEventHandler},
   };
 
   #[derive(Clone)]

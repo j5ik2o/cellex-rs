@@ -3,11 +3,11 @@ use crate::{
     actor::actor_ref::PriorityActorRef,
     failure::FailureInfo,
     mailbox::{messages::SystemMessage, MailboxFactory, MailboxProducer},
-    supervision::escalation::EscalationSink,
   },
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MapSystemShared},
+    supervision::EscalationSink,
   },
 };
 

@@ -12,9 +12,8 @@ use crate::{
     metrics::MetricsSinkShared,
     process::pid::{NodeId, SystemId},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::escalation::FailureEventHandler,
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage, supervision::FailureEventHandler},
 };
 
 /// Internal configuration used while assembling [`InternalActorSystem`].

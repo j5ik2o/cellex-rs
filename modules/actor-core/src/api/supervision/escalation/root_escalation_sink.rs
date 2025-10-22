@@ -16,7 +16,7 @@ use crate::{
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::AnyMessage,
-    supervision::escalation_sink::{EscalationSink, FailureEventHandler},
+    supervision::{EscalationSink, FailureEventHandler},
   },
 };
 

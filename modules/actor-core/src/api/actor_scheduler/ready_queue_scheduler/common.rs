@@ -21,12 +21,13 @@ use crate::{
     mailbox::{messages::SystemMessage, Mailbox, MailboxFactory, MailboxProducer, MailboxSignal},
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{escalation::EscalationSink, supervisor::Supervisor},
+    supervision::supervisor::Supervisor,
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MapSystemShared},
+    supervision::EscalationSink,
   },
 };
 
@@ -265,10 +266,7 @@ where
     self.escalation_sink.set_parent_guardian(control_ref, map_system);
   }
 
-  pub fn set_root_escalation_handler(
-    &mut self,
-    handler: Option<crate::api::supervision::escalation::FailureEventHandler>,
-  ) {
+  pub fn set_root_escalation_handler(&mut self, handler: Option<crate::shared::supervision::FailureEventHandler>) {
     self.escalation_sink.set_root_handler(handler);
   }
 

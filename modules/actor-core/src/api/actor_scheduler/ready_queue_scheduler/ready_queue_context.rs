@@ -18,12 +18,13 @@ use crate::{
     mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
-    supervision::{escalation::FailureEventHandler, supervisor::Supervisor},
+    supervision::supervisor::Supervisor,
   },
   internal::actor::ActorCell,
   shared::{
     mailbox::messages::PriorityEnvelope,
     messaging::{AnyMessage, MapSystemShared},
+    supervision::FailureEventHandler,
   },
 };
 
