@@ -1,9 +1,9 @@
-mod backend;
-mod buffer;
-mod queue;
+mod mpsc_backend;
+mod mpsc_buffer;
+mod mpsc_queue;
 mod traits;
 
-pub use backend::RingBufferBackend;
-pub use buffer::MpscBuffer;
-pub use queue::MpscQueue;
+pub use mpsc_backend::RingBufferBackend;
+pub use mpsc_buffer::MpscBuffer;
+pub use mpsc_queue::MpscQueue;
 pub use traits::{MpscBackend, MpscHandle};

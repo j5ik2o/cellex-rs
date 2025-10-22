@@ -6,7 +6,7 @@ use alloc::rc::Rc;
 use core::{cell::RefCell, fmt};
 
 use crate::collections::{
-  queue::mpsc::{backend::RingBufferBackend, traits::MpscHandle, MpscBuffer, MpscQueue},
+  queue::mpsc::{mpsc_backend::RingBufferBackend, traits::MpscHandle, MpscBuffer, MpscQueue},
   QueueError,
 };
 
