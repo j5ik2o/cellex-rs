@@ -61,6 +61,13 @@
 #![deny(clippy::cmp_null)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::result_large_err)]
+#![allow(unknown_lints)]
+#![deny(cfg_std_test)]
+
+#[cfg(feature = "std")]
+mod dummy {
+  
+}
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

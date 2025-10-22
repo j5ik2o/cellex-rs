@@ -70,8 +70,9 @@ fn analyze_file(cx: &LateContext<'_>, path: &Path) {
     return;
   };
 
+  let allow_entire_file = file.attrs.iter().any(attr_is_cfg_test);
   let line_starts = compute_line_starts(&source);
-  for violation in collect_forbidden_spans(&file) {
+  for violation in collect_forbidden_spans(&file, allow_entire_file) {
     match violation.kind {
       | ViolationKind::CfgStd(attr_span) => {
         if let Some(rustc_span) = span_for_attribute(&source_file, &line_starts, attr_span) {
@@ -95,32 +96,113 @@ fn analyze_file(cx: &LateContext<'_>, path: &Path) {
   }
 }
 
-fn collect_forbidden_spans(file: &SynFile) -> Vec<Violation> {
+fn collect_forbidden_spans(file: &SynFile, allow_initial: bool) -> Vec<Violation> {
   struct Visitor {
     spans: Vec<Violation>,
+    allow_std: bool,
   }
 
   impl<'ast> Visit<'ast> for Visitor {
     fn visit_attribute(&mut self, attr: &'ast Attribute) {
-      if is_forbidden_cfg(attr) {
+      if attr_is_cfg_test(attr) {
+        let prev = self.allow_std;
+        self.allow_std = true;
+        syn::visit::visit_attribute(self, attr);
+        self.allow_std = prev;
+        return;
+      }
+
+      if !self.allow_std && is_forbidden_cfg(attr) {
         self.spans.push(Violation::new_cfg(attr.span()));
       }
       syn::visit::visit_attribute(self, attr);
     }
 
     fn visit_item(&mut self, i: &'ast SynItem) {
-      if let SynItem::Use(item_use) = i {
-        if use_tree_contains_std(&item_use) {
-          self.spans.push(Violation::new_use(item_use.span()));
+      let allow_for_item = self.allow_std || item_has_cfg_test(i);
+      let prev = self.allow_std;
+      self.allow_std = allow_for_item;
+
+      if !self.allow_std {
+        if let SynItem::Use(item_use) = i {
+          if use_tree_contains_std(&item_use) {
+            self.spans.push(Violation::new_use(item_use.span()));
+          }
         }
       }
+
       syn::visit::visit_item(self, i);
+      self.allow_std = prev;
     }
   }
 
-  let mut visitor = Visitor { spans: Vec::new() };
+  let mut visitor = Visitor {
+    spans: Vec::new(),
+    allow_std: allow_initial,
+  };
   visitor.visit_file(file);
   visitor.spans
+}
+
+fn item_has_cfg_test(item: &SynItem) -> bool {
+  item_attrs(item).iter().any(attr_is_cfg_test)
+}
+
+fn item_attrs(item: &SynItem) -> &[Attribute] {
+  match item {
+    | SynItem::Const(item) => &item.attrs,
+    | SynItem::Enum(item) => &item.attrs,
+    | SynItem::ExternCrate(item) => &item.attrs,
+    | SynItem::Fn(item) => &item.attrs,
+    | SynItem::ForeignMod(item) => &item.attrs,
+    | SynItem::Impl(item) => &item.attrs,
+    | SynItem::Macro(item) => &item.attrs,
+    | SynItem::Mod(item) => &item.attrs,
+    | SynItem::Static(item) => &item.attrs,
+    | SynItem::Struct(item) => &item.attrs,
+    | SynItem::Trait(item) => &item.attrs,
+    | SynItem::TraitAlias(item) => &item.attrs,
+    | SynItem::Type(item) => &item.attrs,
+    | SynItem::Union(item) => &item.attrs,
+    | SynItem::Use(item) => &item.attrs,
+    | SynItem::Verbatim(_) => &[],
+    | _ => &[],
+  }
+}
+
+fn attr_is_cfg_test(attr: &Attribute) -> bool {
+  if !attr.path().is_ident("cfg") {
+    return false;
+  }
+
+  match &attr.meta {
+    | Meta::List(list) => {
+      let args = parse_meta_arguments(&list);
+      args.iter().any(meta_requires_test)
+    },
+    | _ => false,
+  }
+}
+
+fn meta_requires_test(meta: &Meta) -> bool {
+  match meta {
+    | Meta::Path(path) => path.is_ident("test"),
+    | Meta::List(list) if list.path.is_ident("all") => {
+      let args = parse_meta_arguments(list);
+      let has_test = args.iter().any(meta_requires_test);
+      let has_forbidden = args.iter().any(meta_allows_without_test);
+      has_test && !has_forbidden
+    },
+    | _ => false,
+  }
+}
+
+fn meta_allows_without_test(meta: &Meta) -> bool {
+  match meta {
+    | Meta::List(list) if list.path.is_ident("not") || list.path.is_ident("any") => true,
+    | Meta::List(list) => parse_meta_arguments(list).iter().any(meta_allows_without_test),
+    | _ => false,
+  }
 }
 
 fn is_forbidden_cfg(attr: &Attribute) -> bool {
@@ -147,18 +229,16 @@ fn contains_feature_std(meta: &Meta) -> bool {
 
 fn contains_feature_std_list(list: &MetaList) -> bool {
   let args = parse_meta_arguments(list);
-  if list.path.is_ident("feature") {
-    args.iter().any(|item| match item {
-      | Meta::Path(path) => path.is_ident("std"),
-      | Meta::NameValue(nv) => expr_is_std(&nv.value),
-      | Meta::List(inner) => {
-        if inner.path.is_ident("not") {
-          !contains_feature_std_list(inner)
-        } else {
-          contains_feature_std_list(inner)
-        }
-      },
-    })
+  let has_std = args.iter().any(|item| match item {
+    | Meta::Path(path) => path.is_ident("std"),
+    | Meta::NameValue(nv) => expr_is_std(&nv.value),
+    | Meta::List(inner) => contains_feature_std_list(inner),
+  });
+
+  if list.path.is_ident("not") {
+    !has_std
+  } else if list.path.is_ident("feature") {
+    has_std
   } else {
     args.iter().any(contains_feature_std)
   }
