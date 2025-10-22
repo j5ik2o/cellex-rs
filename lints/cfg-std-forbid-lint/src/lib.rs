@@ -30,18 +30,18 @@ use syn::{
 };
 
 dylint_linting::impl_late_lint! {
-  pub CFG_STD_TEST,
+  pub CFG_STD_FORBID,
   Allow,
-  "detect #[cfg(feature = \"std\")] guards when lint is enabled",
-  CfgStdTest::default()
+  "detect #[cfg(feature = \"std\")] or std imports",
+  CfgStdForbid::default()
 }
 
 #[derive(Default)]
-pub struct CfgStdTest {
+pub struct CfgStdForbid {
   processed: HashSet<PathBuf>,
 }
 
-impl<'tcx> LateLintPass<'tcx> for CfgStdTest {
+impl<'tcx> LateLintPass<'tcx> for CfgStdForbid {
   fn check_item(&mut self, cx: &LateContext<'tcx>, item: &HirItem<'tcx>) {
     let sm = cx.tcx.sess.source_map();
     let Some(path) = file_path_from_span(sm, item.span) else {
@@ -70,24 +70,25 @@ fn analyze_file(cx: &LateContext<'_>, path: &Path) {
     return;
   };
 
-  let allow_entire_file = file.attrs.iter().any(attr_is_cfg_test);
+  let allow_entire_file =
+    file.attrs.iter().any(attr_is_cfg_test) || file.attrs.iter().any(attr_allows_lint);
   let line_starts = compute_line_starts(&source);
   for violation in collect_forbidden_spans(&file, allow_entire_file) {
     match violation.kind {
       | ViolationKind::CfgStd(attr_span) => {
         if let Some(rustc_span) = span_for_attribute(&source_file, &line_starts, attr_span) {
-          cx.span_lint(CFG_STD_TEST, rustc_span, |diag| {
+          cx.span_lint(CFG_STD_FORBID, rustc_span, |diag| {
             diag.primary_message("`#[cfg(feature = \"std\")]` の使用が検出されました");
-            diag.help("std 依存コードは std 対応クレートへ移動するか、必要な範囲で `#![allow(cfg_std_test)]` を付与してください");
+            diag.help("std 依存コードは std 対応クレートへ移動するか、必要な範囲で `#![allow(cfg_std_forbid)]` を付与してください");
             diag.note("AI向けアドバイス: std が不可欠なロジックは別モジュールへ切り離し、lint の適用境界を明確にしましょう。");
           });
         }
       },
       | ViolationKind::UseStd(use_span) => {
         if let Some(rustc_span) = span_for_attribute(&source_file, &line_starts, use_span) {
-          cx.span_lint(CFG_STD_TEST, rustc_span, |diag| {
+          cx.span_lint(CFG_STD_FORBID, rustc_span, |diag| {
             diag.primary_message("`use std::...` の使用が検出されました");
-            diag.help("std 名前空間のアイテムは std 対応クレートへ移動するか、該当箇所で `#![allow(cfg_std_test)]` を付与してください");
+            diag.help("std 名前空間のアイテムは std 対応クレートへ移動するか、該当箇所で `#![allow(cfg_std_forbid)]` を付与してください");
             diag.note("AI向けアドバイス: core/embedded コードでは `std` 依存を避け、必要に応じて `alloc` など代替を検討しましょう。");
           });
         }
@@ -104,6 +105,11 @@ fn collect_forbidden_spans(file: &SynFile, allow_initial: bool) -> Vec<Violation
 
   impl<'ast> Visit<'ast> for Visitor {
     fn visit_attribute(&mut self, attr: &'ast Attribute) {
+      if attr_allows_lint(attr) {
+        self.allow_std = true;
+        return;
+      }
+
       if attr_is_cfg_test(attr) {
         let prev = self.allow_std;
         self.allow_std = true;
@@ -119,7 +125,8 @@ fn collect_forbidden_spans(file: &SynFile, allow_initial: bool) -> Vec<Violation
     }
 
     fn visit_item(&mut self, i: &'ast SynItem) {
-      let allow_for_item = self.allow_std || item_has_cfg_test(i);
+      let allow_for_item =
+        self.allow_std || item_has_cfg_test(i) || item_allows_lint(i);
       let prev = self.allow_std;
       self.allow_std = allow_for_item;
 
@@ -146,6 +153,10 @@ fn collect_forbidden_spans(file: &SynFile, allow_initial: bool) -> Vec<Violation
 
 fn item_has_cfg_test(item: &SynItem) -> bool {
   item_attrs(item).iter().any(attr_is_cfg_test)
+}
+
+fn item_allows_lint(item: &SynItem) -> bool {
+  item_attrs(item).iter().any(attr_allows_lint)
 }
 
 fn item_attrs(item: &SynItem) -> &[Attribute] {
@@ -180,6 +191,19 @@ fn attr_is_cfg_test(attr: &Attribute) -> bool {
       let args = parse_meta_arguments(&list);
       args.iter().any(meta_requires_test)
     },
+    | _ => false,
+  }
+}
+
+fn attr_allows_lint(attr: &Attribute) -> bool {
+  if !attr.path().is_ident("allow") {
+    return false;
+  }
+
+  match &attr.meta {
+    | Meta::List(list) => parse_meta_arguments(list)
+      .iter()
+      .any(|meta| matches!(meta, Meta::Path(path) if path.is_ident("cfg_std_forbid"))),
     | _ => false,
   }
 }
@@ -229,15 +253,17 @@ fn contains_feature_std(meta: &Meta) -> bool {
 
 fn contains_feature_std_list(list: &MetaList) -> bool {
   let args = parse_meta_arguments(list);
+  if list.path.is_ident("not") {
+    return false;
+  }
+
   let has_std = args.iter().any(|item| match item {
     | Meta::Path(path) => path.is_ident("std"),
     | Meta::NameValue(nv) => expr_is_std(&nv.value),
     | Meta::List(inner) => contains_feature_std_list(inner),
   });
 
-  if list.path.is_ident("not") {
-    !has_std
-  } else if list.path.is_ident("feature") {
+  if list.path.is_ident("feature") {
     has_std
   } else {
     args.iter().any(contains_feature_std)

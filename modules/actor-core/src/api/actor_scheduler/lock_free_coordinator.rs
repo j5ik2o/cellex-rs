@@ -15,10 +15,10 @@
 //! - Slightly higher latency for single-threaded scenarios (~5-10%)
 //! - Best suited for 5+ concurrent threads
 
-use core::task::{Context, Poll};
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc,
+use alloc::sync::Arc;
+use core::{
+  sync::atomic::{AtomicBool, Ordering},
+  task::{Context, Poll},
 };
 
 use crossbeam_queue::SegQueue;
@@ -84,7 +84,7 @@ impl LockFreeCoordinator {
   /// This is a helper method for std environments.
   /// In no_std, use `poll_wait_signal` directly.
   pub async fn wait_for_signal(&self) {
-    use std::future::poll_fn;
+    use futures::future::poll_fn;
     poll_fn(|cx| {
       if self.signal_pending.compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire).is_ok() {
         Poll::Ready(())

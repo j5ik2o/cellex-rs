@@ -19,18 +19,20 @@
 //! - **DefaultReadyQueueCoordinatorV2**: Simpler, lower latency for low concurrency
 //! - **LockFreeCoordinatorV2**: Better scalability for high concurrency (5+ threads)
 
-use core::task::{Context, Poll};
-use std::{
-  collections::{HashSet, VecDeque},
-  sync::{Arc, Mutex},
+use alloc::{
+  collections::{BTreeSet, VecDeque},
+  sync::Arc,
 };
+use core::task::{Context, Poll};
+
+use spin::Mutex;
 
 use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
 
 /// Internal state for the coordinator
 struct CoordinatorState {
   queue:          VecDeque<MailboxIndex>,
-  queued:         HashSet<MailboxIndex>,
+  queued:         BTreeSet<MailboxIndex>,
   signal_pending: bool,
 }
 
@@ -93,7 +95,7 @@ impl DefaultReadyQueueCoordinatorV2 {
     Self {
       state: Arc::new(Mutex::new(CoordinatorState {
         queue:          VecDeque::new(),
-        queued:         HashSet::new(),
+        queued:         BTreeSet::new(),
         signal_pending: false,
       })),
       throughput,
@@ -115,9 +117,9 @@ impl DefaultReadyQueueCoordinatorV2 {
   /// # }
   /// ```
   pub async fn wait_for_signal(&self) {
-    use std::future::poll_fn;
+    use futures::future::poll_fn;
     poll_fn(|cx| {
-      let mut state = self.state.lock().unwrap();
+      let mut state = self.state.lock();
       if state.signal_pending {
         state.signal_pending = false;
         Poll::Ready(())
@@ -133,7 +135,7 @@ impl DefaultReadyQueueCoordinatorV2 {
 
 impl ReadyQueueCoordinatorV2 for DefaultReadyQueueCoordinatorV2 {
   fn register_ready(&self, idx: MailboxIndex) {
-    let mut state = self.state.lock().unwrap();
+    let mut state = self.state.lock();
     if state.queued.insert(idx) {
       state.queue.push_back(idx);
       state.signal_pending = true;
@@ -141,14 +143,14 @@ impl ReadyQueueCoordinatorV2 for DefaultReadyQueueCoordinatorV2 {
   }
 
   fn unregister(&self, idx: MailboxIndex) {
-    let mut state = self.state.lock().unwrap();
+    let mut state = self.state.lock();
     state.queued.remove(&idx);
     // Note: We don't remove from queue itself for simplicity
     // The drain operation will skip indices not in `queued`
   }
 
   fn drain_ready_cycle(&self, max_batch: usize, out: &mut Vec<MailboxIndex>) {
-    let mut state = self.state.lock().unwrap();
+    let mut state = self.state.lock();
     out.clear();
 
     for _ in 0..max_batch {
@@ -164,7 +166,7 @@ impl ReadyQueueCoordinatorV2 for DefaultReadyQueueCoordinatorV2 {
   }
 
   fn poll_wait_signal(&self, _cx: &mut Context<'_>) -> Poll<()> {
-    let mut state = self.state.lock().unwrap();
+    let mut state = self.state.lock();
     if state.signal_pending {
       state.signal_pending = false;
       Poll::Ready(())

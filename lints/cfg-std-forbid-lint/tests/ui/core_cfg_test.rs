@@ -1,4 +1,4 @@
-#![deny(cfg_std_test)]
+#![deny(cfg_std_forbid)]
 
 #[cfg(test)]
 mod tests {

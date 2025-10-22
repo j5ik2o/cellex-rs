@@ -97,12 +97,6 @@ where
       if observation_config.metrics_sink().is_none() {
         observation_config.set_metrics_sink(Some(sink));
       }
-      #[cfg(feature = "std")]
-      {
-        if !observation_config.should_record_timing() {
-          observation_config.set_record_timing(true);
-        }
-      }
     }
 
     let settings = InternalGenericActorSystemConfig {

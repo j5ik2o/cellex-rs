@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, vec::Vec};
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(feature = "unwind-supervision")]
 use crate::api::failure::failure_telemetry::tracing_failure_telemetry::tracing_failure_telemetry;
 use crate::api::failure::{
   failure_telemetry::{FailureTelemetryShared, FailureTelemetryTag},
@@ -13,12 +13,12 @@ pub const MAX_FAILURE_SNAPSHOT_TAGS: usize = 8;
 /// Returns the default telemetry implementation for the current build configuration.
 #[must_use]
 pub fn default_failure_telemetry_shared() -> FailureTelemetryShared {
-  #[cfg(all(feature = "std", feature = "unwind-supervision"))]
+  #[cfg(feature = "unwind-supervision")]
   {
     tracing_failure_telemetry()
   }
 
-  #[cfg(not(all(feature = "std", feature = "unwind-supervision")))]
+  #[cfg(not(feature = "unwind-supervision"))]
   {
     crate::api::failure::failure_telemetry::noop_failure_telemetry_shared()
   }

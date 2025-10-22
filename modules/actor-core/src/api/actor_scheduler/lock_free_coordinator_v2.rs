@@ -16,10 +16,10 @@
 //! - 4 threads: ~1.5 ms (expect 5x improvement over V1)
 //! - 8 threads: ~3.5 ms (expect 5x improvement over V1)
 
-use core::task::{Context, Poll};
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc,
+use alloc::sync::Arc;
+use core::{
+  sync::atomic::{AtomicBool, Ordering},
+  task::{Context, Poll},
 };
 
 use crossbeam_queue::SegQueue;
@@ -98,7 +98,7 @@ impl LockFreeCoordinatorV2 {
   /// coord.wait_for_signal().await;
   /// ```
   pub async fn wait_for_signal(&self) {
-    use std::future::poll_fn;
+    use futures::future::poll_fn;
     poll_fn(|cx| {
       if self.signal_pending.compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire).is_ok() {
         Poll::Ready(())

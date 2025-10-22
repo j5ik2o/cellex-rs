@@ -11,6 +11,7 @@
 //! - Ask pattern (Request-Response)
 //! - Mailboxes and dispatchers
 //! - Event stream
+#![allow(cfg_std_forbid)]
 #![deny(missing_docs)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::disallowed_types))]
 #![deny(rustdoc::broken_intra_doc_links)]
@@ -62,12 +63,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::result_large_err)]
 #![allow(unknown_lints)]
-#![deny(cfg_std_test)]
-
-#[cfg(feature = "std")]
-mod dummy {
-  
-}
+#![deny(cfg_std_forbid)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

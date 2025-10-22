@@ -1,6 +1,4 @@
 use core::marker::PhantomData;
-#[cfg(feature = "std")]
-use std::time::Instant;
 
 use crate::{
   api::{
@@ -128,20 +126,10 @@ where
   /// Always returns `Ok(())`
   fn handle(&mut self, info: FailureInfo, _already_handled: bool) -> Result<(), FailureInfo> {
     let snapshot = FailureSnapshot::from_failure_info(&info);
-    #[cfg(feature = "std")]
-    let start = if self.failure_telemetry_observation_config.should_record_timing()
-      && self.failure_telemetry_observation_config.metrics_sink().is_some()
-    {
-      Some(Instant::now())
-    } else {
-      None
-    };
 
     self.failure_telemetry_shared.with_ref(|telemetry| telemetry.on_failure(&snapshot));
 
-    #[cfg(feature = "std")]
-    let elapsed = start.map(|s| s.elapsed());
-    #[cfg(not(feature = "std"))]
+    // Note: Timing measurement is not available in no_std
     let elapsed = None;
 
     self.failure_telemetry_observation_config.observe(elapsed);

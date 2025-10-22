@@ -26,7 +26,7 @@ libraries = [
   { path = "lints/tests-location-lint" },
   { path = "lints/use-placement-lint" },
   { path = "lints/mod-reexport-lint" },
-  { path = "lints/cfg-std-test-lint" },
+  { path = "lints/cfg-std-forbid-lint" },
 ]
 
 [workspace.dependencies]

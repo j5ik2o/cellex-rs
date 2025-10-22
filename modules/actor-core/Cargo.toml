@@ -17,12 +17,15 @@ std = [
   "tracing",
   "futures/std",
   "futures/executor",
-  "dep:cellex-serialization-json-rs",
-  "dep:cellex-serialization-prost-rs",
+  "json",
+  "prost",
   "dep:cellex-utils-std-rs",
   "dep:tokio",
 ]
-unwind-supervision = ["std"]
+tokio = []
+json = ["dep:cellex-serialization-json-rs"]
+prost = ["dep:cellex-serialization-prost-rs"]
+unwind-supervision = ["tracing"]
 postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
 

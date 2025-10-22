@@ -1,8 +1,4 @@
-#[cfg(not(feature = "std"))]
-use cellex_utils_core_rs::sync::{async_mutex_like::SpinAsyncMutex, sync_mutex_like::SpinSyncMutex};
-use cellex_utils_core_rs::{sync::ArcShared, Element};
-#[cfg(feature = "std")]
-use cellex_utils_std_rs::sync::{StdSyncMutex, TokioAsyncMutex};
+use cellex_utils_core_rs::{sync::{async_mutex_like::SpinAsyncMutex, sync_mutex_like::SpinSyncMutex, ArcShared}, Element};
 
 use crate::{
   api::{
@@ -219,15 +215,9 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
-  #[cfg(not(feature = "std"))]
   type AsyncMutex<T: Send> = SpinAsyncMutex<T>;
-  #[cfg(feature = "std")]
-  type AsyncMutex<T: Send> = TokioAsyncMutex<T>;
   type MailboxFactory = MF;
-  #[cfg(not(feature = "std"))]
   type SyncMutex<T> = SpinSyncMutex<T>;
-  #[cfg(feature = "std")]
-  type SyncMutex<T> = StdSyncMutex<T>;
 
   fn mailbox_factory(&self) -> &Self::MailboxFactory {
     GenericActorRuntime::mailbox_factory(self)

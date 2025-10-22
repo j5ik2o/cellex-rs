@@ -148,16 +148,6 @@ where
   /// Returns [`QueueError`] when queue operations fail.
   #[deprecated(since = "3.1.0", note = "Use dispatch_next / run_until instead")]
   pub fn dispatch_all(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
-    #[cfg(feature = "std")]
-    {
-      use core::sync::atomic::{AtomicBool, Ordering};
-      static WARNED: AtomicBool = AtomicBool::new(false);
-      if !WARNED.swap(true, Ordering::Relaxed) {
-        tracing::warn!(
-          "ReadyQueueScheduler::dispatch_all is deprecated. Consider using dispatch_next / run_until instead."
-        );
-      }
-    }
     let _ = self.drain_ready_cycle()?;
     Ok(())
   }

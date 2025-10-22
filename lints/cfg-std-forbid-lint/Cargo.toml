@@ -1,5 +1,5 @@
 [package]
-name = "cfg-std-test-lint"
+name = "cfg-std-forbid-lint"
 version = "0.1.0"
 edition = "2021"
 

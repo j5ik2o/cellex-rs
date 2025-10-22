@@ -1,4 +1,4 @@
-#![allow(cfg_std_test)]
+#![allow(cfg_std_forbid)]
 
 #[cfg(feature = "std")]
 fn uses_std() {}

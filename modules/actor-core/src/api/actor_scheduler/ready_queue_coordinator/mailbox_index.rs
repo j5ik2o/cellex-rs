@@ -1,7 +1,7 @@
 //! MailboxIndex - Mailbox identification with generational safety
 
 /// Mailbox index with slot and generation for safe reuse
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MailboxIndex {
   /// Slot number in the registry
   pub slot:       u32,

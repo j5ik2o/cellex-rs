@@ -125,7 +125,7 @@ run_dylint() {
     "tests-location-lint:lints/tests-location-lint"
     "use-placement-lint:lints/use-placement-lint"
     "rustdoc-lint:lints/rustdoc-lint"
-    "cfg-std-test-lint:lints/cfg-std-test-lint"
+    "cfg-std-forbid-lint:lints/cfg-std-forbid-lint"
   )
 
   local -a selected=()
