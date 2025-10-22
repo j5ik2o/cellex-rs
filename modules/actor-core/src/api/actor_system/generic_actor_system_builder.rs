@@ -2,10 +2,12 @@ use core::marker::PhantomData;
 
 use cellex_utils_core_rs::Element;
 
+use super::ActorSystemBuilder as ActorSystemBuilderTrait;
 use crate::{
   api::{
     actor_runtime::{ActorRuntime, MailboxQueueOf, MailboxSignalOf},
     actor_system::{GenericActorSystem, GenericActorSystemConfig},
+    guardian::AlwaysRestart,
   },
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
@@ -78,5 +80,51 @@ where
   #[must_use]
   pub fn build(self) -> GenericActorSystem<U, AR> {
     GenericActorSystem::new_with_actor_runtime(self.actor_runtime, self.config)
+  }
+}
+
+impl<U, AR> ActorSystemBuilderTrait<U, AR> for GenericActorSystemBuilder<U, AR>
+where
+  U: Element,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+{
+  type Config = GenericActorSystemConfig<AR>;
+  type Strategy = AlwaysRestart;
+  type System = GenericActorSystem<U, AR>;
+
+  fn new(actor_runtime: AR) -> Self {
+    GenericActorSystemBuilder::new(actor_runtime)
+  }
+
+  fn actor_runtime(&self) -> &AR {
+    GenericActorSystemBuilder::actor_runtime(self)
+  }
+
+  fn actor_runtime_mut(&mut self) -> &mut AR {
+    GenericActorSystemBuilder::actor_runtime_mut(self)
+  }
+
+  fn config(&self) -> &Self::Config {
+    GenericActorSystemBuilder::config(self)
+  }
+
+  fn config_mut(&mut self) -> &mut Self::Config {
+    GenericActorSystemBuilder::config_mut(self)
+  }
+
+  fn with_config(self, config: Self::Config) -> Self {
+    GenericActorSystemBuilder::with_config(self, config)
+  }
+
+  fn configure<F>(self, configure: F) -> Self
+  where
+    F: FnOnce(&mut Self::Config), {
+    GenericActorSystemBuilder::configure(self, configure)
+  }
+
+  fn build(self) -> Self::System {
+    GenericActorSystemBuilder::build(self)
   }
 }
