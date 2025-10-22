@@ -61,7 +61,8 @@
 
 extern crate alloc;
 
-mod collections;
+/// Core collections shared across the Cellex runtimes.
+pub mod collections;
 mod concurrent;
 /// Synchronization primitives and shared ownership abstractions.
 pub mod sync;

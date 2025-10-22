@@ -17,3 +17,10 @@ alloc = []
 async-trait = { workspace = true }
 critical-section = { workspace = true, optional = false }
 spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "rwlock"] }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "ring_queue_shared"
+harness = false

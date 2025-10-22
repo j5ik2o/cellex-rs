@@ -1,7 +1,10 @@
 #[cfg(feature = "alloc")]
 use core::cell::RefCell;
 
-use crate::collections::queue::ring::RingBuffer;
+use crate::{
+  collections::queue::ring::RingBuffer,
+  sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
+};
 
 /// Queue storage abstraction trait.
 pub trait QueueStorage<E> {
@@ -22,5 +25,27 @@ impl<E> QueueStorage<E> for RefCell<RingBuffer<E>> {
   fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
     let mut guard = self.borrow_mut();
     f(&mut guard)
+  }
+}
+
+impl<E> QueueStorage<E> for SpinSyncMutex<RingBuffer<E>> {
+  fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
+    let guard = self.lock();
+    f(&guard)
+  }
+
+  fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
+    let mut guard = self.lock();
+    f(&mut guard)
+  }
+}
+
+impl<E> QueueStorage<E> for ArcShared<SpinSyncMutex<RingBuffer<E>>> {
+  fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
+    (**self).with_read(f)
+  }
+
+  fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
+    (**self).with_write(f)
   }
 }

@@ -6,6 +6,7 @@ use core::cell::RefCell;
 pub use queue_storage::QueueStorage;
 
 use super::mpsc::MpscBuffer;
+use crate::sync::{sync_mutex_like::SpinSyncMutex, ArcShared};
 
 /// Ring buffer-based storage abstraction trait
 ///
@@ -50,5 +51,27 @@ impl<T> RingBufferStorage<T> for RefCell<MpscBuffer<T>> {
   fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
     let mut guard = self.borrow_mut();
     f(&mut guard)
+  }
+}
+
+impl<T> RingBufferStorage<T> for SpinSyncMutex<MpscBuffer<T>> {
+  fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
+    let guard = self.lock();
+    f(&guard)
+  }
+
+  fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
+    let mut guard = self.lock();
+    f(&mut guard)
+  }
+}
+
+impl<T> RingBufferStorage<T> for ArcShared<SpinSyncMutex<MpscBuffer<T>>> {
+  fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
+    (**self).with_read(f)
+  }
+
+  fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
+    (**self).with_write(f)
   }
 }

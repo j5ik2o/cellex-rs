@@ -439,6 +439,53 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 - `ReadyQueueCoordinator`・`WorkerExecutor`・`MessageInvoker` は `alloc` ベースで実装し、`std` 依存機能（`Arc`, `Mutex` など）は `Shared` 抽象を経由させる。no_std 対応のスモールテストを Phase 3 で追加する。
 - ワーカ数は Phase 1-3 で固定値（設定ファイルまたは `ActorSystemConfig`）とし、Phase 4 で `AdaptiveDispatcher` による動的調整アルゴリズム（キュー長と待機時間を指標に増減）を評価する。設計検討時は `stateDiagram` でワーカライフサイクル（Spawned/Running/Draining/Stopped）を整理する。
 
+### 5.3 2025-10-22 ベンチマーク速報
+`DefaultReadyQueueCoordinator`（構成: `spin::Mutex + VecDeque + BTreeSet`）に対して Criterion で取得した現時点の測定値は以下のとおり。ベンチマークコードは `modules/actor-core/benches/ready_queue_coordinator.rs` に配置している。
+
+**register_ready → drain_ready_cycle サイクル**
+
+| バッチサイズ | サイクル時間 | メッセージ単価 |
+| ---: | ---: | ---: |
+| 1 | 0.022 µs | 21.8 ns |
+| 8 | 0.122 µs | 15.2 ns |
+| 32 | 0.753 µs | 23.5 ns |
+| 128 | 3.63 µs | 28.4 ns |
+| 512 | 16.8 µs | 32.9 ns |
+| 2,048 | 87.9 µs | 42.9 ns |
+
+**register_ready 単発レイテンシ**
+
+| 状況 | 平均レイテンシ |
+| :-- | --: |
+| キュー空（0 件） | 33.6 ns |
+| 32 件滞留 | 200.9 ns |
+| 256 件滞留 | 974.7 ns |
+| 1,024 件滞留 | 3.55 µs |
+| 4,096 件滞留 | 13.5 µs |
+| 重複登録 | 1.58 ns |
+
+**handle_invoke_result レイテンシ**
+
+| ケース | 平均レイテンシ |
+| :-- | --: |
+| `Completed { ready_hint: true }` | 29.2 ns |
+| `Completed { ready_hint: false }` | 31.7 ns |
+| `Yielded` | 28.9 ns |
+| `Stopped` | 31.5 ns |
+
+今後 `RingQueue` バックエンド案（下記タスク参照）が形になり次第、同条件で再測し比較指標を更新する。
+
+#### RingQueue バックエンド比較（2025-10-22 測定）
+- コマンド: `cargo +nightly bench -p cellex-utils-core-rs --bench ring_queue_shared`
+- 条件: Criterion `ring_queue_offer_poll`（`BatchSize::SmallInput`, キュー容量 128 要素）
+
+| 実装 | 平均時間 |
+| :-- | --: |
+| RcShared + `RefCell` | 0.692 µs |
+| ArcShared + `SpinSyncMutex` | 0.709 µs |
+
+`ArcShared` 版は現状で約 +2.6% の遅延。Spin ベースの同期コストが支配的な可能性があるため、Lock-Free 化や `ArcSharedRingQueue` のメモリアクセス削減を次ステップで検討する。
+
 ## 6. 既存 TODO・関連ドキュメントとの整合
 - `D14-mailbox-runtime-next-actions.md`: Send/Sync 境界精査、MailboxOptions 拡張、プリセット API、クロスビルド CI、メトリクス整備を Phase 2-3 のサブタスクとして取り込む。
 - `D13-ready-queue-next-actions.md`: ワーカチューニング、Spawn ミドルウェア統合、観測ポイント強化を Coordinator/Executor のロードマップに紐付け。
