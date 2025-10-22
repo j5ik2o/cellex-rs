@@ -1,0 +1,181 @@
+@startuml scheduler_component_mapping
+!define CURRENT_COLOR #FFE6E6
+!define TARGET_COLOR #E6FFE6
+!define SHARED_COLOR #E6E6FF
+
+title ActorScheduler リファクタリング - 責務マッピング
+
+package "現行実装 (Current)" <<CURRENT_COLOR>> {
+  component ReadyQueueScheduler {
+    note right
+      外部API
+      初期化
+      Context/State所有
+    end note
+  }
+
+  component ReadyQueueState {
+    note right
+      queue: VecDeque
+      queued: Vec<bool>
+      running: Vec<bool>
+    end note
+  }
+
+  component ReadyQueueContext {
+    note right
+      Ready queue操作
+      Mailbox再登録
+      capacity管理
+    end note
+  }
+
+  component ReadyQueueWorker {
+    note right
+      process_ready_once
+      wait_for_ready
+      ワーカループ駆動
+    end note
+  }
+
+  component ActorCell {
+    note right
+      mailbox直接操作
+      メッセージ処理ループ
+      子アクター生成
+      サスペンド判定
+      Failure通知
+    end note
+  }
+
+  component QueueMailbox {
+    note right
+      enqueue/notify
+      ReadyQueue再登録
+      enqueueメトリクス
+    end note
+  }
+
+  ReadyQueueScheduler --> ReadyQueueContext : 委譲
+  ReadyQueueScheduler --> ReadyQueueState : 共有
+  ReadyQueueContext --> ReadyQueueState : 参照
+  ReadyQueueWorker --> ReadyQueueContext : 操作
+  ReadyQueueWorker --> ActorCell : 駆動
+  ActorCell --> QueueMailbox : 所有
+  QueueMailbox --> ReadyQueueContext : 通知
+}
+
+package "目標アーキテクチャ (Target)" <<TARGET_COLOR>> {
+  component "ReadyQueueScheduler\n(Frontend)" as NewScheduler {
+    note right
+      外部API窓口
+      初期化のみ
+      内部委譲
+    end note
+  }
+
+  component ReadyQueueCoordinator {
+    note right
+      drain_ready_cycle
+      poll_wait_signal
+      register_ready/unregister
+      handle_invoke_result
+      throughput_hint
+    end note
+  }
+
+  component WorkerExecutor {
+    note right
+      ランタイムタスク生成
+      ワーカ駆動
+      再スケジュール要求
+      RuntimeHandle統合
+    end note
+  }
+
+  component MessageInvoker {
+    note right
+      invoke_batch
+      actor_state
+      Suspend/Resume判定
+      Guardian通知
+    end note
+  }
+
+  component MailboxRegistry {
+    note right
+      Mailbox生成・再利用
+      MailboxIndex管理
+      所有権管理
+      世代番号管理
+    end note
+  }
+
+  component "QueueMailbox\n(Core)" as NewMailbox {
+    note right
+      enqueue/シグナル通知
+      ReadyQueueHook連携
+      MailboxOptions設定
+      容量・溢れ戦略
+    end note
+  }
+
+  component ObservabilityHub {
+    note right
+      Failure Telemetry
+      Metrics Sink
+      トレース送出
+      enqueue/dequeue計測
+    end note
+  }
+
+  component "ActorCell\n(Simplified)" as NewActorCell {
+    note right
+      状態管理
+      監視登録
+      子アクター生成API
+      (実行ループは削除)
+    end note
+  }
+
+  NewScheduler --> ReadyQueueCoordinator : 委譲
+  NewScheduler --> WorkerExecutor : 初期化
+  WorkerExecutor --> ReadyQueueCoordinator : 操作
+  WorkerExecutor --> MessageInvoker : 生成・実行
+  MessageInvoker --> NewActorCell : 参照
+  MessageInvoker --> NewMailbox : dequeue_batch
+  MessageInvoker --> ObservabilityHub : メトリクス送信
+  MessageInvoker --> ReadyQueueCoordinator : InvokeResult返却
+  NewMailbox --> ReadyQueueCoordinator : ReadyQueueHook経由
+  MailboxRegistry --> NewMailbox : 生成・管理
+  MailboxRegistry --> NewActorCell : 生成・管理
+  ReadyQueueCoordinator --> MailboxRegistry : 参照
+}
+
+package "責務対応表" <<SHARED_COLOR>> {
+  note as N1
+    **現行 → 目標 マッピング**
+
+    ReadyQueueState
+      → ReadyQueueCoordinator内部のQueueState
+
+    ReadyQueueContext
+      → ReadyQueueCoordinator (公開)
+      + MailboxRegistry (内部)
+
+    ReadyQueueWorker
+      → WorkerExecutor
+
+    ActorCell (メッセージ実行)
+      → MessageInvoker
+
+    ActorCell (状態管理)
+      → ActorCell (簡素化)
+
+    QueueMailbox
+      → QueueMailbox (Core)
+      + MailboxRegistry
+  end note
+}
+
+@enduml

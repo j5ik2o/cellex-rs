@@ -1,0 +1,122 @@
+@startuml scheduler_current_flow
+!theme plain
+skinparam sequenceMessageAlign center
+
+title ActorScheduler - 現行実装のメッセージフロー
+
+participant Producer
+participant QueueMailbox
+participant ReadyQueueScheduler
+participant ReadyQueueContext
+participant ReadyQueueState
+participant ReadyQueueWorker
+participant ActorCell
+
+== 初期化 ==
+ReadyQueueScheduler -> ReadyQueueContext: new()
+ReadyQueueScheduler -> ReadyQueueState: new()
+note right of ReadyQueueScheduler
+  context と state を共有
+  spin::Mutex で排他制御
+end note
+
+== メッセージEnqueue ==
+Producer -> QueueMailbox: enqueue(msg)
+activate QueueMailbox
+QueueMailbox -> QueueMailbox: push to queue
+QueueMailbox -> ReadyQueueContext: notify_ready(idx)
+activate ReadyQueueContext
+ReadyQueueContext -> ReadyQueueState: mark as queued
+activate ReadyQueueState
+ReadyQueueState -> ReadyQueueState: queue.push_back(idx)\nqueued[idx] = true
+deactivate ReadyQueueState
+ReadyQueueContext -> ReadyQueueContext: send signal
+deactivate ReadyQueueContext
+deactivate QueueMailbox
+
+== ワーカループ ==
+ReadyQueueWorker -> ReadyQueueWorker: wait_for_ready()
+note right
+  LocalBoxFuture を使用
+  非同期待機
+end note
+
+ReadyQueueWorker -> ReadyQueueContext: get_ready_indices()
+activate ReadyQueueContext
+ReadyQueueContext -> ReadyQueueState: drain queue
+activate ReadyQueueState
+ReadyQueueState --> ReadyQueueContext: Vec<usize>
+deactivate ReadyQueueState
+ReadyQueueContext --> ReadyQueueWorker: Vec<usize>
+deactivate ReadyQueueContext
+
+loop 各インデックス
+  ReadyQueueWorker -> ReadyQueueState: mark as running
+  activate ReadyQueueState
+  ReadyQueueState -> ReadyQueueState: running[idx] = true\nqueued[idx] = false
+  deactivate ReadyQueueState
+
+  ReadyQueueWorker -> ActorCell: process_messages()
+  activate ActorCell
+
+  ActorCell -> ActorCell: check suspended state
+  alt suspended
+    ActorCell --> ReadyQueueWorker: (skip processing)
+  else active
+    ActorCell -> QueueMailbox: dequeue_batch()
+    activate QueueMailbox
+    QueueMailbox --> ActorCell: Vec<Envelope>
+    deactivate QueueMailbox
+
+    loop 各Envelope
+      ActorCell -> ActorCell: handle_system_message()\nor handle_user_message()
+      note right
+        System/User メッセージ分岐
+        サスペンド制御
+        Failure 伝播
+        すべて ActorCell 内で処理
+      end note
+    end
+
+    alt more messages
+      ActorCell -> ReadyQueueContext: re_register_ready(idx)
+      activate ReadyQueueContext
+      ReadyQueueContext -> ReadyQueueState: queue.push_back(idx)
+      deactivate ReadyQueueContext
+    end
+  end
+
+  deactivate ActorCell
+
+  ReadyQueueWorker -> ReadyQueueState: mark as idle
+  activate ReadyQueueState
+  ReadyQueueState -> ReadyQueueState: running[idx] = false
+  deactivate ReadyQueueState
+end
+
+note over Producer, ActorCell
+  **現行実装の課題**
+
+  1. **責務の混在**
+     - ActorCell が mailbox 操作、メッセージ実行、
+       サスペンド判定、Failure 通知を併せ持つ
+
+  2. **暗黙的な境界**
+     - Mailbox ↔ Scheduler ↔ Invoker の境界が不明瞭
+     - API から意図が読み取りづらい
+
+  3. **強結合**
+     - ReadyQueueState への直接アクセス
+     - spin::Mutex による排他制御
+     - no_std 対応の制約
+
+  4. **拡張性の欠如**
+     - Middleware、詳細メトリクスの拡張ポイントが不鮮明
+     - ランタイム抽象化が不十分
+
+  5. **テスト容易性**
+     - コンポーネント間の依存が複雑
+     - 単体テストが困難
+end note
+
+@enduml

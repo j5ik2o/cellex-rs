@@ -25,6 +25,8 @@ std = [
 unwind-supervision = ["std"]
 postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
+# Phase 0-4: ActorScheduler refactoring prototype
+new-scheduler = ["std"]
 
 [dependencies]
 async-trait = { workspace = true }
