@@ -1,4 +1,5 @@
-use core::{convert::Infallible, marker::PhantomData, num::NonZeroUsize};
+use alloc::boxed::Box;
+use core::{convert::Infallible, future::Future, marker::PhantomData, num::NonZeroUsize, pin::Pin};
 
 use cellex_utils_core_rs::{ArcShared, Element, QueueError};
 
@@ -7,7 +8,7 @@ use crate::{
     actor::ShutdownToken,
     actor_runtime::{ActorRuntime, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     actor_scheduler::ready_queue_scheduler::ReadyQueueWorker,
-    actor_system::GenericActorSystem,
+    actor_system::{ActorSystemRunner, GenericActorSystem},
     guardian::AlwaysRestart,
   },
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
@@ -107,6 +108,50 @@ where
   /// Internal actor system
   #[must_use]
   pub fn into_inner(self) -> GenericActorSystem<U, AR, Strat> {
+    self.system
+  }
+}
+
+impl<U, AR, Strat> ActorSystemRunner<U, AR, Strat> for GenericActorSystemRunner<U, AR, Strat>
+where
+  U: Element,
+  AR: ActorRuntime + Clone + 'static,
+  MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
+  MailboxSignalOf<AR>: Clone,
+  Strat: crate::api::guardian::GuardianStrategy<MailboxOf<AR>>,
+{
+  type System = GenericActorSystem<U, AR, Strat>;
+
+  fn ready_queue_worker_count(&self) -> NonZeroUsize {
+    self.ready_queue_worker_count
+  }
+
+  fn set_ready_queue_worker_count(&mut self, worker_count: NonZeroUsize) {
+    self.ready_queue_worker_count = worker_count;
+  }
+
+  fn ready_queue_worker(&self) -> Option<ArcShared<dyn ReadyQueueWorker<MailboxOf<AR>>>> {
+    self.system.ready_queue_worker()
+  }
+
+  fn supports_ready_queue(&self) -> bool {
+    self.system.supports_ready_queue()
+  }
+
+  fn shutdown_token(&self) -> ShutdownToken {
+    self.system.shutdown_token()
+  }
+
+  fn run_forever(
+    self,
+  ) -> Pin<Box<dyn Future<Output = Result<Infallible, QueueError<PriorityEnvelope<AnyMessage>>>> + 'static>> {
+    Box::pin(async move {
+      let mut system = self.system;
+      system.run_forever().await
+    })
+  }
+
+  fn into_inner(self) -> Self::System {
     self.system
   }
 }
