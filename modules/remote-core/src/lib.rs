@@ -52,6 +52,8 @@
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::cmp_null)]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(unknown_lints)]
+#![deny(cfg_std_test)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

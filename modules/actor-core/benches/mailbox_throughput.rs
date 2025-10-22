@@ -15,10 +15,9 @@ use std::{
 };
 
 use cellex_actor_core_rs::api::actor_scheduler::{
-  DefaultReadyQueueCoordinator, InvokeResult, MailboxIndex, ReadyQueueCoordinator,
+  DefaultReadyQueueCoordinator, InvokeResult, LockFreeCoordinator, LockFreeCoordinatorV2, MailboxIndex,
+  ReadyQueueCoordinator, ReadyQueueCoordinatorV2,
 };
-#[cfg(feature = "new-scheduler")]
-use cellex_actor_core_rs::api::actor_scheduler::{LockFreeCoordinator, LockFreeCoordinatorV2, ReadyQueueCoordinatorV2};
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 /// 基本的なregister/drain操作のスループット測定
@@ -217,8 +216,7 @@ fn bench_unregister_performance(c: &mut Criterion) {
   group.finish();
 }
 
-/// 両実装の並行性能比較ベンチマーク (new-scheduler feature required)
-#[cfg(feature = "new-scheduler")]
+/// 両実装の並行性能比較ベンチマーク
 fn bench_concurrent_comparison(c: &mut Criterion) {
   let mut group = c.benchmark_group("concurrent_comparison");
   group.measurement_time(Duration::from_secs(10));
@@ -288,8 +286,7 @@ fn bench_concurrent_comparison(c: &mut Criterion) {
   group.finish();
 }
 
-/// V1 vs V2 comparison benchmark (new-scheduler feature required)
-#[cfg(feature = "new-scheduler")]
+/// V1 vs V2 comparison benchmark
 fn bench_v1_vs_v2_comparison(c: &mut Criterion) {
   let mut group = c.benchmark_group("v1_vs_v2_comparison");
   group.measurement_time(Duration::from_secs(10));
@@ -361,7 +358,6 @@ fn bench_v1_vs_v2_comparison(c: &mut Criterion) {
   group.finish();
 }
 
-#[cfg(feature = "new-scheduler")]
 criterion_group!(
   benches,
   bench_register_drain_throughput,
@@ -372,17 +368,6 @@ criterion_group!(
   bench_unregister_performance,
   bench_concurrent_comparison,
   bench_v1_vs_v2_comparison,
-);
-
-#[cfg(not(feature = "new-scheduler"))]
-criterion_group!(
-  benches,
-  bench_register_drain_throughput,
-  bench_duplicate_detection,
-  bench_batch_size_impact,
-  bench_concurrent_register,
-  bench_invoke_result_handling,
-  bench_unregister_performance,
 );
 
 criterion_main!(benches);

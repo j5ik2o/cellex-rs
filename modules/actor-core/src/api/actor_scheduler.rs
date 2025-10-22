@@ -4,16 +4,20 @@ mod actor_scheduler_handle;
 mod actor_scheduler_handle_builder;
 mod actor_scheduler_handle_factory;
 mod actor_scheduler_spawn_context;
+#[cfg(feature = "std")]
 mod adaptive_coordinator;
 mod base;
 /// Default implementation of ReadyQueueCoordinator (std-only)
 #[cfg(feature = "std")]
 mod default_ready_queue_coordinator;
+/// V2 default implementation with &self (Phase 1 Week 4)
+#[cfg(feature = "std")]
+mod default_ready_queue_coordinator_v2;
 /// Lock-free implementation of ReadyQueueCoordinator (Phase 1)
-#[cfg(feature = "new-scheduler")]
+#[cfg(feature = "std")]
 mod lock_free_coordinator;
 /// V2 lock-free implementation with &self (Phase 1 Week 3)
-#[cfg(feature = "new-scheduler")]
+#[cfg(feature = "std")]
 mod lock_free_coordinator_v2;
 /// Prototype implementation of ReadyQueueCoordinator (Phase 0)
 mod ready_queue_coordinator;
@@ -30,13 +34,16 @@ pub use actor_scheduler_handle::*;
 pub use actor_scheduler_handle_builder::*;
 pub use actor_scheduler_handle_factory::*;
 pub use actor_scheduler_spawn_context::*;
+#[cfg(feature = "std")]
 pub use adaptive_coordinator::AdaptiveCoordinator;
 pub use base::ActorScheduler;
 #[cfg(feature = "std")]
 pub use default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
-#[cfg(feature = "new-scheduler")]
+#[cfg(feature = "std")]
+pub use default_ready_queue_coordinator_v2::DefaultReadyQueueCoordinatorV2;
+#[cfg(feature = "std")]
 pub use lock_free_coordinator::LockFreeCoordinator;
-#[cfg(feature = "new-scheduler")]
+#[cfg(feature = "std")]
 pub use lock_free_coordinator_v2::LockFreeCoordinatorV2;
 // Phase 0: Export types from ready_queue_coordinator
 pub use ready_queue_coordinator::{

@@ -85,12 +85,8 @@ fn test_signal_notification() {
 
   // Signal should be pending
   use core::task::{Context, RawWaker, RawWakerVTable, Waker};
-  const VTABLE: RawWakerVTable = RawWakerVTable::new(
-    |_| RawWaker::new(std::ptr::null(), &VTABLE),
-    |_| {},
-    |_| {},
-    |_| {},
-  );
+  const VTABLE: RawWakerVTable =
+    RawWakerVTable::new(|_| RawWaker::new(std::ptr::null(), &VTABLE), |_| {}, |_| {}, |_| {});
   let raw_waker = RawWaker::new(std::ptr::null(), &VTABLE);
   let waker = unsafe { Waker::from_raw(raw_waker) };
   let mut cx = Context::from_waker(&waker);

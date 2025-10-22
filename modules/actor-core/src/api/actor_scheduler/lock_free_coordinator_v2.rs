@@ -82,8 +82,8 @@ impl LockFreeCoordinatorV2 {
   /// ```
   pub fn new(throughput: usize) -> Self {
     Self {
-      queue:          Arc::new(SegQueue::new()),
-      queued:         Arc::new(DashSet::new()),
+      queue: Arc::new(SegQueue::new()),
+      queued: Arc::new(DashSet::new()),
       signal_pending: AtomicBool::new(false),
       throughput,
     }
@@ -100,11 +100,7 @@ impl LockFreeCoordinatorV2 {
   pub async fn wait_for_signal(&self) {
     use std::future::poll_fn;
     poll_fn(|cx| {
-      if self
-        .signal_pending
-        .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
-        .is_ok()
-      {
+      if self.signal_pending.compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire).is_ok() {
         Poll::Ready(())
       } else {
         // In real implementation, we would register waker
@@ -156,11 +152,7 @@ impl ReadyQueueCoordinatorV2 for LockFreeCoordinatorV2 {
 
   fn poll_wait_signal(&self, _cx: &mut Context<'_>) -> Poll<()> {
     // Atomic compare-exchange
-    if self
-      .signal_pending
-      .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
-      .is_ok()
-    {
+    if self.signal_pending.compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire).is_ok() {
       Poll::Ready(())
     } else {
       Poll::Pending

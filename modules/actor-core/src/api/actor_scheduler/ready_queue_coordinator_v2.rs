@@ -14,6 +14,7 @@
 //! 2. **Zero External Locking**: Implementations handle concurrency internally
 //! 3. **Backward Compatible**: Can coexist with V1 during migration
 
+use alloc::vec::Vec;
 use core::task::{Context, Poll};
 
 use super::{InvokeResult, MailboxIndex};
