@@ -6,8 +6,10 @@ mod actor_scheduler_handle_factory;
 mod actor_scheduler_spawn_context;
 mod base;
 /// Prototype implementation of ReadyQueueCoordinator (Phase 0)
-#[cfg(feature = "new-scheduler")]
-pub mod ready_queue_coordinator;
+mod ready_queue_coordinator;
+/// Default implementation of ReadyQueueCoordinator (std-only)
+#[cfg(feature = "std")]
+mod default_ready_queue_coordinator;
 /// Ready queue scheduling primitives and traits.
 pub mod ready_queue_scheduler;
 #[cfg(test)]
@@ -20,3 +22,10 @@ pub use actor_scheduler_handle_builder::*;
 pub use actor_scheduler_handle_factory::*;
 pub use actor_scheduler_spawn_context::*;
 pub use base::ActorScheduler;
+// Phase 0: Export types from ready_queue_coordinator
+pub use ready_queue_coordinator::{
+  ActorState, InvokeResult, MailboxIndex, MailboxOptions, OverflowStrategy, ReadyQueueCoordinator,
+  ResumeCondition, SignalKey, SuspendReason,
+};
+#[cfg(feature = "std")]
+pub use default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
