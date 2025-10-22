@@ -25,11 +25,19 @@
 - Shared 抽象や `no_std` 向け構成を想定したとき、現行の強結合がボトルネックになる。
 - メトリクス、バックプレッシャ、receive timeout 等の TODO が複数ドキュメントに分散し、優先順位が不明瞭。
 
+### 3.1 再設計着手前に完了すべき MUST タスク
+- `ActorSystemBuilder`／`GenericActorRuntime` からスケジューラを選択できる公開 API を整備し、`EmbassyScheduler` の統合テスト（`embedded_rc` / `embedded_arc`）を追加する。これにより新しいフロント層が既存の `ready_queue_worker()` エントリポイントと互換を保てる（docs/design/archive/2025-10-12-actor-scheduler-options.md）。
+- Mailbox Runtime の MUST 項目（`QueueMailboxProducer` での `Send` / `Sync` 緩和、`MailboxOptions` 拡張、プリセット API、`embedded_rc` / `embedded_arc` 向け CI）を片付け、MailboxOptions・Registry 前提を再設計側で活用できる状態にする（docs/design/archive/2025-10-13-mailbox-runtime-status.md）。
+- Mailbox Runtime の MUST 項目（`QueueMailboxProducer` での `Send` / `Sync` 緩和、`MailboxOptions` 拡張、プリセット API、`embedded_rc` / `embedded_arc` 向け CI）を片付け、MailboxOptions・Registry 前提を再設計側で活用できる状態にする（docs/design/archive/2025-10-13-mailbox-runtime-status.md）。特に `#[cfg(target_has_atomic = "ptr")]` でガードした `Send` / `Sync` 実装の扱いは既存コード（例: `modules/actor-core/src/runtime/mailbox/queue_mailbox.rs`）を参考にし、SingleThread 構成と pointer-atomic 環境の両方で安全性を担保する。
+- Embedded ランタイム計画の MUST（常駐 `SystemDriver` 抽象、Embassy 向け ReceiveTimeoutDriver、組み込みプロファイルのクロスビルド CI）を実装し、WorkerExecutor が Tokio/Embassy 双方で同一 API を利用できる足場を整える（docs/design/archive/2025-10-08-embedded-runtime-plan.md）。
+- ReceiveTimeout の `NotInfluenceReceiveTimeout` マーカー／ハンドルを modules 配下に実装し、Coordinator 配下のハッシュドホイールタイマが想定どおりに機能する基盤を確保する（docs/design/archive/2025-10-09-basic-feature-parity.md）。
+- Runtime バンドル計画の MUST（ReceiveTimeout/Event/Metrics 統合、Prometheus / Defmt MetricsSink、Embedded・Remote 向け EventListener と FailureHub 連携テスト）を完了し、Observability Hub が依存するメトリクス経路を整備する（docs/design/archive/2025-10-11-runtime-bundle-plan.md）。
+
 ## 4. 目標アーキテクチャ
 
 ### 4.1 コンポーネント構成
 1. **Mailbox Core**: QueueMailbox を中心に enqueue・シグナル通知・ReadyQueueHook 連携を担う純粋なデータ構造。`MailboxOptions` で容量・`OverflowStrategy`・システムメッセージ用予約枠を設定し、バックプレッシャ閾値や middleware hook をオプション化する。
-2. **Scheduler Facade**: ReadyQueueScheduler を外部 API の窓口としつつ、内部をサブコンポーネントへ分割。
+2. **Scheduler Frontend**: ReadyQueueScheduler を外部 API の窓口としつつ、内部をサブコンポーネントへ分割。
    - `ReadyQueueCoordinator`: `drain_ready_cycle` / `poll_wait_signal` による ready queue 走査とワーカ調停を担当。
    - `WorkerExecutor`: ランタイム依存のタスク生成・ワーカ駆動・再スケジュール要求を扱う。
    - `MessageInvoker`: ActorCell に代わりメッセージ実行ループを抽象化し、Suspend/Resume や Guardian 通知を集中させる。
@@ -80,7 +88,7 @@ Suspend 状態の mail box 着信や異常時のガーディアン連携など�
 バックプレッシャ判定およびミドルウェアチェインの詳細フローは Phase 2B にて `scheduler_sequences.puml` として拡張し、Invokers の拡張ポイント設計と合わせて公開する。
 
 ### 4.3 責務境界ガイドライン
-- Facade（ReadyQueueScheduler）は外部 API と内部コンポーネント初期化のみに注力し、実際の処理は Coordinator/Executor/Invoker に委譲する。
+- フロント層（ReadyQueueScheduler）は外部 API と内部コンポーネント初期化のみに注力し、実際の処理は Coordinator/Executor/Invoker に委譲する。
 - Mailbox Core はスレッド安全性と通知保証に専念し、業務ロジックを含まない。
 - システム/制御メッセージは常に専用バッファまたは予約枠を介して優先処理し、バックプレッシャによる抑止を受けない。
 - Observability Hub は enqueue/dequeue/エスカレーションなど全体の計測ポイントを一元管理し、個別コンポーネントからメトリクス実装を排除する。
@@ -359,7 +367,7 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 | MessageDispatcher | **WorkerExecutor** | protoactor-go `Dispatcher`(タスク実行) / Akka `ExecutorService` | ランタイムタスク生成・ワーカ駆動・Invoker 呼び出し |
 | MessageInvoker | MessageInvoker | protoactor-go `MessageInvoker` | メッセージ実行・Suspend/Resume 判定・Guardian 連携 |
 
-- Phase 4 の命名整理では `ReadyQueueScheduler`（Facade）を `ActorSchedulerFacade`（仮称）へ改称する案も検討する。最終判断は命名 ADR で合意し、コードと設計書を同時に更新する。
+- Phase 4 の命名整理では `ReadyQueueScheduler`（フロント層）を `ActorSchedulerFrontend`（仮称）へ改称する案も検討する。最終判断は命名 ADR で合意し、コードと設計書を同時に更新する。
 
 ### 4.10 観測指標とトレース方針
 - Metrics 最低ライン: `actor.mailbox.enqueued_total{actor,mailbox}`, `actor.mailbox.depth{actor}`, `scheduler.ready_queue.depth`, `scheduler.worker.busy_ratio{worker}`, `scheduler.invoke.duration_ms{actor}`, `scheduler.latency_ms{actor}`, `dead_letters_total{reason}`。
@@ -379,11 +387,13 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 | フェーズ | 目標 | 主なタスク |
 | --- | --- | --- |
 | Phase 0 | 現状の境界を明文化し PoC の前提を固める | 責務マッピング図・依存グラフ作成、テレメトリ/metrics 現状整理、ReadyQueueScheduler 公開 API 維持方針と移行戦略の合意 |
-| Phase 1 | Ready queue 処理の抽出 | `ReadyQueueCoordinator` トレイト導入、`drain_ready_cycle` 等の移動、Facade から Coordinator への委譲、単体・統合テスト整備、ベンチマーク更新 |
+| Phase 1 | Ready queue 処理の抽出 | `ReadyQueueCoordinator` トレイト導入、`drain_ready_cycle` 等の移動、フロント層から Coordinator への委譲、単体・統合テスト整備、ベンチマーク更新 |
 | Phase 2A | WorkerExecutor の導入 | ランタイムタスク生成抽象化、ワーカ駆動ロジックの移動、Tokio/Embassy/テスト用実装スケルトン作成、feature flag による切り替え実装 |
 | Phase 2B | MessageInvoker 導入と旧機能再統合 | ActorCell からのメッセージ実行抽出、Suspend/Resume・middleware・バックプレッシャ再配置、Guardian/エスカレーション通知の抽象化、`ActorCell` API 整理 |
 | Phase 3 | Mailbox Registry と Observability Hub の整備 | Mailbox lifecycle 集中管理、enqueue/dequeue 計測統一、Metrics Sink 連携、バックプレッシャ設定の外部化、no_std 対応確認 |
-| Phase 4 | 統合・命名整理・最終最適化 | 命名整備（`ActorSchedulerFacade` への改名是非）、ランタイムハンドル共通化、パフォーマンスチューニング、移行ガイドと ADR ドキュメント化 |
+| Phase 4 | 統合・命名整理・最終最適化 | 命名整備（`ActorSchedulerFrontend` への改名是非）、ランタイムハンドル共通化、パフォーマンスチューニング、移行ガイドと ADR ドキュメント化 |
+
+各フェーズの完了条件として `./scripts/ci-check.sh all` が無警告で通過することを必須とし、フォーマッタ・Clippy・カスタムリントを通じたリグレッション検知を担保する。
 
 ### 5.1 フェーズ完了条件（Definition of Done）
 - **Phase 0**: 責務マッピング図（PlantUML）と依存グラフがリポジトリに追加され、ベースラインベンチマーク結果（`baseline_before_refactor.md`）が共有されている。Suspend/Resume 責務に関する ADR 草案がレビュー中である。
@@ -391,7 +401,7 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 - **Phase 2A**: WorkerExecutor 抽象導入後も 10,000 メッセージ/秒 × 100 アクター統合テストが安定動作し、Tokio/Embassy/テスト向けの最小実装が揃う。ランタイム別統合テスト 15 ケース、レイテンシ劣化は Phase 1 比で追加 3% 以内。
 - **Phase 2B**: MessageInvoker 実装が Suspend/Resume・middleware・バックプレッシャを内包し、Guardian 連携の回帰テストを通過。`ActorCell` 公開 API からメッセージ実行関連メソッドが削減され、ミドルウェア関連テスト 7 ケース・Guardian テスト 5 ケース・バックプレッシャ テスト 5 ケースを含む 25 ケース以上の単体テストが追加されている。
 - **Phase 3**: Mailbox Registry と Observability Hub が導入され、enqueue/dequeue 両方向のメトリクスが Metrics Sink へ送出される。no_std ターゲット（`thumbv6m-none-eabi`, `thumbv8m.main-none-eabi`）で `cargo check` が通過し、必要に応じて QEMU + Embassy executor を用いた軽量統合テスト（3 アクター × 100 メッセージ）が成功する。Observability Hub の統合テスト 10 ケースを追加し、メトリクス送出がロックフリーであることをベンチマークで確認する。
-- **Phase 4**: 命名方針（Facade を `ActorSchedulerFacade` へ改称するか等）が ADR で確定し、移行ガイド・パフォーマンスレポート・トラブルシュートガイドが公開。feature flag をデフォルトで新実装に切り替え、旧実装削除が完了。1 週間のステージング観測とパフォーマンス回帰レポートがまとめられている。
+- **Phase 4**: 命名方針（フロント層を `ActorSchedulerFrontend` へ改称するか等）が ADR で確定し、移行ガイド・パフォーマンスレポート・トラブルシュートガイドが公開。feature flag をデフォルトで新実装に切り替え、旧実装削除が完了。1 週間のステージング観測とパフォーマンス回帰レポートがまとめられている。
 
 ### 5.2 パフォーマンスベースラインと計測計画
 #### ベースライン定義
@@ -444,7 +454,7 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 | P1 | MailboxIndex の世代管理と再利用安全性 | Phase 1 | Generational Index を導入し、loom ベースの検証を実施 |
 | P2 | MetricsSink の lock-free 化と enqueue/dequeue の統合計測 | Phase 3 | Observability Hub 実装で達成、ベンチマークでオーバーヘッド確認 |
 | P2 | Shared 抽象と no_std ターゲットでの互換性確保 | Phase 3 | `SharedDyn` の API 固定、thumbv6m/ thumbv8m ターゲットで `cargo check` を実施 |
-| P2 | Facade 化によるレイテンシ影響の継続測定 | Phase 1 以降継続 | 各フェーズでベンチマーク比較、許容値超過時は設計見直し |
+| P2 | フロント層化によるレイテンシ影響の継続測定 | Phase 1 以降継続 | 各フェーズでベンチマーク比較、許容値超過時は設計見直し |
 
 Suspend/Resume は Invoker 内で状態を評価し、`InvokeResult::Suspended` を返却することで ReadyQueueCoordinator が `unregister(idx)` を実行する。Resume 時は ActorCell が自身の状態を `Running` に戻したうえで `MailboxRegistry` 経由で `coordinator.register_ready(idx)` を呼び、未処理メッセージがあればキューへ再登録する。シグナル伝播経路（ActorCell → Registry → Coordinator → WorkerExecutor）は Phase 2B で `scheduler_sequences.puml` に反映し、テストケースでは Suspend → Resume 循環および再起動後の再登録を確認する。
 
