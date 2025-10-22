@@ -1,7 +1,5 @@
 #[cfg(feature = "alloc")]
 use core::cell::RefCell;
-#[cfg(all(feature = "alloc", feature = "std"))]
-use std::sync::Mutex;
 
 use crate::collections::queue::ring::RingBuffer;
 
@@ -23,19 +21,6 @@ impl<E> QueueStorage<E> for RefCell<RingBuffer<E>> {
 
   fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
     let mut guard = self.borrow_mut();
-    f(&mut guard)
-  }
-}
-
-#[cfg(all(feature = "alloc", feature = "std"))]
-impl<E> QueueStorage<E> for Mutex<RingBuffer<E>> {
-  fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
-    let guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    f(&guard)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
-    let mut guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     f(&mut guard)
   }
 }

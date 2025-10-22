@@ -1,15 +1,15 @@
 #![allow(clippy::disallowed_types)]
-use std::{
-  fmt,
-  sync::{Arc, Mutex},
-};
+use std::{fmt, sync::Arc};
 
 use cellex_utils_core_rs::{
-  Element, MpscBackend, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
+  Element, MpscBackend, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
   RingBufferBackend,
 };
 
-use crate::{collections::queue::mpsc::TokioUnboundedMpscBackend, sync::ArcShared};
+use crate::{
+  collections::queue::{mpsc::TokioUnboundedMpscBackend, MutexMpscBufferStorage},
+  sync::ArcShared,
+};
 
 #[cfg(test)]
 mod tests;
@@ -61,7 +61,8 @@ where
   /// A new queue instance using the ring buffer backend
   #[must_use]
   pub fn with_ring_buffer() -> Self {
-    let backend = RingBufferBackend::new(Mutex::new(MpscBuffer::new(None)));
+    let storage = ArcShared::new(MutexMpscBufferStorage::with_capacity(None));
+    let backend = RingBufferBackend::new(storage);
     Self::from_backend(backend)
   }
 

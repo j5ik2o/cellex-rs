@@ -1,11 +1,8 @@
-use std::sync::Mutex;
+use crate::{collections::queue::MutexRingBufferStorage, sync::ArcShared};
 
-use crate::sync::ArcShared;
-
-type ArcRingStorage<E> = ArcShared<RingStorageBackend<ArcShared<Mutex<RingBuffer<E>>>>>;
+type ArcRingStorage<E> = ArcShared<RingStorageBackend<ArcShared<MutexRingBufferStorage<E>>>>;
 use cellex_utils_core_rs::{
-  QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, RingBuffer, RingQueue, RingStorageBackend,
-  DEFAULT_CAPACITY,
+  QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, RingQueue, RingStorageBackend, DEFAULT_CAPACITY,
 };
 
 #[cfg(test)]
@@ -22,30 +19,14 @@ pub struct ArcRingQueue<E> {
 
 impl<E> ArcRingQueue<E> {
   /// Creates a new ring queue with the specified capacity
-  ///
-  /// # Arguments
-  ///
-  /// * `capacity` - Initial capacity of the ring buffer
-  ///
-  /// # Returns
-  ///
-  /// A new ring queue instance
   #[must_use]
   pub fn new(capacity: usize) -> Self {
-    let storage = ArcShared::new(Mutex::new(RingBuffer::new(capacity)));
+    let storage = ArcShared::new(MutexRingBufferStorage::with_capacity(capacity));
     let backend: ArcRingStorage<E> = ArcShared::new(RingStorageBackend::new(storage));
     Self { inner: RingQueue::new(backend) }
   }
 
   /// Sets dynamic expansion mode and returns the queue (builder pattern)
-  ///
-  /// # Arguments
-  ///
-  /// * `dynamic` - If `true`, automatically expands when capacity is exceeded
-  ///
-  /// # Returns
-  ///
-  /// The queue instance with the configuration applied (self)
   #[must_use]
   pub fn with_dynamic(mut self, dynamic: bool) -> Self {
     self.inner = self.inner.with_dynamic(dynamic);
@@ -53,10 +34,6 @@ impl<E> ArcRingQueue<E> {
   }
 
   /// Sets dynamic expansion mode
-  ///
-  /// # Arguments
-  ///
-  /// * `dynamic` - If `true`, automatically expands when capacity is exceeded
   pub fn set_dynamic(&self, dynamic: bool) {
     self.inner.set_dynamic(dynamic);
   }

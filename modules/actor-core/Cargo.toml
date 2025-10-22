@@ -62,3 +62,8 @@ required-features = ["full"]
 name = "scheduler_latency"
 harness = false
 required-features = ["full"]
+
+[[bench]]
+name = "ready_queue_coordinator"
+harness = false
+required-features = ["full"]

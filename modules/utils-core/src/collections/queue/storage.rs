@@ -2,8 +2,6 @@ mod queue_storage;
 
 #[cfg(feature = "alloc")]
 use core::cell::RefCell;
-#[cfg(all(feature = "alloc", feature = "std"))]
-use std::sync::Mutex;
 
 pub use queue_storage::QueueStorage;
 
@@ -51,19 +49,6 @@ impl<T> RingBufferStorage<T> for RefCell<MpscBuffer<T>> {
 
   fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
     let mut guard = self.borrow_mut();
-    f(&mut guard)
-  }
-}
-
-#[cfg(all(feature = "alloc", feature = "std"))]
-impl<T> RingBufferStorage<T> for Mutex<MpscBuffer<T>> {
-  fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
-    let guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    f(&guard)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
-    let mut guard = self.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     f(&mut guard)
   }
 }

@@ -188,7 +188,7 @@ pub trait MiddlewareChain {
 ```
 
 #### 4.4.1 参考実装スケッチ
-- `DefaultReadyQueueCoordinator`: `DashSet<MailboxIndex>` と MPMC シグナルチャネルで重複登録を抑制しつつ ready index をバッチ取得する。`drain_ready_cycle` は呼び出し側提供の `SmallVec<[MailboxIndex; 64]>` を埋め、`poll_wait_signal` でノンアロケな待機を実現する。`wait_for_signal_async` のような薄いラッパは `std` feature でのみ提供し、組み込み環境では `poll_wait_signal` を直接利用する。
+- `DefaultReadyQueueCoordinator`: `spin::Mutex<CoordinatorState>` を用いたシリアル実装。内部状態は `VecDeque<MailboxIndex>` と `BTreeSet<MailboxIndex>` で管理し、重複登録はセットで判定する。シグナル状態は Mutex 化したフラグで表現し、`poll_wait_signal` 内で Ready/Pending を切り替える。`no_std` を前提とし、MPMC チャネルや `DashSet`／`SegQueue` など `std` 依存コンポーネントには頼らない。将来的には `RingQueue` バックエンドを導入しつつ lock-free バリアントとの並存戦略を検討する。
 - `ActorCellInvoker`: Suspend 状態を先に評価し、Middleware の `before_invoke` で `ControlFlow::Break` が返った場合は処理を保留する。`process_messages_batch` の結果が `Err` の際は `InvokeResult::Failed { retry_after }` を返し、連続失敗回数とガーディアン方針からバックオフ時間を算出する。処理ループは `throughput_hint` を参照し、指定件数に達したら自発的に `InvokeResult::Yielded` を返すことで公平性を担保する。
 - `CompositeMiddleware`: 先入れ先出しで `before_invoke` を呼び、`after_invoke` は逆順で実行してリソース開放順序を制御する。テレメトリやロギングはここで集約する。
 - 優先度制御は QueueMailbox 側で完結させる。System メッセージは `system_queue`、通常メッセージは `user_queue` に分離し、`dequeue_batch` 時に system → user の順で取り出す。Invoker から見たメッセージ列は既に優先度順となり、追加の分岐を要しない。
@@ -397,7 +397,7 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 
 ### 5.1 フェーズ完了条件（Definition of Done）
 - **Phase 0**: 責務マッピング図（PlantUML）と依存グラフがリポジトリに追加され、ベースラインベンチマーク結果（`baseline_before_refactor.md`）が共有されている。Suspend/Resume 責務に関する ADR 草案がレビュー中である。
-- **Phase 1**: `ReadyQueueCoordinator` 実装が既存テスト＋新規単体テスト（正常系 8 / 異常系 7 / 境界値 5 の計 20 ケース以上、ライン＋ブランチカバレッジ 100%）を通過し、レイテンシ劣化 < 5%、スループット維持 ≥ 95%、メモリオーバーヘッド < 10% をベンチマークで確認。既存の `ReadyQueueState` テストは `queue_state/tests.rs` として移植し、新旧比較（DashSet vs Mutex）テストを追加する。feature flag による旧実装切り替えが可能で、統合テスト 5 シナリオ（単一アクター、100 アクター並列 10k メッセージ、1000 アクタースパイク、Suspend/Resume 連続、異常終了→再起動）を網羅し、各シナリオが 30 秒以内に完了することを確認する。また `ActorSystem` トレイト実装が `ready_queue_worker()` を通じて新 Coordinator/Executor を配線できることを検証する。
+- **Phase 1**: `ReadyQueueCoordinator` 実装が既存テスト＋新規単体テスト（正常系 8 / 異常系 7 / 境界値 5 の計 20 ケース以上、ライン＋ブランチカバレッジ 100%）を通過し、レイテンシ劣化 < 5%、スループット維持 ≥ 95%、メモリオーバーヘッド < 10% をベンチマークで確認。既存の `ReadyQueueState` テストは `queue_state/tests.rs` として移植し、`VecDeque + BTreeSet` による重複排除とシグナル制御が期待どおり動作することを保証する。将来の lock-free バリアント（例: `RingQueue` バックエンド）と比較できるように、feature flag ベースの実装切り替え雛形を用意する。統合テスト 5 シナリオ（単一アクター、100 アクター並列 10k メッセージ、1000 アクタースパイク、Suspend/Resume 連続、異常終了→再起動）を網羅し、各シナリオが 30 秒以内に完了することを確認する。また `ActorSystem` トレイト実装が `ready_queue_worker()` を通じて新 Coordinator/Executor を配線できることを検証する。
 - **Phase 2A**: WorkerExecutor 抽象導入後も 10,000 メッセージ/秒 × 100 アクター統合テストが安定動作し、Tokio/Embassy/テスト向けの最小実装が揃う。ランタイム別統合テスト 15 ケース、レイテンシ劣化は Phase 1 比で追加 3% 以内。
 - **Phase 2B**: MessageInvoker 実装が Suspend/Resume・middleware・バックプレッシャを内包し、Guardian 連携の回帰テストを通過。`ActorCell` 公開 API からメッセージ実行関連メソッドが削減され、ミドルウェア関連テスト 7 ケース・Guardian テスト 5 ケース・バックプレッシャ テスト 5 ケースを含む 25 ケース以上の単体テストが追加されている。
 - **Phase 3**: Mailbox Registry と Observability Hub が導入され、enqueue/dequeue 両方向のメトリクスが Metrics Sink へ送出される。no_std ターゲット（`thumbv6m-none-eabi`, `thumbv8m.main-none-eabi`）で `cargo check` が通過し、必要に応じて QEMU + Embassy executor を用いた軽量統合テスト（3 アクター × 100 メッセージ）が成功する。Observability Hub の統合テスト 10 ケースを追加し、メトリクス送出がロックフリーであることをベンチマークで確認する。
@@ -422,7 +422,7 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 #### 測定手順
 1. `feature/new-scheduler` を切り替えながら、同一ベンチマークを 3 回繰り返して中央値を採用。
 2. `valgrind --tool=massif` と `jemalloc` 統計を用い、メモリオーバーヘッド（ヒープ増加率 < 10%）を検証。
-3. `scripts/bench_concurrency.rs` を追加し、DashSet 版と Mutex<HashSet> 版の `register_ready` を 10 スレッドで比較。DashSet 版が 20% 以上高速であるかを確認し、結果を `benchmarks/concurrency_comparison.md` に記録。
+3. `scripts/bench_concurrency.rs` を追加し、現行の `spin::Mutex + VecDeque` 構成と検証用バックエンド（例: `RingQueue` や `SparseSet` ベース）の `register_ready` を 10 スレッドで比較。差分結果を `benchmarks/concurrency_comparison.md` に記録し、ベースラインとして維持する。
 
 #### ベンチマーク自動化
 - `.github/workflows/benchmarks.yml` で夜間ジョブを実行し、結果を Artifact として保存する。閾値（5% 劣化）を超えた場合は Slack に通知し、失敗したジョブは `benchmark-results` を添付する。
@@ -497,7 +497,7 @@ Suspend/Resume は Invoker 内で状態を評価し、`InvokeResult::Suspended` 
 WorkerExecutor が Coordinator を所有し、ワーカタスクを spawn して `poll_wait_signal` → `drain_ready_cycle` → `invoke` → `handle_invoke_result` のループを回す。Coordinator は QueueState への排他制御とシグナル管理を担当し、呼び出しはすべてメソッド経由で行う（セクション 4.7）。
 
 **Q3. 並行アクセスの排他制御はどこで行う？**  
-`ReadyQueueCoordinator` 内部に `ArcShared<Mutex<QueueState>>` を保持し、`register_ready`／`drain_ready_cycle` でロックを取得する。DashSet は重複登録検知と非同期通知の最適化に利用し、Phase 1 で Mutex<HashSet> との性能比較を行う（セクション 5.2）。
+`ReadyQueueCoordinator` 内部に `Mutex<QueueState>`（実装では `spin::Mutex`）を保持し、`register_ready`／`drain_ready_cycle` でロックを取得する。重複登録検知は `BTreeSet` による判定で実現し、Phase 1 ではロック粒度とセット更新コストをベンチマークで監視する（潜在的な改善案として `RingQueue` バックエンドやビットマップベースのステートを検討する）。
 
 **Q4. ベンチマークの比較対象と運用方法は？**  
 ベースラインは Phase 0 の現行実装。Phase 1 以降は `--features new-scheduler` を付与して同一ベンチマークを実行し、`scripts/compare_benchmarks.py` で差分を算出。5% 超の劣化は自動的に Slack 通知され、メモリ統計は `MALLOC_CONF=stats_print:true` で取得する（セクション 5.2）。

@@ -379,8 +379,8 @@ run_no_std() {
 }
 
 run_std() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs --features std"
-  run_cargo test -p cellex-utils-core-rs --features std || return 1
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs"
+  run_cargo test -p cellex-utils-core-rs || return 1
 
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision --lib"
   run_cargo test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision --lib || return 1

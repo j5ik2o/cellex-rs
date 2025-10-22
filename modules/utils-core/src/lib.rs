@@ -46,6 +46,8 @@
 #![deny(clippy::naive_bytecount)]
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::cmp_null)]
+#![allow(unknown_lints)]
+#![deny(cfg_std_forbid)]
 
 //! Core utility collection.
 //!
@@ -55,7 +57,7 @@
 //! and each runtime only needs to satisfy the abstractions defined here with their own
 //! implementations.
 
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
 extern crate alloc;
 
