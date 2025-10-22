@@ -51,12 +51,15 @@
 #![deny(clippy::naive_bytecount)]
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::cmp_null)]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![allow(unknown_lints)]
 #![deny(cfg_std_forbid)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
+
+#[cfg(feature = "alloc")]
+use alloc::borrow::ToOwned;
 
 /// Encoding helpers bridging remote envelopes and the serialization layer.
 pub mod codec; // allow module_wiring::no_parent_reexport
@@ -75,7 +78,6 @@ mod tests;
 ///
 /// Uses `FailureEventStream` to distribute failure information and enables additional processing
 /// through custom handlers.
-#[cfg(feature = "std")]
 pub struct RemoteFailureNotifier<E>
 where
   E: FailureEventStream, {
@@ -83,7 +85,6 @@ where
   handler: Option<FailureEventListener>,
 }
 
-#[cfg(feature = "std")]
 impl<E> RemoteFailureNotifier<E>
 where
   E: FailureEventStream,

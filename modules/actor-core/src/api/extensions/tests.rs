@@ -3,23 +3,23 @@
 #![allow(clippy::expect_used)]
 extern crate alloc;
 
-#[cfg(feature = "std")]
-use alloc::string::String;
 use core::any::Any;
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "json", feature = "prost"))]
 use cellex_serialization_core_rs::{impl_type_key, TypeKey};
-#[cfg(feature = "std")]
+#[cfg(feature = "json")]
 use cellex_serialization_json_rs::{JsonTypeKey, SERDE_JSON_SERIALIZER_ID};
 #[cfg(feature = "postcard")]
 use cellex_serialization_postcard_rs::{PostcardTypeKey, POSTCARD_SERIALIZER_ID};
-#[cfg(feature = "std")]
+#[cfg(feature = "prost")]
 use cellex_serialization_prost_rs::{ProstTypeKey, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::sync::ArcShared;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-#[cfg(feature = "std")]
-use serde_json;
+#[cfg(feature = "json")]
+use {
+  alloc::string::String,
+  serde::{Deserialize, Serialize},
+  serde_json,
+};
 
 use super::*;
 
@@ -59,8 +59,8 @@ fn register_and_lookup_extension() {
   assert_eq!(value, 42);
 }
 
-#[cfg(feature = "std")]
 #[test]
+#[cfg(all(feature = "json", feature = "prost"))]
 fn serializer_extension_installs_default_bindings() {
   let extension = SerializerRegistryExtension::new();
   let router = extension.router();
@@ -73,7 +73,7 @@ fn serializer_extension_installs_default_bindings() {
   assert_eq!(serializer.serializer_id(), PROST_SERIALIZER_ID);
 }
 
-#[cfg(all(feature = "std", feature = "postcard"))]
+#[cfg(feature = "postcard")]
 #[test]
 fn serializer_extension_installs_postcard_binding() {
   let extension = SerializerRegistryExtension::new();
@@ -84,8 +84,8 @@ fn serializer_extension_installs_postcard_binding() {
   assert_eq!(serializer.serializer_id(), POSTCARD_SERIALIZER_ID);
 }
 
-#[cfg(feature = "std")]
 #[test]
+#[cfg(feature = "json")]
 fn router_round_trip_serializes_and_deserializes_payload() {
   #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
   struct JsonPayload {

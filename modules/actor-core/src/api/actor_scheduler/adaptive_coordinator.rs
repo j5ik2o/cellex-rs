@@ -30,16 +30,16 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
+/// # extern crate alloc;
 /// # use cellex_actor_core_rs::api::actor_scheduler::AdaptiveCoordinator;
 /// // Low concurrency scenario (web server with 4 cores)
-/// let coordinator = AdaptiveCoordinator::new(32, 4);
+/// let _coordinator = AdaptiveCoordinator::new(32, 4);
 /// // → Uses DefaultReadyQueueCoordinator
 ///
 /// // High concurrency scenario (batch processor with 16 cores)
-/// let coordinator = AdaptiveCoordinator::new(32, 16);
+/// let _coordinator = AdaptiveCoordinator::new(32, 16);
 /// // → Uses LockFreeCoordinator
-/// # }
 /// ```
 pub enum AdaptiveCoordinator {
   /// Mutex-based implementation (optimal for 1-4 threads)

@@ -20,8 +20,8 @@ cellex-actor-core-rs = { path = "../actor-core", default-features = false, featu
 cellex-utils-core-rs = { path = "../utils-core" }
 cellex-utils-std-rs = { path = "../utils-std" }
 futures = { workspace = true }
-tokio = { workspace = true, default-features = false, features = ["macros", "sync", "time", "signal"] }
 spin = { workspace = true }
+tokio = { workspace = true, default-features = false, features = ["macros", "sync", "time", "signal"] }
 
 [dev-dependencies]
 tokio = { workspace = true, default-features = false, features = ["macros", "rt-multi-thread", "sync", "time", "signal"] }

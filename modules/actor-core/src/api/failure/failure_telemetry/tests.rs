@@ -1,8 +1,10 @@
 #![allow(clippy::disallowed_types)]
 
+extern crate std;
+
 use super::{
   FailureSnapshot, FailureTelemetry, FailureTelemetryBuilderShared, FailureTelemetryContext, FailureTelemetryShared,
-  NoopFailureTelemetry, TracingFailureTelemetry,
+  NoopFailureTelemetry,
 };
 use crate::api::{
   actor::{actor_failure::ActorFailure, ActorId, ActorPath},
@@ -20,10 +22,13 @@ fn telemetry_builder_shared_invokes_closure() {
   telemetry.with_ref(|_impl| {});
 }
 
-#[cfg(feature = "std")]
 mod std_tests {
   #![allow(clippy::unwrap_used)]
 
+  use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+  };
   use std::{
     io::Write,
     sync::{Arc, Mutex},
@@ -33,6 +38,8 @@ mod std_tests {
   use tracing_subscriber::fmt;
 
   use super::*;
+  #[cfg(feature = "tracing-support")]
+  use crate::api::failure::failure_telemetry::TracingFailureTelemetry;
 
   #[test]
   fn failure_snapshot_captures_core_fields() {
@@ -74,6 +81,7 @@ mod std_tests {
     }
   }
 
+  #[cfg(feature = "tracing-support")]
   #[test]
   fn tracing_failure_telemetry_emits_error_log() {
     let metadata = FailureMetadata::default();

@@ -1,9 +1,15 @@
 #![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
-use alloc::sync::Arc;
-use core::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Mutex;
+extern crate std;
+
+use std::{
+  sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc, Mutex,
+  },
+  vec::Vec,
+};
 
 use super::{FailureEventListener, FailureEventStream};
 use crate::api::failure::FailureEvent;

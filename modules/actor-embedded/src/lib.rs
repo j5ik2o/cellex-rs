@@ -82,8 +82,6 @@ mod embassy_dispatcher;
 
 pub use local_mailbox::{LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
 #[cfg(feature = "embassy_executor")]
-pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
-#[cfg(feature = "embassy_executor")]
 pub use scheduler::{embassy_scheduler_builder, EmbassyActorRuntimeExt, EmbassyScheduler};
 pub use spawn::ImmediateSpawner;
 pub use timer::ImmediateTimer;
@@ -107,7 +105,7 @@ mod tests;
 
 /// Default actor runtime preset for Embassy-based environments.
 #[cfg(feature = "embassy_executor")]
-pub type EmbassyActorRuntime = cellex_actor_core_rs::GenericActorRuntime<LocalMailboxRuntime>;
+pub type EmbassyActorRuntime = cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime<LocalMailboxRuntime>;
 
 /// Builds the default Embassy-oriented actor runtime preset using the provided spawner.
 #[cfg(feature = "embassy_executor")]
@@ -115,5 +113,6 @@ pub type EmbassyActorRuntime = cellex_actor_core_rs::GenericActorRuntime<LocalMa
 pub fn embassy_actor_runtime(spawner: &'static embassy_executor::Spawner) -> EmbassyActorRuntime {
   use scheduler::EmbassyActorRuntimeExt;
 
-  cellex_actor_core_rs::GenericActorRuntime::new(LocalMailboxRuntime::default()).with_embassy_scheduler(spawner)
+  cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime::new(LocalMailboxRuntime::default())
+    .with_embassy_scheduler(spawner)
 }

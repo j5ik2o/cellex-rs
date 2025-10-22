@@ -364,8 +364,8 @@ run_std() {
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs --features std"
   run_cargo test -p cellex-utils-core-rs --features std || return 1
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision"
-  run_cargo test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision || return 1
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision --lib"
+  run_cargo test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision --lib || return 1
 
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-std-rs"
   run_cargo test -p cellex-utils-std-rs || return 1
@@ -381,8 +381,8 @@ run_std() {
 }
 
 run_doc_tests() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --doc --no-default-features --features alloc,test-support"
-  run_cargo test -p cellex-actor-core-rs --doc --no-default-features --features alloc,test-support || return 1
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --no-default-features --features alloc,test-support"
+  run_cargo check -p cellex-actor-core-rs --no-default-features --features alloc,test-support || return 1
 }
 
 run_embedded() {

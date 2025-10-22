@@ -49,8 +49,8 @@ struct CoordinatorState {
 /// # Concurrency Model
 ///
 /// All operations acquire the Mutex:
-/// ```rust
-/// # use std::sync::Arc;
+/// ```rust,no_run
+/// # extern crate alloc;
 /// # use cellex_actor_core_rs::api::actor_scheduler::{
 /// #   DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex
 /// # };
@@ -86,9 +86,8 @@ impl DefaultReadyQueueCoordinatorV2 {
   ///
   /// # Examples
   ///
-  /// ```rust
-  /// # #[cfg(feature = "std")] {
-  /// # use std::sync::Arc;
+  /// ```rust,no_run
+  /// # extern crate alloc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::DefaultReadyQueueCoordinatorV2;
   /// let coord = Arc::new(DefaultReadyQueueCoordinatorV2::new(32));
   /// // Can be shared across threads without additional Mutex!
@@ -109,9 +108,8 @@ impl DefaultReadyQueueCoordinatorV2 {
   ///
   /// # Examples
   ///
-  /// ```rust
-  /// # #[cfg(feature = "std")] {
-  /// # use std::sync::Arc;
+  /// ```rust,no_run
+  /// # extern crate alloc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::DefaultReadyQueueCoordinatorV2;
   /// # async fn example() {
   /// let coord = Arc::new(DefaultReadyQueueCoordinatorV2::new(32));

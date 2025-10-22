@@ -1,13 +1,11 @@
 //! Tests for ReadyQueueCoordinator
 
-use alloc::string::ToString;
+use alloc::{string::ToString, vec::Vec};
 use core::time::Duration;
 
 use super::*;
-#[cfg(feature = "std")]
 use crate::api::actor_scheduler::default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
 
-#[cfg(feature = "std")]
 #[test]
 fn test_register_ready_basic() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -22,7 +20,6 @@ fn test_register_ready_basic() {
   assert_eq!(out[0], idx);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_register_ready_duplicate_prevention() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -40,7 +37,6 @@ fn test_register_ready_duplicate_prevention() {
   assert_eq!(out[0], idx);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_drain_ready_cycle_batch_limit() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -63,7 +59,6 @@ fn test_drain_ready_cycle_batch_limit() {
   assert_eq!(out.len(), 2);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_unregister() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -82,7 +77,6 @@ fn test_unregister() {
   assert_eq!(out[0], idx2);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_handle_invoke_result_completed_with_ready_hint() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -98,7 +92,6 @@ fn test_handle_invoke_result_completed_with_ready_hint() {
   assert_eq!(out[0], idx);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_handle_invoke_result_completed_without_ready_hint() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -114,7 +107,6 @@ fn test_handle_invoke_result_completed_without_ready_hint() {
   assert_eq!(out.len(), 0);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_handle_invoke_result_yielded() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -130,7 +122,6 @@ fn test_handle_invoke_result_yielded() {
   assert_eq!(out[0], idx);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_handle_invoke_result_suspended() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -149,7 +140,6 @@ fn test_handle_invoke_result_suspended() {
   assert_eq!(out.len(), 0);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_handle_invoke_result_stopped() {
   let mut coordinator = DefaultReadyQueueCoordinator::new(32);
@@ -165,7 +155,6 @@ fn test_handle_invoke_result_stopped() {
   assert_eq!(out.len(), 0);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_throughput_hint() {
   let coordinator = DefaultReadyQueueCoordinator::new(64);

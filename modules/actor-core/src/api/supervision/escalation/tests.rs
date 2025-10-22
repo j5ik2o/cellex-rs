@@ -1,6 +1,9 @@
 #![allow(clippy::disallowed_types)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
+extern crate std;
+
+use alloc::vec::Vec;
 use std::sync::{Arc, Mutex};
 
 use crate::{

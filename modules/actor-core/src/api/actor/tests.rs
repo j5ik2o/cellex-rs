@@ -2,13 +2,14 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::panic)]
-#![cfg(feature = "std")]
+
+extern crate std;
 
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use alloc::{rc::Rc, string::String, vec::Vec};
+use alloc::{format, rc::Rc, string::String, vec::Vec};
 use core::{
   cell::RefCell,
   future::Future,
@@ -18,13 +19,18 @@ use core::{
 };
 use std::{
   panic::{catch_unwind, AssertUnwindSafe},
+  string::ToString,
   sync::{Arc as StdArc, Mutex},
 };
 
-use cellex_serialization_json_rs::SERDE_JSON_SERIALIZER_ID;
 use cellex_utils_core_rs::{Element, QueueError};
-use serde::{Deserialize, Serialize};
-use serde_json;
+#[cfg(feature = "json")]
+use {
+  crate::api::extensions::{serializer_extension_id, SerializerRegistryExtension},
+  cellex_serialization_json_rs::SERDE_JSON_SERIALIZER_ID,
+  serde::{Deserialize, Serialize},
+  serde_json,
+};
 
 use super::{
   ask::create_ask_handles,
@@ -43,7 +49,7 @@ use crate::{
     },
     actor_runtime::{ActorRuntime, GenericActorRuntime, MailboxQueueOf, MailboxSignalOf},
     actor_system::{GenericActorSystem, GenericActorSystemConfig},
-    extensions::{next_extension_id, serializer_extension_id, Extension, ExtensionId, SerializerRegistryExtension},
+    extensions::{next_extension_id, Extension, ExtensionId},
     mailbox::{messages::SystemMessage, MailboxFactory},
     messaging::{MessageMetadata, MessageSender},
     test_support::TestMailboxFactory,
@@ -546,6 +552,7 @@ fn actor_context_accesses_registered_extension() {
 }
 
 #[test]
+#[cfg(feature = "json")]
 fn serializer_extension_provides_json_roundtrip() {
   let mailbox_factory = TestMailboxFactory::unbounded();
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
@@ -698,7 +705,6 @@ fn test_typed_actor_handles_watch_unwatch() {
   assert_eq!(after_unwatch_count, initial_count, "Watcher count should return to initial");
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn test_typed_actor_stateful_behavior_with_system_message() {
   let mailbox_factory = TestMailboxFactory::unbounded();

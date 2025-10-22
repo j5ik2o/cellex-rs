@@ -1,7 +1,8 @@
+use alloc::vec::Vec;
+
 use super::*;
 
 #[test]
-#[cfg(feature = "std")]
 fn test_adaptive_selection() {
   // Low concurrency → Locked
   let coord_low = AdaptiveCoordinator::new(32, 2);
@@ -17,7 +18,6 @@ fn test_adaptive_selection() {
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_explicit_strategy() {
   // Force locked
   let coord_locked = AdaptiveCoordinator::with_strategy(32, false);
@@ -29,7 +29,6 @@ fn test_explicit_strategy() {
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_register_and_drain() {
   let coord = AdaptiveCoordinator::new(32, 2);
   let idx = MailboxIndex::new(1, 0);

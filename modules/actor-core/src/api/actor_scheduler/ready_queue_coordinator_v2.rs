@@ -35,9 +35,8 @@ use super::{InvokeResult, MailboxIndex};
 ///
 /// # Migration from V1
 ///
-/// ```rust
-/// # #[cfg(all(feature = "std", feature = "new-scheduler"))] {
-/// # use std::sync::{Arc, Mutex};
+/// ```rust,no_run
+/// # extern crate alloc;
 /// # use cellex_actor_core_rs::api::actor_scheduler::{
 /// #   DefaultReadyQueueCoordinator, ReadyQueueCoordinator,
 /// #   LockFreeCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex

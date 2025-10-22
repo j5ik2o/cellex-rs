@@ -25,4 +25,5 @@ pub use failure_telemetry_observation_config::FailureTelemetryObservationConfig;
 pub use failure_telemetry_shared::FailureTelemetryShared;
 pub use failure_telemetry_tag::FailureTelemetryTag;
 pub use noop_failure_telemetry::{noop_failure_telemetry_shared, NoopFailureTelemetry};
+#[cfg(feature = "tracing-support")]
 pub use tracing_failure_telemetry::*;

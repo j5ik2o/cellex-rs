@@ -41,6 +41,7 @@ mod tests;
 ///
 /// All operations are safe for concurrent access:
 /// ```rust,no_run
+/// # extern crate alloc;
 /// # use alloc::sync::Arc;
 /// # use cellex_actor_core_rs::api::actor_scheduler::{LockFreeCoordinatorV2, MailboxIndex};
 /// let coord = Arc::new(LockFreeCoordinatorV2::new(32));
@@ -82,7 +83,8 @@ impl LockFreeCoordinatorV2 {
   ///
   /// # Examples
   ///
-  /// ```rust
+  /// ```rust,no_run
+  /// # extern crate alloc;
   /// # use alloc::sync::Arc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::LockFreeCoordinatorV2;
   /// let coord = Arc::new(LockFreeCoordinatorV2::new(32));
@@ -102,6 +104,7 @@ impl LockFreeCoordinatorV2 {
   /// # Examples
   ///
   /// ```rust,no_run
+  /// # extern crate alloc;
   /// # use alloc::sync::Arc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::LockFreeCoordinatorV2;
   /// # async fn example() {

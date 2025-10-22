@@ -1,3 +1,5 @@
+extern crate std;
+
 use std::{sync::Arc, thread};
 
 use super::*;

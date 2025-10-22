@@ -1,4 +1,6 @@
 #![allow(clippy::disallowed_types)]
+use cellex_utils_core_rs::StateCell;
+
 use super::*;
 use crate::tests::init_arc_critical_section;
 
