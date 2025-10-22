@@ -26,7 +26,7 @@ unwind-supervision = ["std"]
 postcard = ["dep:cellex-serialization-postcard-rs"]
 test-support = []
 # Phase 0-4: ActorScheduler refactoring prototype
-new-scheduler = ["std"]
+new-scheduler = ["std", "dep:dashmap", "dep:crossbeam-queue"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -37,6 +37,8 @@ cellex-serialization-prost-rs = { path = "../serialization-prost", optional = tr
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
 cellex-utils-std-rs = { path = "../utils-std", optional = true }
 critical-section = { workspace = true, default-features = false }
+crossbeam-queue = { version = "0.3", optional = true }
+dashmap = { version = "6.0", optional = true }
 futures = { workspace = true, default-features = false, features = ["alloc"] }
 portable-atomic = { workspace = true, default-features = false, features = ["critical-section"] }
 spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "once", "portable_atomic", "rwlock"] }
@@ -56,5 +58,15 @@ required-features = ["std"]
 
 [[bench]]
 name = "failure_telemetry"
+harness = false
+required-features = ["std"]
+
+[[bench]]
+name = "mailbox_throughput"
+harness = false
+required-features = ["std"]
+
+[[bench]]
+name = "scheduler_latency"
 harness = false
 required-features = ["std"]

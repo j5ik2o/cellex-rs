@@ -252,6 +252,7 @@ run_dylint() {
   fi
 
   local -a cargo_dylint_args=()
+  local -a cargo_dylint_trailing_args=()
   if [[ ${#package_args[@]} -eq 0 ]]; then
     cargo_dylint_args+=("--workspace")
   else
@@ -260,8 +261,14 @@ run_dylint() {
   cargo_dylint_args+=("${dylint_args[@]}")
   cargo_dylint_args+=("--no-build" "--no-metadata")
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${cargo_dylint_args[*]} (RUSTFLAGS=${rustflags_value})"
-  RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${cargo_dylint_args[@]}" || return 1
+  # cargo_dylint_trailing_args+=("--all-features")  # Disabled: causes critical-section feature conflict
+  local log_trailing=""
+  if [[ ${#cargo_dylint_trailing_args[@]} -gt 0 ]]; then
+    log_trailing=" -- ${cargo_dylint_trailing_args[*]}"
+  fi
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${cargo_dylint_args[*]}${log_trailing} (RUSTFLAGS=${rustflags_value})"
+  RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${cargo_dylint_args[@]}" -- "${cargo_dylint_trailing_args[@]}" || return 1
 }
 
 run_clippy() {
