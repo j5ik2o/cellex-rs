@@ -8,13 +8,12 @@
 //! - handle_invoke_result操作のレイテンシ
 //! - エンドツーエンド処理時間（register → drain → handle）
 
+use std::time::Duration;
+
 use cellex_actor_core_rs::api::actor_scheduler::{
   DefaultReadyQueueCoordinator, InvokeResult, MailboxIndex, ReadyQueueCoordinator,
 };
-use criterion::{
-  black_box, criterion_group, criterion_main, BenchmarkId, Criterion, PlotConfiguration,
-};
-use std::time::Duration;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, PlotConfiguration};
 
 /// register_ready操作のレイテンシ測定（単一操作）
 fn bench_register_ready_latency(c: &mut Criterion) {
@@ -120,10 +119,7 @@ fn bench_handle_invoke_result_latency(c: &mut Criterion) {
 
   let results = vec![
     ("completed_ready", InvokeResult::Completed { ready_hint: true }),
-    (
-      "completed_not_ready",
-      InvokeResult::Completed { ready_hint: false },
-    ),
+    ("completed_not_ready", InvokeResult::Completed { ready_hint: false }),
     ("yielded", InvokeResult::Yielded),
     ("stopped", InvokeResult::Stopped),
   ];
@@ -147,25 +143,21 @@ fn bench_unregister_latency(c: &mut Criterion) {
   let mut group = c.benchmark_group("unregister_latency");
 
   for queue_size in [10, 100, 1_000].iter() {
-    group.bench_with_input(
-      BenchmarkId::from_parameter(queue_size),
-      queue_size,
-      |b, &queue_size| {
-        b.iter_batched(
-          || {
-            let mut coordinator = DefaultReadyQueueCoordinator::new(32);
-            for i in 0..queue_size {
-              coordinator.register_ready(MailboxIndex::new(i as u32, 0));
-            }
-            coordinator
-          },
-          |mut coordinator| {
-            coordinator.unregister(MailboxIndex::new(queue_size as u32 / 2, 0));
-          },
-          criterion::BatchSize::SmallInput,
-        );
-      },
-    );
+    group.bench_with_input(BenchmarkId::from_parameter(queue_size), queue_size, |b, &queue_size| {
+      b.iter_batched(
+        || {
+          let mut coordinator = DefaultReadyQueueCoordinator::new(32);
+          for i in 0..queue_size {
+            coordinator.register_ready(MailboxIndex::new(i as u32, 0));
+          }
+          coordinator
+        },
+        |mut coordinator| {
+          coordinator.unregister(MailboxIndex::new(queue_size as u32 / 2, 0));
+        },
+        criterion::BatchSize::SmallInput,
+      );
+    });
   }
 
   group.finish();
@@ -177,31 +169,27 @@ fn bench_end_to_end_latency(c: &mut Criterion) {
   group.measurement_time(Duration::from_secs(10));
 
   for num_items in [1, 10, 100].iter() {
-    group.bench_with_input(
-      BenchmarkId::new("items", num_items),
-      num_items,
-      |b, &num_items| {
-        b.iter(|| {
-          let mut coordinator = DefaultReadyQueueCoordinator::new(32);
-          let mut out = Vec::with_capacity(num_items);
+    group.bench_with_input(BenchmarkId::new("items", num_items), num_items, |b, &num_items| {
+      b.iter(|| {
+        let mut coordinator = DefaultReadyQueueCoordinator::new(32);
+        let mut out = Vec::with_capacity(num_items);
 
-          // 1. Register
-          for i in 0..num_items {
-            coordinator.register_ready(MailboxIndex::new(i as u32, 0));
-          }
+        // 1. Register
+        for i in 0..num_items {
+          coordinator.register_ready(MailboxIndex::new(i as u32, 0));
+        }
 
-          // 2. Drain
-          coordinator.drain_ready_cycle(num_items, &mut out);
+        // 2. Drain
+        coordinator.drain_ready_cycle(num_items, &mut out);
 
-          // 3. Handle results
-          for idx in &out {
-            coordinator.handle_invoke_result(*idx, InvokeResult::Completed { ready_hint: false });
-          }
+        // 3. Handle results
+        for idx in &out {
+          coordinator.handle_invoke_result(*idx, InvokeResult::Completed { ready_hint: false });
+        }
 
-          black_box(out.len());
-        });
-      },
-    );
+        black_box(out.len());
+      });
+    });
   }
 
   group.finish();
