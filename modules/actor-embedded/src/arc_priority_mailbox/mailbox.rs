@@ -11,7 +11,7 @@ use cellex_actor_core_rs::{
 use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{queues::ArcPriorityQueues, runtime::ArcPriorityMailboxRuntime, sender::ArcPriorityMailboxSender};
+use super::{factory::ArcPriorityMailboxFactory, queues::ArcPriorityQueues, sender::ArcPriorityMailboxSender};
 use crate::arc_mailbox::ArcSignal;
 
 /// Mailbox that stores priority envelopes using `ArcShared` storage.
@@ -30,7 +30,7 @@ where
 {
   /// Creates a mailbox runtime and builds a mailbox with the requested control capacity.
   pub fn new(control_capacity_per_level: usize) -> (Self, ArcPriorityMailboxSender<M, RM>) {
-    ArcPriorityMailboxRuntime::<RM>::new(control_capacity_per_level).mailbox(MailboxOptions::default())
+    ArcPriorityMailboxFactory::<RM>::new(control_capacity_per_level).mailbox(MailboxOptions::default())
   }
 
   /// Returns the underlying queue mailbox.

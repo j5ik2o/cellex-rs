@@ -15,13 +15,13 @@ use cellex_actor_core_rs::api::{
     FailureEvent, FailureInfo, FailureMetadata,
   },
 };
-use cellex_actor_embedded_rs::{runtime_driver::EmbeddedFailureEventHub, LocalMailboxRuntime};
+use cellex_actor_embedded_rs::{runtime_driver::EmbeddedFailureEventHub, LocalMailboxFactory};
 
 #[test]
 fn embedded_actor_runtime_dispatches_message() {
   let hub = EmbeddedFailureEventHub::new();
   let mut system: GenericActorSystem<u32, _> = GenericActorSystem::new_with_actor_runtime_and_event_stream(
-    GenericActorRuntime::new(LocalMailboxRuntime::default()),
+    GenericActorRuntime::new(LocalMailboxFactory::default()),
     &hub,
   );
 

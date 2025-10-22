@@ -14,16 +14,16 @@ use super::{
   local_signal::LocalSignal,
 };
 
-/// Factory that creates local actor runtime.
+/// Factory that creates local mailboxes.
 ///
 /// Creates mailbox pairs for embedded or single-threaded environments.
 #[derive(Clone, Debug, Default)]
-pub struct LocalMailboxRuntime {
+pub struct LocalMailboxFactory {
   _marker: PhantomData<()>,
 }
 
-impl LocalMailboxRuntime {
-  /// Creates a new `LocalMailboxRuntime`.
+impl LocalMailboxFactory {
+  /// Creates a new `LocalMailboxFactory`.
   ///
   /// # Returns
   ///
@@ -63,7 +63,7 @@ impl LocalMailboxRuntime {
   }
 }
 
-impl MailboxFactory for LocalMailboxRuntime {
+impl MailboxFactory for LocalMailboxFactory {
   #[cfg(feature = "embedded_rc")]
   type Concurrency = SingleThread;
   #[cfg(not(feature = "embedded_rc"))]

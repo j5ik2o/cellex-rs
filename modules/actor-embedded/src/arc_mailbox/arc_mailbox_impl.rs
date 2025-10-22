@@ -8,7 +8,7 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element, QueueError, QueueSize};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{runtime::ArcMailboxRuntime, sender::ArcMailboxSender, signal::ArcSignal};
+use super::{factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal};
 
 /// Mailbox implementation backed by an `ArcShared` MPSC queue.
 #[derive(Clone)]
@@ -26,7 +26,7 @@ where
 {
   /// Creates an unbounded mailbox and sender pair.
   pub fn new() -> (Self, ArcMailboxSender<M, RM>) {
-    ArcMailboxRuntime::<RM>::new().unbounded()
+    ArcMailboxFactory::<RM>::new().unbounded()
   }
 
   /// Returns the underlying queue mailbox.

@@ -9,13 +9,13 @@ use embassy_sync::blocking_mutex::raw::RawMutex;
 use super::{arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal};
 
 /// Factory for constructing [`ArcMailbox`] instances.
-pub struct ArcMailboxRuntime<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
+pub struct ArcMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   _marker: PhantomData<RM>,
 }
 
-impl<RM> Clone for ArcMailboxRuntime<RM>
+impl<RM> Clone for ArcMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -24,7 +24,7 @@ where
   }
 }
 
-impl<RM> Default for ArcMailboxRuntime<RM>
+impl<RM> Default for ArcMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -33,11 +33,11 @@ where
   }
 }
 
-impl<RM> ArcMailboxRuntime<RM>
+impl<RM> ArcMailboxFactory<RM>
 where
   RM: RawMutex,
 {
-  /// Creates a new runtime factory.
+  /// Creates a new mailbox factory.
   pub const fn new() -> Self {
     Self { _marker: PhantomData }
   }
@@ -58,7 +58,7 @@ where
   }
 }
 
-impl<RM> MailboxFactory for ArcMailboxRuntime<RM>
+impl<RM> MailboxFactory for ArcMailboxFactory<RM>
 where
   RM: RawMutex,
 {

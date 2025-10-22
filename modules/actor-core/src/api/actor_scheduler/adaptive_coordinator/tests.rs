@@ -4,28 +4,29 @@ use super::*;
 
 #[test]
 fn test_adaptive_selection() {
-  // Low concurrency → Locked
+  // All concurrency hints use the same implementation in no_std
   let coord_low = AdaptiveCoordinator::new(32, 2);
-  assert!(matches!(coord_low, AdaptiveCoordinator::Locked(_)));
-
-  // Boundary case (4 threads) → Locked
   let coord_boundary = AdaptiveCoordinator::new(32, 4);
-  assert!(matches!(coord_boundary, AdaptiveCoordinator::Locked(_)));
-
-  // High concurrency → LockFree
   let coord_high = AdaptiveCoordinator::new(32, 8);
-  assert!(matches!(coord_high, AdaptiveCoordinator::LockFree(_)));
+
+  // Verify throughput_hint works
+  assert_eq!(coord_low.throughput_hint(), 32);
+  assert_eq!(coord_boundary.throughput_hint(), 32);
+  assert_eq!(coord_high.throughput_hint(), 32);
 }
 
 #[test]
 fn test_explicit_strategy() {
-  // Force locked
+  // Force locked (only available option)
   let coord_locked = AdaptiveCoordinator::with_strategy(32, false);
-  assert!(matches!(coord_locked, AdaptiveCoordinator::Locked(_)));
+  assert_eq!(coord_locked.throughput_hint(), 32);
+}
 
-  // Force lock-free
-  let coord_lockfree = AdaptiveCoordinator::with_strategy(32, true);
-  assert!(matches!(coord_lockfree, AdaptiveCoordinator::LockFree(_)));
+#[test]
+#[should_panic(expected = "lock-free coordinators are only available in cellex-actor-std-rs")]
+fn test_explicit_strategy_lockfree_panics() {
+  // Should panic in no_std
+  let _coord_lockfree = AdaptiveCoordinator::with_strategy(32, true);
 }
 
 #[test]

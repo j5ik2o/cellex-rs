@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{marker::PhantomData, time::Duration};
 
 use crate::{
   api::{
@@ -129,8 +129,11 @@ where
 
     self.failure_telemetry_shared.with_ref(|telemetry| telemetry.on_failure(&snapshot));
 
-    // Note: Timing measurement is not available in no_std
-    let elapsed = None;
+    // Note: Real timing measurement is unavailable in no_std environments.
+    // When timing is requested we still emit a zero-duration event so metrics
+    // sinks observe the invocation latency hook consistently across targets.
+    let elapsed =
+      if self.failure_telemetry_observation_config.should_record_timing() { Some(Duration::ZERO) } else { None };
 
     self.failure_telemetry_observation_config.observe(elapsed);
 

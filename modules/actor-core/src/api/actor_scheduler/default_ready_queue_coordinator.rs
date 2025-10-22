@@ -5,7 +5,6 @@
 
 use alloc::{
   collections::{BTreeSet, VecDeque},
-  sync::Arc,
   vec::Vec,
 };
 use core::task::{Context, Poll};
@@ -32,7 +31,7 @@ struct CoordinatorState {
 /// - Use MPSC channel for signal notification
 /// - Minimize critical section duration
 pub struct DefaultReadyQueueCoordinator {
-  state:      Arc<Mutex<CoordinatorState>>,
+  state:      Mutex<CoordinatorState>,
   throughput: usize,
 }
 
@@ -40,11 +39,11 @@ impl DefaultReadyQueueCoordinator {
   /// Create a new DefaultReadyQueueCoordinator
   pub fn new(throughput: usize) -> Self {
     Self {
-      state: Arc::new(Mutex::new(CoordinatorState {
+      state: Mutex::new(CoordinatorState {
         queue:          VecDeque::new(),
         queued:         BTreeSet::new(),
         signal_pending: false,
-      })),
+      }),
       throughput,
     }
   }

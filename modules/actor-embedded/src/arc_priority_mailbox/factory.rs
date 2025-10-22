@@ -9,7 +9,7 @@ use crate::arc_mailbox::ArcSignal;
 
 /// Factory for constructing [`ArcPriorityMailbox`] instances.
 #[derive(Debug)]
-pub struct ArcPriorityMailboxRuntime<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
+pub struct ArcPriorityMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   control_capacity_per_level: usize,
@@ -18,7 +18,7 @@ where
   _marker:                    PhantomData<RM>,
 }
 
-impl<RM> Default for ArcPriorityMailboxRuntime<RM>
+impl<RM> Default for ArcPriorityMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -32,11 +32,11 @@ where
   }
 }
 
-impl<RM> ArcPriorityMailboxRuntime<RM>
+impl<RM> ArcPriorityMailboxFactory<RM>
 where
   RM: RawMutex,
 {
-  /// Creates a new runtime with the specified control capacity per priority level.
+  /// Creates a new factory with the specified control capacity per priority level.
   pub const fn new(control_capacity_per_level: usize) -> Self {
     Self {
       control_capacity_per_level,
@@ -46,7 +46,7 @@ where
     }
   }
 
-  /// Updates the number of priority levels managed by the runtime.
+  /// Updates the number of priority levels managed by the factory.
   pub fn with_levels(mut self, levels: usize) -> Self {
     self.levels = levels.max(1);
     self
@@ -86,7 +86,7 @@ where
   }
 }
 
-impl<RM> Clone for ArcPriorityMailboxRuntime<RM>
+impl<RM> Clone for ArcPriorityMailboxFactory<RM>
 where
   RM: RawMutex,
 {

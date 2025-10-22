@@ -30,8 +30,6 @@ cellex-serialization-postcard-rs = { path = "../serialization-postcard", optiona
 cellex-serialization-prost-rs = { path = "../serialization-prost", optional = true }
 cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
 critical-section = { workspace = true, default-features = false }
-crossbeam-queue = { version = "0.3" }
-dashmap = { version = "6.0" }
 futures = { workspace = true, default-features = false, features = ["alloc"] }
 portable-atomic = { workspace = true, default-features = false, features = ["critical-section"] }
 spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "once", "portable_atomic", "rwlock"] }

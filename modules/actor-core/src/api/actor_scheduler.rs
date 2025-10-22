@@ -10,10 +10,6 @@ mod base;
 mod default_ready_queue_coordinator;
 /// V2 default implementation with &self (Phase 1 Week 4)
 mod default_ready_queue_coordinator_v2;
-/// Lock-free implementation of ReadyQueueCoordinator (Phase 1)
-mod lock_free_coordinator;
-/// V2 lock-free implementation with &self (Phase 1 Week 3)
-mod lock_free_coordinator_v2;
 /// Prototype implementation of ReadyQueueCoordinator (Phase 0)
 mod ready_queue_coordinator;
 /// V2 trait with &self methods (Phase 1 Week 3)
@@ -33,8 +29,6 @@ pub use adaptive_coordinator::AdaptiveCoordinator;
 pub use base::ActorScheduler;
 pub use default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
 pub use default_ready_queue_coordinator_v2::DefaultReadyQueueCoordinatorV2;
-pub use lock_free_coordinator::LockFreeCoordinator;
-pub use lock_free_coordinator_v2::LockFreeCoordinatorV2;
 // Phase 0: Export types from ready_queue_coordinator
 pub use ready_queue_coordinator::{
   ActorState, InvokeResult, MailboxIndex, MailboxOptions, OverflowStrategy, ReadyQueueCoordinator, ResumeCondition,

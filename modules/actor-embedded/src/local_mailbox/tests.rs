@@ -82,7 +82,7 @@ fn local_mailbox_preserves_messages_post_wake() -> TestResult {
 
 #[test]
 fn runtime_builder_produces_working_mailbox() -> TestResult {
-  let mailbox_factory = LocalMailboxRuntime::new();
+  let mailbox_factory = LocalMailboxFactory::new();
   let (mailbox, sender) = mailbox_factory.unbounded::<u16>();
 
   sender.try_send(11).map_err(|err| format!("enqueue message: {:?}", err))?;

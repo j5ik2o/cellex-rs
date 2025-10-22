@@ -21,11 +21,11 @@
 
 use alloc::{
   collections::{BTreeSet, VecDeque},
-  sync::Arc,
   vec::Vec,
 };
 use core::task::{Context, Poll};
 
+use cellex_utils_core_rs::ArcShared;
 use spin::Mutex;
 
 use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
@@ -43,7 +43,7 @@ struct CoordinatorState {
 /// Default coordinator with interior mutability (V2)
 ///
 /// This implementation uses Mutex for thread-safe access:
-/// - `Arc<Mutex<CoordinatorState>>` for protected state
+/// - `ArcShared<Mutex<CoordinatorState>>` for protected state
 /// - All methods use `&self` for shared access
 ///
 /// # Concurrency Model
@@ -54,7 +54,8 @@ struct CoordinatorState {
 /// # use cellex_actor_core_rs::api::actor_scheduler::{
 /// #   DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex
 /// # };
-/// let coord = Arc::new(DefaultReadyQueueCoordinatorV2::new(32));
+/// # use cellex_utils_core_rs::ArcShared;
+/// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
 ///
 /// // Thread 1
 /// coord.register_ready(MailboxIndex::new(0, 0)); // Acquires Mutex
@@ -71,7 +72,7 @@ struct CoordinatorState {
 /// - **Scalability**: Sequential due to Mutex (best for 1-4 threads)
 pub struct DefaultReadyQueueCoordinatorV2 {
   /// Mutex-protected state
-  state: Arc<Mutex<CoordinatorState>>,
+  state: ArcShared<Mutex<CoordinatorState>>,
 
   /// Throughput hint (immutable)
   throughput: usize,
@@ -89,13 +90,14 @@ impl DefaultReadyQueueCoordinatorV2 {
   /// ```rust,no_run
   /// # extern crate alloc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::DefaultReadyQueueCoordinatorV2;
-  /// let coord = Arc::new(DefaultReadyQueueCoordinatorV2::new(32));
+  /// # use cellex_utils_core_rs::ArcShared;
+  /// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
   /// // Can be shared across threads without additional Mutex!
   /// # }
   /// ```
   pub fn new(throughput: usize) -> Self {
     Self {
-      state: Arc::new(Mutex::new(CoordinatorState {
+      state: ArcShared::new(Mutex::new(CoordinatorState {
         queue:          VecDeque::new(),
         queued:         BTreeSet::new(),
         signal_pending: false,
