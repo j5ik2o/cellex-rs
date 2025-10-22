@@ -125,6 +125,7 @@ run_dylint() {
     "tests-location-lint:lints/tests-location-lint"
     "use-placement-lint:lints/use-placement-lint"
     "rustdoc-lint:lints/rustdoc-lint"
+    "cfg-std-test-lint:lints/cfg-std-test-lint"
   )
 
   local -a selected=()
@@ -251,24 +252,99 @@ run_dylint() {
     rustflags_value="-Dwarnings"
   fi
 
-  local -a cargo_dylint_args=()
-  local -a cargo_dylint_trailing_args=()
+  local -a common_dylint_args=("${dylint_args[@]}" "--no-build" "--no-metadata")
+  local -a trailing_args=("--all-features")
+  local -a hardware_packages=("rp2040-hw-tests" "rp2350-hw-tests" "wio-terminal-hw-tests")
+  local -a main_package_args=()
+  local -a hardware_targets=()
+
   if [[ ${#package_args[@]} -eq 0 ]]; then
-    cargo_dylint_args+=("--workspace")
+    if ! command -v python3 >/dev/null 2>&1; then
+      echo "エラー: python3 が必要ですが見つかりませんでした。" >&2
+      return 1
+    fi
+    local -a workspace_packages=()
+    while IFS= read -r pkg; do
+      if [[ -n "${pkg}" ]]; then
+        workspace_packages+=("${pkg}")
+      fi
+    done < <(python3 - "${hardware_packages[@]}" <<'PY'
+import json
+import subprocess
+import sys
+
+metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--format-version", "1", "--no-deps"], text=True))
+hardware = set(sys.argv[1:])
+for package in metadata.get("packages", []):
+    name = package.get("name")
+    if not name or name in hardware:
+        continue
+    print(name)
+PY
+    )
+    if [[ ${#workspace_packages[@]} -eq 0 ]]; then
+      echo "エラー: ワークスペースのパッケージ一覧を取得できませんでした。" >&2
+      return 1
+    fi
+    local pkg
+    for pkg in "${workspace_packages[@]}"; do
+      main_package_args+=("-p" "${pkg}")
+    done
+    hardware_targets=("${hardware_packages[@]}")
   else
-    cargo_dylint_args+=("${package_args[@]}")
+    local idx=0
+    while [[ ${idx} -lt ${#package_args[@]} ]]; do
+      local flag="${package_args[${idx}]}"
+      local value="${package_args[${idx}+1]}"
+      local matched=""
+      if [[ "${flag}" == "-p" ]]; then
+        local hpkg
+        for hpkg in "${hardware_packages[@]}"; do
+          if [[ "${value}" == "${hpkg}" ]]; then
+            matched="yes"
+            break
+          fi
+        done
+      fi
+      if [[ -n "${matched}" ]]; then
+        hardware_targets+=("${value}")
+      else
+        main_package_args+=("${flag}" "${value}")
+      fi
+      idx=$((idx + 2))
+    done
   fi
-  cargo_dylint_args+=("${dylint_args[@]}")
-  cargo_dylint_args+=("--no-build" "--no-metadata")
 
-  # cargo_dylint_trailing_args+=("--all-features")  # Disabled: causes critical-section feature conflict
-  local log_trailing=""
-  if [[ ${#cargo_dylint_trailing_args[@]} -gt 0 ]]; then
-    log_trailing=" -- ${cargo_dylint_trailing_args[*]}"
+  # Remove duplicate hardware targets while preserving order
+  if [[ ${#hardware_targets[@]} -gt 1 ]]; then
+    local -a deduped=()
+    local seen=""
+    for pkg in "${hardware_targets[@]}"; do
+      if [[ ":${seen}:" != *":${pkg}:"* ]]; then
+        deduped+=("${pkg}")
+        seen="${seen}:${pkg}"
+      fi
+    done
+    hardware_targets=("${deduped[@]}")
   fi
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${cargo_dylint_args[*]}${log_trailing} (RUSTFLAGS=${rustflags_value})"
-  RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${cargo_dylint_args[@]}" -- "${cargo_dylint_trailing_args[@]}" || return 1
+  local -a main_invocation=()
+  if [[ ${#main_package_args[@]} -gt 0 ]]; then
+    main_invocation=("${main_package_args[@]}" "${common_dylint_args[@]}")
+    local log_main="${main_invocation[*]}"
+    log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_main} -- ${trailing_args[*]} (RUSTFLAGS=${rustflags_value})"
+    RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${main_invocation[@]}" -- "${trailing_args[@]}" || return 1
+  fi
+
+  if [[ ${#hardware_targets[@]} -gt 0 ]]; then
+    local pkg
+    for pkg in "${hardware_targets[@]}"; do
+      local -a pkg_invocation=("-p" "${pkg}" "${common_dylint_args[@]}")
+      local log_pkg="${pkg_invocation[*]}"
+      log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_pkg} -- ${trailing_args[*]} (RUSTFLAGS=${rustflags_value})"
+      RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${pkg_invocation[@]}" -- "${trailing_args[@]}" || return 1
+    done
+  fi
 }
 
 run_clippy() {
