@@ -5,11 +5,11 @@ extern crate alloc;
 use alloc::rc::Rc;
 use core::cell::RefCell;
 
-use super::{
-  super::{RingBuffer, RingStorageBackend},
-  RingQueue,
+use super::{super::RingBuffer, RingQueue};
+use crate::collections::queue::{
+  ring::{ring_handle::RingHandle, ring_storage_backend::RingStorageBackend},
+  traits::QueueHandle,
 };
-use crate::collections::queue::{ring::backend::RingHandle, QueueHandle};
 
 struct RcStorageHandle<E>(Rc<RefCell<RingBuffer<E>>>);
 

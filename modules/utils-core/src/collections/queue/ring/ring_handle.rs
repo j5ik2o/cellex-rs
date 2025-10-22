@@ -1,4 +1,4 @@
-use crate::{collections::queue::ring::backend::ring_backend::RingBackend, sync::Shared};
+use crate::{RingBackend, Shared};
 
 /// Handle trait that provides references to [`RingBackend`].
 pub trait RingHandle<E>: Shared<Self::Backend> + Clone {

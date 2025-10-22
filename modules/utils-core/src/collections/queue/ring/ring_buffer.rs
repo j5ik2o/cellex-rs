@@ -1,7 +1,10 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::{fmt::Debug, mem::MaybeUninit};
 
-use crate::collections::queue::{QueueBase, QueueError, QueueReader, QueueSize, QueueWriter};
+use crate::{
+  collections::queue::traits::{QueueBase, QueueReader, QueueWriter},
+  QueueError, QueueSize,
+};
 
 #[cfg(test)]
 mod tests;

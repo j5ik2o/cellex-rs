@@ -1,9 +1,12 @@
 use crate::{
   collections::queue::{
-    QueueBase, QueueError, QueueHandle, QueueReader, QueueRw, QueueSize, QueueWriter, RingBuffer, RingQueue,
-    RingStorageBackend, DEFAULT_CAPACITY,
+    ring::{
+      ring_handle::RingHandle, ring_storage_backend::RingStorageBackend, RingBuffer, RingQueue, DEFAULT_CAPACITY,
+    },
+    traits::{QueueBase, QueueHandle, QueueReader, QueueRw, QueueWriter},
   },
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
+  QueueError, QueueSize,
 };
 
 #[cfg(test)]
@@ -11,7 +14,7 @@ mod tests;
 
 type SharedRingStorage<E> = ArcShared<RingStorageBackend<ArcShared<SpinSyncMutex<RingBuffer<E>>>>>;
 
-impl<E> crate::collections::queue::ring::backend::RingHandle<E> for SharedRingStorage<E> {
+impl<E> RingHandle<E> for SharedRingStorage<E> {
   type Backend = RingStorageBackend<ArcShared<SpinSyncMutex<RingBuffer<E>>>>;
 
   fn backend(&self) -> &Self::Backend {

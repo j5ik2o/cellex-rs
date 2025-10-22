@@ -2,11 +2,13 @@
 
 mod queue_error;
 mod queue_size;
-mod storage;
-mod traits;
+/// Queue trait definitions shared across all backends.
+pub mod traits;
 
-mod mpsc;
-mod priority;
+/// Multi-producer/single-consumer queue abstractions.
+pub mod mpsc;
+/// Priority-ordered queue abstractions.
+pub mod priority;
 /// Ring-buffer-based queue implementations and utilities.
 pub mod ring;
 
@@ -14,7 +16,9 @@ pub use mpsc::{MpscBackend, MpscBuffer, MpscHandle, MpscQueue, RingBufferBackend
 pub use priority::{PriorityMessage, PriorityQueue, DEFAULT_PRIORITY, PRIORITY_LEVELS};
 pub use queue_error::QueueError;
 pub use queue_size::QueueSize;
-#[allow(unused_imports)]
-pub use ring::{RingBackend, RingBuffer, RingHandle, RingQueue, RingStorageBackend, DEFAULT_CAPACITY};
-pub use storage::{QueueStorage, RingBufferStorage};
-pub use traits::{QueueBase, QueueHandle as QueueRwHandle, QueueHandle, QueueReader, QueueRw, QueueWriter};
+pub use ring::{
+  RingBackend, RingBuffer, RingBufferStorage, RingHandle, RingQueue, RingStorageBackend, DEFAULT_CAPACITY,
+};
+pub use traits::{
+  QueueBase, QueueHandle as QueueRwHandle, QueueHandle, QueueReader, QueueRw, QueueStorage, QueueWriter,
+};

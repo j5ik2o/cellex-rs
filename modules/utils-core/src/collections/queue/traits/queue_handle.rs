@@ -1,4 +1,4 @@
-use crate::{collections::queue::QueueStorage, sync::Shared};
+use crate::{collections::queue::traits::QueueStorage, Shared};
 
 /// Common interface for queue handles.
 pub trait QueueHandle<E>: Shared<Self::Storage> + Clone {

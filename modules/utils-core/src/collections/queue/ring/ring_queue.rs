@@ -3,8 +3,13 @@ mod tests;
 
 use core::marker::PhantomData;
 
-use super::backend::{RingBackend, RingHandle};
-use crate::collections::queue::{QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter};
+use crate::{
+  collections::queue::{
+    ring::{ring_backend::RingBackend, ring_handle::RingHandle},
+    traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+  },
+  QueueError, QueueSize,
+};
 
 /// Queue facade that delegates all operations to a [`RingBackend`].
 #[derive(Debug)]

@@ -1,12 +1,10 @@
-mod queue_storage;
-
 #[cfg(feature = "alloc")]
 use core::cell::RefCell;
 
-pub use queue_storage::QueueStorage;
-
-use super::mpsc::MpscBuffer;
-use crate::sync::{sync_mutex_like::SpinSyncMutex, ArcShared};
+use crate::{
+  sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
+  MpscBuffer,
+};
 
 /// Ring buffer-based storage abstraction trait
 ///

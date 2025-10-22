@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use super::ArcSharedRingQueue;
-use crate::collections::queue::QueueRw;
+use crate::collections::queue::traits::QueueRw;
 
 type Element = u32;
 
