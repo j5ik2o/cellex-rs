@@ -9,7 +9,9 @@ pub mod type_keys;
 pub use backend::{OfferOutcome, OverflowPolicy, PriorityBackend, QueueBackend, QueueError, VecRingBackend};
 pub use capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek};
 pub use facade::{
-  FifoQueue, MpscConsumer, MpscProducer, MpscQueue, PriorityQueue, Queue, SpscConsumer, SpscProducer, SpscQueue,
+  AsyncFifoQueue, AsyncMpscConsumer, AsyncMpscProducer, AsyncMpscQueue, AsyncPriorityQueue, AsyncQueue,
+  AsyncSpscConsumer, AsyncSpscProducer, AsyncSpscQueue, FifoQueue, MpscConsumer, MpscProducer, MpscQueue,
+  PriorityQueue, Queue, SpscConsumer, SpscProducer, SpscQueue,
 };
 pub use storage::{QueueStorage, VecRingStorage};
 pub use type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey};
