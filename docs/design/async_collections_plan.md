@@ -10,6 +10,7 @@
 1. **Async ファサード土台の整備**
    - 既存の `ArcShared` と `AsyncMutexLike` をそのまま組み合わせる。新しい `AsyncShared` 系トレイトや `with_mut` などの派生 API は追加しない。
    - 擬似 async（同期バックエンドを `Future` で包む実装、コード名 `SyncAdapterBackend`）から着手し、真の async backend を後続フェーズで差し替えられるよう余地を残す。
+   - `AsyncMutexLike` で割り込み文脈判定を共通化する `InterruptContextPolicy`（embedded では `critical_section::is_active` 等）を定義し、`SharedError::InterruptContext` が確実に上がるようにする。
 
 2. **AsyncQueue / AsyncStack ファサード**
    - 既存の `Queue<T, K, B, M>` / `Stack<T, B, M>` を async 版にラップする `AsyncQueue<T, K, B, A>` / `AsyncStack<T, B, A>` を追加。
@@ -55,17 +56,20 @@
 
 ### フェーズ2: AsyncQueue / AsyncStack ファサード
 - `AsyncQueue<T, K, B, A>` を導入し、TypeKey と Capability を尊重した async API を提供。
-- `SyncAdapterBackend` を用いた擬似 async 実装で offer/poll を `await` に対応させ、真の async backend への差し替えが可能な構造を確立する。
+- `SyncAdapterBackend` を用いた擬似 async 実装で offer/poll を `await` に対応させ、busy-wait ではなく `Notify` ベースの待機キューを実装する。
 - `MpscKey` / `SpscKey` 用の async ハンドル (`AsyncMpscProducer` 等) を追加。
+- Future の Drop（キャンセル）時に待機ノードを安全に除去できる RAII ガードを設計し、リークしないことを単体テストで確認する。
 
 ### フェーズ3: Tokio backend / std adapter
 - `modules/utils-std/src/v2/` に `AsyncStdMpscQueue` / `AsyncStdVecStack` などのビルダー関数を用意。
 - 旧 API から async 版へ切り替えるための type alias / ガイドを整備。
 - **Backlog**: `std::sync::mpsc` を使った擬似 async backend を最初に揃え、`Tokio` 固有の真の async backend は後続フェーズで追加する。
+- 利用者向けのデフォルト構成（例: `TokioMpscQueue<T>`）を型エイリアスとビルダーで提供し、複雑なジェネリクスを隠蔽する。
 
 ### フェーズ4: OverflowPolicy と ISR 方針の明文化
 - `OverflowPolicy::Block` は async 環境では `await` 待機に対応するが、割り込み文脈では同期版と同様に `QueueError::WouldBlock` / `StackError::WouldBlock` を即時返却することを仕様に反映する。
 - `SharedError::BorrowConflict` → `WouldBlock` → `Poll::Pending` という写像を整理し、擬似 async / 真 async の両方で揃える。
+- `InterruptContextPolicy` を thumb ターゲットで検証し、CI のクロスチェック（`cargo check --target thumbv6m-none-eabi --features async`）に組み込む。
 
 ### フェーズ5: 移行整備
 - `docs/guides/async_queue_migration.md` を作成し、旧 Tokio ベース API からの移行手順を明示。
@@ -74,3 +78,4 @@
 ### フェーズ6: 最終切り替え
 - 互換 API に `#[deprecated]` を付与し、利用箇所の修正を促す。
 - CI に async テストケースを追加し、ランタイム依存部分の regressions を防ぐ。
+- 並行性検証用に `loom` を活用する PoC を Backlog に保持し、実装安定後に導入する（フェーズ0/将来対応）。

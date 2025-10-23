@@ -10,6 +10,7 @@
 - `ArcAsyncShared` や `AsyncSharedAccess` など新しいハンドル型は導入しない。同期 v2 と同じく共有ラッパのみで完結し、ハンドル層を増やさない。
 - ロック取得は `AsyncMutexLike::lock_async`（仮称）経由で `await` する実装とし、`SharedError` の扱いは同期版と同様に `Poisoned` / `BorrowConflict` を返す。
 - `AsyncMutexLike<T>` の最小契約は「`lock_async(&self) -> impl Future<Output = Result<Guard<'_, T>, SharedError>>` を提供し、`Guard<'_, T>` は `Deref<Target = T>` かつ `Send`、トレイト自体も `Send + Sync`」であることを明示する。
+- 割り込み文脈で `lock_async` が呼ばれた場合は `SharedError::InterruptContext` を返す責務を負い、環境ごとに `InterruptContextPolicy`（例：`cortex_m::interrupt::active()`／`critical_section::is_active()`）で判定する。
 
 ## 3. Async Backend 層
 
@@ -45,11 +46,12 @@ Stack 版も同様に `AsyncStackStorage` / `AsyncStackBackend` を定義し、`
 
 > 備考: 当面は `async_trait` を採用し、将来 GAT + `impl Future` に移行する際もシグネチャ互換を保てるよう関連型を追加しない設計とする。
 
-### 3.1 擬似 async アダプタ
+### 3.1 擬似 async アダプタ（SyncAdapterBackend）
 
 - 初期フェーズでは同期 backend (`QueueBackend`) をラップする `SyncAdapterBackend` を用意し、`async fn` 内で `WouldBlock → Poll::Pending` 変換や Waker 登録を行う。
 - 真の async backend（`TokioBoundedMpscBackend` など）は `async fn offer/poll` を直接実装し、I/O 待機を `Waker` ベースで処理する。
 - どちらの実装でも `OverflowPolicy::Block` を `await` 待機として扱い、割り込み文脈では `WouldBlock` を即時返却する。
+- `SyncAdapterBackend` は `tokio::sync::Notify`（std 環境）や `futures_intrusive::channel::State` 等を内部で利用し、busy-wait ではなく Waker ドリブンで起床させる。
 
 ## 4. Async Queue ファサード
 
@@ -79,6 +81,8 @@ where
 - `AsyncMpscProducer` / `AsyncMpscConsumer` / `AsyncSpscProducer` / `AsyncSpscConsumer` を Capability に基づいて追加し、同期版と同じ型制約（例: `MpscKey: MultiProducer + SingleConsumer`）を維持する。
 - `PriorityKey` 用 async ラッパ (`peek_min`) も提供。
 - `capacity()` は Backend 初期化時に確定する不変値をそのまま返すためロック不要で提供できる。ロックや再計算が必要な Backend では `async fn capacity` に拡張する。
+- Future の Drop（キャンセル）時は待機ノードを `Drop` 実装で必ず除去し、`Notify`／Waker リストがリークしないようにする。`Pin<&mut Self>` を用いた自己参照 Future を避け、`Arc<WaitNode>` + `Weak` で安全に削除する方針。
+- 利用者向けには `type TokioMpscQueue<T>` や `AsyncQueue::builder()` といったエイリアス／ビルダーを提供し、公開 API からジェネリクスの複雑さを隠蔽する。
 
 ## 5. Async Stack ファサード
 
@@ -135,6 +139,7 @@ let received = consumer.poll().await?;
 - `#[tokio::test]` で multi-producer / single-consumer の await シナリオを検証し、Capability 制約が型で維持されていることを確認する（UI テストを含む）。
 - `OverflowPolicy::Block` の待機/解放、および Future の Drop（キャンセル）時に待機リストがリークしないことを async テストで確認する。
 - thumb/no_std ターゲットでは async API をコンパイルのみ（Tokio が想定外のため）。
+- 並行性の微妙な競合検出は実装が安定してから `loom` を用いた検証を検討する（現フェーズでは任意）。
 
 ## 10. ドキュメント
 - `docs/guides/async_queue_migration.md` に旧 API からの移行手順を記載。
