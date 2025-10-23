@@ -248,6 +248,8 @@ impl From<&OfferOutcome> for &'static str {
 }
 ```
 
+> **注記**: 本仕様では `Queue<T, …>` の型引数 `T` に追加制約を課していないが、`actor-core` など並行実行レイヤーでは `T: Element` を要求し、`Send`/`Sync` 同等の共有境界と `'static` 制約を維持すること。
+
 ## 7. Stack 仕様
 
 ### 7.1 レイヤ責務（Queue と揃える）
