@@ -4,6 +4,8 @@
 
 本書は `modules/utils-core` を核とした Queue / Stack コレクション API の仕様を定義する。計画書（`collections_queue_refactor_plan.md`）で合意した設計方針を、実装に直結するインターフェイス・不変条件・エラー仕様として明文化する。
 
+なお、新仕様のコードは既存実装と独立させるため `modules/utils-core/src/v2/` 以下に配置し、従来の `src/collections` 系コードへは移行完了まで影響を与えない。
+
 ## 2. 型レベル区別子（TypeKey）と能力トレイト
 
 ### 2.1 TypeKey 定義

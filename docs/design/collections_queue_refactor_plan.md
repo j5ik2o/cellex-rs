@@ -116,6 +116,7 @@
 - `ArcShared` の実装は shared モジュールに閉じ込め、Send/Sync 実装条件と `cfg` の切替条件を ADR に記録する。
 - 競合検証（`loom` 等）は `utils-std` 側で実施し、core では `alloc` のみで完結するプロパティテスト・ベンチを重視する。
 - TypeKey の命名は `*Key` に統一（例: `MpscKey`, `SpscKey`, `FifoKey`, `PriorityKey`）し、将来的な追加も同スキームに従う。
+- v2 実装は現行コードへ影響を与えないよう `modules/utils-core/src/v2/` 以下に新規配置し、既存 `src/collections` の構造や公開 API を段階移行完了までは変更しない。
 ### ランタイム拡張の想定
 - コア（queue2 / stack2）は `no_std + alloc` 前提で実装し、同期は `ArcShared` の抽象に委譲する。
 - ランタイム固有の Backend / Shared 実装（Tokio, Embassy 等）は `utils-std`・`utils-embedded` など環境別クレートで提供する余地を残す。
