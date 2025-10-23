@@ -428,6 +428,9 @@ run_embedded() {
       continue
     fi
 
+    log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-core-rs --target ${target} --no-default-features --features alloc"
+    run_cargo check -p cellex-utils-core-rs --target "${target}" --no-default-features --features alloc || return 1
+
     log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --target ${target} --no-default-features --features alloc"
     run_cargo check -p cellex-actor-core-rs --target "${target}" --no-default-features --features alloc || return 1
 

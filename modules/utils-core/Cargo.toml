@@ -24,3 +24,7 @@ criterion = { workspace = true }
 [[bench]]
 name = "ring_queue_shared"
 harness = false
+
+[[bench]]
+name = "stack_compare"
+harness = false
