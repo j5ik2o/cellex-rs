@@ -7,7 +7,7 @@
 ## 2. 共有ラッパ層
 
 - 既存の `ArcShared<T>` をそのまま利用し、`T` に `AsyncMutexLike<B>` を実装した型（例: `tokio::sync::Mutex<B>`・`AsyncStdMutex<B>`）を格納する。
-- `ArcAsyncShared` や `AsyncSharedAccess` など新しいハンドル型は導入しない。同期 v2 と同じく共有ラッパのみで完結し、ハンドル層を増やさない。
+- `ArcAsyncShared` や `AsyncSharedAccess` など新しいラッパ型は導入しない。同期 v2 と同じく共有抽象のみで完結し、層を増やさない。
 - ロック取得は `AsyncMutexLike::lock_async`（仮称）経由で `await` する実装とし、`SharedError` の扱いは同期版と同様に `Poisoned` / `BorrowConflict` を返す。
 - `AsyncMutexLike<T>` の最小契約は「`lock_async(&self) -> impl Future<Output = Result<Guard<'_, T>, SharedError>>` を提供し、`Guard<'_, T>` は `Deref<Target = T>` かつ `Send`、トレイト自体も `Send + Sync`」であることを明示する。
 - 割り込み文脈で `lock_async` が呼ばれた場合は `SharedError::InterruptContext` を返す責務を負い、環境ごとに `InterruptContextPolicy`（例：`cortex_m::interrupt::active()`／`critical_section::is_active()`）で判定する。
@@ -123,7 +123,7 @@ where
 
 ```rust
 let queue = AsyncStdMpscQueue::with_capacity(1024);
-let (producer, consumer) = queue.into_mpsc_handles();
+let (producer, consumer) = queue.into_mpsc_pair();
 
 producer.offer(msg).await?;
 let received = consumer.poll().await?;

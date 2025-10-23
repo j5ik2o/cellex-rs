@@ -5,17 +5,17 @@ use crate::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
-  v2::collections::stack::{PushOutcome, StackBackend, StackError},
+  v2::collections::stack::{backend::AsyncStackBackend, PushOutcome, StackError},
 };
 
 #[cfg(test)]
 mod tests;
 
-/// Async stack facade wrapping a shared backend guarded by an async-capable mutex.
+/// Async stack API wrapping a shared backend guarded by an async-capable mutex.
 #[derive(Clone)]
 pub struct AsyncStack<T, B, A = SpinAsyncMutex<B>>
 where
-  B: StackBackend<T>,
+  B: AsyncStackBackend<T>,
   A: AsyncMutexLike<B>, {
   inner: ArcShared<A>,
   _pd:   PhantomData<(T, B)>,
@@ -23,7 +23,7 @@ where
 
 impl<T, B, A> AsyncStack<T, B, A>
 where
-  B: StackBackend<T>,
+  B: AsyncStackBackend<T>,
   A: AsyncMutexLike<B>,
 {
   /// Creates a new async stack from the provided shared backend.
@@ -35,13 +35,13 @@ where
   /// Pushes an item onto the stack.
   pub async fn push(&self, item: T) -> Result<PushOutcome, StackError> {
     let mut guard = self.inner.lock().await;
-    guard.push(item)
+    guard.push(item).await
   }
 
   /// Pops the top item from the stack.
   pub async fn pop(&self) -> Result<T, StackError> {
     let mut guard = self.inner.lock().await;
-    guard.pop()
+    guard.pop().await
   }
 
   /// Returns the top item without removing it.
@@ -55,8 +55,7 @@ where
   /// Requests the backend to transition into the closed state.
   pub async fn close(&self) -> Result<(), StackError> {
     let mut guard = self.inner.lock().await;
-    guard.close();
-    Ok(())
+    guard.close().await
   }
 
   /// Returns the number of stored elements.

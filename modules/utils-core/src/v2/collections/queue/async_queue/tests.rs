@@ -9,8 +9,7 @@ use super::{AsyncMpscQueue, AsyncQueue, AsyncSpscQueue};
 use crate::{
   sync::{async_mutex_like::SpinAsyncMutex, ArcShared},
   v2::collections::queue::{
-    backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
-    type_keys::{MpscKey, SpscKey},
+    backend::{OfferOutcome, OverflowPolicy, QueueError, SyncAdapterQueueBackend, VecRingBackend},
     VecRingStorage,
   },
 };
@@ -39,10 +38,13 @@ fn block_on<F: Future>(mut future: F) -> F::Output {
   }
 }
 
-fn make_shared_queue(capacity: usize, policy: OverflowPolicy) -> ArcShared<SpinAsyncMutex<VecRingBackend<i32>>> {
+fn make_shared_queue(
+  capacity: usize,
+  policy: OverflowPolicy,
+) -> ArcShared<SpinAsyncMutex<SyncAdapterQueueBackend<i32, VecRingBackend<i32>>>> {
   let storage = VecRingStorage::with_capacity(capacity);
   let backend = VecRingBackend::new_with_storage(storage, policy);
-  ArcShared::new(SpinAsyncMutex::new(backend))
+  ArcShared::new(SpinAsyncMutex::new(SyncAdapterQueueBackend::new(backend)))
 }
 
 #[test]
@@ -58,10 +60,10 @@ fn offer_and_poll_operates_async_queue() {
 }
 
 #[test]
-fn into_mpsc_handles_roundtrip() {
+fn into_mpsc_pair_roundtrip() {
   let shared = make_shared_queue(4, OverflowPolicy::Block);
   let queue: AsyncMpscQueue<i32, _, _> = AsyncQueue::new_mpsc(shared);
-  let (producer, consumer) = queue.into_mpsc_handles();
+  let (producer, consumer) = queue.into_mpsc_pair();
 
   assert!(matches!(block_on(producer.offer(7)), Ok(OfferOutcome::Enqueued)));
   assert_eq!(block_on(consumer.poll()), Ok(7));

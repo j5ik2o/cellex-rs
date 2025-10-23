@@ -10,7 +10,7 @@ use crate::{
     ArcShared,
   },
   v2::collections::queue::{
-    backend::{OfferOutcome, PriorityBackend, QueueBackend, QueueError},
+    backend::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, QueueError},
     capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek},
     type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey},
   },
@@ -19,12 +19,12 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-/// Async queue facade wrapping a shared backend guarded by an async-capable mutex.
+/// Async queue API wrapping a shared backend guarded by an async-capable mutex.
 #[derive(Clone)]
 pub struct AsyncQueue<T, K, B, A = SpinAsyncMutex<B>>
 where
   K: TypeKey,
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>, {
   inner: ArcShared<A>,
   _pd:   PhantomData<(T, K, B)>,
@@ -33,7 +33,7 @@ where
 impl<T, K, B, A> AsyncQueue<T, K, B, A>
 where
   K: TypeKey,
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>,
 {
   /// Creates a new async queue from the provided shared backend.
@@ -45,20 +45,19 @@ where
   /// Adds an element to the queue according to the backend's policy.
   pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
     let mut guard = self.inner.lock().await;
-    guard.offer(item)
+    guard.offer(item).await
   }
 
   /// Removes and returns the next available item.
   pub async fn poll(&self) -> Result<T, QueueError> {
     let mut guard = self.inner.lock().await;
-    guard.poll()
+    guard.poll().await
   }
 
   /// Requests the backend to transition into the closed state.
   pub async fn close(&self) -> Result<(), QueueError> {
     let mut guard = self.inner.lock().await;
-    guard.close();
-    Ok(())
+    guard.close().await
   }
 
   /// Returns the current number of stored elements.
@@ -99,7 +98,7 @@ where
 impl<T, B, A> AsyncQueue<T, PriorityKey, B, A>
 where
   T: Clone + Ord,
-  B: PriorityBackend<T>,
+  B: AsyncPriorityBackend<T>,
   A: AsyncMutexLike<B>,
   PriorityKey: SupportsPeek,
 {
@@ -112,7 +111,7 @@ where
 
 impl<T, B, A> AsyncQueue<T, MpscKey, B, A>
 where
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>,
   MpscKey: MultiProducer + SingleConsumer,
 {
@@ -122,14 +121,14 @@ where
     Self::new(shared_backend)
   }
 
-  /// Returns a producer handle that can be cloned and shared.
+  /// Returns a cloneable producer for MPSC usage.
   #[must_use]
-  pub fn producer_handle(&self) -> AsyncMpscProducer<T, B, A> {
+  pub fn producer_clone(&self) -> AsyncMpscProducer<T, B, A> {
     AsyncMpscProducer::new(self.inner.clone())
   }
 
-  /// Consumes the queue and returns producer/consumer handles.
-  pub fn into_mpsc_handles(self) -> (AsyncMpscProducer<T, B, A>, AsyncMpscConsumer<T, B, A>) {
+  /// Consumes the queue and returns the producer/consumer pair.
+  pub fn into_mpsc_pair(self) -> (AsyncMpscProducer<T, B, A>, AsyncMpscConsumer<T, B, A>) {
     let consumer = AsyncMpscConsumer::new(self.inner.clone());
     let producer = AsyncMpscProducer::new(self.inner);
     (producer, consumer)
@@ -138,7 +137,7 @@ where
 
 impl<T, B, A> AsyncQueue<T, SpscKey, B, A>
 where
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>,
   SpscKey: SingleProducer + SingleConsumer,
 {
@@ -148,8 +147,8 @@ where
     Self::new(shared_backend)
   }
 
-  /// Consumes the queue and returns producer/consumer handles for SPSC usage.
-  pub fn into_spsc_handles(self) -> (AsyncSpscProducer<T, B, A>, AsyncSpscConsumer<T, B, A>) {
+  /// Consumes the queue and returns the SPSC producer/consumer pair.
+  pub fn into_spsc_pair(self) -> (AsyncSpscProducer<T, B, A>, AsyncSpscConsumer<T, B, A>) {
     let consumer = AsyncSpscConsumer::new(self.inner.clone());
     let producer = AsyncSpscProducer::new(self.inner);
     (producer, consumer)
@@ -158,7 +157,7 @@ where
 
 impl<T, B, A> AsyncQueue<T, FifoKey, B, A>
 where
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>,
   FifoKey: SingleProducer + SingleConsumer,
 {

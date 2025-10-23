@@ -1,6 +1,8 @@
 use core::marker::PhantomData;
 
-use super::{MpscConsumer, MpscProducer, SpscConsumer, SpscProducer};
+use super::{
+  mpsc_consumer::MpscConsumer, mpsc_producer::MpscProducer, spsc_consumer::SpscConsumer, spsc_producer::SpscProducer,
+};
 use crate::{
   sync::{
     sync_mutex_like::{SpinSyncMutex, SyncMutexLike},
@@ -16,7 +18,7 @@ use crate::{
   },
 };
 
-/// Queue facade parameterised by element type, type key, backend, and shared guard.
+/// Queue API parameterised by element type, type key, backend, and shared guard.
 #[derive(Clone)]
 pub struct Queue<T, K, B, M = SpinSyncMutex<B>>
 where
@@ -125,14 +127,14 @@ where
     Queue::new(shared_backend)
   }
 
-  /// Returns a producer handle that can be cloned and shared.
+  /// Returns a cloneable producer for MPSC usage.
   #[must_use]
-  pub fn producer_handle(&self) -> MpscProducer<T, B, M> {
+  pub fn producer_clone(&self) -> MpscProducer<T, B, M> {
     MpscProducer::new(self.inner.clone())
   }
 
-  /// Consumes the queue and returns producer/consumer handles.
-  pub fn into_mpsc_handles(self) -> (MpscProducer<T, B, M>, MpscConsumer<T, B, M>) {
+  /// Consumes the queue and returns the producer/consumer pair.
+  pub fn into_mpsc_pair(self) -> (MpscProducer<T, B, M>, MpscConsumer<T, B, M>) {
     let consumer = MpscConsumer::new(self.inner.clone());
     let producer = MpscProducer::new(self.inner);
     (producer, consumer)
@@ -152,8 +154,8 @@ where
     Queue::new(shared_backend)
   }
 
-  /// Consumes the queue and returns producer/consumer handles for SPSC usage.
-  pub fn into_spsc_handles(self) -> (SpscProducer<T, B, M>, SpscConsumer<T, B, M>) {
+  /// Consumes the queue and returns the SPSC producer/consumer pair.
+  pub fn into_spsc_pair(self) -> (SpscProducer<T, B, M>, SpscConsumer<T, B, M>) {
     let consumer = SpscConsumer::new(self.inner.clone());
     let producer = SpscProducer::new(self.inner);
     (producer, consumer)

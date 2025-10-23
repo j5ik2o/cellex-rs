@@ -23,9 +23,9 @@ fn fifo_queue_full_blocking() {
 }
 
 #[test]
-fn mpsc_queue_handles_multiple_producers() {
+fn mpsc_queue_supports_multiple_producers() {
   let queue = make_std_mpsc_queue::<u32>(64, OverflowPolicy::Block);
-  let (producer, consumer) = queue.into_mpsc_handles();
+  let (producer, consumer) = queue.into_mpsc_pair();
   let producer_count = 4;
   let items_per = 8;
 
@@ -53,7 +53,7 @@ fn mpsc_queue_handles_multiple_producers() {
 #[test]
 fn spsc_queue_blocks_when_full() {
   let queue = make_std_spsc_queue_blocking::<u32>(1);
-  let (producer, consumer) = queue.into_spsc_handles();
+  let (producer, consumer) = queue.into_spsc_pair();
 
   assert_eq!(producer.offer(1).unwrap(), OfferOutcome::Enqueued);
   assert_eq!(consumer.poll().unwrap(), 1);

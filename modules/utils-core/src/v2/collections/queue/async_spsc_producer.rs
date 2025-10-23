@@ -5,14 +5,14 @@ use crate::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
-  v2::collections::queue::backend::{OfferOutcome, QueueBackend, QueueError},
+  v2::collections::queue::backend::{AsyncQueueBackend, OfferOutcome, QueueError},
 };
 
-/// Async producer handle for queues tagged with
+/// Async producer for queues tagged with
 /// [`SpscKey`](crate::v2::collections::queue::type_keys::SpscKey).
 pub struct AsyncSpscProducer<T, B, A = SpinAsyncMutex<B>>
 where
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>, {
   pub(crate) inner: ArcShared<A>,
   _pd:              PhantomData<(T, B)>,
@@ -20,7 +20,7 @@ where
 
 impl<T, B, A> AsyncSpscProducer<T, B, A>
 where
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>,
 {
   pub(crate) fn new(inner: ArcShared<A>) -> Self {
@@ -30,6 +30,6 @@ where
   /// Offers an element to the queue.
   pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
     let mut guard = self.inner.lock().await;
-    guard.offer(item)
+    guard.offer(item).await
   }
 }

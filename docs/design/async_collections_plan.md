@@ -1,18 +1,18 @@
 # Async Collections Migration Plan
 
 ## 目的
-- 同期 API を保持したまま、Tokio 等の async ランタイム上で自然に利用できる Queue / Stack ファサードを追加する。
+- 同期 API を保持したまま、Tokio 等の async ランタイム上で自然に利用できる Queue / Stack API を追加する。
 - 既存の Storage / Backend / TypeKey 抽象を再利用しつつ、`AsyncMutexLike` を通じて `await` ベースの API を公開する。
 - 旧 `Tokio` 系ラッパ（`ArcMpscBoundedQueue` 等）からの移行導線を提供する。
 
 ## 実装方針（段階的開発）
 
-1. **Async ファサード土台の整備**
+1. **Async API 土台の整備**
    - 既存の `ArcShared` と `AsyncMutexLike` をそのまま組み合わせる。新しい `AsyncShared` 系トレイトや `with_mut` などの派生 API は追加しない。
    - 擬似 async（同期バックエンドを `Future` で包む実装、コード名 `SyncAdapterBackend`）から着手し、真の async backend を後続フェーズで差し替えられるよう余地を残す。
    - `AsyncMutexLike` で割り込み文脈判定を共通化する `InterruptContextPolicy`（embedded では `critical_section::is_active` 等）を定義し、`SharedError::InterruptContext` が確実に上がるようにする。
 
-2. **AsyncQueue / AsyncStack ファサード**
+2. **AsyncQueue / AsyncStack API**
    - 既存の `Queue<T, K, B, M>` / `Stack<T, B, M>` を async 版にラップする `AsyncQueue<T, K, B, A>` / `AsyncStack<T, B, A>` を追加。
    - API 例：
      ```rust
@@ -22,7 +22,7 @@
    - `A = AsyncStdMutex<B>` は標準ランタイム（std + Tokio/async-std）向けのデフォルトとし、組込み向けには `CriticalSectionAsyncMutex` 等の代替を明示的に指定する。
 
 3. **Tokio Backend 対応**
-   - `TokioBoundedMpscBackend` 等を v2 backend として移植し、async ファサードから利用可能にする。
+   - `TokioBoundedMpscBackend` 等を v2 backend として移植し、async API から利用可能にする。
    - `StdVecStack` の async 版（`AsyncStdVecStack`）など、std 向けのデフォルト構成を整備する。
    - 擬似 async 実装をベースラインとして採用しつつ、Tokio/Embassy 等の真の async backend は後続フェーズで `async fn` を伴うトレイト拡張として導入する方針を明記する。
 
@@ -37,27 +37,29 @@
 
 ## フェーズ構成
 
-### フェーズ1: Async ファサードの初期配置
+### フェーズ1: Async API の初期配置
 - 追加の共有抽象は導入せず、`ArcShared` と `AsyncMutexLike` を直接組み合わせる。`ArcAsyncShared` や `AsyncSharedAccess` などの新ファイルは作成しない。
-- **ディレクトリ構成は既存の `collections/queue`/`collections/stack` に async 系ファイルを並列配置する：**
+- **ディレクトリ構成は既存の `collections/queue`/`collections/stack` に async 系ファイルを責務別に並列配置する：**
 
   ```
   modules/utils-core/src/v2/collections/queue/
   ├─ backend/
-  ├─ facade/
-  │   ├─ queue.rs              // 同期ファサード
-  │   ├─ mpsc_producer.rs      // 同期 MPSC ハンドル
-  │   ├─ async_queue.rs        // 非同期ファサード（新規）
-  │   └─ async_mpsc_producer.rs 等
+  ├─ async_queue.rs            // 非同期 Queue API
+  ├─ async_queue/              // 非同期 Queue の検証コード
+  ├─ async_mpsc_producer.rs    // 非同期 MPSC プロデューサ
+  ├─ async_mpsc_consumer.rs    // 非同期 MPSC コンシューマ
+  ├─ queue_api.rs              // 同期 Queue API
+  ├─ mpsc_producer.rs          // 同期 MPSC プロデューサ
+  └─ tests.rs                  // 同期 Queue のユニットテスト
   └─ ...
   ```
 
 - `utils-std` や `utils-embedded` も同じ階層に async 用ファイルを追加し、Tokio 等の環境依存実装はそこで提供する。
 
-### フェーズ2: AsyncQueue / AsyncStack ファサード
+### フェーズ2: AsyncQueue / AsyncStack API
 - `AsyncQueue<T, K, B, A>` を導入し、TypeKey と Capability を尊重した async API を提供。
 - `SyncAdapterBackend` を用いた擬似 async 実装で offer/poll を `await` に対応させ、busy-wait ではなく `Notify` ベースの待機キューを実装する。
-- `MpscKey` / `SpscKey` 用の async ハンドル (`AsyncMpscProducer` 等) を追加。
+- `MpscKey` / `SpscKey` 用の async プロデューサ / コンシューマ (`AsyncMpscProducer` 等) を追加。
 - Future の Drop（キャンセル）時に待機ノードを安全に除去できる RAII ガードを設計し、リークしないことを単体テストで確認する。
 
 ### フェーズ3: Tokio backend / std adapter

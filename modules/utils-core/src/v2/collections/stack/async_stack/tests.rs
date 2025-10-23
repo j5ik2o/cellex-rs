@@ -9,7 +9,7 @@ use super::AsyncStack;
 use crate::{
   sync::{async_mutex_like::SpinAsyncMutex, ArcShared},
   v2::collections::stack::{
-    backend::{PushOutcome, StackError, VecStackBackend},
+    backend::{PushOutcome, StackError, SyncAdapterStackBackend, VecStackBackend},
     StackOverflowPolicy, VecStackStorage,
   },
 };
@@ -38,10 +38,13 @@ fn block_on<F: Future>(mut future: F) -> F::Output {
   }
 }
 
-fn make_shared_stack(capacity: usize, policy: StackOverflowPolicy) -> ArcShared<SpinAsyncMutex<VecStackBackend<i32>>> {
+fn make_shared_stack(
+  capacity: usize,
+  policy: StackOverflowPolicy,
+) -> ArcShared<SpinAsyncMutex<SyncAdapterStackBackend<i32, VecStackBackend<i32>>>> {
   let storage = VecStackStorage::with_capacity(capacity);
   let backend = VecStackBackend::new_with_storage(storage, policy);
-  ArcShared::new(SpinAsyncMutex::new(backend))
+  ArcShared::new(SpinAsyncMutex::new(SyncAdapterStackBackend::new(backend)))
 }
 
 #[test]

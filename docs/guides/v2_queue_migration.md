@@ -1,7 +1,7 @@
 # Queue/Stack v2 Migration Guide
 
 この文書は `modules/utils-core` / `modules/utils-std` の旧 Queue/Stack API から v2
-ハンドルへ移行するための早見表です。
+コンポーネントへ移行するための早見表です。
 
 ## 推奨置き換え
 
@@ -18,7 +18,7 @@ v2 では `TypeKey` と capability トレイト（`MultiProducer` など）に�
 
 ```rust
 let queue: Queue<MyMsg, MpscKey, _, _> = /* ... */;
-let (producer, consumer) = queue.into_mpsc_handles();
+let (producer, consumer) = queue.into_mpsc_pair();
 producer.offer(msg)?;
 let received = consumer.poll()?;
 ```
@@ -28,7 +28,7 @@ std 環境からは `StdMpscQueue` / `StdSpscQueue` / `StdVecStack` のコンス
 
 ```rust
 let queue = utils_std::v2::collections::queue::make_std_mpsc_queue_drop_oldest(1024);
-let (producer, consumer) = queue.into_mpsc_handles();
+let (producer, consumer) = queue.into_mpsc_pair();
 ```
 
 ## 非推奨マーク

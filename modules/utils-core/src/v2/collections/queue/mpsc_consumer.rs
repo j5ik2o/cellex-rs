@@ -8,7 +8,7 @@ use crate::{
   },
 };
 
-/// Consumer handle for queues tagged with
+/// Consumer for queues tagged with
 /// [`MpscKey`](crate::v2::collections::queue::type_keys::MpscKey).
 pub struct MpscConsumer<T, B, M>
 where

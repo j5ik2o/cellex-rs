@@ -5,14 +5,14 @@ use crate::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
-  v2::collections::queue::backend::{QueueBackend, QueueError},
+  v2::collections::queue::backend::{AsyncQueueBackend, QueueError},
 };
 
-/// Async consumer handle for queues tagged with
+/// Async consumer for queues tagged with
 /// [`MpscKey`](crate::v2::collections::queue::type_keys::MpscKey).
 pub struct AsyncMpscConsumer<T, B, A = SpinAsyncMutex<B>>
 where
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>, {
   pub(crate) inner: ArcShared<A>,
   _pd:              PhantomData<(T, B)>,
@@ -20,7 +20,7 @@ where
 
 impl<T, B, A> AsyncMpscConsumer<T, B, A>
 where
-  B: QueueBackend<T>,
+  B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>,
 {
   pub(crate) fn new(inner: ArcShared<A>) -> Self {
@@ -30,13 +30,13 @@ where
   /// Polls the next element from the queue.
   pub async fn poll(&self) -> Result<T, QueueError> {
     let mut guard = self.inner.lock().await;
-    guard.poll()
+    guard.poll().await
   }
 
   /// Signals that no more elements will be produced.
   pub async fn close(&self) {
     let mut guard = self.inner.lock().await;
-    guard.close();
+    let _ = guard.close().await;
   }
 
   /// Returns the number of stored elements.

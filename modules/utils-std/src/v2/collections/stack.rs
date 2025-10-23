@@ -2,7 +2,7 @@
 
 use cellex_utils_core_rs::{
   sync::ArcShared,
-  v2::collections::stack::{facade::Stack as CoreStack, StackOverflowPolicy, VecStackBackend, VecStackStorage},
+  v2::collections::stack::{Stack as CoreStack, StackOverflowPolicy, VecStackBackend, VecStackStorage},
 };
 
 use crate::sync::StdSyncMutex;

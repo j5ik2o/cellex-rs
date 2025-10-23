@@ -8,7 +8,7 @@ use crate::{
   },
 };
 
-/// Consumer handle for queues tagged with
+/// Consumer for queues tagged with
 /// [`SpscKey`](crate::v2::collections::queue::type_keys::SpscKey).
 pub struct SpscConsumer<T, B, M>
 where

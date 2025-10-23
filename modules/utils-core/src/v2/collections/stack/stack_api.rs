@@ -11,7 +11,7 @@ use crate::{
   },
 };
 
-/// Stack facade parameterised by element type, backend, and shared guard.
+/// Stack API parameterised by element type, backend, and shared guard.
 #[derive(Clone)]
 pub struct Stack<T, B, M = SpinSyncMutex<B>>
 where

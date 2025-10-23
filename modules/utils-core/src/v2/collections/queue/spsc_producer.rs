@@ -8,9 +8,9 @@ use crate::{
   },
 };
 
-/// Producer handle for queues tagged with
-/// [`MpscKey`](crate::v2::collections::queue::type_keys::MpscKey).
-pub struct MpscProducer<T, B, M>
+/// Producer for queues tagged with
+/// [`SpscKey`](crate::v2::collections::queue::type_keys::SpscKey).
+pub struct SpscProducer<T, B, M>
 where
   B: QueueBackend<T>,
   M: SyncMutexLike<B>, {
@@ -18,7 +18,7 @@ where
   _pd:              PhantomData<(T, B)>,
 }
 
-impl<T, B, M> MpscProducer<T, B, M>
+impl<T, B, M> SpscProducer<T, B, M>
 where
   B: QueueBackend<T>,
   M: SyncMutexLike<B>,
@@ -28,26 +28,9 @@ where
     Self { inner, _pd: PhantomData }
   }
 
-  /// Offers an element to the queue using the underlying backend.
+  /// Offers an element to the queue.
   pub fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
     let result = self.inner.with_mut(|backend: &mut B| backend.offer(item)).map_err(QueueError::from)?;
     result
-  }
-
-  /// Provides access to the shared backend.
-  #[must_use]
-  pub fn shared(&self) -> &ArcShared<M> {
-    &self.inner
-  }
-}
-
-impl<T, B, M> Clone for MpscProducer<T, B, M>
-where
-  B: QueueBackend<T>,
-  M: SyncMutexLike<B>,
-  ArcShared<M>: SharedAccess<B>,
-{
-  fn clone(&self) -> Self {
-    Self::new(self.inner.clone())
   }
 }

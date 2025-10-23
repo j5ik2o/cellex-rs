@@ -323,13 +323,13 @@ fn shared_error_mapping_matches_spec() {
 }
 
 #[test]
-fn mpsc_handles_support_multiple_producers() {
+fn mpsc_pair_supports_multiple_producers() {
   let storage = VecRingStorage::with_capacity(8);
   let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::DropOldest);
   let shared = ArcShared::new(SpinSyncMutex::new(backend));
   let queue: Queue<_, MpscKey, _, _> = Queue::new(shared);
 
-  let (producer, consumer) = queue.into_mpsc_handles();
+  let (producer, consumer) = queue.into_mpsc_pair();
   let another = producer.clone();
 
   producer.offer(1).unwrap();
@@ -342,13 +342,13 @@ fn mpsc_handles_support_multiple_producers() {
 }
 
 #[test]
-fn spsc_handles_provide_split_access() {
+fn spsc_pair_provides_split_access() {
   let storage = VecRingStorage::with_capacity(4);
   let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::Block);
   let shared = ArcShared::new(SpinSyncMutex::new(backend));
   let queue: Queue<_, SpscKey, _, _> = Queue::new(shared);
 
-  let (producer, consumer) = queue.into_spsc_handles();
+  let (producer, consumer) = queue.into_spsc_pair();
   producer.offer(10).unwrap();
   producer.offer(20).unwrap();
 
