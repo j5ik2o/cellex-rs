@@ -16,7 +16,8 @@ alloc = []
 [dependencies]
 async-trait = { workspace = true }
 critical-section = { workspace = true, optional = false }
-spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "rwlock"] }
+spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "rwlock", "portable_atomic"] }
+portable-atomic = { workspace = true, default-features = false, features = ["critical-section"] }
 
 [dev-dependencies]
 criterion = { workspace = true }

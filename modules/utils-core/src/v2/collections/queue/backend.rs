@@ -5,9 +5,11 @@ mod overflow_policy;
 mod priority_backend;
 mod queue_backend;
 mod queue_error;
+mod vec_ring_backend;
 
 pub use offer_outcome::OfferOutcome;
 pub use overflow_policy::OverflowPolicy;
 pub use priority_backend::PriorityBackend;
 pub use queue_backend::QueueBackend;
 pub use queue_error::QueueError;
+pub use vec_ring_backend::VecRingBackend;

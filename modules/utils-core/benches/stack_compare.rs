@@ -1,16 +1,12 @@
 use std::{cell::RefCell, rc::Rc};
 
 use cellex_utils_core_rs::{
-  collections::stack::{
-    buffer::StackBuffer,
-    traits::{StackHandle, StackStorage, StackStorageBackend},
-    Stack as LegacyStack,
-  },
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared, Shared},
   v2::collections::stack::{
     backend::{StackOverflowPolicy, VecStackBackend},
     SharedVecStack, VecStackStorage,
   },
+  Stack as LegacyStack, StackBuffer, StackHandle, StackStorage, StackStorageBackend,
 };
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
@@ -66,7 +62,7 @@ impl<T> Shared<LegacyBackend<T>> for RcBackendHandle<T> {}
 impl<T> StackHandle<T> for RcBackendHandle<T> {
   type Backend = LegacyBackend<T>;
 
-  fn backend(&self) -> &Self::Backend {
+  fn backend(&self) -> &<Self as StackHandle<T>>::Backend {
     &self.0
   }
 }

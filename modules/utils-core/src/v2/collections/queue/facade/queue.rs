@@ -1,5 +1,6 @@
 use core::marker::PhantomData;
 
+use super::{MpscConsumer, MpscProducer, SpscConsumer, SpscProducer};
 use crate::{
   sync::{
     sync_mutex_like::{SpinSyncMutex, SyncMutexLike},
@@ -123,6 +124,19 @@ where
   pub fn new_mpsc(shared_backend: ArcShared<M>) -> Self {
     Queue::new(shared_backend)
   }
+
+  /// Returns a producer handle that can be cloned and shared.
+  #[must_use]
+  pub fn producer_handle(&self) -> MpscProducer<T, B, M> {
+    MpscProducer::new(self.inner.clone())
+  }
+
+  /// Consumes the queue and returns producer/consumer handles.
+  pub fn into_mpsc_handles(self) -> (MpscProducer<T, B, M>, MpscConsumer<T, B, M>) {
+    let consumer = MpscConsumer::new(self.inner.clone());
+    let producer = MpscProducer::new(self.inner);
+    (producer, consumer)
+  }
 }
 
 impl<T, B, M> Queue<T, SpscKey, B, M>
@@ -136,6 +150,13 @@ where
   #[must_use]
   pub fn new_spsc(shared_backend: ArcShared<M>) -> Self {
     Queue::new(shared_backend)
+  }
+
+  /// Consumes the queue and returns producer/consumer handles for SPSC usage.
+  pub fn into_spsc_handles(self) -> (SpscProducer<T, B, M>, SpscConsumer<T, B, M>) {
+    let consumer = SpscConsumer::new(self.inner.clone());
+    let producer = SpscProducer::new(self.inner);
+    (producer, consumer)
   }
 }
 

@@ -5,9 +5,10 @@ use crate::{
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, OverflowPolicy, QueueError},
+      backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
       capabilities::{SingleConsumer, SingleProducer, SupportsPeek},
       type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey},
+      VecRingStorage,
     },
     sync::SharedError,
   },
@@ -319,4 +320,56 @@ fn shared_error_mapping_matches_spec() {
   assert_eq!(QueueError::from(SharedError::Poisoned), QueueError::Disconnected);
   assert_eq!(QueueError::from(SharedError::BorrowConflict), QueueError::WouldBlock);
   assert_eq!(QueueError::from(SharedError::InterruptContext), QueueError::WouldBlock);
+}
+
+#[test]
+fn mpsc_handles_support_multiple_producers() {
+  let storage = VecRingStorage::with_capacity(8);
+  let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::DropOldest);
+  let shared = ArcShared::new(SpinSyncMutex::new(backend));
+  let queue: Queue<_, MpscKey, _, _> = Queue::new(shared);
+
+  let (producer, consumer) = queue.into_mpsc_handles();
+  let another = producer.clone();
+
+  producer.offer(1).unwrap();
+  another.offer(2).unwrap();
+  producer.offer(3).unwrap();
+
+  let mut collected = [consumer.poll().unwrap(), consumer.poll().unwrap(), consumer.poll().unwrap()];
+  collected.sort();
+  assert_eq!(collected, [1, 2, 3]);
+}
+
+#[test]
+fn spsc_handles_provide_split_access() {
+  let storage = VecRingStorage::with_capacity(4);
+  let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::Block);
+  let shared = ArcShared::new(SpinSyncMutex::new(backend));
+  let queue: Queue<_, SpscKey, _, _> = Queue::new(shared);
+
+  let (producer, consumer) = queue.into_spsc_handles();
+  producer.offer(10).unwrap();
+  producer.offer(20).unwrap();
+
+  assert_eq!(consumer.poll().unwrap(), 10);
+  assert_eq!(consumer.poll().unwrap(), 20);
+}
+
+#[test]
+fn vec_ring_backend_provides_fifo_behavior() {
+  let storage = VecRingStorage::with_capacity(3);
+  let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::DropOldest);
+  let shared = ArcShared::new(SpinSyncMutex::new(backend));
+  let queue: Queue<_, FifoKey, _, _> = Queue::new(shared);
+
+  assert_eq!(queue.offer(1).unwrap(), OfferOutcome::Enqueued);
+  assert_eq!(queue.offer(2).unwrap(), OfferOutcome::Enqueued);
+  assert_eq!(queue.offer(3).unwrap(), OfferOutcome::Enqueued);
+
+  let outcome = queue.offer(4).unwrap();
+  assert_eq!(outcome, OfferOutcome::DroppedOldest { count: 1 });
+  assert_eq!(queue.poll().unwrap(), 2);
+  assert_eq!(queue.poll().unwrap(), 3);
+  assert_eq!(queue.poll().unwrap(), 4);
 }

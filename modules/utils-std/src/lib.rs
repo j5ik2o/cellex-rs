@@ -63,6 +63,8 @@ pub mod concurrent;
 pub mod sync;
 /// Tokio-specific timing utilities.
 pub mod timing;
+/// Adaptors exposing v2 abstractions with std backends.
+pub mod v2;
 
 pub use cellex_utils_core_rs::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
