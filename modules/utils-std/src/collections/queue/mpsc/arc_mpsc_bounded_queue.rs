@@ -1,4 +1,5 @@
 #![allow(clippy::disallowed_types)]
+#![allow(deprecated)]
 use std::{fmt, sync::Arc};
 
 use cellex_utils_core_rs::{
@@ -14,7 +15,10 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-/// Bounded multi-producer, single-consumer (MPSC) queue
+/// Bounded multi-producer, single-consumer (MPSC) queue.
+///
+/// # Deprecated
+/// Prefer [`utils_std::v2::collections::queue::StdMpscQueue`].
 ///
 /// A queue that can be safely accessed from multiple threads using `Arc`-based shared ownership.
 /// By default, it uses a Tokio channel backend, but a ring buffer backend can also be selected.

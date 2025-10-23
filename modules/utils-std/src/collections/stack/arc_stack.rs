@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use std::sync::Mutex;
 
 use cellex_utils_core_rs::{
@@ -11,7 +13,10 @@ mod tests;
 
 type ArcStackStorage<T> = ArcShared<StackStorageBackend<ArcShared<Mutex<StackBuffer<T>>>>>;
 
-/// `Arc`-based thread-safe stack implementation
+/// `Arc`-based thread-safe stack implementation.
+///
+/// # Deprecated
+/// Prefer [`utils_std::v2::collections::stack::StdVecStack`].
 ///
 /// Provides a stack data structure that can be safely shared across multiple threads.
 /// Internally uses `Arc` and `Mutex` for synchronization.

@@ -1,4 +1,5 @@
 #![allow(clippy::disallowed_types)]
+#![allow(deprecated)]
 use super::*;
 
 #[test]
