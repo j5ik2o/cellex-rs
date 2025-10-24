@@ -2,7 +2,7 @@
 
 ## 目的
 - 同期 API を保持したまま、Tokio 等の async ランタイム上で自然に利用できる Queue / Stack API を追加する。
-- 既存の Storage / Backend / TypeKey 抽象を再利用しつつ、`AsyncMutexLike` を通じて `await` ベースの API を公開する。
+- 既存の Storage / Backend / TypeKey 抽象を再利用しつつ、`AsyncMutexLike` を通じて `await` ベースの API を公開する（`QueueStorage` / `StackStorage` に対して新たな `Async*Storage` トレイトは作成しない）。
 - 旧 `Tokio` 系ラッパ（`ArcMpscBoundedQueue` 等）からの移行導線を提供する。
 
 ## 実装方針（段階的開発）
@@ -39,6 +39,7 @@
 
 ### フェーズ1: Async API の初期配置
 - 追加の共有抽象は導入せず、`ArcShared` と `AsyncMutexLike` を直接組み合わせる。`ArcAsyncShared` や `AsyncSharedAccess` などの新ファイルは作成しない。
+- ストレージ層は同期版と共通の `QueueStorage` / `StackStorage` を利用し、非同期専用のストレージトレイトを追加しない。
 - **ディレクトリ構成は既存の `collections/queue`/`collections/stack` に async 系ファイルを責務別に並列配置する：**
 
   ```

@@ -14,18 +14,12 @@
 
 ## 3. Async Backend 層
 
-同期版（`SyncQueueBackend` / `StackBackend`）と同じ責務を持つが、**専用の async トレイト**として定義する。`async fn` を直接公開し、実装では `async_trait` もしくは GAT + `impl Future` を用いて非同期処理を記述する。
+同期版（`SyncQueueBackend` / `StackBackend`）と同じ責務を持つが、**専用の async トレイト**として定義する。`async fn` を直接公開し、実装では `async_trait` もしくは GAT + `impl Future` を用いて非同期処理を記述する。ただしストレージ層は新しいトレイトを設けず、同期版で既に利用している `QueueStorage<T>` / `StackStorage<T>` をそのまま共有する。これらのトレイトはポインタアクセスのみを扱うため `await` を伴う処理が発生せず、非同期用の別抽象を設けても利点がないためである。
 
 ```rust
-pub trait AsyncQueueStorage<T> {
-    fn capacity(&self) -> usize;
-    unsafe fn read_unchecked(&self, idx: usize) -> *const T;
-    unsafe fn write_unchecked(&mut self, idx: usize, val: T);
-}
-
 #[async_trait::async_trait]
 pub trait AsyncQueueBackend<T>: Send + Sync {
-    type Storage: AsyncQueueStorage<T> + Send;
+    type Storage: QueueStorage<T> + Send;
 
     fn new(storage: Self::Storage, policy: OverflowPolicy) -> Self
     where
@@ -42,7 +36,7 @@ pub trait AsyncQueueBackend<T>: Send + Sync {
 
 ※ 初期段階では `async_trait` マクロで実装し、将来的に GAT + `impl Future` へ移行する。
 
-Stack 版も同様に `AsyncStackStorage` / `AsyncStackBackend` を定義し、`async fn push` / `async fn pop` を公開する。
+Stack 版も同様に `AsyncStackBackend` を定義し、関連ストレージは `StackStorage<T>` を再利用する。`async fn push` / `async fn pop` を公開しつつ、ストレージ層の契約は同期版と共通のものを維持する。
 
 > 備考: 当面は `async_trait` を採用し、将来 GAT + `impl Future` に移行する際もシグネチャ互換を保てるよう関連型を追加しない設計とする。
 
