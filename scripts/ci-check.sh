@@ -259,6 +259,7 @@ run_dylint() {
   local -a hardware_packages=("rp2040-hw-tests" "rp2350-hw-tests" "wio-terminal-hw-tests")
   local -a main_package_args=()
   local -a hardware_targets=()
+  local -a feature_packages=("cellex-utils-embedded-rs=embassy,arc")
 
   if [[ ${#package_args[@]} -eq 0 ]]; then
     if ! command -v python3 >/dev/null 2>&1; then
@@ -363,6 +364,40 @@ PY
       fi
     done
   fi
+
+  local feature_mapping
+  for feature_mapping in "${feature_packages[@]}"; do
+    local feature_pkg="${feature_mapping%%=*}"
+    local feature_list="${feature_mapping#*=}"
+    local run_feature=""
+
+    if [[ ${#package_args[@]} -eq 0 ]]; then
+      run_feature="yes"
+    else
+      local idx=0
+      while [[ ${idx} -lt ${#package_args[@]} ]]; do
+        if [[ "${package_args[${idx}]}" == "-p" && "${package_args[${idx}+1]}" == "${feature_pkg}" ]]; then
+          run_feature="yes"
+          break
+        fi
+        idx=$((idx + 2))
+      done
+    fi
+
+    if [[ -z "${run_feature}" ]]; then
+      continue
+    fi
+
+    local -a feature_invocation=("-p" "${feature_pkg}" "${common_dylint_args[@]}")
+    local -a feature_trailing=(--features "${feature_list}")
+    local log_feature="${feature_invocation[*]} -- --features ${feature_list}"
+    if [[ ${#trailing_args[@]} -gt 0 ]]; then
+      log_feature+=" -- ${trailing_args[*]}"
+      feature_trailing+=("${trailing_args[@]}")
+    fi
+    log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_feature} (RUSTFLAGS=${rustflags_value})"
+    RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${feature_invocation[@]}" -- "${feature_trailing[@]}" || return 1
+  done
 }
 
 run_clippy() {
