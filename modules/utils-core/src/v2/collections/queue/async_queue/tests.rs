@@ -7,7 +7,6 @@ use core::{
 
 use super::{AsyncMpscQueue, AsyncQueue, AsyncSpscQueue};
 use crate::{
-  cfg::{Feature, Module, Test},
   sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
   v2::{
     collections::queue::{
