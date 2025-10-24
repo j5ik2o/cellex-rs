@@ -5,8 +5,7 @@ use cellex_utils_core_rs::{
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::collections::queue::{
     backend::{OfferOutcome, OverflowPolicy, VecRingBackend},
-    SharedVecRingQueue,
-    VecRingStorage,
+    SharedVecRingQueue, VecRingStorage,
   },
 };
 
