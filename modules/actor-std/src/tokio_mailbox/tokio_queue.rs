@@ -176,6 +176,6 @@ mod compat {
 }
 
 #[cfg(feature = "queue-v2")]
-pub(super) use compat::CompatTokioQueue as TokioQueue;
+pub(super) type TokioQueue<M> = compat::CompatTokioQueue<M>;
 #[cfg(feature = "queue-v1")]
 pub(super) use legacy::TokioQueue;

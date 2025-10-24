@@ -59,19 +59,7 @@
 
 #![no_std]
 
-#[cfg(all(feature = "queue-v1", feature = "queue-v2"))]
-compile_error!("queue-v1 と queue-v2 を同時には有効化できません");
-
 extern crate alloc;
-
-/// Core collections shared across the Cellex runtimes.
-pub mod collections;
-mod concurrent;
-/// Synchronization primitives and shared ownership abstractions.
-pub mod sync;
-mod timing;
-/// Next-generation APIs under development.
-pub mod v2;
 
 pub use collections::{
   Element, MpscBackend, MpscBuffer, MpscHandle, MpscQueue, PriorityMessage, PriorityQueue, QueueBase, QueueError,
@@ -90,3 +78,15 @@ pub use sync::{
 pub use timing::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };
+
+/// Core collections shared across the Cellex runtimes.
+pub mod collections;
+mod concurrent;
+/// Synchronization primitives and shared ownership abstractions.
+pub mod sync;
+mod timing;
+/// Next-generation APIs under development.
+pub mod v2;
+
+#[cfg(all(feature = "queue-v1", feature = "queue-v2"))]
+compile_error!("queue-v1 と queue-v2 を同時には有効化できません");
