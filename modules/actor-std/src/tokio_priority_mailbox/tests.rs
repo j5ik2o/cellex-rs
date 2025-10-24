@@ -1,9 +1,34 @@
-use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxOptions};
+use std::{
+  sync::{Arc, Mutex},
+  vec::Vec,
+};
+
+use cellex_actor_core_rs::api::{
+  mailbox::{Mailbox, MailboxOptions},
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+};
 use cellex_utils_std_rs::{QueueRw, QueueSize, DEFAULT_PRIORITY};
 
 use super::*;
 
 type TestResult<T = ()> = Result<T, String>;
+
+#[derive(Clone)]
+struct RecordingSink {
+  events: Arc<Mutex<Vec<MetricsEvent>>>,
+}
+
+impl RecordingSink {
+  fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
+    Self { events }
+  }
+}
+
+impl MetricsSink for RecordingSink {
+  fn record(&self, event: MetricsEvent) {
+    self.events.lock().unwrap().push(event);
+  }
+}
 
 #[test]
 fn priority_mailbox_orders_messages() -> TestResult {
@@ -105,5 +130,29 @@ fn priority_mailbox_capacity_split() -> TestResult {
     return Err("regular capacity not reached".to_string());
   };
   assert!(matches!(&*err, QueueError::Full(_)));
+  Ok(())
+}
+
+#[test]
+fn priority_mailbox_emits_growth_metric() -> TestResult {
+  let factory = TokioPriorityMailboxFactory::new(4).with_regular_capacity(0);
+  let (mut mailbox, mut sender) = factory.mailbox::<u32>(MailboxOptions::default());
+
+  let events = Arc::new(Mutex::new(Vec::new()));
+  let sink = MetricsSinkShared::new(RecordingSink::new(events.clone()));
+
+  mailbox.set_metrics_sink(Some(sink.clone()));
+  sender.set_metrics_sink(Some(sink.clone()));
+
+  sender
+    .send(PriorityEnvelope::with_default_priority(1u32))
+    .map_err(|err| format!("regular enqueue should succeed: {err:?}"))?;
+
+  let recorded = events.lock().unwrap().clone();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxGrewTo { capacity } if *capacity >= 1)),
+    "expected MailboxGrewTo event, recorded: {recorded:?}"
+  );
+
   Ok(())
 }

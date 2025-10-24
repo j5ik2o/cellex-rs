@@ -369,7 +369,8 @@
 - `modules/actor-std/src/tokio_mailbox/tokio_queue.rs` で `queue-v1` / `queue-v2` のフィーチャー切り替えに対応し、Tokio ファサードが compat 経由で v2 キューを扱える状態を確認。`cargo check -p cellex-actor-std-rs --no-default-features --features "rt-multi-thread,queue-v1"` でもビルド通過を確認。
 - `cargo test -p cellex-actor-std-rs` を実施し、Tokio Mailbox 系統のユニットテストが `queue-v2` で通過することを確認。
 - `modules/actor-std/src/tokio_priority_mailbox/queues.rs` を `QueueRwCompat<PriorityEnvelope<M>>` ベースへ移行し、制御レーン／通常レーンの双方で v2 キューを利用する構成に統一。優先度付きファサードも互換レイヤー経由にそろえた。
-- `./scripts/ci-check.sh all` 実行時に `dylint` セクションが `CARGO_NET_OFFLINE=true` の既定設定により `dylint_driver` を取得できず停止。`CARGO_NET_OFFLINE=false` を明示して再実行する対応が今後必要。
+- `MetricsEvent` に `MailboxDroppedOldest` / `MailboxDroppedNewest` / `MailboxGrewTo` を追加し、`QueueRwCompat` からメトリクスシンクへ発火する仕組みと、Tokio 系メールボックスがシンク設定時にキューへ委譲するパスを実装。専用ユニットテストでドロップ・増加イベントの記録を確認。
+- `./scripts/ci-check.sh all` を再実行し、メトリクス拡張後のワークスペースビルドと `dylint` チェックが完走することを確認。
 
 ### フェーズ5A: Mailbox 基盤再設計（リスク: 高, SP: 8）
 - 事前分析（実装開始前に全項目を完了すること）:
