@@ -57,7 +57,7 @@ fn push_and_pop_operates_async_stack() {
   let stack: AsyncStack<i32, _, _> = AsyncStack::new(shared);
 
   assert!(matches!(block_on(stack.push(10)), Ok(PushOutcome::Pushed)));
-  assert_eq!(block_on(stack.len()), 1);
+  assert_eq!(block_on(stack.len()), Ok(1));
   assert_eq!(block_on(stack.pop()), Ok(10));
 
   let mut pending_pop = stack.pop();
@@ -77,7 +77,7 @@ fn peek_reflects_top_element() {
   assert!(matches!(block_on(stack.push(1)), Ok(PushOutcome::Pushed)));
   assert!(matches!(block_on(stack.push(2)), Ok(PushOutcome::Pushed)));
   assert_eq!(block_on(stack.peek()), Ok(Some(2)));
-  assert_eq!(block_on(stack.len()), 2);
+  assert_eq!(block_on(stack.len()), Ok(2));
 }
 
 #[test]

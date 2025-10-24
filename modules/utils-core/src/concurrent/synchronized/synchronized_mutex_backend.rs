@@ -3,6 +3,8 @@ use core::ops::{Deref, DerefMut};
 
 use async_trait::async_trait;
 
+use crate::v2::sync::SharedError;
+
 /// Backend trait for async mutex-like primitives.
 #[async_trait(?Send)]
 pub trait SynchronizedMutexBackend<T: ?Sized> {
@@ -17,5 +19,5 @@ pub trait SynchronizedMutexBackend<T: ?Sized> {
     T: Sized;
 
   /// Locks the mutex and obtains a guard.
-  async fn lock(&self) -> Self::Guard<'_>;
+  async fn lock(&self) -> Result<Self::Guard<'_>, SharedError>;
 }

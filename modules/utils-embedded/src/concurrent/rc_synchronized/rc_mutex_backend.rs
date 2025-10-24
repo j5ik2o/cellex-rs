@@ -2,7 +2,11 @@
 use alloc::{boxed::Box, rc::Rc};
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::SynchronizedMutexBackend;
+use cellex_utils_core_rs::{
+  sync::{interrupt::NeverInterruptPolicy, InterruptContextPolicy},
+  v2::sync::SharedError,
+  SynchronizedMutexBackend,
+};
 use embassy_sync::{
   blocking_mutex::raw::NoopRawMutex,
   mutex::{Mutex, MutexGuard},
@@ -43,7 +47,8 @@ where
   /// Acquires the lock and returns a guard.
   ///
   /// Waits until the lock is released if another task holds it.
-  async fn lock(&self) -> Self::Guard<'_> {
-    self.inner.lock().await
+  async fn lock(&self) -> Result<Self::Guard<'_>, SharedError> {
+    NeverInterruptPolicy::check_blocking_allowed()?;
+    Ok(self.inner.lock().await)
   }
 }

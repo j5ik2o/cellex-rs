@@ -10,8 +10,8 @@ async fn offer_and_poll_roundtrip() {
   let queue: TokioMpscQueue<i32> = make_tokio_mpsc_queue(4);
 
   assert!(queue.offer(10).await.is_ok());
-  assert_eq!(queue.len().await, 1);
-  assert_eq!(queue.capacity().await, 4);
+  assert_eq!(queue.len().await, Ok(1));
+  assert_eq!(queue.capacity().await, Ok(4));
   assert_eq!(queue.poll().await.unwrap(), 10);
 }
 

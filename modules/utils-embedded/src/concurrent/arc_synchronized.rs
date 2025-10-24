@@ -2,14 +2,19 @@
 #![cfg(feature = "arc")]
 
 mod arc_rw_lock_backend;
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, feature = "arc"))]
 mod tests;
 
 use alloc::{boxed::Box, sync::Arc};
+use core::marker::PhantomData;
 
 pub use arc_rw_lock_backend::{ArcCsSynchronizedRw, ArcLocalSynchronizedRw, ArcRwLockBackend, ArcSynchronizedRw};
 use async_trait::async_trait;
-use cellex_utils_core_rs::{Synchronized as CoreSynchronized, SynchronizedMutexBackend};
+use cellex_utils_core_rs::{
+  sync::interrupt::{CriticalSectionInterruptPolicy, InterruptContextPolicy, NeverInterruptPolicy},
+  v2::sync::SharedError,
+  Synchronized as CoreSynchronized, SynchronizedMutexBackend,
+};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   mutex::{Mutex, MutexGuard},
@@ -25,17 +30,20 @@ use embassy_sync::{
 /// * `RM` - Raw mutex type from embassy-sync
 /// * `T` - The value type being synchronized
 #[derive(Clone, Debug)]
-pub struct ArcMutexBackend<RM, T>
+pub struct ArcMutexBackend<RM, T, P = NeverInterruptPolicy>
 where
-  RM: RawMutex, {
-  inner: Arc<Mutex<RM, T>>,
+  RM: RawMutex,
+  P: InterruptContextPolicy, {
+  inner:   Arc<Mutex<RM, T>>,
+  _policy: PhantomData<P>,
 }
 
 #[async_trait(?Send)]
-impl<RM, T> SynchronizedMutexBackend<T> for ArcMutexBackend<RM, T>
+impl<RM, T, P> SynchronizedMutexBackend<T> for ArcMutexBackend<RM, T, P>
 where
   RM: RawMutex,
   T: Send,
+  P: InterruptContextPolicy + Send + Sync,
 {
   type Guard<'a>
     = MutexGuard<'a, RM, T>
@@ -45,23 +53,25 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self { inner: Arc::new(Mutex::new(value)) }
+    Self { inner: Arc::new(Mutex::new(value)), _policy: PhantomData }
   }
 
-  async fn lock(&self) -> Self::Guard<'_> {
-    self.inner.lock().await
+  async fn lock(&self) -> Result<Self::Guard<'_>, SharedError> {
+    P::check_blocking_allowed()?;
+    Ok(self.inner.lock().await)
   }
 }
 
 /// Type alias for `Arc`-based mutex synchronization
 ///
 /// Provides exclusive-access synchronization with configurable mutex backend.
-pub type ArcSynchronized<T, RM> = CoreSynchronized<ArcMutexBackend<RM, T>, T>;
+pub type ArcSynchronized<T, RM> = CoreSynchronized<ArcMutexBackend<RM, T, NeverInterruptPolicy>, T>;
 
 /// Type alias for `ArcSynchronized` using `CriticalSectionRawMutex`
 ///
 /// Provides interrupt-safe critical section protection for embedded contexts.
-pub type ArcLocalSynchronized<T> = ArcSynchronized<T, CriticalSectionRawMutex>;
+pub type ArcLocalSynchronized<T> =
+  CoreSynchronized<ArcMutexBackend<CriticalSectionRawMutex, T, CriticalSectionInterruptPolicy>, T>;
 
 /// Alias for `ArcLocalSynchronized` for consistency
 ///

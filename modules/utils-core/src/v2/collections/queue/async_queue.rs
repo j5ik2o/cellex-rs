@@ -26,7 +26,7 @@ where
   let mut value = Some(item);
 
   loop {
-    let mut guard = shared.lock().await;
+    let mut guard = <A as AsyncMutexLike<B>>::lock(&**shared).await.map_err(QueueError::from)?;
 
     if guard.is_closed() {
       return Err(QueueError::Closed);
@@ -57,7 +57,7 @@ where
   B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>, {
   loop {
-    let mut guard = shared.lock().await;
+    let mut guard = <A as AsyncMutexLike<B>>::lock(&**shared).await.map_err(QueueError::from)?;
 
     if guard.is_empty() {
       if guard.is_closed() {
@@ -129,36 +129,36 @@ where
 
   /// Requests the backend to transition into the closed state.
   pub async fn close(&self) -> Result<(), QueueError> {
-    let mut guard = self.inner.lock().await;
+    let mut guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     guard.close().await
   }
 
   /// Returns the current number of stored elements.
   #[must_use]
-  pub async fn len(&self) -> usize {
-    let guard = self.inner.lock().await;
-    guard.len()
+  pub async fn len(&self) -> Result<usize, QueueError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
+    Ok(guard.len())
   }
 
   /// Returns the storage capacity.
   #[must_use]
-  pub async fn capacity(&self) -> usize {
-    let guard = self.inner.lock().await;
-    guard.capacity()
+  pub async fn capacity(&self) -> Result<usize, QueueError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
+    Ok(guard.capacity())
   }
 
   /// Indicates whether the queue is empty.
   #[must_use]
-  pub async fn is_empty(&self) -> bool {
-    let guard = self.inner.lock().await;
-    guard.is_empty()
+  pub async fn is_empty(&self) -> Result<bool, QueueError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
+    Ok(guard.is_empty())
   }
 
   /// Indicates whether the queue is full.
   #[must_use]
-  pub async fn is_full(&self) -> bool {
-    let guard = self.inner.lock().await;
-    guard.is_full()
+  pub async fn is_full(&self) -> Result<bool, QueueError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
+    Ok(guard.is_full())
   }
 
   /// Provides access to the underlying shared backend.
@@ -177,7 +177,7 @@ where
 {
   /// Retrieves the smallest element without removing it.
   pub async fn peek_min(&self) -> Result<Option<T>, QueueError> {
-    let guard = self.inner.lock().await;
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.peek_min().cloned())
   }
 }

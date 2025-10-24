@@ -18,7 +18,7 @@ where
   let mut value = Some(item);
 
   loop {
-    let mut guard = shared.lock().await;
+    let mut guard = <A as AsyncMutexLike<B>>::lock(&**shared).await.map_err(StackError::from)?;
 
     if guard.is_closed() {
       return Err(StackError::Closed);
@@ -49,7 +49,7 @@ where
   B: AsyncStackBackend<T>,
   A: AsyncMutexLike<B>, {
   loop {
-    let mut guard = shared.lock().await;
+    let mut guard = <A as AsyncMutexLike<B>>::lock(&**shared).await.map_err(StackError::from)?;
 
     if guard.is_empty() {
       if guard.is_closed() {
@@ -111,42 +111,42 @@ where
   pub async fn peek(&self) -> Result<Option<T>, StackError>
   where
     T: Clone, {
-    let guard = self.inner.lock().await;
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(StackError::from)?;
     Ok(guard.peek().cloned())
   }
 
   /// Requests the backend to transition into the closed state.
   pub async fn close(&self) -> Result<(), StackError> {
-    let mut guard = self.inner.lock().await;
+    let mut guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(StackError::from)?;
     guard.close().await
   }
 
   /// Returns the number of stored elements.
   #[must_use]
-  pub async fn len(&self) -> usize {
-    let guard = self.inner.lock().await;
-    guard.len()
+  pub async fn len(&self) -> Result<usize, StackError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(StackError::from)?;
+    Ok(guard.len())
   }
 
   /// Returns the storage capacity.
   #[must_use]
-  pub async fn capacity(&self) -> usize {
-    let guard = self.inner.lock().await;
-    guard.capacity()
+  pub async fn capacity(&self) -> Result<usize, StackError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(StackError::from)?;
+    Ok(guard.capacity())
   }
 
   /// Indicates whether the stack is empty.
   #[must_use]
-  pub async fn is_empty(&self) -> bool {
-    let guard = self.inner.lock().await;
-    guard.len() == 0
+  pub async fn is_empty(&self) -> Result<bool, StackError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(StackError::from)?;
+    Ok(guard.len() == 0)
   }
 
   /// Indicates whether the stack is full.
   #[must_use]
-  pub async fn is_full(&self) -> bool {
-    let guard = self.inner.lock().await;
-    guard.len() == guard.capacity()
+  pub async fn is_full(&self) -> Result<bool, StackError> {
+    let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(StackError::from)?;
+    Ok(guard.len() == guard.capacity())
   }
 
   /// Provides access to the underlying shared backend.

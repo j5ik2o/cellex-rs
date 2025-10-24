@@ -1,7 +1,7 @@
 #![allow(clippy::disallowed_types)]
 #![cfg(feature = "arc")]
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, feature = "arc"))]
 mod tests;
 
 use alloc::{boxed::Box, sync::Arc};

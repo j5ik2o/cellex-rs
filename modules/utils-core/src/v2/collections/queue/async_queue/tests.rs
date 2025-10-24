@@ -56,11 +56,11 @@ fn offer_and_poll_operates_async_queue() {
   let shared = make_shared_queue(4, OverflowPolicy::Block);
   let queue: AsyncSpscQueue<i32, _, _> = AsyncQueue::new_spsc(shared);
 
-  assert_eq!(block_on(queue.is_empty()), true);
+  assert_eq!(block_on(queue.is_empty()), Ok(true));
   assert!(matches!(block_on(queue.offer(42)), Ok(OfferOutcome::Enqueued)));
-  assert_eq!(block_on(queue.len()), 1);
+  assert_eq!(block_on(queue.len()), Ok(1));
   assert_eq!(block_on(queue.poll()), Ok(42));
-  assert_eq!(block_on(queue.is_empty()), true);
+  assert_eq!(block_on(queue.is_empty()), Ok(true));
 }
 
 #[test]

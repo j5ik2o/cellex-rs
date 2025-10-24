@@ -1,7 +1,10 @@
 //! Tokio-specific synchronization adaptors for v2 abstractions.
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::sync::async_mutex_like::AsyncMutexLike;
+use cellex_utils_core_rs::{
+  sync::{async_mutex_like::AsyncMutexLike, interrupt::NeverInterruptPolicy, InterruptContextPolicy},
+  v2::sync::SharedError,
+};
 
 /// Wrapper around [`tokio::sync::Mutex`] that implements [`AsyncMutexLike`].
 pub struct TokioAsyncMutex<T>(tokio::sync::Mutex<T>);
@@ -44,8 +47,9 @@ impl<T: Send> AsyncMutexLike<T> for TokioAsyncMutex<T> {
     self.into_inner()
   }
 
-  async fn lock(&self) -> Self::Guard<'_> {
-    self.0.lock().await
+  async fn lock(&self) -> Result<Self::Guard<'_>, SharedError> {
+    NeverInterruptPolicy::check_blocking_allowed()?;
+    Ok(self.0.lock().await)
   }
 }
 

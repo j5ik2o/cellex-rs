@@ -34,8 +34,8 @@ where
   }
 
   /// Signals that no more elements will be produced.
-  pub async fn close(&self) {
-    let mut guard = self.inner.lock().await;
-    let _ = guard.close().await;
+  pub async fn close(&self) -> Result<(), QueueError> {
+    let mut guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
+    guard.close().await
   }
 }
