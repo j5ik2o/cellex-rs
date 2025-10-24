@@ -77,9 +77,11 @@ where
 {
     pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError>;
     pub async fn poll(&self) -> Result<T, QueueError>;
-    pub async fn close(&self);
-    pub async fn len(&self) -> usize;
-    pub fn capacity(&self) -> usize;
+    pub async fn close(&self) -> Result<(), QueueError>;
+    pub async fn len(&self) -> Result<usize, QueueError>;
+    pub async fn capacity(&self) -> Result<usize, QueueError>;
+    pub async fn is_empty(&self) -> Result<bool, QueueError>;
+    pub async fn is_full(&self) -> Result<bool, QueueError>;
 }
 ```
 
@@ -87,7 +89,7 @@ where
 - `A = SpinAsyncMutex<B>` を core クレートのデフォルトとし、no_std/組込み環境でも依存追加なしで利用できるようにする。std/Tokio 環境での利用者向けには `utils-std` 側で `TokioAsyncMutex` や `AsyncStdMutex` を組み合わせた型エイリアス・ビルダーを提供する。
 - `AsyncMpscProducer` / `AsyncMpscConsumer` / `AsyncSpscProducer` / `AsyncSpscConsumer` を Capability に基づいて追加し、同期版と同じ型制約（例: `MpscKey: MultiProducer + SingleConsumer`）を維持する。
 - `PriorityKey` 用 async ラッパ (`peek_min`) も提供。
-- `capacity()` は Backend 初期化時に確定する不変値をそのまま返すためロック不要で提供できる。ロックや再計算が必要な Backend では `async fn capacity` に拡張する。
+- `len` / `capacity` 系のクエリも `Result` を返し、割り込み文脈でロック取得がブロック不可と判断された場合には `QueueError::WouldBlock` を上位へ伝搬する。バックエンド側で非同期計算が必要になった際にも互換的に拡張できる。
 - Future の Drop（キャンセル）時は待機ノードを `Drop` 実装で必ず除去し、`Notify`／Waker リストがリークしないようにする。`Pin<&mut Self>` を用いた自己参照 Future を避け、`Arc<WaitNode>` + `Weak` で安全に削除する方針。
 - 利用者向けには `type TokioMpscQueue<T>` や `AsyncQueue::builder()` といったエイリアス／ビルダーを提供し、公開 API からジェネリクスの複雑さを隠蔽する。
 
@@ -109,9 +111,13 @@ where
     pub async fn peek(&self) -> Result<Option<T>, StackError>
     where
         T: Clone + Send;
+    pub async fn close(&self) -> Result<(), StackError>;
+    pub async fn len(&self) -> Result<usize, StackError>;
+    pub async fn capacity(&self) -> Result<usize, StackError>;
 }
 ```
 
+- `len` / `capacity` / `is_empty` などのクエリ API も `Result` を返し、割り込み文脈では `StackError::WouldBlock` を通知する設計とする。
 - `StackOverflowPolicy` は同期版と同様に `Block` / `Grow` のみを提供し、LIFO の整合性を保つため `DropNewest` / `DropOldest` はサポートしない。
 
 ## 6. Tokio backend と擬似 async backend
