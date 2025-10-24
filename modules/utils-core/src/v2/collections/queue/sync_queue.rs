@@ -11,7 +11,7 @@ use crate::{
   },
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, PriorityBackend, QueueError, SyncQueueBackend},
+      backend::{OfferOutcome, SyncPriorityBackend, QueueError, SyncQueueBackend},
       capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek},
       type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey},
     },
@@ -104,7 +104,7 @@ where
 impl<T, B, M> SyncQueue<T, PriorityKey, B, M>
 where
   T: Clone + Ord,
-  B: PriorityBackend<T>,
+  B: SyncPriorityBackend<T>,
   M: SyncMutexLike<B>,
   ArcShared<M>: SharedAccess<B>,
   PriorityKey: SupportsPeek,

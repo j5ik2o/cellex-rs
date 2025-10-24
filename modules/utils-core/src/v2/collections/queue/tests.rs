@@ -164,7 +164,7 @@ mod priority_backend {
 
   use super::QueueConfig;
   use crate::v2::collections::queue::backend::{
-    OfferOutcome, OverflowPolicy, PriorityBackend, QueueError, SyncQueueBackend,
+    OfferOutcome, OverflowPolicy, SyncPriorityBackend, QueueError, SyncQueueBackend,
   };
 
   /// Priority backend backed by a binary heap.
@@ -239,7 +239,7 @@ mod priority_backend {
     }
   }
 
-  impl<T: Ord> PriorityBackend<T> for BinaryHeapBackend<T> {
+  impl<T: Ord> SyncPriorityBackend<T> for BinaryHeapBackend<T> {
     fn peek_min(&self) -> Option<&T> {
       self.heap.peek().map(|Reverse(item)| item)
     }

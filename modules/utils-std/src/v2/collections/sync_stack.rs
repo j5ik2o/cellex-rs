@@ -11,17 +11,17 @@ use crate::sync::StdSyncMutex;
 mod tests;
 
 /// Stack type alias backed by [`StdSyncMutex`] and [`VecStackBackend`].
-pub type StdVecSyncStack<T> = CoreSyncStack<T, VecStackBackend<T>, StdSyncMutex<VecStackBackend<T>>>;
+pub type SyncStdVecStack<T> = CoreSyncStack<T, VecStackBackend<T>, StdSyncMutex<VecStackBackend<T>>>;
 
-/// Constructs a new [`StdVecSyncStack`] with the specified capacity and overflow policy.
-pub fn make_std_vec_stack<T>(capacity: usize, policy: StackOverflowPolicy) -> StdVecSyncStack<T> {
+/// Constructs a new [`SyncStdVecStack`] with the specified capacity and overflow policy.
+pub fn make_std_vec_stack<T>(capacity: usize, policy: StackOverflowPolicy) -> SyncStdVecStack<T> {
   let storage = VecStackStorage::with_capacity(capacity);
   let backend = VecStackBackend::new_with_storage(storage, policy);
   let shared = ArcShared::new(StdSyncMutex::new(backend));
-  StdVecSyncStack::new(shared)
+  SyncStdVecStack::new(shared)
 }
 
 /// Convenience constructor that defaults to [`StackOverflowPolicy::Block`].
-pub fn make_std_vec_stack_blocking<T>(capacity: usize) -> StdVecSyncStack<T> {
+pub fn make_std_vec_stack_blocking<T>(capacity: usize) -> SyncStdVecStack<T> {
   make_std_vec_stack(capacity, StackOverflowPolicy::Block)
 }

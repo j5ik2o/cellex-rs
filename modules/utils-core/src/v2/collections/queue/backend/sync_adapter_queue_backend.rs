@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 
 use async_trait::async_trait;
 
-use super::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, PriorityBackend, QueueError, SyncQueueBackend};
+use super::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, SyncPriorityBackend, QueueError, SyncQueueBackend};
 
 /// Adapter that exposes a synchronous queue backend through the async backend trait.
 pub struct SyncAdapterQueueBackend<T, B>
@@ -71,7 +71,7 @@ where
 
 impl<T: Ord, B> AsyncPriorityBackend<T> for SyncAdapterQueueBackend<T, B>
 where
-  B: PriorityBackend<T>,
+  B: SyncPriorityBackend<T>,
 {
   fn peek_min(&self) -> Option<&T> {
     self.backend.peek_min()

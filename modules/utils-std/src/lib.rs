@@ -74,7 +74,7 @@ pub use cellex_utils_core_rs::{
   Stack, StackBackend, StackHandle, StackStorage, StackStorageBackend, StateCell, TimerDeadline, DEFAULT_CAPACITY,
   DEFAULT_PRIORITY, PRIORITY_LEVELS,
 };
-pub use v2::collections::{StdFifoSyncQueue, StdMpscSyncQueue, StdSpscSyncQueue, StdVecSyncStack};
+pub use v2::collections::{SyncStdFifoQueue, SyncStdMpscQueue, SyncStdSpscQueue, SyncStdVecStack};
 
 /// Prelude module that re-exports commonly used types and traits.
 pub mod prelude {
