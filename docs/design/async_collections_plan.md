@@ -79,7 +79,7 @@
 - 利用者向けのデフォルト構成（例: `TokioMpscQueue<T>`）を型エイリアスとビルダーで提供し、複雑なジェネリクスを隠蔽する。
 
 ### フェーズ4: OverflowPolicy と ISR 方針の明文化
-ステータス: ⏳ 未着手（2025-10-24 時点）
+ステータス: ✅ 完了（2025-10-24 時点）
 - `AsyncMutexLike::lock` を `Result<Guard, SharedError>` 返却に刷新し、割り込み文脈では `SharedError::InterruptContext` を伝搬させる。
 - `utils-core::sync::interrupt::InterruptContextPolicy` を導入し、`AsyncMutexLike` 実装がロック前に `check_blocking_allowed()` を必ず呼ぶ構造を整える。標準環境は `NeverInterruptPolicy`、組込みは `CriticalSectionInterruptPolicy`（Cortex-M では `SCB::vect_active()` 判定）を採用できるようにする。
 - `SpinAsyncMutexDefault` / `SpinAsyncMutexCritical` などの型エイリアスを提供し、利用者がポリシーを明示的に選択できる API を整備する。
@@ -88,12 +88,13 @@
 - `InterruptContextPolicy` を thumb ターゲットで検証し、CI のクロスチェック（`cargo check --target thumbv6m-none-eabi --features async`）に組み込む。
 
 ### フェーズ5: 移行整備
-ステータス: ⏳ 未着手（2025-10-24 時点）
+ステータス: ✅ 完了（2025-10-24 時点）
 - `docs/guides/async_queue_migration.md` を作成し、旧 Tokio ベース API からの移行手順を明示。
-- 既存コードベース（actor-std 等）の移行実験。
+- 既存コードベース（actor-std 等）の移行実験を実施（`modules/actor-std/tests/async_queue_migration.rs`）。
+- 追加の FAQ 整備など細部調整は必要に応じて随時対応。
 
 ### フェーズ6: 最終切り替え
-ステータス: ⏳ 未着手（2025-10-24 時点）
-- 互換 API に `#[deprecated]` を付与し、利用箇所の修正を促す。
-- CI に async テストケースを追加し、ランタイム依存部分の regressions を防ぐ。
-- 並行性検証用に `loom` を活用する PoC を Backlog に保持し、実装安定後に導入する（フェーズ0/将来対応）。
+ステータス: ⏳ 進行中（2025-10-24 時点）
+- 互換 API に `#[deprecated]` を付与し、利用箇所の修正を促す。（完了）
+- CI に async テストケースを追加し、ランタイム依存部分の regressions を防ぐ。（`cargo test -p cellex-actor-std-rs --tests` でカバー済み）
+- 並行性検証用に `loom` を活用する PoC を Backlog に保持し、実装安定後に導入する（引き続き未着手）。
