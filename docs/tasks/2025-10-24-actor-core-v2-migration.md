@@ -370,6 +370,7 @@
 - `cargo test -p cellex-actor-std-rs` を実施し、Tokio Mailbox 系統のユニットテストが `queue-v2` で通過することを確認。
 - `modules/actor-std/src/tokio_priority_mailbox/queues.rs` を `QueueRwCompat<PriorityEnvelope<M>>` ベースへ移行し、制御レーン／通常レーンの双方で v2 キューを利用する構成に統一。優先度付きファサードも互換レイヤー経由にそろえた。
 - `MetricsEvent` に `MailboxDroppedOldest` / `MailboxDroppedNewest` / `MailboxGrewTo` を追加し、`QueueRwCompat` からメトリクスシンクへ発火する仕組みと、Tokio 系メールボックスがシンク設定時にキューへ委譲するパスを実装。専用ユニットテストでドロップ・増加イベントの記録を確認。
+- `actor_scheduler` テストに `CompatMailboxFactory` を追加し、ReadyQueueScheduler 経由の結合テストで `MailboxDroppedOldest` / `MailboxDroppedNewest` が発火することを確認。Tokio 側の結合テストと合わせてメトリクス導線を網羅。
 - `./scripts/ci-check.sh all` を再実行し、メトリクス拡張後のワークスペースビルドと `dylint` チェックが完走することを確認。
 
 ### フェーズ5A: Mailbox 基盤再設計（リスク: 高, SP: 8）

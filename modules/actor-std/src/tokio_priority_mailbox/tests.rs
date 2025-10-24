@@ -1,29 +1,32 @@
-use std::{
-  sync::{Arc, Mutex},
-  vec::Vec,
-};
-
-use cellex_actor_core_rs::api::{
-  mailbox::{Mailbox, MailboxOptions},
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-};
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxOptions};
 use cellex_utils_std_rs::{QueueRw, QueueSize, DEFAULT_PRIORITY};
 
 use super::*;
 
 type TestResult<T = ()> = Result<T, String>;
 
+#[cfg(feature = "queue-v2")]
+use std::{
+  sync::{Arc, Mutex},
+  vec::Vec,
+};
+#[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared};
+
+#[cfg(feature = "queue-v2")]
 #[derive(Clone)]
 struct RecordingSink {
   events: Arc<Mutex<Vec<MetricsEvent>>>,
 }
 
+#[cfg(feature = "queue-v2")]
 impl RecordingSink {
   fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
     Self { events }
   }
 }
 
+#[cfg(feature = "queue-v2")]
 impl MetricsSink for RecordingSink {
   fn record(&self, event: MetricsEvent) {
     self.events.lock().unwrap().push(event);
@@ -133,6 +136,7 @@ fn priority_mailbox_capacity_split() -> TestResult {
   Ok(())
 }
 
+#[cfg(feature = "queue-v2")]
 #[test]
 fn priority_mailbox_emits_growth_metric() -> TestResult {
   let factory = TokioPriorityMailboxFactory::new(4).with_regular_capacity(0);

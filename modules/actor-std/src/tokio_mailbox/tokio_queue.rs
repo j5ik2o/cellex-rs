@@ -98,8 +98,6 @@ mod legacy {
         | TokioQueueKind::Bounded(queue) => queue.clean_up(),
       }
     }
-
-    pub(crate) fn set_metrics_sink(&self, _sink: Option<MetricsSinkShared>) {}
   }
 }
 
@@ -130,7 +128,7 @@ where
 pub(super) fn configure_metrics<M>(queue: &TokioQueue<M>, sink: Option<MetricsSinkShared>)
 where
   M: Element, {
-  queue.set_metrics_sink(sink);
+  let _ = (queue, sink);
 }
 
 #[cfg(feature = "queue-v2")]
