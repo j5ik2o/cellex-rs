@@ -1,4 +1,4 @@
 [tools]
 protoc = "33.0"
-node = "22"
+node = "20"
 uv = "latest"
