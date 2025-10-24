@@ -1,0 +1,234 @@
+# Actor-Core v2 コレクション移行計画 (2025-10-24)
+
+## 目的
+- actor-core 系クレートで旧コレクション (`QueueRw`, `ArcMpscBoundedQueue`, `ArcStack` 等) を廃止し、`cellex_utils_core_rs::v2` に統一する。
+- 新 API で返却される `OfferOutcome` / `PollOutcome` と `QueueError::{WouldBlock,Closed,Disconnected,Full,Empty,AllocError}` を含む全ての戻り値を正しくハンドリングできるコードパスへ置き換える。
+- ファサード層からテストまで段階的に置き換え、`./scripts/ci-check.sh all` を無エラーで完走させる。
+
+## スコープ
+- `modules/actor-core` 配下全体（特に `api/mailbox`、`scheduler`、`tests`）。
+- 依存クレート: `cellex_utils_core_rs`, `cellex_actor_std_rs`, `cellex_actor_embedded_rs` の v2 コレクション導入部。
+- 対象外: 旧実装保管フォルダ `docs/sources/nexus-actor-rs/`（参照のみ）、リモート/クラスタ機能の具体的移行。
+
+## ロールバックとスケジュール目安
+- **ロールバック方針**: 一時的に `queue-v1` / `queue-v2` フィーチャーフラグを用意し、`queue-v2` を既定で有効化しながら CI で `queue-v1` も最低限ビルドが通ることを確認する。緊急時は `queue-v1` のみを有効化してリリースできる体制を維持する。
+- **段階的切り替え**: 各フェーズ完了時に `queue-v2` を段階的に既定値へ近づけ、最終フェーズで `queue-v1` サポートを `deprecated` 扱いに移行する計画とする。
+- **工数/所要時間の目安**:
+- フェーズ1（SP: 3）: 0.5日（調査と記録）
+- フェーズ2（SP: 5）: 1日（依存とフィーチャー整理）
+- フェーズ3（SP: 8）: 1日（QueueSize → `usize` 変換の安全化準備）
+- フェーズ4A（SP: 8）: 1日（ファサード互換レイヤ準備）
+- フェーズ4B（SP: 8）: 1.5日（ファサード差し替え実装）
+- フェーズ5A（SP: 8）: 1日（Mailbox 基盤再設計）
+- フェーズ5B（SP: 8）: 1日（Mailbox 段階移行と性能確認）
+- フェーズ6（SP: 5）: 1日（テスト移行とクロスビルド検証）
+- フェーズ7（SP: 3）: 0.5日（ドキュメント/クリーンアップ）
+- **並行実施の検討**: フェーズ2とフェーズ3（QueueSize 変換）は並行可能だが、フェーズ4A/4B 着手前に `QueueSize` → `usize` 変換が完了していることが望ましい。フェーズ6のクロスビルド確認はフェーズ5B の主要パスが通ったタイミングで前倒ししても良い。
+- **開発フェーズ前提**: まだ正式リリース前のため破壊的変更は許容されるが、広範囲の変更を一気に適用すると検証が困難になるため、フェーズ単位で小さく進めて都度テスト・CI を実行する。
+
+## フェーズ別作業計画
+
+### フェーズ1: 現状調査（リスク: 低, SP: 3）
+- [x] `modules/actor-core` 内で旧キュー API を利用している箇所を `rg` で抽出し、一覧を `progress.md` か当ファイルに追記する。
+- [x] 旧 API を `Result` 無し前提で呼び出しているコードパスを洗い出し、呼び出し元単位でメモする。
+- [x] 既存テストのうち旧 API に依存するケースを特定し、移行対象と優先度をタグ付けする。
+- [ ] `rg "QueueRw|ArcMpscBoundedQueue|ArcStack" --type rust -A3 -B1 modules/actor-core/src > target/queue_usage_detailed.txt` を実行し、抽出結果に注釈を付けて共有リポジトリ内で参照できるよう整備する。
+- [ ] 旧 API に依存するテストを、「クリティカルパス（メッセージ処理必須）」「エッジケース」「性能指標」の3段階優先度に振り分け、Phase6 の順番に反映する。
+
+#### 調査結果: 旧キューAPIの利用箇所
+
+`QueueRw` が以下のファイルで利用されています。`ArcMpscBoundedQueue`, `ArcStack` の使用箇所は見つかりませんでした。（詳細は `target/queue_usage_detailed.txt` に記録）
+
+- `src/api/mailbox/queue_mailbox/base.rs`
+- `src/api/mailbox/queue_mailbox/recv.rs`
+- `src/api/mailbox/queue_mailbox_producer.rs`
+- `src/shared/mailbox/factory.rs`
+
+#### 調査結果: `Result` を前提としないコードパス
+
+`QueueRw` のメソッド呼び出しにおいて、v2 APIで想定される `Result` を返さない、あるいは `unwrap()` で処理している箇所は以下の通りです。
+
+- **`src/shared/mailbox/factory.rs`**:
+  - `new_mailbox` 内で `queue.try_send(message).unwrap()` を使用。エラーをハンドリングせずパニックする可能性があり、最優先の修正対象です。
+- **`src/api/mailbox/queue_mailbox/recv.rs`**:
+  - `read_all` が `self.queue.recv_all()` の戻り値 `Vec<M>` をそのまま返しています。v2では `Result<Vec<M>, _>` となるべきです。
+  - `clean_up` が `self.queue.close()` を呼び出しており、戻り値がありません。v2では `Result<(), _>` となる可能性があります。
+- **`src/api/mailbox/queue_mailbox/base.rs`**:
+  - `has_messages` が `!self.queue.is_empty()` を返します。v2では `is_empty` が `Result<bool, _>` を返す可能性があるため、修正が必要です。
+
+#### 調査結果: 旧APIに依存するテスト
+
+`tests` ディレクトリは存在しませんが、`src` 内のインラインテスト (`#[cfg(test)]`) が旧APIに依存しています。
+
+- **対象ファイル**:
+  - `src/api/mailbox/queue_mailbox/base.rs`
+  - `src/api/mailbox/queue_mailbox/recv.rs`
+  - `src/api/mailbox/queue_mailbox_producer.rs`
+- **内容**:
+  - これらのテストは `QueueMailbox` を直接インスタンス化、またはメソッドを呼び出すことで、`QueueRw` トレイトに間接的に依存しています。
+- **優先度**:
+  - 高。メールボックスのコア機能の単体テストであり、v2キューへの移行後、最初に修正・パスさせる必要があります。
+
+### フェーズ2: 依存整理（リスク: 低, SP: 5）
+- [x] `cellex_utils_core_rs::v2` が actor-core から利用可能か Cargo feature を確認し、必要なら `alloc` / `interrupt-cortex-m` 等の feature を追加する（`Cargo.toml` への伝播確認含む）。
+- [x] `cellex_utils_core_rs` のバージョン固定と semver 互換性を確認し、`queue-v2` フィーチャーとの整合を記録する。
+- [x] `cellex_actor_std_rs` / `cellex_actor_embedded_rs` との依存関係を図示し、循環が生じないことを検証する。
+- [x] actor-core が旧キュー型を再エクスポートしていないか確認し、将来的な削除方針と deprecation タイムラインを決定する。
+- [x] `no_std` + `alloc` + embedded feature のビルドを試行し、v2 依存追加による影響を記録する。
+- [ ] 依存更新によるビルド設定・lint への影響を確認し、CI 設定変更の有無を判断する。
+
+#### 調査結果: v2コレクションの利用可能性
+
+- `cellex-utils-core-rs` の `Cargo.toml` とソース構造を確認した結果、`v2` コレクションは feature flag の背後にあるのではなく、`cellex_utils_core_rs::v2` モジュールとして常に公開されています。
+- `cellex-actor-core-rs` は `cellex-utils-core-rs` に依存しており、その `alloc` feature も有効化しているため、`v2` モジュールは追加の設定なしで利用可能です。
+- 結論として、現時点で `Cargo.toml` の変更は不要です。
+
+#### 調査結果: 旧キュー型の再エクスポート状況
+
+- `actor-core` の `lib.rs` および `api.rs`, `shared.rs` などのモジュールファイルを調査した結果、旧キュー型 (`QueueRw` など) はクレートの公開APIとして再エクスポートされていませんでした。
+- **削除方針**: `QueueRw` は内部的な実装詳細に留まっているため、`deprecated` 期間を設ける必要はありません。v2キューへの移行が完了した時点で、内部的な依存関係から安全に削除できます。これにより、利用者への破壊的変更を伴わずに移行が可能です。
+
+#### 調査結果: `cellex_utils_core_rs` のバージョン固定と semver 互換性
+
+- `cellex-actor-core-rs` は `cellex-utils-core-rs` を `path = "../utils-core"` として依存しています。
+- これはワークスペース内のローカル依存であり、両クレートは同時に開発・テストされるため、バージョン固定や semver 互換性の問題はワークスペースレベルで管理されます。
+- `cellex-utils-core-rs` の `v2` コレクションは feature ではなくモジュールとして提供されているため、`queue-v2` feature との整合性を考慮する必要はありません。
+
+#### 調査結果: `cellex_actor_std_rs` / `cellex_actor_embedded_rs` との依存関係
+
+- `cellex-actor-std-rs` は `cellex-actor-core-rs` と `cellex-utils-core-rs` に依存しています。
+- `cellex-actor-embedded-rs` も `cellex-actor-core-rs` と `cellex-utils-core-rs` に依存しています。
+- これらの依存関係は階層的であり、`actor-std` および `actor-embedded` が `actor-core` に、`actor-core` が `utils-core` に依存する形になっています。
+- この構造から、**循環依存は存在しない**ことを確認しました。
+
+#### 調査結果: `no_std` + `alloc` + embedded feature のビルド試行
+
+- `cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi --no-default-features --features alloc` コマンドを実行し、`cellex-actor-core-rs` が `no_std` 環境で `alloc` feature を有効にした組み込みターゲット向けに正常にビルドできることを確認しました。
+- 2つの未使用インポートに関する警告 (`spin::Once`, `SharedBound`) が出力されましたが、ビルド自体は成功しています。
+- v2コレクションは feature ではなくモジュールとして提供されており、`actor-core` は既に `utils-core` の `alloc` feature を有効にしているため、v2依存追加によるビルドへの影響は、現在の設定で問題なくビルドできることを示しています。
+
+### フェーズ3: QueueSize 互換ステップ（リスク: 中, SP: 8）
+- 事前分析（実装開始前に全項目を完了すること）:
+  - [x] `rg "QueueSize" modules/actor-core/src -n` の結果から、`api/mailbox.rs`, `shared/mailbox/options.rs`, `api/mailbox/queue_mailbox/base.rs`, `api/test_support/test_mailbox_factory.rs`, `internal/mailbox/tests.rs` など利用箇所を列挙済み。各ファイルで `Limitless`/`Limited` をどう扱っているかを精読し、`usize::MAX` への変換が安全か判断するメモを作成する。
+  - [x] `QueueSize::limitless()` が実質どの程度利用されているか（例: 常に `QueueSize::limitless()` を返す `api/mailbox.rs:75-82`）を洗い出し、`usize` 変換時の後方互換策を検討する。
+    - `Mailbox` トレイトの既定実装（`api/mailbox.rs:74-90`）は「無制限」を API 互換性維持のために返しているだけで、既存呼び出し元で `QueueSize::Limitless` を直接比較している箇所は `QueueMailbox` 系に限定されている。
+    - `MailboxOptions::unbounded()` および `Default` では `QueueSize::limitless()` をフィールド初期化に使用しているが、実際の生成系（`TestMailboxFactory::resolve_capacity`）では `None` を返す設計であり、`usize` 化では `Option<usize>` を中継すれば同等の表現が可能。
+    - テストコードは `QueueSize::limitless()` のままアサートしているだけなので、先行ステップで `is_unbounded()` のような補助関数を導入しテストも同時更新することで、v2 置換前に `QueueSize` 依存を整理できる。
+- 実装タスク:
+- [x] `QueueSize` を利用しているコードを棚卸しし、`QueueSize::to_usize()` を経由した `usize` ベースの比較・条件分岐へ書き換える際の指針（`usize::MAX` = 無制限）をドキュメント化する。
+  - `modules/actor-core/src/api/mailbox.rs`: 既定の `len`/`capacity` は常に `QueueSize::limitless()` を返し、`is_empty` は `QueueSize::Limited(0)` 比較のみを行っているため、段階移行では `usize::MAX` を「無制限」として扱う補助関数を用意すれば変更インパクトを局所化できる。
+  - `modules/actor-core/src/api/mailbox/queue_mailbox/base.rs`: `QueueRw::len`/`capacity` の戻り値をそのまま透過しており、まずは `QueueSize::to_usize()` によるラッパー (`len_usize()`, `capacity_usize()`) を追加して利用側を移行させる方針が安全。
+  - `modules/actor-core/src/shared/mailbox/options.rs`: フィールドが `QueueSize` で保持されている。`MailboxOptions::with_capacity` などの API は現行呼び出しシグネチャを保ったまま、`pub fn capacity_limit(&self) -> Option<usize>` 等のアクセサを追加する案が有効。
+  - `modules/actor-core/src/api/test_support/test_mailbox_factory.rs`: `resolve_capacity` が `QueueSize` を `Option<usize>` に変換しているため、ここをリファクタリングの先行対象にし、`QueueSize::to_usize()` と `usize::MAX` の判定が正しく行えるか検証する。`MailboxOptions::with_capacity` と組み合わせて `Some(value)` と `None` の経路が明確に分岐することを確認済み。
+  - `modules/actor-core/src/internal/mailbox/tests.rs`: `QueueSize` の helper を前提としたテストが存在するため、`usize` 化のステップでは期待値を `capacity_limit()` 経由に書き換える必要がある。
+  - [ ] `QueueMailbox` 系や設定構造体で `QueueSize` を保持しているフィールドについて、`usize` 補助メソッド（例: `capacity_limit()`）を追加し、呼び出し側のロジックを順次新メソッドへ誘導する。
+- [ ] 上記変更をモジュール単位で適用し、`QueueRw` ベースの現行実装で `cargo test -p cellex-actor-core-rs --tests` が通り続けることを確認する。
+- [ ] `./scripts/ci-check.sh all` を一度実行し、QueueSize → `usize` 変換による副作用がないことを確認して結果を記録する。
+
+### フェーズ4A: ファサード互換準備（リスク: 高, SP: 8）
+- 事前分析（実装開始前に全項目を完了すること）:
+  - [x] `modules/actor-core/src/api/mailbox.rs`, `api/mailbox/queue_mailbox/base.rs`, `api/mailbox/queue_mailbox/recv.rs`, `api/mailbox/queue_mailbox_producer.rs`, `api/test_support/test_mailbox_factory.rs` など `QueueSize` / `QueueRw` を参照しているファサード層ファイルを読み込み、各メソッドが返すエラーや `QueueSize` 変換ロジックを一覧化する。
+    - `QueueMailbox::try_send` は `queue.offer` の `Result<(), QueueError>` をそのまま返し、`QueueError::Disconnected` / `Closed(_)` を検知した際に `Flag` を立てている。`QueueError::Full` はそのまま上位に伝播する設計であり、`OfferOutcome` の `DroppedOldest` 等を導入する場合はメトリクス連携の追加が必要。
+    - `QueueMailboxRecv` は `queue.poll()` が `Ok(None)` を返した時に `MailboxSignal::wait()` をセットし、`QueueError::Full` / `OfferError` を `Poll::Pending` 扱いにしている。v2 移行時には `PollOutcome::Idle`/`WouldWait` への読み替えが前提となる。
+    - `QueueMailboxProducer::try_send` も同様に `QueueError::Disconnected` / `Closed(_)` で閉塞フラグを立て、`QueueError::Full` を速やかに呼び出し元へ返す。メトリクス・スケジューラ通知が正常経路のみで発火する点を再確認済み。
+    - `Mailbox` トレイトのデフォルト `len`/`capacity` と `QueueMailbox` の実装がどのように `QueueSize` を返しているか整理済み。`MailboxOptions` を通じて設定と実体が整合する構造であることを確認。
+    - `TestMailboxFactory` は `QueueMailbox::new` を直接利用し、 `QueueSize::Limitless` を `None` にマップすることでユニットテスト用の先行実装となっている。
+    - `modules/actor-core/Cargo.toml` には現状 `queue-v1` / `queue-v2` のようなフィーチャーは存在せず、`default = ["alloc"]` のみ。新フィーチャー追加時はワークスペース全体への伝播が必要になる見込み。
+  - [x] 呼び出し元（`shared/mailbox/options.rs`, `internal/mailbox/tests.rs`, `api/actor_scheduler/actor_scheduler_spawn_context.rs`, `internal/actor/internal_props.rs` など）で `QueueSize::limitless()` / `QueueSize::limited(..)` をどう扱っているかを調べ、`usize` 化後に同じ意味になるかメモする。
+    - `MailboxOptions` はフィールドに `QueueSize` を保持し、`with_capacity` / `with_priority_capacity` などで `QueueSize::limited` を生成。`TestMailboxFactory::resolve_capacity` のパターンマッチと合わせ、`Option<usize>` と `usize::MAX` で代替可能。
+    - `internal/mailbox/tests.rs` は `QueueSize::limited` / `limitless` の helper を検証しているため、`is_unbounded` 的なラッパーを追加すればテスト移行が容易。
+    - `ActorSchedulerSpawnContext` や `InternalProps` は `MailboxOptions` をそのまま保持し scheduler へ受け渡すだけで、`QueueSize` の実装詳細には依存していないため、`usize` 化後も API を変えずに内部変換する方が安全。
+- 実装タスク（準備）:
+  - [ ] `TokioMailboxRuntime` / `TokioMailbox` / `TokioMailboxSender` / `QueueMailbox` など、`QueueRw` を直接利用しているファサード層の構造体・トレイトを洗い出し、v2 `SyncQueue` 系への橋渡し構成案（クラス図・データフロー）をまとめる。
+  - [ ] 旧 `QueueRw` トレイト境界を満たす互換アダプタ（仮称 `QueueRwCompat`）の責務・API・非機能要件を設計メモとして確定し、レビューを通す。
+  - [ ] `QueueError` 全バリアントと `OfferOutcome` / `PollOutcome` の対応表を作成し、ファサード層での変換方針（ログ出力、メトリクス発火、呼び出し元エラー型）を合意する。
+  - [ ] 同期 API (`try_send`, `recv_all`, `close` など) の戻り値が `Result` 化される影響を洗い出し、リトライ・デッドレター・ログ出力ポリシーをドキュメント化する。
+  - [ ] `queue-v1` / `queue-v2` フィーチャーフラグ追加時の Cargo 設定・ワークスペース影響を整理し、二系統ビルド戦略（CI matrix 含む）のドラフトを用意する。
+
+### フェーズ4B: ファサード差し替え実装（リスク: 高, SP: 8）
+- 実装タスク（実装・検証）:
+  - [ ] `queue-v1` / `queue-v2` フィーチャーフラグを Cargo に追加し、`queue-v1` を既定・`queue-v2` をオプトインとするビルド設定と CI ジョブを実装する。
+  - [ ] `QueueRwCompat` を実装し、`TokioMailboxRuntime` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。
+  - [ ] ファサード層 API の戻り値変更に合わせて呼び出し元（scheduler、テストサポート等）を更新し、`queue-v1` / `queue-v2` 両ビルドで警告ゼロを確認する。
+  - [ ] Mailbox ファサード経由の happy path / 異常系統合テストを追加し、`queue-v1` / `queue-v2` 両方で `cargo test -p cellex-actor-core-rs --tests` が通ることを検証する。
+  - [ ] ステージング向け smoke テストとメトリクス収集を実施し、切り戻し手順（フィーチャーフラグでの即時退避）を確認する。
+
+リスク要因:
+- ファサード層は `actor-core` 内の多数のモジュールと密に結合しており、戻り値やエラー型の調整を誤ると未移行コードがコンパイル不能になる。
+- 互換アダプタを用意せずに直接差し替えると `QueueRw` 依存箇所が一括で壊れやすく、ステップ分割を怠るとデバッグが困難。
+- `OfferOutcome` / `PollOutcome` の扱いを整理しないと、今後追加する計測・ドロップ制御の実験結果が不安定になりやすい。
+
+対応策:
+- 小さな PR に分割し、まず互換アダプタ導入、次に既存ファサードをアダプタ経由に差し替え、最後に直接 v2 API を呼ぶという 3 ステップで進める。
+- `queue-v1` を既定で残しつつ `queue-v2` をオプトインできるようにし、CI で両パターンをビルド・テストして挙動差分を早期検出する。
+- ファサード層変更時には `cargo test -p cellex-actor-core-rs --tests` に加えて想定利用シナリオの結合テストを必ず実行し、失敗時は前ステップにロールバック可能にする。
+
+### フェーズ5A: Mailbox 基盤再設計（リスク: 高, SP: 8）
+- 事前分析（実装開始前に全項目を完了すること）:
+  - [x] `modules/actor-core/src/api/mailbox/queue_mailbox/base.rs` と `queue_mailbox/recv.rs`, `queue_mailbox_producer.rs` を読み込み、`QueueRw` メソッドと戻り値の利用箇所（特に `unwrap` / `expect`）を洗い出す。
+    - `queue.offer` / `queue.poll` の戻り値は全て `Result` で扱われており、`unwrap` は使用されていない。`QueueError::Full` の扱い（producer では即エラー、recv では Pending）を把握済み。
+    - `QueueMailbox::close` は `queue.clean_up()` を呼び出した後に `signal.notify()` を行うため、v2 では `SyncQueue::close` 相当の API が必要となる。
+    - メトリクスとスケジューラ通知は `try_send` 成功時のみ発火していることを確認。
+  - [x] `shared/mailbox/options.rs` やスケジューラ関連コードで `QueueMailbox` がどう組み込まれているか、コンストラクタ～利用フローをシーケンス図としてまとめる。
+    - `MailboxFactory::build_mailbox` が `QueueMailbox::new` を直接呼び出し、`PriorityMailboxBuilder` を通じてスケジューラ (`ready_queue_coordinator`) へ渡される流れを確認。
+    - `ActorSchedulerSpawnContext` など scheduler 層は `MailboxFactory` から `MailboxOptions` を受け取り、内部的に `QueueMailbox` を生成するだけで `QueueRw` への直接依存はないため、互換アダプタでの差し替えが容易。
+  - [x] `internal/mailbox/tests.rs` や関連インラインテストの期待値を整理し、v2 差し替え後に維持すべき挙動（容量制限、優先度処理など）を明文化する。
+    - テストは `MailboxOptions` の helper 挙動と `PriorityEnvelope` の優先度維持のみを確認しているため、QueueSize→usize 変換後も同様の API を提供すれば回帰は避けられる。
+    - `QueueMailbox` に対する直接的な統合テストは少ないため、フェーズ5で新たに `QueueMailbox` + signal 実装を結合テストする必要がある。
+- 実装タスク（設計）:
+  - [ ] `docs/design/collections_queue_spec.md` と `cellex_utils_core_rs::v2` ソースを参照し、`QueueMailbox` の責務分割とインターフェース変更案を整理した設計メモを作成する。
+  - [ ] `QueueMailbox<Q, S>` を v2 `SyncQueue` 系へ置き換える際のレイヤ構成（共有所有権、同期プリミティブ、`ArcShared` 利用範囲）を明文化し、レビューを通す。
+  - [ ] Producer/Receiver 層（`QueueMailboxProducer`, `QueueMailboxRecv` など）の `Result` / `OfferOutcome` / `PollOutcome` 取り扱い方針と、デッドレター・リトライ・ログ出力のルールをドキュメント化する。
+  - [ ] `QueueError` → `MailboxError` の変換表とテストケース一覧を作成し、実装時に参照できる形にする。
+  - [ ] バックプレッシャー / 優先度（`priority_capacity` 等）を v2 API で再現するパターン（DropOldest/Grow 等）と併存期間中の設定差異を整理したガイドを用意する。
+
+### フェーズ5B: Mailbox 段階移行（リスク: 高, SP: 8）
+- 実装タスク（実装・検証）:
+  - [ ] `QueueMailbox<Q, S>` の内部ストレージを v1 `QueueRw` から v2 `SyncQueue` に置き換え、互換アダプタ経由で切り替えられるよう段階的にコードを実装する。
+  - [ ] Producer/Receiver 層を新しい `Result` / `OfferOutcome` / `PollOutcome` 仕様に合わせて実装し、失敗時のデッドレター送信・リトライ・ログをテストで保証する。
+  - [ ] `QueueError` → `MailboxError` 変換テーブルを実装し、単体テストで網羅性と整合性を検証する。
+  - [ ] `QueueMailbox` を利用する主要モジュール（scheduler、deadletter、priority mailbox 等）を影響の小さい順に差し替え、各ステップで `queue-v1` / `queue-v2` 両ビルドを確認する。
+  - [ ] 新たに追加する結合テスト（`QueueMailbox` + signal 実装）を `queue-v1` / `queue-v2` の双方で実行し、回帰を検出する仕組みを整える。
+  - [ ] `cargo bench -p cellex-actor-core-rs --bench mailbox_throughput` を実行し、ベースラインとの差分を記録・報告するルーチンを確立する。
+
+リスク要因:
+- Mailbox 基盤は開発中の他コンポーネントとも共有されるため、ここでのバグがテスト全体を止めてしまいやすい。
+- `QueueError` のマッピングやデッドレター処理を誤ると、機能検証用テストケースでメッセージが消失し原因調査に時間がかかる。
+- 優先度・容量制御の挙動が変化すると、性能検証ベンチや将来のチューニング作業が不安定になるため、段階的な切り替えが重要。
+
+対応策:
+- Mailbox 差し替え前に `queue-v1` / `queue-v2` 両ビルドで同じテストスイートを走らせ、挙動差分をドキュメント化する。
+- 各サブモジュール移行後に専用のユニットテスト・結合テストを追加し、メッセージロストや優先度挙動を直接検証する。
+- ベンチマーク結果が規定値を超える場合は直ちにフィーチャーフラグで旧実装へ戻せるようにし、原因切り分けを行う。
+
+### フェーズ6: テスト移行（リスク: 中, SP: 5）
+- [ ] フェーズ1で分類した優先度（クリティカルパス→エッジケース→性能）順にテストを書き換え、各ステージ毎に CI を回して段階的に確認する。
+- [ ] Tokio 系テストを v2 API 対応へ書き換え、`#[tokio::test(flavor = "multi_thread")]` 等の実行形態を再評価する（必要に応じて `worker_threads` を明記）。
+- [ ] Embedded 向けテストの feature gating を見直し、`cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi --no-default-features --features embedded,queue-v2` と `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi --no-default-features --features embedded,queue-v2` を実行して結果を記録する。
+- [ ] `cargo test -p cellex-actor-core-rs --tests`, `makers ci-check`, `./scripts/ci-check.sh all` を移行段階ごとに実行するスケジュールを定義し、CI ワークフローへの追加（v2 フラグ付きのジョブ）を検討する。
+
+### フェーズ7: 段階的リリースとクリーンアップ（リスク: 低, SP: 3）
+- [ ] 互換レイヤを置いたまま actor-core 内の利用箇所をモジュール単位で移行し、完了後に旧 API 依存を削除する。
+- [ ] v2 移行後に不要となる re-export やラッパ型をリスト化し、削除 PR と `queue-v1` フィーチャー廃止のタイムラインをまとめる。
+- [ ] `docs/guides/module_wiring.md`, `CLAUDE.md`, `README*.md` など関連ドキュメントを v2 前提に更新し、マイグレーションガイドを追記する。
+- [ ] CHANGELOG / リリースノート草案に BREAKING CHANGE と移行手順を記載する。
+
+## リスクと対策
+- **内部実装変更による性能劣化**: 新しいキュー実装への差し替えでスケジューラのスループットが落ちる可能性 → 移行前後で `cargo bench -p cellex-actor-core-rs --bench mailbox_throughput` を実行し、結果を `benchmarks/baseline_v1.txt` / `benchmarks/after_v2.txt` に保存して差分確認。
+- **エラー分岐増加**: `QueueError` / `OfferOutcome` の取り扱い漏れ → clippy の `unused_result` 等を活用し、エラー変換テーブルに対する単体テストを用意する。
+- **Embedded 対応リグレッション**: feature 追加漏れ → `cargo check` (thumb ターゲット) を各フェーズの終わりに実施し、結果を計画書に追記する。
+- **API 互換性と利用者影響**: 互換レイヤーをいつまで維持するか不明瞭 → `queue-v1` を `deprecated` にし、段階的廃止タイムラインと対外的マイグレーションガイドを作成。
+- **部分的移行による不整合**: v1/v2 が混在すると予期せぬ挙動が発生 → `queue-v1` と `queue-v2` を同時に有効化した場合に `compile_error!` を発生させるガードを準備し、ビルドオプションで排他制御する。
+
+## 完了判定
+- 各フェーズ完了時点で `makers ci-check` が成功し、フェーズ毎の差分が CI パス済みである。
+- v2 キューAPIへの置換が actor-core 全コードパスで完了している。
+- 全テスト (`./scripts/ci-check.sh all`) およびクロスチェックが成功する。
+- ベンチマーク結果（移行前後）が比較可能な形で `benchmarks/` に保存され、許容範囲内に収まっている。
+- ドキュメントとコメントが新仕様を反映し、旧 API 参照が残っていない（マイグレーションガイドと CHANGELOG を含む）。
+- `queue-v1` フィーチャーへの依存が解消され、互換レイヤーの deprecation ステータスと廃止予定が明文化されている。
+
+## トラッキング
+- 各フェーズ完了時に当ファイルへ進捗を追記し、必要に応じてサブタスクを追加する。
+- 並行して `progress.md` にも主要進捗を記録し、統合管理を維持する。
+- 作業報告時には現在着手中フェーズの進捗率（%）を明示し、フェーズ完了と同時に `makers ci-check` の成功結果を記録する。
