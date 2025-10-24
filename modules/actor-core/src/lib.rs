@@ -76,6 +76,9 @@ use crate::api::mailbox::messages::SystemMessage;
 #[cfg(test)]
 mod tests;
 
+#[cfg(all(feature = "queue-v1", feature = "queue-v2"))]
+compile_error!("queue-v1 と queue-v2 を同時には有効化できません");
+
 /// Public API for actors
 pub mod api;
 /// Internal implementation details

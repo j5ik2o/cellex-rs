@@ -317,7 +317,7 @@
 ### フェーズ4B: ファサード差し替え実装（リスク: 高, SP: 8）
 - 実装タスク（実装・検証）:
   - [ ] `queue-v1` / `queue-v2` フィーチャーフラグを Cargo に追加し、`queue-v1` を既定・`queue-v2` をオプトインとするビルド設定と CI ジョブを実装する。
-  - [ ] `QueueRwCompat` を実装し、`TokioMailboxRuntime` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。
+  - [x] `QueueRwCompat` を実装し、`TokioMailboxRuntime` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。
   - [ ] ファサード層 API の戻り値変更に合わせて呼び出し元（scheduler、テストサポート等）を更新し、`queue-v1` / `queue-v2` 両ビルドで警告ゼロを確認する。
   - [ ] Mailbox ファサード経由の happy path / 異常系統合テストを追加し、`queue-v1` / `queue-v2` 両方で `cargo test -p cellex-actor-core-rs --tests` が通ることを検証する。
   - [ ] ステージング向け smoke テストとメトリクス収集を実施し、切り戻し手順（フィーチャーフラグでの即時退避）を確認する。
@@ -331,6 +331,12 @@
 - 小さな PR に分割し、まず互換アダプタ導入、次に既存ファサードをアダプタ経由に差し替え、最後に直接 v2 API を呼ぶという 3 ステップで進める。
 - `queue-v1` を既定で残しつつ `queue-v2` をオプトインできるようにし、CI で両パターンをビルド・テストして挙動差分を早期検出する。
 - ファサード層変更時には `cargo test -p cellex-actor-core-rs --tests` に加えて想定利用シナリオの結合テストを必ず実行し、失敗時は前ステップにロールバック可能にする。
+
+#### 進捗メモ（2025-10-24 作業ログ）
+- `modules/actor-core/src/shared/mailbox/queue_rw_compat.rs` に互換レイヤーを追加し、`QueueError<T>` の契約を保ったまま v2 `VecRingBackend` を利用可能にした。`ArcShared<Mutex<Option<M>>` でメッセージ所有権を保持し、`OfferOutcome::DroppedNewest` などを既存エラーへマッピング済み。
+- `modules/actor-std/src/tokio_mailbox/tokio_queue.rs` で `queue-v1` / `queue-v2` のフィーチャー切り替えに対応し、Tokio ファサードが compat 経由で v2 キューを扱える状態を確認。`cargo check -p cellex-actor-std-rs --no-default-features --features "rt-multi-thread,queue-v1"` でもビルド通過を確認。
+- `cargo test -p cellex-actor-std-rs` を実施し、Tokio Mailbox 系統のユニットテストが `queue-v2` で通過することを確認。
+- `./scripts/ci-check.sh all` 実行時に `dylint` セクションが `CARGO_NET_OFFLINE=true` の既定設定により `dylint_driver` を取得できず停止。`CARGO_NET_OFFLINE=false` を明示して再実行する対応が今後必要。
 
 ### フェーズ5A: Mailbox 基盤再設計（リスク: 高, SP: 8）
 - 事前分析（実装開始前に全項目を完了すること）:

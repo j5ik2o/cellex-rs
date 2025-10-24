@@ -57,6 +57,9 @@
 //! timers. The structure is primarily based on re-exports to avoid circular dependencies with the
 //! core layer, and `TokioDeadlineTimer` is also provided from here.
 
+#[cfg(all(feature = "queue-v1", feature = "queue-v2"))]
+compile_error!("queue-v1 と queue-v2 を同時には有効化できません");
+
 /// Collection data structures tailored for std environments.
 pub mod collections;
 /// Concurrency primitives backed by Tokio synchronization types.

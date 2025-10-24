@@ -9,9 +9,14 @@ categories = [ "concurrency", "asynchronous", "network-programming" ]
 readme = "../../README.md"
 repository = "https://github.com/j5ik2o/cellex-rs"
 
+[features]
+default = ["queue-v2"]
+queue-v1 = ["cellex-utils-core-rs/queue-v1"]
+queue-v2 = ["cellex-utils-core-rs/queue-v2"]
+
 [dependencies]
 async-trait = { workspace = true }
-cellex-utils-core-rs = { path = "../utils-core" }
+cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
 futures = { workspace = true }
 parking_lot = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "sync", "time", "signal"] }

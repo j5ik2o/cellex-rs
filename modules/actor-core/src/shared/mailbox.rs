@@ -12,3 +12,7 @@ pub mod options; // allow module_wiring::no_parent_reexport
 pub mod producer; // allow module_wiring::no_parent_reexport
 /// Mailbox signal abstractions for notification mechanisms.
 pub mod signal; // allow module_wiring::no_parent_reexport
+
+#[cfg(feature = "queue-v2")]
+/// Compatibility adapter bridging v2 queues with legacy traits.
+pub mod queue_rw_compat; // allow module_wiring::no_parent_reexport

@@ -66,9 +66,7 @@ where
           this.wait = None;
           return Poll::Ready(Ok(message));
         },
-        | Err(QueueError::Full(_)) | Err(QueueError::OfferError(_)) => {
-          return Poll::Pending;
-        },
+        | Err(QueueError::Full(_)) | Err(QueueError::OfferError(_)) => return Poll::Pending,
       }
 
       if let Some(wait) = this.wait.as_mut() {

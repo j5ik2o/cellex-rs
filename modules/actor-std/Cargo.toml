@@ -10,15 +10,25 @@ readme = "../../README.md"
 repository = "https://github.com/j5ik2o/cellex-rs"
 
 [features]
-default = ["rt-multi-thread"]
+default = ["rt-multi-thread", "queue-v2"]
 rt-multi-thread = ["tokio/rt-multi-thread"]
 rt-current-thread = ["tokio/rt"]
+queue-v1 = [
+  "cellex-actor-core-rs/queue-v1",
+  "cellex-utils-core-rs/queue-v1",
+  "cellex-utils-std-rs/queue-v1",
+]
+queue-v2 = [
+  "cellex-actor-core-rs/queue-v2",
+  "cellex-utils-core-rs/queue-v2",
+  "cellex-utils-std-rs/queue-v2",
+]
 
 [dependencies]
 async-trait = { workspace = true }
 cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc"] }
-cellex-utils-core-rs = { path = "../utils-core" }
-cellex-utils-std-rs = { path = "../utils-std" }
+cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
+cellex-utils-std-rs = { path = "../utils-std", default-features = false }
 futures = { workspace = true }
 spin = { workspace = true }
 tokio = { workspace = true, default-features = false, features = ["macros", "sync", "time", "signal"] }
