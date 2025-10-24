@@ -58,6 +58,26 @@ impl<Q, S> QueueMailbox<Q, S> {
     self.scheduler_hook = hook;
   }
 
+  /// Returns the current queue length as `usize`.
+  #[must_use]
+  pub fn len_usize<M>(&self) -> usize
+  where
+    Q: QueueRw<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.queue.len().to_usize()
+  }
+
+  /// Returns the queue capacity as `usize`.
+  #[must_use]
+  pub fn capacity_usize<M>(&self) -> usize
+  where
+    Q: QueueRw<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.queue.capacity().to_usize()
+  }
+
   pub(super) fn record_enqueue(&self) {
     if let Some(sink) = &self.metrics_sink {
       sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));

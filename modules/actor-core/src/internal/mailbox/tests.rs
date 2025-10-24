@@ -14,12 +14,17 @@ fn mailbox_options_helpers_cover_basic_cases() {
   let limited = MailboxOptions::with_capacity(4);
   assert_eq!(limited.capacity, QueueSize::limited(4));
   assert!(!limited.capacity.is_limitless());
+  assert_eq!(limited.capacity_limit(), Some(4));
+  assert_eq!(limited.priority_capacity_limit(), None);
 
   let unbounded = MailboxOptions::unbounded();
   assert!(unbounded.capacity.is_limitless());
+  assert_eq!(unbounded.capacity_limit(), None);
+  assert_eq!(unbounded.priority_capacity_limit(), None);
 
   let defaulted = MailboxOptions::default();
   assert_eq!(defaulted.capacity, QueueSize::limitless());
+  assert_eq!(defaulted.capacity_limit(), None);
 }
 
 #[test]

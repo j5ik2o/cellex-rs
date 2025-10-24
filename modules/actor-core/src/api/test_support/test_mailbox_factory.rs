@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, MpscQueue, QueueSize};
+use cellex_utils_core_rs::{Element, MpscQueue};
 
 use crate::api::{
   mailbox::{
@@ -34,9 +34,9 @@ impl TestMailboxFactory {
   }
 
   const fn resolve_capacity(&self, options: MailboxOptions) -> Option<usize> {
-    match options.capacity {
-      | QueueSize::Limitless => self.capacity,
-      | QueueSize::Limited(value) => Some(value),
+    match options.capacity_limit() {
+      | Some(limit) => Some(limit),
+      | None => self.capacity,
     }
   }
 }

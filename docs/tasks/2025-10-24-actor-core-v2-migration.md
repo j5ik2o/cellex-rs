@@ -32,8 +32,8 @@
 - [x] `modules/actor-core` 内で旧キュー API を利用している箇所を `rg` で抽出し、一覧を `progress.md` か当ファイルに追記する。
 - [x] 旧 API を `Result` 無し前提で呼び出しているコードパスを洗い出し、呼び出し元単位でメモする。
 - [x] 既存テストのうち旧 API に依存するケースを特定し、移行対象と優先度をタグ付けする。
-- [ ] `rg "QueueRw|ArcMpscBoundedQueue|ArcStack" --type rust -A3 -B1 modules/actor-core/src > target/queue_usage_detailed.txt` を実行し、抽出結果に注釈を付けて共有リポジトリ内で参照できるよう整備する。
-- [ ] 旧 API に依存するテストを、「クリティカルパス（メッセージ処理必須）」「エッジケース」「性能指標」の3段階優先度に振り分け、Phase6 の順番に反映する。
+- [x] `rg "QueueRw|ArcMpscBoundedQueue|ArcStack" --type rust -A3 -B1 modules/actor-core/src > target/queue_usage_detailed.txt` を実行し、抽出結果に注釈を付けて共有リポジトリ内で参照できるよう整備する。
+- [x] 旧 API に依存するテストを、「クリティカルパス（メッセージ処理必須）」「エッジケース」「性能指標」の3段階優先度に振り分け、Phase6 の順番に反映する。
 
 #### 調査結果: 旧キューAPIの利用箇所
 
@@ -43,6 +43,22 @@
 - `src/api/mailbox/queue_mailbox/recv.rs`
 - `src/api/mailbox/queue_mailbox_producer.rs`
 - `src/shared/mailbox/factory.rs`
+
+#### 優先度分類: 旧 API 依存テスト（2025-10-24 更新）
+
+- **クリティカルパス**
+  - `modules/actor-core/src/api/test_support/tests.rs`: `test_mailbox_factory_delivers_fifo` で `QueueMailbox` 経由の FIFO 挙動を直接検証しており、送受信の基本保証として移行直後に再確認が必要。
+  - `modules/actor-core/src/api/actor/tests.rs`: `TestMailboxFactory` と `QueueError` を通じてアクター生成・メッセージ配送を確認する広範なケース。v2 のエラー分岐変更がそのまま影響するため最優先とする。
+  - `modules/actor-core/src/internal/actor_system/tests.rs`: ランタイム全体の `try_send` / `recv` 成功パスと切断時の `QueueError::Disconnected` を検証。メッセージロスト検出に直結するため高優先度。
+  - `modules/actor-core/src/api/actor_scheduler/tests.rs`: レディキュー協調と `QueueError` 経路を含むスケジューラ挙動を網羅。スケジューリングが破綻すると全体が停止するためクリティカル扱い。
+
+- **エッジケース**
+  - `modules/actor-core/src/api/guardian/tests.rs`: `QueueMailbox` の `poll` を直接使用し、監視メッセージの順序と制御チャンネルを検証。挙動差分確認のため第二優先。
+  - `modules/actor-core/src/api/supervision/escalation/tests.rs`: 失敗エスカレーション時のシグナル送出を `TestMailboxFactory` で観測。特殊経路だがメッセージ送達を通しているため早期移行が望ましい。
+  - `modules/actor-core/src/internal/mailbox/tests.rs`: `QueueSize` ラッパーの helper を中心に検証。`usize` 化ステップの影響確認として扱う。
+
+- **性能指標**
+  - 現時点で v1 キュー API に直結するベンチマーク／性能テストは存在しない。フェーズ5B完了後に `mailbox_throughput` ベンチの評価計画を追加する。
 
 #### 調査結果: `Result` を前提としないコードパス
 
@@ -121,9 +137,9 @@
   - `modules/actor-core/src/shared/mailbox/options.rs`: フィールドが `QueueSize` で保持されている。`MailboxOptions::with_capacity` などの API は現行呼び出しシグネチャを保ったまま、`pub fn capacity_limit(&self) -> Option<usize>` 等のアクセサを追加する案が有効。
   - `modules/actor-core/src/api/test_support/test_mailbox_factory.rs`: `resolve_capacity` が `QueueSize` を `Option<usize>` に変換しているため、ここをリファクタリングの先行対象にし、`QueueSize::to_usize()` と `usize::MAX` の判定が正しく行えるか検証する。`MailboxOptions::with_capacity` と組み合わせて `Some(value)` と `None` の経路が明確に分岐することを確認済み。
   - `modules/actor-core/src/internal/mailbox/tests.rs`: `QueueSize` の helper を前提としたテストが存在するため、`usize` 化のステップでは期待値を `capacity_limit()` 経由に書き換える必要がある。
-  - [ ] `QueueMailbox` 系や設定構造体で `QueueSize` を保持しているフィールドについて、`usize` 補助メソッド（例: `capacity_limit()`）を追加し、呼び出し側のロジックを順次新メソッドへ誘導する。
-- [ ] 上記変更をモジュール単位で適用し、`QueueRw` ベースの現行実装で `cargo test -p cellex-actor-core-rs --tests` が通り続けることを確認する。
-- [ ] `./scripts/ci-check.sh all` を一度実行し、QueueSize → `usize` 変換による副作用がないことを確認して結果を記録する。
+  - [x] `QueueMailbox` 系や設定構造体で `QueueSize` を保持しているフィールドについて、`usize` 補助メソッド（例: `capacity_limit()`）を追加し、呼び出し側のロジックを順次新メソッドへ誘導する。
+- [x] 上記変更をモジュール単位で適用し、`QueueRw` ベースの現行実装で `cargo test -p cellex-actor-core-rs --tests` が通り続けることを確認する。
+- [x] `./scripts/ci-check.sh all` を一度実行し、QueueSize → `usize` 変換による副作用がないことを確認して結果を記録する。
 
 ### フェーズ4A: ファサード互換準備（リスク: 高, SP: 8）
 - 事前分析（実装開始前に全項目を完了すること）:
@@ -139,11 +155,164 @@
     - `internal/mailbox/tests.rs` は `QueueSize::limited` / `limitless` の helper を検証しているため、`is_unbounded` 的なラッパーを追加すればテスト移行が容易。
     - `ActorSchedulerSpawnContext` や `InternalProps` は `MailboxOptions` をそのまま保持し scheduler へ受け渡すだけで、`QueueSize` の実装詳細には依存していないため、`usize` 化後も API を変えずに内部変換する方が安全。
 - 実装タスク（準備）:
-  - [ ] `TokioMailboxRuntime` / `TokioMailbox` / `TokioMailboxSender` / `QueueMailbox` など、`QueueRw` を直接利用しているファサード層の構造体・トレイトを洗い出し、v2 `SyncQueue` 系への橋渡し構成案（クラス図・データフロー）をまとめる。
-  - [ ] 旧 `QueueRw` トレイト境界を満たす互換アダプタ（仮称 `QueueRwCompat`）の責務・API・非機能要件を設計メモとして確定し、レビューを通す。
-  - [ ] `QueueError` 全バリアントと `OfferOutcome` / `PollOutcome` の対応表を作成し、ファサード層での変換方針（ログ出力、メトリクス発火、呼び出し元エラー型）を合意する。
-  - [ ] 同期 API (`try_send`, `recv_all`, `close` など) の戻り値が `Result` 化される影響を洗い出し、リトライ・デッドレター・ログ出力ポリシーをドキュメント化する。
-  - [ ] `queue-v1` / `queue-v2` フィーチャーフラグ追加時の Cargo 設定・ワークスペース影響を整理し、二系統ビルド戦略（CI matrix 含む）のドラフトを用意する。
+  - [x] `TokioMailboxRuntime` / `TokioMailbox` / `TokioMailboxSender` / `QueueMailbox` など、`QueueRw` を直接利用しているファサード層の構造体・トレイトを洗い出し、v2 `SyncQueue` 系への橋渡し構成案（クラス図・データフロー）をまとめる。
+
+#### フェーズ4Aメモ: ファサード層と v2 `SyncQueue` との橋渡し案（2025-10-24 更新）
+
+- **現行構成の依存関係**
+  - `TokioMailboxRuntime::build_mailbox` が `MailboxOptions` を受け取り、`TokioQueue`（`QueueRw` 実装）と `NotifySignal` を組み合わせて `QueueMailbox<TokioQueue<M>, NotifySignal>` を生成。
+  - `TokioMailbox<M>` は `QueueMailbox` をラップし、`Mailbox` トレイトを旧 API のまま透過。`TokioMailboxSender<M>` も `QueueMailboxProducer<TokioQueue<M>, NotifySignal>` を直接公開。
+  - `QueueMailbox`/`QueueMailboxProducer`/`QueueMailboxRecv` が `QueueRw` の `offer`/`poll`/`clean_up` と `QueueError<T>` を前提にメトリクスやスケジューラ通知を実装。
+
+- **目標構成（テキスト図）**
+  ```text
+  TokioMailboxRuntime
+      │ (MailboxOptions)
+      ├─▶ QueueMailbox<QueueRwCompat<M>, NotifySignal>
+      │       ├─ QueueMailboxProducer<QueueRwCompat<M>, NotifySignal>
+      │       └─ QueueMailboxRecv<QueueRwCompat<M>, NotifySignal, M>
+      │
+      └─▶ TokioMailbox / TokioMailboxSender ラッパー（外部 API は現状維持）
+
+  QueueRwCompat<M>
+      └─ 内部で v2::collections::queue::MpscQueue<M, VecRingBackend<M>> を保持
+  ```
+
+- **橋渡し案の要点**
+  1. `QueueRwCompat<T>`（仮称）を新設し、`v2::collections::queue::MpscQueue` と `OfferOutcome` / `PollOutcome` / `QueueError` を旧 `QueueRw`/`QueueError<T>` に変換する責務を集中させる。
+  2. `TokioMailboxRuntime` では `TokioQueue` を段階的に廃止し、`QueueRwCompat` + `v2::SharedVecRingQueue` を採用する。既存の `MailboxOptions` からは `Option<usize>` を取得し、`VecRingBackend` の初期ストレージ容量と `OverflowPolicy`（bounded = `Block`、unbounded = `Grow`）を決定する。
+  3. `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` は直接的な変更を最小限にしつつ、`QueueRwCompat` 経由で新 API を呼び出すことで段階移行を実現する。`len()` / `capacity()` は既に `usize` ラッパーを導入済みのため、新ラッパーから `usize` を取得して変換する。
+  4. `TokioMailbox` / `TokioMailboxSender` のパブリック API はそのまま保ち、内部フィールドのみ `QueueMailbox<QueueRwCompat<M>, NotifySignal>` に差し替える。これにより外部利用者への破壊的変更を避けつつ順次差し替えが可能。
+
+- **データフロー（送信）**
+  1. `TokioMailboxSender::try_send` → `QueueMailboxProducer::try_send`。
+  2. `QueueMailboxProducer` が `QueueRwCompat::offer` を呼び出し、`OfferOutcome` を評価。
+  3. `OfferOutcome::Enqueued` / `GrewTo` は従来どおり成功扱い。`DroppedNewest` は `QueueError::Full(message)` に変換し、`DroppedOldest` は成功扱いだがメトリクス拡充対象にする（後続タスク）。
+  4. `QueueError::{Full,Closed,Disconnected,WouldBlock,AllocError}` は旧エラー型へマッピングし、必要に応じて要素を再返却。
+
+- **データフロー（受信）**
+  1. `QueueMailboxRecv::poll` → `QueueRwCompat::poll` を呼び出し、`Result<Outcome>` を旧 API の `Result<Option<T>, QueueError<T>>` へ変換。
+  2. `QueueError::Empty` は `Ok(None)` に変換し、既存の `wait` ロジックでシグナル待機を継続。`Closed` は `QueueError::Closed(message)` として旧挙動に揃えるため、`QueueRwCompat::close` 時に `M` を返す経路を明確化する（後続タスクでの詳細化対象）。
+
+- **検討が必要な点（後続タスクで詳細化）**
+  - `OfferOutcome::DroppedOldest` 発生時のメトリクス統合方法と、デッドレター/ログ出力方針。
+  - `QueueError::WouldBlock` / `QueueError::AllocError` をどの `MailboxError` にマップするか（`OfferError` の拡張か、新しいバリアントの追加か）。
+  - `QueueRwCompat` を `SyncQueue` と `AsyncQueue` の両方向で使い回せるよう、型パラメータでポリシーを受け取るかどうか。
+  - [x] 旧 `QueueRw` トレイト境界を満たす互換アダプタ（仮称 `QueueRwCompat`）の責務・API・非機能要件を設計メモとして確定し、レビューを通す。
+  - [x] `QueueError` 全バリアントと `OfferOutcome` / `PollOutcome` の対応表を作成し、ファサード層での変換方針（ログ出力、メトリクス発火、呼び出し元エラー型）を合意する。
+  - [x] 同期 API (`try_send`, `recv_all`, `close` など) の戻り値が `Result` 化される影響を洗い出し、リトライ・デッドレター・ログ出力ポリシーをドキュメント化する。
+  - [x] `queue-v1` / `queue-v2` フィーチャーフラグ追加時の Cargo 設定・ワークスペース影響を整理し、二系統ビルド戦略（CI matrix 含む）のドラフトを用意する。
+
+##### `QueueRwCompat` 設計メモ（2025-10-24 更新）
+
+- **目的**: v2 `SyncQueue` (`MpscQueue<T, VecRingBackend<T>>`) を `QueueRw<T>` / `QueueBase<T>` として透過利用できる互換層を提供し、段階移行中も `QueueMailbox` など既存コードを書き換えずに動作させる。
+- **構造案**
+  ```rust
+  pub struct QueueRwCompat<T, B = VecRingBackend<T>, M = SpinSyncMutex<B>> {
+      queue: v2::collections::queue::MpscQueue<T, B, M>,
+      capacity_hint: CapacityModel,
+  }
+
+  enum CapacityModel {
+      Bounded(usize),   // `Some(n)` from MailboxOptions
+      Unbounded,        // `None` / `usize::MAX`
+  }
+  ```
+  - `queue` は `ArcShared<M>` ベースで `Clone + Send + Sync` を満たす。
+  - `CapacityModel` は `QueueSize` 互換 API（`QueueSize::limited` or `limitless`）を再現するためのメタ情報。`OverflowPolicy::Block` を選択したときに `Bounded(n)`、`OverflowPolicy::Grow` を選択したときに `Unbounded` を設定する。
+
+- **主要メソッドの実装方針**
+  1. `offer(&self, message: T) -> Result<(), QueueError<T>>`
+     - `let outcome = self.queue.offer(message);`
+     - `Ok(OfferOutcome::Enqueued | DroppedOldest | GrewTo)` → `Ok(())`。`DroppedOldest` は将来のメトリクス連携を呼び出し元で扱えるよう `QueueRwCompat` 側ではログのみ。
+     - `Ok(OfferOutcome::DroppedNewest { count: _ })` → 送信要素が破棄されるため `Err(QueueError::Full(message))` を返す。
+     - `Err(QueueError::Full)` → `Err(QueueError::Full(message))`
+     - `Err(QueueError::Closed)` → `Err(QueueError::Closed(message))`
+     - `Err(QueueError::Disconnected)` → `Err(QueueError::Disconnected)`
+     - `Err(QueueError::WouldBlock | AllocError)` → `Err(QueueError::OfferError(message))` として後続タスク（エラー表作成）で詳細調整。
+  2. `poll(&self) -> Result<Option<T>, QueueError<T>>`
+     - `Ok(value)` → `Ok(Some(value))`
+     - `Err(QueueError::Empty)` → `Ok(None)`
+     - `Err(QueueError::Closed)` → `Err(QueueError::Disconnected)` として扱い、`QueueMailboxRecv` 側で閉塞検知・通知に切り替える（`Closed` にメッセージを添付する旧挙動は後続フェーズで `PollOutcome` ベースにリファクタリング）。
+     - `Err(QueueError::Disconnected)` → `Err(QueueError::Disconnected)`
+     - `Err(QueueError::WouldBlock | AllocError)` → `Err(QueueError::OfferError(Default::default()))` は不適切なので、`QueueRwCompat` 内部に `NonRecoverable::WouldBlock` フラグを追加し、`QueueMailboxRecv` に `OfferError` を返さず `Err(QueueError::Disconnected)` へ丸め込む方針（詳細はエラー対応表で確定）。
+  3. `clean_up(&self)` は `let _ = self.queue.close();` を呼び、エラーはログ記録のみ。`close` 後に残っていた要素は `poll` の `Err(QueueError::Closed)` を `Disconnected` として伝搬し、`QueueMailbox` が `closed` フラグを立てる現行処理と整合させる。
+  4. `len()` / `capacity()` は `usize` を `QueueSize` へ変換。`CapacityModel::Unbounded` の場合は常に `QueueSize::limitless()` を返す。
+
+- **非機能要件**
+  - `Send + Sync`: `QueueRwCompat` は `QueueRw` の既存実装同様 `Send + Sync` を前提とする。そのため内部で保持する `ArcShared` / `SpinSyncMutex` コンボを採用。
+  - `Clone`: `TokioMailboxProducer` が `Clone` を要求するため、内部 `Arc` のみをクローンする廉価操作に抑える。
+  - `no_std` 対応: `SpinSyncMutex` / `ArcShared` は `alloc` 依存で動作するため、`std` feature を要求しない構成とする。
+
+- **API 補助**
+  - `impl QueueRwCompat<T> { pub fn bounded(capacity: usize, policy: OverflowPolicy) -> Self; pub fn unbounded() -> Self; }`
+  - フィーチャーフラグ切り替え時に `QueueRwCompat` を `cfg(feature = "queue-v2")` 側で有効化し、`queue-v1` では旧 `TokioQueue` を使い続けられるよう `type` エイリアスを用意。
+
+- **移行計画への反映**
+  - `TokioMailboxRuntime` は `QueueRwCompat::bounded` / `::unbounded` を呼び出すよう差し替え、他のランタイム（embedded 等）も同じ互換レイヤ経由で v2 キューを利用する差し替え計画を別ファイル（`progress.md`）に追記予定。
+  - `QueueRwCompat` のテストは `modules/utils-core/src/v2/...` のユニットテストを再利用しつつ、`QueueRw` トレイト経由での send/recv を `modules/actor-core/src/api/test_support/tests.rs` から参照できるよう追加ケースを用意する。
+
+##### v2 `QueueError` / `OfferOutcome` 変換テーブル（2025-10-24 更新）
+
+| 呼び出し context | v2 戻り値 | 旧 API へのマッピング | 備考 / 追加処理 |
+|---|---|---|---|
+| `offer` 成功 | `OfferOutcome::Enqueued` | `Ok(())` | 従来どおり。 |
+| `offer` 成功 (古い要素をドロップ) | `OfferOutcome::DroppedOldest { count }` | `Ok(())` | `count` をメトリクス (`MailboxDroppedOldest`) に記録し、必要ならログ。 |
+| `offer` 成功 (新しい要素を破棄) | `OfferOutcome::DroppedNewest { .. }` | `Err(QueueError::Full(message))` | 送信者がリトライできるようメッセージを返却。ドロップ件数はメトリクスに追加。 |
+| `offer` 成功 (容量拡張) | `OfferOutcome::GrewTo { capacity }` | `Ok(())` | 新容量を `MetricsEvent::MailboxCapacityGrow`（新設予定）で通知。 |
+| `offer` 失敗 | `Err(QueueError::Full)` | `Err(QueueError::Full(message))` | 既存のバックプレッシャー経路。 |
+| `offer` 失敗 | `Err(QueueError::Closed)` | `Err(QueueError::Closed(message))` | Mailbox を閉塞扱いにし、スケジューラ通知を停止。 |
+| `offer` 失敗 | `Err(QueueError::Disconnected)` | `Err(QueueError::Disconnected)` | 既存通りドライバ側でデッドレター処理。 |
+| `offer` 失敗 | `Err(QueueError::WouldBlock)` | `Err(QueueError::OfferError(message))` | `OfferError` を `WouldBlock` のラッパーと定義し、ログに `would_block` タグを付与。 |
+| `offer` 失敗 | `Err(QueueError::AllocError)` | `Err(QueueError::OfferError(message))` | 呼び出し元で `MailboxError::ResourceExhausted` に変換予定。 |
+| `poll` 成功 | `Ok(value)` | `Ok(Some(value))` | メトリクス/スケジューラ通知は従来どおり。 |
+| `poll` 空 | `Err(QueueError::Empty)` | `Ok(None)` | `MailboxSignal::wait()` 経路に遷移。 |
+| `poll` 失敗 | `Err(QueueError::Closed)` | `Err(QueueError::Disconnected)` | `QueueMailbox` が `closed` フラグを立て、`recv` ループを終了。旧 `Closed(message)` パスは今後 `PollOutcome` に置き換える計画。 |
+| `poll` 失敗 | `Err(QueueError::Disconnected)` | `Err(QueueError::Disconnected)` | 既存通り。 |
+| `poll` 失敗 | `Err(QueueError::WouldBlock)` | `Ok(None)` | `WouldBlock` はスピン防止のため `Pending` にフォールバックし、次回シグナル待機へ。 |
+| `poll` 失敗 | `Err(QueueError::AllocError)` | `Err(QueueError::OfferError(Default::default()))` | 通常発生しない想定。発生時は致命ログ + デッドレター。 |
+
+- **ログ / メトリクス方針**
+  - `OfferOutcome::DroppedOldest`/`DroppedNewest` は `MailboxMetrics::Dropped{Oldest,Newest}` を追加し、`MailboxProducer` で発火。
+  - `QueueError::WouldBlock` は `tracing::warn!(target = "mailbox", event = "would_block")` を既定で出力し、負荷状況の把握に用いる。
+  - `QueueError::AllocError` は `error` 相当として扱い、アラート対象とする。
+
+##### 同期 API の `Result` 化による影響整理（2025-10-24 更新）
+
+- **送信 API (`try_send` / `send`)**
+  - 追加される `QueueError::{WouldBlock, AllocError}` は、スケジューラ通知の再試行ポリシーに影響。`WouldBlock` は「即時再送しない」方針とし、`ActorRef::try_send_with_priority` で `TrySendError::QueueFull` 相当へマップして利用者に返す。`AllocError` は致命扱いで `MailboxError::ResourceExhausted`（新設予定）に変換し、デッドレター + エラーログを発火。
+  - `DroppedNewest` で `QueueError::Full` を返す際、既存のバックプレッシャー・リトライロジック（`spawn` 時の `handle.try_send_envelope` 再試行など）がそのまま働くことを確認済み。
+
+- **受信 API (`QueueMailboxRecv::poll`)**
+  - `QueueError::Empty` を `Ok(None)` に変換することで従来どおり `MailboxSignal::wait()` へ遷移する。`WouldBlock` は Busy loop を避けるため `Poll::Pending` にフォールバックし、次のシグナル待機を強制する。
+  - `QueueError::Closed` は `QueueError::Disconnected` に丸め、`QueueMailbox` の `closed` フラグと `signal.notify()` によりデッドレター処理へ引き継ぐ。閉塞時に残っていたメッセージは `OfferOutcome::DroppedOldest` 等で事前に記録する前提とし、従来の「最後の 1 件を `QueueError::Closed(message)` で返す」挙動は `PollOutcome` への移行時に整理。
+
+- **クリーンアップ API (`clean_up` / `close`)**
+  - `SyncQueue::close()` の戻り値を `Result` で受け取り、`QueueError::WouldBlock` 発生時は `warn` ログ + 再試行なし、`AllocError` など致命エラー時は `error` ログ + 強制クローズ（`Flag` を立てて受信側で切断扱い）。
+  - `MailboxFactory::build_mailbox` から呼び出されるクリーンアップ（テストサポート含む）は、`Result` を握りつぶすのではなく `debug_assert!` でチェックし、実際のコード路線ではログに記録する方針。
+
+- **デッドレター / ロギングポリシー**
+  - `QueueError::Full`（含む DroppedNewest/Block）でアクターに配信できなかったメッセージは既存のデッドレター経路が拾うため、追加のワークは不要。
+  - `QueueError::WouldBlock` / `AllocError` は `ActorFailure` ではなく `MailboxFailure` カテゴリとして `FailureTelemetry` へ記録する。CI では新しいエラー分岐をカバーするテスト（`test_mailbox_factory_delivers_fifo` を拡張）を追加予定。
+
+##### `queue-v1` / `queue-v2` フィーチャーフラグ戦略（2025-10-24 更新）
+
+- **Cargo 設定案**
+  - `modules/utils-core`: `queue-v1`（旧 `collections::queue`）と `queue-v2`（`v2::collections::queue`）を排他にする `cfg` を追加。`default = ["alloc", "queue-v2"]` とし、後方互換ビルドでは `--no-default-features --features alloc,queue-v1` を使用。
+  - `modules/actor-core`: 新フィーチャーを透過的に引き継ぐラッパー (`queue-v1` 有効時は旧 `TokioQueue` / `QueueRw`、`queue-v2` 有効時は `QueueRwCompat`) を `cfg(feature = "queue-v2")` で切り替える。`dev-dependencies` も同様に調整。
+  - `modules/actor-std` / `modules/actor-embedded`: MailboxRuntime 実装が直接 `QueueMailbox` を参照するため、それぞれ `queue-v1` / `queue-v2` を透過させ、`TokioQueue` など旧型を `#[cfg(feature = "queue-v1")]` で保持。
+  - ルート `Cargo.toml` には workspace フィーチャー `queue-v1-all` / `queue-v2-all` を追加し、CI から一括切り替えできるようにする。
+
+- **ビルド / テストマトリクス案**
+  | Job | Features | Commands |
+  |---|---|---|
+  | `queue-v1` レグレッション | `--no-default-features --features alloc,queue-v1`（各 crate 共通） | `makers ci-check` + `cargo test -p cellex-actor-core-rs --tests` |
+  | `queue-v2` 既定ジョブ | 既存 `default`（= `queue-v2` 有効） | 既存 CI フロー（`./scripts/ci-check.sh all`） |
+  | Embedded クロスチェック | `--no-default-features --features embedded,queue-v2` | `cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi` など |
+
+- **切り替えポリシー**
+  - フェーズ5B終了までは `queue-v1` を `deprecated` として残し、PR では両フィーチャーでのテストを必須化。
+  - `queue-v2` が安定した段階で `queue-v1` を非既定に落とし、最終的に削除するタイムラインを `CHANGELOG` に追記。
 
 ### フェーズ4B: ファサード差し替え実装（リスク: 高, SP: 8）
 - 実装タスク（実装・検証）:
