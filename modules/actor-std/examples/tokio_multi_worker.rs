@@ -10,7 +10,7 @@ use cellex_actor_core_rs::api::{
   actor_runtime::GenericActorRuntime,
   actor_system::{GenericActorSystem, GenericActorSystemConfig},
 };
-use cellex_actor_std_rs::{TokioMailboxRuntime, TokioSystemHandle};
+use cellex_actor_std_rs::{TokioMailboxFactory, TokioSystemHandle};
 use tokio::task::LocalSet;
 
 #[tokio::main(flavor = "current_thread")]
@@ -19,7 +19,7 @@ async fn main() {
   local
     .run_until(async move {
       let mut system: GenericActorSystem<u32, _> = GenericActorSystem::new_with_actor_runtime(
-        GenericActorRuntime::new(TokioMailboxRuntime),
+        GenericActorRuntime::new(TokioMailboxFactory),
         GenericActorSystemConfig::default(),
       );
       let shutdown = system.shutdown_token();

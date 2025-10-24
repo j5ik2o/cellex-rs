@@ -10,13 +10,13 @@ use super::{
 /// Configures the capacity of control and regular queues and the number of priority levels,
 /// and creates mailbox instances.
 #[derive(Clone, Debug)]
-pub struct TokioPriorityMailboxRuntime {
+pub struct TokioPriorityMailboxFactory {
   control_capacity_per_level: usize,
   regular_capacity:           usize,
   levels:                     usize,
 }
 
-impl Default for TokioPriorityMailboxRuntime {
+impl Default for TokioPriorityMailboxFactory {
   fn default() -> Self {
     Self {
       control_capacity_per_level: DEFAULT_CAPACITY,
@@ -26,7 +26,7 @@ impl Default for TokioPriorityMailboxRuntime {
   }
 }
 
-impl TokioPriorityMailboxRuntime {
+impl TokioPriorityMailboxFactory {
   /// Creates a new factory instance
   ///
   /// # Arguments

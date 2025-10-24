@@ -11,7 +11,7 @@ use cellex_actor_core_rs::{
 use cellex_utils_std_rs::{Element, QueueSize};
 
 use super::{
-  queues::TokioPriorityQueues, runtime::TokioPriorityMailboxRuntime, sender::TokioPriorityMailboxSender, NotifySignal,
+  factory::TokioPriorityMailboxFactory, queues::TokioPriorityQueues, sender::TokioPriorityMailboxSender, NotifySignal,
   PriorityQueueError,
 };
 
@@ -41,7 +41,7 @@ where
   /// handle
   #[must_use]
   pub fn new(control_capacity_per_level: usize) -> (Self, TokioPriorityMailboxSender<M>) {
-    TokioPriorityMailboxRuntime::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
+    TokioPriorityMailboxFactory::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
   }
 
   /// Returns a reference to the internal `QueueMailbox`

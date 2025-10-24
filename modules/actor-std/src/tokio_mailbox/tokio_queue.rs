@@ -1,3 +1,7 @@
+#[cfg(feature = "queue-v2")]
+use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
+use cellex_utils_std_rs::{Element, QueueSize};
+
 #[cfg(feature = "queue-v1")]
 mod legacy {
   use std::sync::Arc;
@@ -95,87 +99,25 @@ mod legacy {
   }
 }
 
-#[cfg(feature = "queue-v2")]
-mod compat {
-  use core::fmt;
+#[cfg(feature = "queue-v1")]
+pub(super) use legacy::TokioQueue;
 
-  use cellex_actor_core_rs::shared::mailbox::queue_rw_compat::QueueRwCompat;
-  use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
-  use cellex_utils_std_rs::{Element, QueueBase, QueueError, QueueRw, QueueSize};
-
-  pub struct CompatTokioQueue<M>
-  where
-    M: Element, {
-    inner: QueueRwCompat<M>,
-  }
-
-  impl<M> CompatTokioQueue<M>
-  where
-    M: Element,
-  {
-    pub(crate) fn with_capacity(size: QueueSize) -> Self {
-      let inner = match size {
-        | QueueSize::Limitless | QueueSize::Limited(0) => QueueRwCompat::unbounded(),
-        | QueueSize::Limited(capacity) => QueueRwCompat::bounded(capacity, OverflowPolicy::Block),
-      };
-      Self { inner }
-    }
-
-    fn inner(&self) -> &QueueRwCompat<M> {
-      &self.inner
-    }
-  }
-
-  impl<M> Clone for CompatTokioQueue<M>
-  where
-    M: Element,
-  {
-    fn clone(&self) -> Self {
-      Self { inner: self.inner.clone() }
-    }
-  }
-
-  impl<M> QueueBase<M> for CompatTokioQueue<M>
-  where
-    M: Element,
-  {
-    fn len(&self) -> QueueSize {
-      self.inner().len()
-    }
-
-    fn capacity(&self) -> QueueSize {
-      self.inner().capacity()
-    }
-  }
-
-  impl<M> QueueRw<M> for CompatTokioQueue<M>
-  where
-    M: Element,
-  {
-    fn offer(&self, element: M) -> Result<(), QueueError<M>> {
-      self.inner.offer(element)
-    }
-
-    fn poll(&self) -> Result<Option<M>, QueueError<M>> {
-      self.inner.poll()
-    }
-
-    fn clean_up(&self) {
-      self.inner.clean_up();
-    }
-  }
-
-  impl<M> fmt::Debug for CompatTokioQueue<M>
-  where
-    M: Element,
-  {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-      f.debug_struct("TokioQueue").finish()
-    }
-  }
+#[cfg(feature = "queue-v1")]
+pub(super) fn create_tokio_queue<M>(size: QueueSize) -> TokioQueue<M>
+where
+  M: Element, {
+  TokioQueue::with_capacity(size)
 }
 
 #[cfg(feature = "queue-v2")]
-pub(super) type TokioQueue<M> = compat::CompatTokioQueue<M>;
-#[cfg(feature = "queue-v1")]
-pub(super) use legacy::TokioQueue;
+pub(super) type TokioQueue<M> = cellex_actor_core_rs::shared::mailbox::queue_rw_compat::QueueRwCompat<M>;
+
+#[cfg(feature = "queue-v2")]
+pub(super) fn create_tokio_queue<M>(size: QueueSize) -> TokioQueue<M>
+where
+  M: Element, {
+  match size {
+    | QueueSize::Limitless | QueueSize::Limited(0) => TokioQueue::unbounded(),
+    | QueueSize::Limited(capacity) => TokioQueue::bounded(capacity, OverflowPolicy::Block),
+  }
+}

@@ -8,7 +8,7 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_std_rs::{Element, QueueError, QueueSize};
 
 use super::{
-  notify_signal::NotifySignal, tokio_mailbox_runtime::TokioMailboxRuntime, tokio_mailbox_sender::TokioMailboxSender,
+  notify_signal::NotifySignal, tokio_mailbox_factory::TokioMailboxFactory, tokio_mailbox_sender::TokioMailboxSender,
   tokio_queue::TokioQueue,
 };
 
@@ -35,7 +35,7 @@ where
   /// A pair of mailbox and sender handle
   #[must_use]
   pub fn new(capacity: usize) -> (Self, TokioMailboxSender<M>) {
-    TokioMailboxRuntime.with_capacity(capacity)
+    TokioMailboxFactory.with_capacity(capacity)
   }
 
   /// Creates an unbounded mailbox
@@ -44,7 +44,7 @@ where
   /// A pair of mailbox and sender handle
   #[must_use]
   pub fn unbounded() -> (Self, TokioMailboxSender<M>) {
-    TokioMailboxRuntime.unbounded()
+    TokioMailboxFactory.unbounded()
   }
 
   /// Creates a new sender handle

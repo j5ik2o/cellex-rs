@@ -4,8 +4,10 @@ use cellex_actor_core_rs::api::mailbox::{
 use cellex_utils_std_rs::Element;
 
 use super::{
-  notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender,
-  tokio_queue::TokioQueue,
+  notify_signal::NotifySignal,
+  tokio_mailbox_impl::TokioMailbox,
+  tokio_mailbox_sender::TokioMailboxSender,
+  tokio_queue::{create_tokio_queue, TokioQueue},
 };
 
 /// Factory that creates Tokio mailboxes.
@@ -13,9 +15,9 @@ use super::{
 /// Provides constructors for bounded and unbounded mailboxes.
 /// CAUTION: keep the type name accurate and ensure the implementation matches it.
 #[derive(Clone, Debug, Default)]
-pub struct TokioMailboxRuntime;
+pub struct TokioMailboxFactory;
 
-impl TokioMailboxRuntime {
+impl TokioMailboxFactory {
   /// Creates a mailbox with the specified options
   ///
   /// # Arguments
@@ -57,7 +59,7 @@ impl TokioMailboxRuntime {
   }
 }
 
-impl MailboxFactory for TokioMailboxRuntime {
+impl MailboxFactory for TokioMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>
@@ -76,7 +78,7 @@ impl MailboxFactory for TokioMailboxRuntime {
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = TokioQueue::with_capacity(options.capacity);
+    let queue = create_tokio_queue::<M>(options.capacity);
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

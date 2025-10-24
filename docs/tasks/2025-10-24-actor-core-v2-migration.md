@@ -155,18 +155,18 @@
     - `internal/mailbox/tests.rs` は `QueueSize::limited` / `limitless` の helper を検証しているため、`is_unbounded` 的なラッパーを追加すればテスト移行が容易。
     - `ActorSchedulerSpawnContext` や `InternalProps` は `MailboxOptions` をそのまま保持し scheduler へ受け渡すだけで、`QueueSize` の実装詳細には依存していないため、`usize` 化後も API を変えずに内部変換する方が安全。
 - 実装タスク（準備）:
-  - [x] `TokioMailboxRuntime` / `TokioMailbox` / `TokioMailboxSender` / `QueueMailbox` など、`QueueRw` を直接利用しているファサード層の構造体・トレイトを洗い出し、v2 `SyncQueue` 系への橋渡し構成案（クラス図・データフロー）をまとめる。
+  - [x] `TokioMailboxFactory` / `TokioMailbox` / `TokioMailboxSender` / `QueueMailbox` など、`QueueRw` を直接利用しているファサード層の構造体・トレイトを洗い出し、v2 `SyncQueue` 系への橋渡し構成案（クラス図・データフロー）をまとめる。
 
 #### フェーズ4Aメモ: ファサード層と v2 `SyncQueue` との橋渡し案（2025-10-24 更新）
 
 - **現行構成の依存関係**
-  - `TokioMailboxRuntime::build_mailbox` が `MailboxOptions` を受け取り、`TokioQueue`（`QueueRw` 実装）と `NotifySignal` を組み合わせて `QueueMailbox<TokioQueue<M>, NotifySignal>` を生成。
+  - `TokioMailboxFactory::build_mailbox` が `MailboxOptions` を受け取り、`TokioQueue`（`QueueRw` 実装）と `NotifySignal` を組み合わせて `QueueMailbox<TokioQueue<M>, NotifySignal>` を生成。
   - `TokioMailbox<M>` は `QueueMailbox` をラップし、`Mailbox` トレイトを旧 API のまま透過。`TokioMailboxSender<M>` も `QueueMailboxProducer<TokioQueue<M>, NotifySignal>` を直接公開。
   - `QueueMailbox`/`QueueMailboxProducer`/`QueueMailboxRecv` が `QueueRw` の `offer`/`poll`/`clean_up` と `QueueError<T>` を前提にメトリクスやスケジューラ通知を実装。
 
 - **目標構成（テキスト図）**
   ```text
-  TokioMailboxRuntime
+  TokioMailboxFactory
       │ (MailboxOptions)
       ├─▶ QueueMailbox<QueueRwCompat<M>, NotifySignal>
       │       ├─ QueueMailboxProducer<QueueRwCompat<M>, NotifySignal>
@@ -180,7 +180,7 @@
 
 - **橋渡し案の要点**
   1. `QueueRwCompat<T>`（仮称）を新設し、`v2::collections::queue::MpscQueue` と `OfferOutcome` / `PollOutcome` / `QueueError` を旧 `QueueRw`/`QueueError<T>` に変換する責務を集中させる。
-  2. `TokioMailboxRuntime` では `TokioQueue` を段階的に廃止し、`QueueRwCompat` + `v2::SharedVecRingQueue` を採用する。既存の `MailboxOptions` からは `Option<usize>` を取得し、`VecRingBackend` の初期ストレージ容量と `OverflowPolicy`（bounded = `Block`、unbounded = `Grow`）を決定する。
+  2. `TokioMailboxFactory` では `TokioQueue` を段階的に廃止し、`QueueRwCompat` + `v2::SharedVecRingQueue` を採用する。既存の `MailboxOptions` からは `Option<usize>` を取得し、`VecRingBackend` の初期ストレージ容量と `OverflowPolicy`（bounded = `Block`、unbounded = `Grow`）を決定する。実装では `create_tokio_queue` ヘルパーを介して `QueueRwCompat` を生成し、`queue-v1`/`queue-v2` の両フィーチャーで同一コードパスを通す。
   3. `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` は直接的な変更を最小限にしつつ、`QueueRwCompat` 経由で新 API を呼び出すことで段階移行を実現する。`len()` / `capacity()` は既に `usize` ラッパーを導入済みのため、新ラッパーから `usize` を取得して変換する。
   4. `TokioMailbox` / `TokioMailboxSender` のパブリック API はそのまま保ち、内部フィールドのみ `QueueMailbox<QueueRwCompat<M>, NotifySignal>` に差し替える。これにより外部利用者への破壊的変更を避けつつ順次差し替えが可能。
 
@@ -249,7 +249,7 @@
   - フィーチャーフラグ切り替え時に `QueueRwCompat` を `cfg(feature = "queue-v2")` 側で有効化し、`queue-v1` では旧 `TokioQueue` を使い続けられるよう `type` エイリアスを用意。
 
 - **移行計画への反映**
-  - `TokioMailboxRuntime` は `QueueRwCompat::bounded` / `::unbounded` を呼び出すよう差し替え、他のランタイム（embedded 等）も同じ互換レイヤ経由で v2 キューを利用する差し替え計画を別ファイル（`progress.md`）に追記予定。
+  - `TokioMailboxFactory` は `QueueRwCompat::bounded` / `::unbounded` を呼び出すよう差し替え、他のランタイム（embedded 等）も同じ互換レイヤ経由で v2 キューを利用する差し替え計画を別ファイル（`progress.md`）に追記予定。
   - `QueueRwCompat` のテストは `modules/utils-core/src/v2/...` のユニットテストを再利用しつつ、`QueueRw` トレイト経由での send/recv を `modules/actor-core/src/api/test_support/tests.rs` から参照できるよう追加ケースを用意する。
 
 ##### v2 `QueueError` / `OfferOutcome` 変換テーブル（2025-10-24 更新）
@@ -264,13 +264,13 @@
 | `offer` 失敗 | `Err(QueueError::Closed)` | `Err(QueueError::Closed(message))` | Mailbox を閉塞扱いにし、スケジューラ通知を停止。 |
 | `offer` 失敗 | `Err(QueueError::Disconnected)` | `Err(QueueError::Disconnected)` | 既存通りドライバ側でデッドレター処理。 |
 | `offer` 失敗 | `Err(QueueError::WouldBlock)` | `Err(QueueError::OfferError(message))` | `OfferError` を `WouldBlock` のラッパーと定義し、ログに `would_block` タグを付与。 |
-| `offer` 失敗 | `Err(QueueError::AllocError)` | `Err(QueueError::OfferError(message))` | 呼び出し元で `MailboxError::ResourceExhausted` に変換予定。 |
+| `offer` 失敗 | `Err(QueueError::AllocError)` | `Err(QueueError::AllocError(message))` | 呼び出し元で `MailboxError::ResourceExhausted` に変換予定。 |
 | `poll` 成功 | `Ok(value)` | `Ok(Some(value))` | メトリクス/スケジューラ通知は従来どおり。 |
 | `poll` 空 | `Err(QueueError::Empty)` | `Ok(None)` | `MailboxSignal::wait()` 経路に遷移。 |
 | `poll` 失敗 | `Err(QueueError::Closed)` | `Err(QueueError::Disconnected)` | `QueueMailbox` が `closed` フラグを立て、`recv` ループを終了。旧 `Closed(message)` パスは今後 `PollOutcome` に置き換える計画。 |
 | `poll` 失敗 | `Err(QueueError::Disconnected)` | `Err(QueueError::Disconnected)` | 既存通り。 |
-| `poll` 失敗 | `Err(QueueError::WouldBlock)` | `Ok(None)` | `WouldBlock` はスピン防止のため `Pending` にフォールバックし、次回シグナル待機へ。 |
-| `poll` 失敗 | `Err(QueueError::AllocError)` | `Err(QueueError::OfferError(Default::default()))` | 通常発生しない想定。発生時は致命ログ + デッドレター。 |
+| `poll` 失敗 | `Err(QueueError::WouldBlock)` | `Err(QueueError::WouldBlock)` | `QueueMailboxRecv` 側で `Poll::Pending` にフォールバックし、次回シグナル待機へ。 |
+| `poll` 失敗 | `Err(QueueError::AllocError)` | `Err(QueueError::AllocError(message))` | 通常発生しない想定。発生時は致命ログ + デッドレター。 |
 
 - **ログ / メトリクス方針**
   - `OfferOutcome::DroppedOldest`/`DroppedNewest` は `MailboxMetrics::Dropped{Oldest,Newest}` を追加し、`MailboxProducer` で発火。
@@ -317,7 +317,7 @@
 ### フェーズ4B: ファサード差し替え実装（リスク: 高, SP: 8）
 - 実装タスク（実装・検証）:
   - [ ] `queue-v1` / `queue-v2` フィーチャーフラグを Cargo に追加し、`queue-v1` を既定・`queue-v2` をオプトインとするビルド設定と CI ジョブを実装する。
-  - [x] `QueueRwCompat` を実装し、`TokioMailboxRuntime` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。
+  - [x] `QueueRwCompat` を実装し、`TokioMailboxFactory` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。
   - [ ] ファサード層 API の戻り値変更に合わせて呼び出し元（scheduler、テストサポート等）を更新し、`queue-v1` / `queue-v2` 両ビルドで警告ゼロを確認する。
   - [ ] Mailbox ファサード経由の happy path / 異常系統合テストを追加し、`queue-v1` / `queue-v2` 両方で `cargo test -p cellex-actor-core-rs --tests` が通ることを検証する。
   - [ ] ステージング向け smoke テストとメトリクス収集を実施し、切り戻し手順（フィーチャーフラグでの即時退避）を確認する。
@@ -336,6 +336,7 @@
 - `modules/actor-core/src/shared/mailbox/queue_rw_compat.rs` に互換レイヤーを追加し、`QueueError<T>` の契約を保ったまま v2 `VecRingBackend` を利用可能にした。`ArcShared<Mutex<Option<M>>` でメッセージ所有権を保持し、`OfferOutcome::DroppedNewest` などを既存エラーへマッピング済み。
 - `modules/actor-std/src/tokio_mailbox/tokio_queue.rs` で `queue-v1` / `queue-v2` のフィーチャー切り替えに対応し、Tokio ファサードが compat 経由で v2 キューを扱える状態を確認。`cargo check -p cellex-actor-std-rs --no-default-features --features "rt-multi-thread,queue-v1"` でもビルド通過を確認。
 - `cargo test -p cellex-actor-std-rs` を実施し、Tokio Mailbox 系統のユニットテストが `queue-v2` で通過することを確認。
+- `modules/actor-std/src/tokio_priority_mailbox/queues.rs` を `QueueRwCompat<PriorityEnvelope<M>>` ベースへ移行し、制御レーン／通常レーンの双方で v2 キューを利用する構成に統一。優先度付きファサードも互換レイヤー経由にそろえた。
 - `./scripts/ci-check.sh all` 実行時に `dylint` セクションが `CARGO_NET_OFFLINE=true` の既定設定により `dylint_driver` を取得できず停止。`CARGO_NET_OFFLINE=false` を明示して再実行する対応が今後必要。
 
 ### フェーズ5A: Mailbox 基盤再設計（リスク: 高, SP: 8）

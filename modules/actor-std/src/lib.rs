@@ -76,16 +76,16 @@ pub use runtime_driver::TokioSystemHandle;
 pub use scheduler::{tokio_scheduler_builder, TokioActorRuntimeExt, TokioScheduler};
 pub use spawn::TokioSpawner;
 pub use timer::TokioTimer;
-pub use tokio_mailbox::{TokioMailbox, TokioMailboxRuntime, TokioMailboxSender};
-pub use tokio_priority_mailbox::{TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender};
+pub use tokio_mailbox::{TokioMailbox, TokioMailboxFactory, TokioMailboxSender};
+pub use tokio_priority_mailbox::{TokioPriorityMailbox, TokioPriorityMailboxFactory, TokioPriorityMailboxSender};
 
 /// A prelude module that provides commonly used re-exported types and traits.
 pub mod prelude {
   pub use cellex_actor_core_rs::actor_loop;
 
   pub use super::{
-    ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn, TokioMailbox, TokioMailboxRuntime, TokioMailboxSender,
-    TokioPriorityMailbox, TokioPriorityMailboxRuntime, TokioPriorityMailboxSender, TokioScheduler, TokioSpawner,
+    ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn, TokioMailbox, TokioMailboxFactory, TokioMailboxSender,
+    TokioPriorityMailbox, TokioPriorityMailboxFactory, TokioPriorityMailboxSender, TokioScheduler, TokioSpawner,
     TokioSystemHandle, TokioTimer,
   };
 }
@@ -94,12 +94,12 @@ pub mod prelude {
 mod tests;
 
 /// Default actor runtime preset for Tokio environments.
-pub type TokioActorRuntime = GenericActorRuntime<TokioMailboxRuntime>;
+pub type TokioActorRuntime = GenericActorRuntime<TokioMailboxFactory>;
 
 /// Builds the default Tokio-oriented actor runtime preset.
 #[must_use]
 pub fn tokio_actor_runtime() -> TokioActorRuntime {
   use scheduler::TokioActorRuntimeExt;
 
-  GenericActorRuntime::new(TokioMailboxRuntime).with_tokio_scheduler()
+  GenericActorRuntime::new(TokioMailboxFactory).with_tokio_scheduler()
 }

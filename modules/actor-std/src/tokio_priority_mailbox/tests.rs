@@ -6,8 +6,8 @@ use super::*;
 type TestResult<T = ()> = Result<T, String>;
 
 #[test]
-fn priority_runtime_orders_messages() -> TestResult {
-  let factory = TokioPriorityMailboxRuntime::default();
+fn priority_mailbox_orders_messages() -> TestResult {
+  let factory = TokioPriorityMailboxFactory::default();
   let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
   sender.send_with_priority(10, DEFAULT_PRIORITY).map_err(|err| format!("send low priority: {:?}", err))?;
@@ -45,7 +45,7 @@ fn priority_runtime_orders_messages() -> TestResult {
 
 #[test]
 fn priority_sender_defaults_work() -> TestResult {
-  let factory = TokioPriorityMailboxRuntime::new(4).with_regular_capacity(4);
+  let factory = TokioPriorityMailboxFactory::new(4).with_regular_capacity(4);
   let (mailbox, sender) = factory.mailbox::<u8>(MailboxOptions::default());
 
   sender.send(PriorityEnvelope::with_default_priority(5)).map_err(|err| format!("send default priority: {:?}", err))?;
@@ -63,7 +63,7 @@ fn priority_sender_defaults_work() -> TestResult {
 
 #[test]
 fn control_queue_preempts_regular_messages() -> TestResult {
-  let factory = TokioPriorityMailboxRuntime::default();
+  let factory = TokioPriorityMailboxFactory::default();
   let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
   sender.send_with_priority(1, DEFAULT_PRIORITY).map_err(|err| format!("enqueue regular message: {:?}", err))?;
@@ -91,7 +91,7 @@ fn control_queue_preempts_regular_messages() -> TestResult {
 
 #[test]
 fn priority_mailbox_capacity_split() -> TestResult {
-  let factory = TokioPriorityMailboxRuntime::default();
+  let factory = TokioPriorityMailboxFactory::default();
   let options = MailboxOptions::with_capacities(QueueSize::limited(2), QueueSize::limited(2));
   let (mailbox, sender) = factory.mailbox::<u8>(options);
 

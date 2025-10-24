@@ -89,9 +89,8 @@ impl<M> QueueRwCompat<M> {
     match error {
       | V2QueueError::Full(preserved) => QueueError::Full(Self::reclaim(preserved)),
       | V2QueueError::Closed(preserved) => QueueError::Closed(Self::reclaim(preserved)),
-      | V2QueueError::AllocError(preserved) | V2QueueError::OfferError(preserved) => {
-        QueueError::OfferError(Self::reclaim(preserved))
-      },
+      | V2QueueError::AllocError(preserved) => QueueError::AllocError(Self::reclaim(preserved)),
+      | V2QueueError::OfferError(preserved) => QueueError::OfferError(Self::reclaim(preserved)),
       | V2QueueError::WouldBlock | V2QueueError::Empty => QueueError::OfferError(Self::reclaim(entry)),
       | V2QueueError::Disconnected => QueueError::Disconnected,
     }
@@ -131,10 +130,10 @@ where
     match self.queue.poll() {
       | Ok(entry) => Ok(Some(Self::reclaim(entry))),
       | Err(V2QueueError::Empty) => Ok(None),
-      | Err(V2QueueError::Disconnected)
-      | Err(V2QueueError::WouldBlock)
-      | Err(V2QueueError::AllocError(_))
-      | Err(V2QueueError::OfferError(_)) => Err(QueueError::Disconnected),
+      | Err(V2QueueError::Disconnected) => Err(QueueError::Disconnected),
+      | Err(V2QueueError::WouldBlock) => Err(QueueError::WouldBlock),
+      | Err(V2QueueError::AllocError(preserved)) => Err(QueueError::AllocError(Self::reclaim(preserved))),
+      | Err(V2QueueError::OfferError(preserved)) => Err(QueueError::OfferError(Self::reclaim(preserved))),
       | Err(V2QueueError::Closed(preserved)) => Err(QueueError::Closed(Self::reclaim(preserved))),
       | Err(V2QueueError::Full(preserved)) => Err(QueueError::Full(Self::reclaim(preserved))),
     }
