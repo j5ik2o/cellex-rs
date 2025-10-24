@@ -1,5 +1,5 @@
-use cellex_utils_std_rs::v2::collections::make_tokio_mpsc_queue;
 use cellex_utils_core_rs::v2::collections::queue::QueueError as AsyncQueueError;
+use cellex_utils_std_rs::v2::collections::make_tokio_mpsc_queue;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn async_queue_roundtrip() {
@@ -39,15 +39,18 @@ async fn async_queue_blocking_behavior() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn async_queue_would_block_on_full_policy() {
-  use cellex_utils_core_rs::sync::async_mutex_like::SpinAsyncMutex;
-  use cellex_utils_core_rs::sync::interrupt::InterruptContextPolicy;
-  use cellex_utils_core_rs::v2::collections::queue::{
-    backend::{OverflowPolicy, SyncAdapterQueueBackend, VecRingBackend},
-    type_keys::MpscKey,
-    AsyncQueue,
+  use cellex_utils_core_rs::{
+    sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy},
+    v2::{
+      collections::queue::{
+        backend::{OverflowPolicy, SyncAdapterQueueBackend, VecRingBackend},
+        type_keys::MpscKey,
+        AsyncQueue,
+      },
+      sync::SharedError,
+    },
+    ArcShared,
   };
-  use cellex_utils_core_rs::v2::sync::SharedError;
-  use cellex_utils_core_rs::ArcShared;
 
   struct DenyPolicy;
   impl InterruptContextPolicy for DenyPolicy {

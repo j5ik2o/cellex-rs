@@ -23,6 +23,10 @@ mod tests;
 /// A queue that can be safely accessed from multiple threads using `Arc`-based shared ownership.
 /// By default, it uses a Tokio channel backend, but a ring buffer backend can also be selected.
 #[derive(Clone)]
+#[deprecated(
+  since = "0.0.1",
+  note = "Use cellex_utils_std_rs::v2::collections::make_tokio_mpsc_queue and AsyncQueue instead."
+)]
 pub struct ArcMpscBoundedQueue<E> {
   inner: MpscQueue<ArcShared<dyn MpscBackend<E> + Send + Sync>, E>,
 }
