@@ -322,6 +322,38 @@
   - [ ] Mailbox ファサード経由の happy path / 異常系統合テストを追加し、`queue-v1` / `queue-v2` 両方で `cargo test -p cellex-actor-core-rs --tests` が通ることを検証する。
   - [ ] ステージング向け smoke テストとメトリクス収集を実施し、切り戻し手順（フィーチャーフラグでの即時退避）を確認する。
 
+##### OfferOutcome メトリクス設計メモ（2025-10-24 更新）
+
+- **追加するメトリクスイベント**
+  1. `MetricsEvent::MailboxDroppedOldest { count: usize }`
+     - `OfferOutcome::DroppedOldest { count }` と 1:1 で対応させ、過去メッセージが追い出された回数を通知。
+  2. `MetricsEvent::MailboxDroppedNewest { count: usize }`
+     - `OfferOutcome::DroppedNewest { count }` または `QueueError::Full`（DropNewest ポリシー由来）の検出時に発火。送信側へのエラー返却とは独立してメトリクス記録を行う。
+  3. `MetricsEvent::MailboxGrewTo { capacity: usize }`
+     - `OfferOutcome::GrewTo { capacity }` を記録し、バースト吸収のためにストレージが拡張された事実を可視化。
+
+- **Queue レイヤでのフック設計**
+  - `shared::mailbox::queue_rw_compat` に `MailboxQueueMetricsHook<M>`（`Send + Sync + 'static`）トレイトを追加し、`QueueRwCompat<M>` が `Arc<dyn MailboxQueueMetricsHook<M>>` を保持できるようにする。
+  - `QueueRwCompat::offer` / `map_offer_outcome` / `map_offer_error` で `OfferOutcome`・`QueueError` を評価し、上記フックを呼び出す。`DroppedNewest` はエラー整合のため「フック通知 → 旧 `QueueError::Full` へ変換」の順序とする。
+  - フックは軽量（ロック不要）であることが望ましいため、`MailboxQueueMetricsHook` 実装側で `MetricsSinkShared::with_ref` による短時間アクセスのみ許容する。
+
+- **Mailbox レイヤでの接続方法**
+  - `QueueMailbox` 生成時に `QueueRwCompat` へフックを注入する。`QueueMailbox` / `QueueMailboxProducer` が `set_metrics_sink` を呼ばれた際は、既存のメトリクスハンドル更新に加えてフックも差し替える。
+  - `QueueMailboxProducer::try_send` は成功時の `MailboxEnqueued` 計数を維持しつつ、`QueueRwCompat` 側のフックから受け取ったドロップ／成長イベントをそのまま `MetricsSink` へ伝播する（Producer 側で追加判定を行う必要はない）。
+  - `QueueMailbox` 側でも `set_metrics_sink` 呼び出し時に同じフックを共有することで、複数 Producer / Mailbox 間で計測を一貫させる。
+
+- **テスト・検証方針**
+  - `tokio_mailbox::tests` に `OfferOutcome::DroppedOldest` をシミュレートするケースを追加し、`MetricsEvent::MailboxDroppedOldest { count: 1 }` が記録されることを確認。
+  - `QueueRwCompat` 単体テストでは、`OverflowPolicy::DropNewest` / `OverflowPolicy::DropOldest` を選択した際のフック呼び出し回数が期待通りかを `MockMetricsHook` でアサート。
+  - スケジューラ統合テストでは、短容量のメールボックスに対して大量送信→ドロップを誘発し、`MetricsSink` が新イベントを受信する経路を検証。
+
+- **移行ステップ（実装タスク分割案）**
+  1. `MetricsEvent` に新バリアントを追加し、`MetricsSink` 実装とテスト群を更新。
+  2. `QueueRwCompat` にフック保持ロジックと通知処理を追加（フック無しでもオーバーヘッドが最小になるよう分岐を最適化）。
+  3. `QueueMailbox` / `QueueMailboxProducer` にフック注入ロジックを追加し、`MetricsSink` 設定と同期。
+  4. Tokio Mailbox / Priority Mailbox それぞれで最小容量のキューを用いたドロップ再現テストを追加。
+  5. ドキュメント（`metrics.md` 予定）に新イベントの意味と想定ダッシュボード指標を追記。
+
 リスク要因:
 - ファサード層は `actor-core` 内の多数のモジュールと密に結合しており、戻り値やエラー型の調整を誤ると未移行コードがコンパイル不能になる。
 - 互換アダプタを用意せずに直接差し替えると `QueueRw` 依存箇所が一括で壊れやすく、ステップ分割を怠るとデバッグが困難。
