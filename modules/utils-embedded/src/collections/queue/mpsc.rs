@@ -14,8 +14,10 @@ mod rc_mpsc_bounded_queue;
 mod rc_mpsc_unbounded_queue;
 
 #[cfg(feature = "arc")]
+#[allow(deprecated)]
 pub use arc_mpsc_bounded_queue::{ArcCsMpscBoundedQueue, ArcLocalMpscBoundedQueue, ArcMpscBoundedQueue};
 #[cfg(feature = "arc")]
+#[allow(deprecated)]
 pub use arc_mpsc_unbounded_queue::{ArcCsMpscUnboundedQueue, ArcLocalMpscUnboundedQueue, ArcMpscUnboundedQueue};
 #[cfg(feature = "rc")]
 pub use rc_mpsc_bounded_queue::RcMpscBoundedQueue;

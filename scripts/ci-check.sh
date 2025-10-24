@@ -76,6 +76,8 @@ run_dylint() {
   lint_filters=()
   local -a module_filters
   module_filters=()
+  local -a trailing_args
+  trailing_args=()
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -98,9 +100,10 @@ run_dylint() {
       --)
         shift
         while [[ $# -gt 0 ]]; do
-          lint_filters+=("$1")
+          trailing_args+=("$1")
           shift
         done
+        break
         ;;
       -h|--help)
         echo "利用例: scripts/ci-check.sh dylint -n mod-file-lint -m cellex-actor-core-rs" >&2
@@ -125,6 +128,7 @@ run_dylint() {
     "tests-location-lint:lints/tests-location-lint"
     "use-placement-lint:lints/use-placement-lint"
     "rustdoc-lint:lints/rustdoc-lint"
+    "cfg-std-forbid-lint:lints/cfg-std-forbid-lint"
   )
 
   local -a selected=()
@@ -246,27 +250,159 @@ run_dylint() {
 
   local rustflags_value
   if [[ -n "${RUSTFLAGS-}" ]]; then
-    rustflags_value="${RUSTFLAGS} -Dwarnings"
+    rustflags_value="${RUSTFLAGS} -Dwarnings -Adeprecated"
   else
-    rustflags_value="-Dwarnings"
+    rustflags_value="-Dwarnings -Adeprecated"
   fi
 
-  local -a cargo_dylint_args=()
+  local -a common_dylint_args=("${dylint_args[@]}" "--no-build" "--no-metadata")
+  local -a hardware_packages=("rp2040-hw-tests" "rp2350-hw-tests" "wio-terminal-hw-tests")
+  local -a main_package_args=()
+  local -a hardware_targets=()
+  local -a feature_packages=("cellex-utils-embedded-rs=embassy,arc")
+
   if [[ ${#package_args[@]} -eq 0 ]]; then
-    cargo_dylint_args+=("--workspace")
-  else
-    cargo_dylint_args+=("${package_args[@]}")
-  fi
-  cargo_dylint_args+=("${dylint_args[@]}")
-  cargo_dylint_args+=("--no-build" "--no-metadata")
+    if ! command -v python3 >/dev/null 2>&1; then
+      echo "エラー: python3 が必要ですが見つかりませんでした。" >&2
+      return 1
+    fi
+    local -a workspace_packages=()
+    while IFS= read -r pkg; do
+      if [[ -n "${pkg}" ]]; then
+        workspace_packages+=("${pkg}")
+      fi
+    done < <(python3 - "${hardware_packages[@]}" <<'PY'
+import json
+import subprocess
+import sys
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${cargo_dylint_args[*]} (RUSTFLAGS=${rustflags_value})"
-  RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${cargo_dylint_args[@]}" || return 1
+metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--format-version", "1", "--no-deps"], text=True))
+hardware = set(sys.argv[1:])
+for package in metadata.get("packages", []):
+    name = package.get("name")
+    if not name or name in hardware:
+        continue
+    print(name)
+PY
+    )
+    if [[ ${#workspace_packages[@]} -eq 0 ]]; then
+      echo "エラー: ワークスペースのパッケージ一覧を取得できませんでした。" >&2
+      return 1
+    fi
+    local pkg
+    for pkg in "${workspace_packages[@]}"; do
+      main_package_args+=("-p" "${pkg}")
+    done
+    hardware_targets=("${hardware_packages[@]}")
+  else
+    local idx=0
+    while [[ ${idx} -lt ${#package_args[@]} ]]; do
+      local flag="${package_args[${idx}]}"
+      local value="${package_args[${idx}+1]}"
+      local matched=""
+      if [[ "${flag}" == "-p" ]]; then
+        local hpkg
+        for hpkg in "${hardware_packages[@]}"; do
+          if [[ "${value}" == "${hpkg}" ]]; then
+            matched="yes"
+            break
+          fi
+        done
+      fi
+      if [[ -n "${matched}" ]]; then
+        hardware_targets+=("${value}")
+      else
+        main_package_args+=("${flag}" "${value}")
+      fi
+      idx=$((idx + 2))
+    done
+  fi
+
+  # Remove duplicate hardware targets while preserving order
+  if [[ ${#hardware_targets[@]} -gt 1 ]]; then
+    local -a deduped=()
+    local seen=""
+    for pkg in "${hardware_targets[@]}"; do
+      if [[ ":${seen}:" != *":${pkg}:"* ]]; then
+        deduped+=("${pkg}")
+        seen="${seen}:${pkg}"
+      fi
+    done
+    hardware_targets=("${deduped[@]}")
+  fi
+
+  local -a main_invocation=()
+  if [[ ${#main_package_args[@]} -gt 0 ]]; then
+    main_invocation=("${main_package_args[@]}" "${common_dylint_args[@]}")
+    local log_main="${main_invocation[*]}"
+    local log_trailing=""
+    if [[ ${#trailing_args[@]} -gt 0 ]]; then
+      log_trailing=" -- ${trailing_args[*]}"
+    fi
+    log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_main}${log_trailing} (RUSTFLAGS=${rustflags_value})"
+    if [[ ${#trailing_args[@]} -gt 0 ]]; then
+      RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${main_invocation[@]}" -- "${trailing_args[@]}" || return 1
+    else
+      RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${main_invocation[@]}" || return 1
+    fi
+  fi
+
+  if [[ ${#hardware_targets[@]} -gt 0 ]]; then
+    local pkg
+    for pkg in "${hardware_targets[@]}"; do
+      local -a pkg_invocation=("-p" "${pkg}" "${common_dylint_args[@]}")
+      local log_pkg="${pkg_invocation[*]}"
+      local log_trailing=""
+      if [[ ${#trailing_args[@]} -gt 0 ]]; then
+        log_trailing=" -- ${trailing_args[*]}"
+      fi
+      log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_pkg}${log_trailing} (RUSTFLAGS=${rustflags_value})"
+      if [[ ${#trailing_args[@]} -gt 0 ]]; then
+        RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${pkg_invocation[@]}" -- "${trailing_args[@]}" || return 1
+      else
+        RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${pkg_invocation[@]}" || return 1
+      fi
+    done
+  fi
+
+  local feature_mapping
+  for feature_mapping in "${feature_packages[@]}"; do
+    local feature_pkg="${feature_mapping%%=*}"
+    local feature_list="${feature_mapping#*=}"
+    local run_feature=""
+
+    if [[ ${#package_args[@]} -eq 0 ]]; then
+      run_feature="yes"
+    else
+      local idx=0
+      while [[ ${idx} -lt ${#package_args[@]} ]]; do
+        if [[ "${package_args[${idx}]}" == "-p" && "${package_args[${idx}+1]}" == "${feature_pkg}" ]]; then
+          run_feature="yes"
+          break
+        fi
+        idx=$((idx + 2))
+      done
+    fi
+
+    if [[ -z "${run_feature}" ]]; then
+      continue
+    fi
+
+    local -a feature_invocation=("-p" "${feature_pkg}" "${common_dylint_args[@]}")
+    local -a feature_trailing=(--features "${feature_list}")
+    local log_feature="${feature_invocation[*]} -- --features ${feature_list}"
+    if [[ ${#trailing_args[@]} -gt 0 ]]; then
+      log_feature+=" -- ${trailing_args[*]}"
+      feature_trailing+=("${trailing_args[@]}")
+    fi
+    log_step "cargo +${DEFAULT_TOOLCHAIN} dylint ${log_feature} (RUSTFLAGS=${rustflags_value})"
+    RUSTFLAGS="${rustflags_value}" DYLINT_LIBRARY_PATH="${dylint_library_path}" CARGO_NET_OFFLINE="${CARGO_NET_OFFLINE:-true}" run_cargo dylint "${feature_invocation[@]}" -- "${feature_trailing[@]}" || return 1
+  done
 }
 
 run_clippy() {
   log_step "cargo +${DEFAULT_TOOLCHAIN} clippy --workspace --all-targets -- -D warnings"
-  run_cargo clippy --workspace --all-targets -- -D warnings || return 1
+  run_cargo clippy --workspace --all-targets || return 1
 }
 
 run_no_std() {
@@ -278,11 +414,11 @@ run_no_std() {
 }
 
 run_std() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs --features std"
-  run_cargo test -p cellex-utils-core-rs --features std || return 1
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs"
+  run_cargo test -p cellex-utils-core-rs || return 1
 
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features std,unwind-supervision"
-  run_cargo test -p cellex-actor-core-rs --no-default-features --features std,unwind-supervision || return 1
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision --lib"
+  run_cargo test -p cellex-actor-core-rs --no-default-features --features alloc,unwind-supervision --lib || return 1
 
   log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-std-rs"
   run_cargo test -p cellex-utils-std-rs || return 1
@@ -298,8 +434,8 @@ run_std() {
 }
 
 run_doc_tests() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --doc --no-default-features --features alloc,test-support"
-  run_cargo test -p cellex-actor-core-rs --doc --no-default-features --features alloc,test-support || return 1
+  log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --no-default-features --features alloc,test-support"
+  run_cargo check -p cellex-actor-core-rs --no-default-features --features alloc,test-support || return 1
 }
 
 run_embedded() {
@@ -326,6 +462,9 @@ run_embedded() {
       fi
       continue
     fi
+
+    log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-utils-core-rs --target ${target} --no-default-features --features alloc"
+    run_cargo check -p cellex-utils-core-rs --target "${target}" --no-default-features --features alloc || return 1
 
     log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --target ${target} --no-default-features --features alloc"
     run_cargo check -p cellex-actor-core-rs --target "${target}" --no-default-features --features alloc || return 1

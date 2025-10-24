@@ -299,7 +299,7 @@ where
     let dispatch = ArcShared::new(move |message: AnyMessage, priority: i8| {
       ActorRef::<U, AR>::dispatch_dyn_with_parts(&inner, &pid_slot, registry.as_ref(), message, priority)
     })
-    .into_dyn(|f| f as &(dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>));
+    .into_dyn(|f| f as &dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>);
     let internal = InternalMessageSender::<MailboxConcurrencyOf<AR>>::new(dispatch);
     MessageSender::new(internal)
   }

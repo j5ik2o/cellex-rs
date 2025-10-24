@@ -1,24 +1,32 @@
 #![allow(clippy::disallowed_types)]
-use std::{
-  fmt,
-  sync::{Arc, Mutex},
-};
+#![allow(deprecated)]
+use std::{fmt, sync::Arc};
 
 use cellex_utils_core_rs::{
-  Element, MpscBackend, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
+  Element, MpscBackend, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
   RingBufferBackend,
 };
 
-use crate::{collections::queue::mpsc::TokioBoundedMpscBackend, sync::ArcShared};
+use crate::{
+  collections::queue::{mpsc::TokioBoundedMpscBackend, MutexMpscBufferStorage},
+  sync::ArcShared,
+};
 
 #[cfg(test)]
 mod tests;
 
-/// Bounded multi-producer, single-consumer (MPSC) queue
+/// Bounded multi-producer, single-consumer (MPSC) queue.
+///
+/// # Deprecated
+/// Prefer [`utils_std::v2::collections::StdMpscSyncQueue`].
 ///
 /// A queue that can be safely accessed from multiple threads using `Arc`-based shared ownership.
 /// By default, it uses a Tokio channel backend, but a ring buffer backend can also be selected.
 #[derive(Clone)]
+#[deprecated(
+  since = "0.0.1",
+  note = "Use cellex_utils_std_rs::v2::collections::make_tokio_mpsc_queue and AsyncQueue instead."
+)]
 pub struct ArcMpscBoundedQueue<E> {
   inner: MpscQueue<ArcShared<dyn MpscBackend<E> + Send + Sync>, E>,
 }
@@ -72,7 +80,8 @@ where
   /// A new queue instance using the ring buffer backend
   #[must_use]
   pub fn with_ring_buffer(capacity: usize) -> Self {
-    let backend = RingBufferBackend::new(Mutex::new(MpscBuffer::new(Some(capacity))));
+    let storage = ArcShared::new(MutexMpscBufferStorage::with_capacity(Some(capacity)));
+    let backend = RingBufferBackend::new(storage);
     Self::from_backend(backend)
   }
 

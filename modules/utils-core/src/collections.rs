@@ -1,5 +1,5 @@
 mod element;
-mod queue;
+pub mod queue;
 mod stack;
 
 pub use element::Element;

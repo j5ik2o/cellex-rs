@@ -21,6 +21,10 @@ mod tests;
 /// * `T` - Element type stored in the stack
 /// * `RM` - Raw mutex type (defaults to `NoopRawMutex`)
 #[derive(Debug)]
+#[deprecated(
+  since = "0.0.1",
+  note = "Use cellex_utils_core_rs::v2::collections::AsyncStack with appropriate mutex policy instead."
+)]
 pub struct ArcStack<T, RM = NoopRawMutex>
 where
   RM: RawMutex, {

@@ -50,7 +50,9 @@
 #![deny(clippy::naive_bytecount)]
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::cmp_null)]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
+#![allow(unknown_lints)]
+#![deny(cfg_std_forbid)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -68,7 +70,6 @@ mod tests;
 ///
 /// Propagates local failure events to remote nodes, enabling cluster-wide sharing of failure
 /// information.
-#[cfg(feature = "std")]
 pub struct ClusterFailureBridge<E>
 where
   E: FailureEventStream, {
@@ -76,7 +77,6 @@ where
   remote_notifier: RemoteFailureNotifier<E>,
 }
 
-#[cfg(feature = "std")]
 impl<E> ClusterFailureBridge<E>
 where
   E: FailureEventStream,

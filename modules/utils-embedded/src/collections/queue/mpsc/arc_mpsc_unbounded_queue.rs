@@ -22,6 +22,10 @@ use crate::sync::{ArcShared, ArcStateCell};
 /// * `E` - Element type stored in the queue
 /// * `RM` - Raw mutex type (defaults to `NoopRawMutex`)
 #[derive(Debug)]
+#[deprecated(
+  since = "0.0.1",
+  note = "Use cellex_utils_core_rs::v2::collections::AsyncQueue with SpinAsyncMutexCritical instead."
+)]
 pub struct ArcMpscUnboundedQueue<E, RM = NoopRawMutex>
 where
   RM: RawMutex, {

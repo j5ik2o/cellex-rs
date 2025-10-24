@@ -10,7 +10,7 @@ use crate::{
   collections::{
     queue::{
       mpsc::{MpscBuffer, MpscHandle, MpscQueue, RingBufferBackend},
-      QueueBase, QueueReader, QueueRw, QueueWriter,
+      traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
     },
     QueueError, QueueSize,
   },

@@ -70,9 +70,9 @@ mod spawn;
 mod timer;
 
 #[cfg(feature = "embedded_arc")]
-pub use arc_mailbox::{ArcMailbox, ArcMailboxRuntime, ArcMailboxSender};
+pub use arc_mailbox::{ArcMailbox, ArcMailboxFactory, ArcMailboxSender};
 #[cfg(feature = "embedded_arc")]
-pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxRuntime, ArcPriorityMailboxSender};
+pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxFactory, ArcPriorityMailboxSender};
 #[cfg(feature = "embedded_arc")]
 pub use cellex_utils_embedded_rs::sync::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
 #[cfg(feature = "embedded_rc")]
@@ -80,9 +80,7 @@ pub use cellex_utils_embedded_rs::sync::{RcShared, RcStateCell};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
 
-pub use local_mailbox::{LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
-#[cfg(feature = "embassy_executor")]
-pub use receive_timeout::EmbassyReceiveTimeoutSchedulerFactory;
+pub use local_mailbox::{LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
 #[cfg(feature = "embassy_executor")]
 pub use scheduler::{embassy_scheduler_builder, EmbassyActorRuntimeExt, EmbassyScheduler};
 pub use spawn::ImmediateSpawner;
@@ -92,12 +90,12 @@ pub use timer::ImmediateTimer;
 pub mod prelude {
   #[cfg(feature = "embedded_arc")]
   pub use super::{
-    ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxRuntime, ArcMailboxSender, ArcPriorityMailbox,
-    ArcPriorityMailboxRuntime, ArcPriorityMailboxSender, ArcShared, ArcStateCell,
+    ArcCsStateCell, ArcLocalStateCell, ArcMailbox, ArcMailboxFactory, ArcMailboxSender, ArcPriorityMailbox,
+    ArcPriorityMailboxFactory, ArcPriorityMailboxSender, ArcShared, ArcStateCell,
   };
   #[cfg(feature = "embassy_executor")]
   pub use super::{EmbassyActorRuntimeExt, EmbassyScheduler};
-  pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailbox, LocalMailboxRuntime, LocalMailboxSender};
+  pub use super::{ImmediateSpawner, ImmediateTimer, LocalMailbox, LocalMailboxFactory, LocalMailboxSender};
   #[cfg(feature = "embedded_rc")]
   pub use super::{RcShared, RcStateCell};
 }
@@ -107,7 +105,7 @@ mod tests;
 
 /// Default actor runtime preset for Embassy-based environments.
 #[cfg(feature = "embassy_executor")]
-pub type EmbassyActorRuntime = cellex_actor_core_rs::GenericActorRuntime<LocalMailboxRuntime>;
+pub type EmbassyActorRuntime = cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime<LocalMailboxFactory>;
 
 /// Builds the default Embassy-oriented actor runtime preset using the provided spawner.
 #[cfg(feature = "embassy_executor")]
@@ -115,5 +113,6 @@ pub type EmbassyActorRuntime = cellex_actor_core_rs::GenericActorRuntime<LocalMa
 pub fn embassy_actor_runtime(spawner: &'static embassy_executor::Spawner) -> EmbassyActorRuntime {
   use scheduler::EmbassyActorRuntimeExt;
 
-  cellex_actor_core_rs::GenericActorRuntime::new(LocalMailboxRuntime::default()).with_embassy_scheduler(spawner)
+  cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime::new(LocalMailboxFactory::default())
+    .with_embassy_scheduler(spawner)
 }

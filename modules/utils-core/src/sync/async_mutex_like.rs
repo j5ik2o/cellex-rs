@@ -1,10 +1,11 @@
-mod spin_async_mutex;
-
 use alloc::boxed::Box;
 use core::ops::{Deref, DerefMut};
 
 use async_trait::async_trait;
+mod spin_async_mutex;
 pub use spin_async_mutex::*;
+
+use crate::v2::sync::SharedError;
 
 /// Async-aware mutex abstraction.
 #[async_trait(?Send)]
@@ -22,7 +23,7 @@ pub trait AsyncMutexLike<T> {
   fn into_inner(self) -> T;
 
   /// Asynchronously locks the mutex and yields a guard to the protected value.
-  async fn lock(&self) -> Self::Guard<'_>;
+  async fn lock(&self) -> Result<Self::Guard<'_>, SharedError>;
 }
 
 /// Convenience alias for guards produced by [`AsyncMutexLike`].

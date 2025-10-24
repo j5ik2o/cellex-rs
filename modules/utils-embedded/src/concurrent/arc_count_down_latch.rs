@@ -1,6 +1,9 @@
 #![allow(clippy::disallowed_types)]
 #![cfg(feature = "arc")]
 
+#[cfg(all(test, feature = "arc"))]
+mod tests;
+
 use alloc::{boxed::Box, sync::Arc};
 
 use async_trait::async_trait;
@@ -79,6 +82,3 @@ pub type ArcLocalCountDownLatch = CoreCountDownLatch<ArcCountDownLatchBackend<Cr
 ///
 /// Uses critical section mutex backend.
 pub type ArcCsCountDownLatch = ArcLocalCountDownLatch;
-
-#[cfg(all(test, feature = "std"))]
-mod tests;

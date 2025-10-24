@@ -101,6 +101,9 @@ pub mod concurrent;
 pub mod sync;
 /// Timer helpers for embedded environments.
 pub mod timing;
+/// v2 abstractions for embedded targets.
+#[cfg(feature = "embassy")]
+pub mod v2;
 
 pub use cellex_utils_core_rs::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,

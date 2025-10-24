@@ -1,0 +1,122 @@
+@startuml scheduler_message_flow
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title ActorScheduler リファクタリング - メッセージフロー（目標アーキテクチャ）
+
+participant Producer
+participant QueueMailbox
+participant ReadyQueueCoordinator
+participant WorkerExecutor
+participant MessageInvoker
+participant ActorCell
+participant Guardian
+participant ObservabilityHub
+
+== メッセージEnqueue ==
+Producer -> QueueMailbox: enqueue(msg)
+activate QueueMailbox
+QueueMailbox -> ObservabilityHub: metric: enqueue_count++
+QueueMailbox -> ReadyQueueCoordinator: notify_ready(idx)\n[via ReadyQueueHook]
+deactivate QueueMailbox
+
+== Ready Queue登録 ==
+activate ReadyQueueCoordinator
+ReadyQueueCoordinator -> ReadyQueueCoordinator: register_ready(idx)
+note right
+  DashSet/Mutex<HashSet>で
+  重複登録を防止
+end note
+ReadyQueueCoordinator -> WorkerExecutor: シグナル送信
+deactivate ReadyQueueCoordinator
+
+== ワーカ駆動 ==
+activate WorkerExecutor
+WorkerExecutor -> ReadyQueueCoordinator: poll_wait_signal(cx)
+ReadyQueueCoordinator --> WorkerExecutor: Poll::Ready(())
+
+WorkerExecutor -> ReadyQueueCoordinator: drain_ready_cycle(max_batch, out)
+activate ReadyQueueCoordinator
+ReadyQueueCoordinator --> WorkerExecutor: Vec<MailboxIndex>
+deactivate ReadyQueueCoordinator
+
+WorkerExecutor -> WorkerExecutor: spawn_invoke_task(idx)
+WorkerExecutor -> MessageInvoker: invoke_batch(throughput_hint)
+deactivate WorkerExecutor
+
+== メッセージ実行 ==
+activate MessageInvoker
+MessageInvoker -> ActorCell: check actor_state()
+ActorCell --> MessageInvoker: ActorState::Running
+
+alt アクターがサスペンド状態
+  MessageInvoker -> ReadyQueueCoordinator: handle_invoke_result(\n  idx,\n  InvokeResult::Suspended\n)
+  activate ReadyQueueCoordinator
+  ReadyQueueCoordinator -> ReadyQueueCoordinator: unregister(idx)
+  deactivate ReadyQueueCoordinator
+  MessageInvoker -> ObservabilityHub: metric: suspend_count++
+
+else 通常処理
+  MessageInvoker -> QueueMailbox: dequeue_batch(max)
+  activate QueueMailbox
+  QueueMailbox --> MessageInvoker: Vec<Envelope>
+  deactivate QueueMailbox
+
+  MessageInvoker -> ObservabilityHub: metric: dequeue_count += n
+
+  loop 各Envelope
+    MessageInvoker -> ActorCell: handle_envelope(env)
+    activate ActorCell
+    alt 正常処理
+      ActorCell --> MessageInvoker: Ok(())
+    else エラー発生
+      ActorCell --> MessageInvoker: Err(ActorError)
+      MessageInvoker -> Guardian: notify_failure(error)
+      activate Guardian
+      Guardian -> Guardian: 戦略判定\n(Restart/Stop/Escalate)
+      Guardian --> MessageInvoker: SupervisionDirective
+      deactivate Guardian
+      MessageInvoker -> ObservabilityHub: metric: failure_count++
+    end
+    deactivate ActorCell
+  end
+
+  alt キュー空
+    MessageInvoker -> ReadyQueueCoordinator: handle_invoke_result(\n  idx,\n  InvokeResult::Completed{\n    ready_hint: false\n  }\n)
+    activate ReadyQueueCoordinator
+    ReadyQueueCoordinator -> ReadyQueueCoordinator: (再登録しない)
+    deactivate ReadyQueueCoordinator
+
+  else メッセージ残存
+    MessageInvoker -> ReadyQueueCoordinator: handle_invoke_result(\n  idx,\n  InvokeResult::Completed{\n    ready_hint: true\n  }\n)
+    activate ReadyQueueCoordinator
+    ReadyQueueCoordinator -> ReadyQueueCoordinator: register_ready(idx)
+    note right
+      未処理メッセージがある場合
+      ready queueに再登録
+    end note
+    deactivate ReadyQueueCoordinator
+  end
+end
+
+MessageInvoker -> ObservabilityHub: metric: invoke_duration_ms
+deactivate MessageInvoker
+
+note over Producer, ObservabilityHub
+  **フェアネス保証**
+  - MessageInvoker は throughput_hint に達したら
+    InvokeResult::Yielded を返して処理を中断
+  - WorkerExecutor は次のインデックスに移行
+
+  **バックプレッシャ**
+  - QueueMailbox が容量上限に達した場合
+    OverflowStrategy に従って処理
+    (DropOldest/BlockProducer/DeadLetter等)
+
+  **優先度制御**
+  - QueueMailbox は system_queue と user_queue を分離
+  - dequeue_batch は system → user の順で取り出し
+end note
+
+@enduml

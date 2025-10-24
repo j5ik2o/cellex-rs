@@ -1,7 +1,11 @@
 //! Tokio Mutex backend implementation.
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::SynchronizedMutexBackend;
+use cellex_utils_core_rs::{
+  sync::{interrupt::NeverInterruptPolicy, InterruptContextPolicy},
+  v2::sync::SharedError,
+  SynchronizedMutexBackend,
+};
 use tokio::sync::{Mutex, MutexGuard};
 
 /// Backend implementation of exclusive control using Tokio Mutex
@@ -42,7 +46,8 @@ where
     Self { inner: Mutex::new(value) }
   }
 
-  async fn lock(&self) -> Self::Guard<'_> {
-    self.inner.lock().await
+  async fn lock(&self) -> Result<Self::Guard<'_>, SharedError> {
+    NeverInterruptPolicy::check_blocking_allowed()?;
+    Ok(self.inner.lock().await)
   }
 }

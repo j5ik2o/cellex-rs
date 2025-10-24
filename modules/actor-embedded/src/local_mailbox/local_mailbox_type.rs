@@ -10,7 +10,7 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
 
 use super::{
-  local_mailbox_runtime::LocalMailboxRuntime, local_mailbox_sender::LocalMailboxSender, local_queue::LocalQueue,
+  local_mailbox_factory::LocalMailboxFactory, local_mailbox_sender::LocalMailboxSender, local_queue::LocalQueue,
   local_signal::LocalSignal,
 };
 
@@ -35,7 +35,7 @@ where
   /// A tuple of (receiver mailbox, sender handle)
   #[must_use]
   pub fn new() -> (Self, LocalMailboxSender<M>) {
-    LocalMailboxRuntime::default().unbounded()
+    LocalMailboxFactory::default().unbounded()
   }
 
   /// Creates a new sender handle.

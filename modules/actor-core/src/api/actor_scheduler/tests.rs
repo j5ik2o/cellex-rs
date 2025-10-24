@@ -1,29 +1,26 @@
-#![cfg(feature = "std")]
 #![allow(deprecated, unused_imports)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::disallowed_types)]
+
+extern crate std;
+
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use core::cell::{Cell, RefCell};
-#[cfg(feature = "std")]
-use std::collections::VecDeque;
-#[cfg(feature = "std")]
-use std::sync::{Arc, Mutex};
+use std::{
+  collections::VecDeque,
+  sync::{Arc, Mutex},
+};
 
 use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, DEFAULT_PRIORITY};
-#[cfg(feature = "std")]
-use futures::executor::block_on;
-#[cfg(feature = "std")]
-use futures::executor::LocalPool;
-#[cfg(feature = "std")]
-use futures::future::{poll_fn, FutureExt};
-#[cfg(feature = "std")]
-use futures::task::LocalSpawnExt;
+use futures::{
+  executor::{block_on, LocalPool},
+  future::{poll_fn, FutureExt},
+  task::LocalSpawnExt,
+};
 use spin::RwLock;
 
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
-#[cfg(feature = "std")]
-use crate::api::supervision::supervisor::SupervisorDirective;
 use crate::{
   api::{
     actor::{
@@ -48,7 +45,7 @@ use crate::{
       pid::{Pid, SystemId},
       process_registry::ProcessRegistry,
     },
-    supervision::supervisor::{NoopSupervisor, Supervisor},
+    supervision::supervisor::{NoopSupervisor, Supervisor, SupervisorDirective},
     test_support::TestMailboxFactory,
   },
   shared::{
@@ -58,12 +55,10 @@ use crate::{
   },
 };
 
-#[cfg(feature = "std")]
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
 struct AlwaysEscalate;
 
-#[cfg(feature = "std")]
 impl<MF> GuardianStrategy<MF> for AlwaysEscalate
 where
   MF: MailboxFactory,
@@ -73,47 +68,39 @@ where
   }
 }
 
-#[cfg(feature = "std")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Message {
   User(u32),
   System(SystemMessage),
 }
 
-#[cfg(feature = "std")]
 fn dyn_user(value: u32) -> AnyMessage {
   AnyMessage::new(MessageEnvelope::<Message>::user(Message::User(value)))
 }
 
-#[cfg(feature = "std")]
 fn dyn_system(message: SystemMessage) -> AnyMessage {
   AnyMessage::new(MessageEnvelope::<Message>::System(message))
 }
 
-#[cfg(feature = "std")]
 #[derive(Clone)]
 struct EventRecordingSink {
   events: Arc<Mutex<Vec<MetricsEvent>>>,
 }
 
-#[cfg(feature = "std")]
 impl EventRecordingSink {
   fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
     Self { events }
   }
 }
 
-#[cfg(feature = "std")]
 impl MetricsSink for EventRecordingSink {
   fn record(&self, event: MetricsEvent) {
     self.events.lock().unwrap().push(event);
   }
 }
 
-#[cfg(feature = "std")]
 type SchedulerTestRuntime<MF> = GenericActorRuntime<MF>;
 
-#[cfg(feature = "std")]
 fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<AnyMessage, MF>>
 where
   M: Element,
@@ -139,7 +126,6 @@ where
   })
 }
 
-#[cfg(feature = "std")]
 fn handler_from_message<MF, F>(mut f: F) -> Box<ActorHandlerFn<AnyMessage, MF>>
 where
   MF: MailboxFactory + Clone + 'static,
@@ -157,7 +143,6 @@ where
   })
 }
 
-#[cfg(feature = "std")]
 fn spawn_with_runtime<MF>(
   scheduler: &mut dyn ActorScheduler<MF>,
   mailbox_factory: MF,
@@ -192,7 +177,6 @@ where
   })
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn scheduler_delivers_watch_before_user_messages() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -218,7 +202,6 @@ fn scheduler_delivers_watch_before_user_messages() {
   assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn scheduler_handle_trait_object_dispatches() {
   use futures::executor::block_on;
@@ -246,7 +229,6 @@ fn scheduler_handle_trait_object_dispatches() {
   assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn scheduler_builder_dispatches() {
   use futures::executor::block_on;
@@ -274,7 +256,6 @@ fn scheduler_builder_dispatches() {
   assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Watch(ActorId::ROOT))]);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn priority_scheduler_emits_actor_lifecycle_metrics() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -321,7 +302,6 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
   }
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn actor_context_exposes_parent_watcher() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -355,7 +335,6 @@ fn actor_context_exposes_parent_watcher() {
   assert_eq!(watchers_log.borrow().as_slice(), &[vec![ActorId::ROOT], vec![ActorId::ROOT]]);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn scheduler_dispatches_high_priority_first() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -407,7 +386,6 @@ fn scheduler_dispatches_high_priority_first() {
   assert_eq!(log.borrow().as_slice(), &[(99, 7), (20, 3), (10, 1), (7, 0)]);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn scheduler_prioritizes_system_messages() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -438,7 +416,6 @@ fn scheduler_prioritizes_system_messages() {
   assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Stop)]);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn priority_actor_ref_sends_system_messages() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -467,7 +444,7 @@ fn priority_actor_ref_sends_system_messages() {
   assert_eq!(log.borrow().as_slice(), &[SystemMessage::Watch(ActorId::ROOT), SystemMessage::Restart]);
 }
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(feature = "unwind-supervision")]
 #[test]
 fn scheduler_notifies_guardian_and_restarts_on_panic() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -513,7 +490,6 @@ fn scheduler_notifies_guardian_and_restarts_on_panic() {
   assert!(!should_panic.get());
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn scheduler_run_until_processes_messages() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -549,7 +525,7 @@ fn scheduler_run_until_processes_messages() {
   assert_eq!(log.borrow().as_slice(), &[Message::User(11)]);
 }
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(feature = "unwind-supervision")]
 #[test]
 fn scheduler_records_escalations() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -597,7 +573,7 @@ fn scheduler_records_escalations() {
   assert!(scheduler.take_escalations().is_empty());
 }
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(feature = "unwind-supervision")]
 #[test]
 fn scheduler_escalation_handler_delivers_to_parent() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -644,7 +620,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
   }
 }
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(feature = "unwind-supervision")]
 #[test]
 fn scheduler_escalation_chain_reaches_root() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -744,7 +720,7 @@ fn scheduler_escalation_chain_reaches_root() {
   assert!(root_stage.hops() >= parent_stage.hops(), "root escalation hop count must be monotonic");
 }
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(feature = "unwind-supervision")]
 #[test]
 fn scheduler_root_escalation_handler_invoked() {
   use std::sync::{Arc as StdArc, Mutex};
@@ -790,7 +766,7 @@ fn scheduler_root_escalation_handler_invoked() {
   assert!(!events[0].description().is_empty());
 }
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(feature = "unwind-supervision")]
 #[test]
 fn scheduler_requeues_failed_custom_escalation() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -848,7 +824,7 @@ fn scheduler_requeues_failed_custom_escalation() {
   assert!(scheduler.take_escalations().is_empty());
 }
 
-#[cfg(all(feature = "std", feature = "unwind-supervision"))]
+#[cfg(all(feature = "unwind-supervision", feature = "test-support"))]
 #[test]
 fn scheduler_root_event_listener_broadcasts() {
   use std::sync::{Arc as StdArc, Mutex};
@@ -901,7 +877,6 @@ fn scheduler_root_event_listener_broadcasts() {
   assert!(!events[0].description().is_empty());
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn drive_ready_queue_worker_processes_actions() {
   use core::{

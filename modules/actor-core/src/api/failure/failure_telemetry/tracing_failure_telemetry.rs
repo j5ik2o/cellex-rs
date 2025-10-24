@@ -1,13 +1,13 @@
-#[cfg(feature = "std")]
+#[cfg(feature = "tracing-support")]
 use crate::api::failure::failure_telemetry::{
   failure_snapshot::FailureSnapshot, failure_telemetry::FailureTelemetry, FailureTelemetryShared,
 };
 
-#[cfg(feature = "std")]
 /// Telemetry implementation that emits tracing events.
+#[cfg(feature = "tracing-support")]
 pub struct TracingFailureTelemetry;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "tracing-support")]
 impl FailureTelemetry for TracingFailureTelemetry {
   fn on_failure(&self, snapshot: &FailureSnapshot) {
     tracing::error!(
@@ -20,8 +20,8 @@ impl FailureTelemetry for TracingFailureTelemetry {
   }
 }
 
-#[cfg(feature = "std")]
 /// Returns a shared handle to the tracing-based telemetry implementation.
+#[cfg(feature = "tracing-support")]
 #[must_use]
 pub fn tracing_failure_telemetry() -> FailureTelemetryShared {
   FailureTelemetryShared::new(TracingFailureTelemetry)

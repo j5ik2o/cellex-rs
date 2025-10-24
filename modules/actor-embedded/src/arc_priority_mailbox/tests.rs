@@ -1,8 +1,11 @@
 #![allow(clippy::disallowed_types)]
 use core::sync::atomic::{AtomicBool, Ordering};
 
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxOptions};
+use cellex_utils_core_rs::{QueueError, QueueRw};
 use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
 use critical_section::{Impl, RawRestoreState};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 
 use super::*;
 
@@ -35,7 +38,7 @@ fn init_critical_section() {
 #[test]
 fn priority_mailbox_orders_messages_by_priority() {
   prepare();
-  let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
+  let factory = ArcPriorityMailboxFactory::<CriticalSectionRawMutex>::default();
   let (mailbox, sender) = factory.mailbox::<u8>(MailboxOptions::default());
 
   sender.try_send_with_priority(10, DEFAULT_PRIORITY).expect("low priority");
@@ -54,7 +57,7 @@ fn priority_mailbox_orders_messages_by_priority() {
 #[test]
 fn priority_mailbox_capacity_split() {
   prepare();
-  let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
+  let factory: ArcPriorityMailboxFactory<CriticalSectionRawMutex> = ArcPriorityMailboxFactory::default();
   let options = MailboxOptions::with_capacities(QueueSize::limited(2), QueueSize::limited(2));
   let (mailbox, sender) = factory.mailbox::<u8>(options);
 
@@ -71,7 +74,7 @@ fn priority_mailbox_capacity_split() {
 #[test]
 fn control_queue_preempts_regular_messages() {
   prepare();
-  let factory = ArcPriorityMailboxRuntime::<CriticalSectionRawMutex>::default();
+  let factory: ArcPriorityMailboxFactory<CriticalSectionRawMutex> = ArcPriorityMailboxFactory::default();
   let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
   sender.try_send_with_priority(1, DEFAULT_PRIORITY).expect("regular message");

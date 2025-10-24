@@ -1,6 +1,4 @@
-use core::marker::PhantomData;
-#[cfg(feature = "std")]
-use std::time::Instant;
+use core::{marker::PhantomData, time::Duration};
 
 use crate::{
   api::{
@@ -128,21 +126,14 @@ where
   /// Always returns `Ok(())`
   fn handle(&mut self, info: FailureInfo, _already_handled: bool) -> Result<(), FailureInfo> {
     let snapshot = FailureSnapshot::from_failure_info(&info);
-    #[cfg(feature = "std")]
-    let start = if self.failure_telemetry_observation_config.should_record_timing()
-      && self.failure_telemetry_observation_config.metrics_sink().is_some()
-    {
-      Some(Instant::now())
-    } else {
-      None
-    };
 
     self.failure_telemetry_shared.with_ref(|telemetry| telemetry.on_failure(&snapshot));
 
-    #[cfg(feature = "std")]
-    let elapsed = start.map(|s| s.elapsed());
-    #[cfg(not(feature = "std"))]
-    let elapsed = None;
+    // Note: Real timing measurement is unavailable in no_std environments.
+    // When timing is requested we still emit a zero-duration event so metrics
+    // sinks observe the invocation latency hook consistently across targets.
+    let elapsed =
+      if self.failure_telemetry_observation_config.should_record_timing() { Some(Duration::ZERO) } else { None };
 
     self.failure_telemetry_observation_config.observe(elapsed);
 

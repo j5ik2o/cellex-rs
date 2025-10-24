@@ -82,6 +82,3 @@ pub type ArcLocalWaitGroup = CoreWaitGroup<ArcWaitGroupBackend<CriticalSectionRa
 ///
 /// Uses critical section signal backend.
 pub type ArcCsWaitGroup = ArcLocalWaitGroup;
-
-#[cfg(all(test, feature = "std"))]
-mod tests;

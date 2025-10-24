@@ -39,20 +39,26 @@ where
 
   /// Acquires a lock and executes the specified function (for reading).
   pub async fn read<R>(&self, f: impl FnOnce(&B::Guard<'_>) -> R) -> R {
-    let guard = self.backend.lock().await;
-    f(&guard)
+    match self.backend.lock().await {
+      | Ok(guard) => f(&guard),
+      | Err(_) => panic!("Synchronized::read requires blocking to be allowed"),
+    }
   }
 
   /// Acquires a lock and executes the specified function (for writing).
   pub async fn write<R>(&self, f: impl FnOnce(&mut B::Guard<'_>) -> R) -> R {
-    let mut guard = self.backend.lock().await;
-    f(&mut guard)
+    match self.backend.lock().await {
+      | Ok(mut guard) => f(&mut guard),
+      | Err(_) => panic!("Synchronized::write requires blocking to be allowed"),
+    }
   }
 
   /// Acquires a lock and returns a guard handle.
   pub async fn lock(&self) -> GuardHandle<B::Guard<'_>> {
-    let guard = self.backend.lock().await;
-    GuardHandle::new(guard)
+    match self.backend.lock().await {
+      | Ok(guard) => GuardHandle::new(guard),
+      | Err(_) => panic!("Synchronized::lock requires blocking to be allowed"),
+    }
   }
 }
 

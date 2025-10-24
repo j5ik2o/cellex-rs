@@ -1,7 +1,5 @@
 #[cfg(feature = "alloc")]
 use core::cell::RefCell;
-#[cfg(all(feature = "alloc", feature = "std"))]
-use std::sync::Mutex;
 
 use crate::collections::stack::buffer::StackBuffer;
 
@@ -22,20 +20,5 @@ impl<T> StackStorage<T> for RefCell<StackBuffer<T>> {
 
   fn with_write<R>(&self, f: impl FnOnce(&mut StackBuffer<T>) -> R) -> R {
     f(&mut self.borrow_mut())
-  }
-}
-
-#[cfg(all(feature = "alloc", feature = "std"))]
-impl<T> StackStorage<T> for Mutex<StackBuffer<T>> {
-  #[allow(clippy::expect_used)]
-  fn with_read<R>(&self, f: impl FnOnce(&StackBuffer<T>) -> R) -> R {
-    let guard = self.lock().expect("mutex poisoned");
-    f(&guard)
-  }
-
-  #[allow(clippy::expect_used)]
-  fn with_write<R>(&self, f: impl FnOnce(&mut StackBuffer<T>) -> R) -> R {
-    let mut guard = self.lock().expect("mutex poisoned");
-    f(&mut guard)
   }
 }

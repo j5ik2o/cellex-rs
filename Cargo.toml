@@ -26,6 +26,7 @@ libraries = [
   { path = "lints/tests-location-lint" },
   { path = "lints/use-placement-lint" },
   { path = "lints/mod-reexport-lint" },
+  { path = "lints/cfg-std-forbid-lint" },
 ]
 
 [workspace.dependencies]
@@ -59,5 +60,5 @@ thiserror = "2.0.17"
 tokio = { version = "1.47.1", default-features = false }
 tokio-condvar = "0.3.0"
 tokio-util = "0.7.16"
-tracing = "0.1.41"
+tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false }

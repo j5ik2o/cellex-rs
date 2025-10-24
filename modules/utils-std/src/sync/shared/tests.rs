@@ -1,9 +1,9 @@
 #![allow(clippy::disallowed_types)]
-use std::sync::Mutex;
 
-use cellex_utils_core_rs::{QueueBase, RingBuffer};
+use cellex_utils_core_rs::QueueBase;
 
 use super::*;
+use crate::collections::queue::MutexRingBufferStorage;
 
 #[test]
 fn arc_shared_try_unwrap_behavior() {
@@ -15,10 +15,10 @@ fn arc_shared_try_unwrap_behavior() {
 
 #[test]
 fn arc_shared_queue_handle_storage_access() {
-  let ring = RingBuffer::<u32>::new(1).with_dynamic(false);
-  let storage = ArcShared::new(Mutex::new(ring));
+  let storage = ArcShared::new(MutexRingBufferStorage::<u32>::with_capacity(1));
   let handle = storage.storage();
-  assert_eq!(handle.lock().unwrap().capacity().to_usize(), 1);
+  handle.with_write(|buffer| buffer.set_dynamic(false));
+  assert_eq!(handle.with_read(|buffer| buffer.capacity().to_usize()), 1);
 }
 
 #[test]

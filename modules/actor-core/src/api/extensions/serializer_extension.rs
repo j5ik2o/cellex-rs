@@ -5,11 +5,11 @@ use cellex_serialization_core_rs::{
   BindingError, InMemorySerializerRegistry, RegistryError, SerializationRouter, Serializer, SerializerId,
   TypeBindingRegistry, TypeKey,
 };
-#[cfg(feature = "std")]
+#[cfg(feature = "json")]
 use cellex_serialization_json_rs::{shared_json_serializer, JsonTypeKey, SERDE_JSON_SERIALIZER_ID};
 #[cfg(feature = "postcard")]
 use cellex_serialization_postcard_rs::{shared_postcard_serializer, PostcardTypeKey, POSTCARD_SERIALIZER_ID};
-#[cfg(feature = "std")]
+#[cfg(feature = "prost")]
 use cellex_serialization_prost_rs::{shared_prost_serializer, ProstTypeKey, PROST_SERIALIZER_ID};
 use cellex_utils_core_rs::ArcShared;
 use portable_atomic::AtomicI32;
@@ -65,12 +65,15 @@ impl SerializerRegistryExtension {
   }
 
   fn install_builtin_serializers(&self) {
-    #[cfg(feature = "std")]
+    #[cfg(feature = "json")]
     {
       if self.registry.get(SERDE_JSON_SERIALIZER_ID).is_none() {
         let serializer = shared_json_serializer();
         let _ = self.registry.register(serializer);
       }
+    }
+    #[cfg(feature = "prost")]
+    {
       if self.registry.get(PROST_SERIALIZER_ID).is_none() {
         let serializer = shared_prost_serializer();
         let _ = self.registry.register(serializer);
@@ -86,9 +89,12 @@ impl SerializerRegistryExtension {
   }
 
   fn install_default_bindings(&self) {
-    #[cfg(feature = "std")]
+    #[cfg(feature = "json")]
     {
       let _ = self.bind_type::<JsonTypeKey>(SERDE_JSON_SERIALIZER_ID);
+    }
+    #[cfg(feature = "prost")]
+    {
       let _ = self.bind_type::<ProstTypeKey>(PROST_SERIALIZER_ID);
     }
     #[cfg(feature = "postcard")]

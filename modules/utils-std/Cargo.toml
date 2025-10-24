@@ -11,7 +11,7 @@ repository = "https://github.com/j5ik2o/cellex-rs"
 
 [dependencies]
 async-trait = { workspace = true }
-cellex-utils-core-rs = { path = "../utils-core", features = ["std"] }
+cellex-utils-core-rs = { path = "../utils-core" }
 futures = { workspace = true }
 parking_lot = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "sync", "time", "signal"] }

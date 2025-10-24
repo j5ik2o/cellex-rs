@@ -18,5 +18,4 @@ impl fmt::Display for DeadlineTimerError {
   }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for DeadlineTimerError {}
+impl core::error::Error for DeadlineTimerError {}

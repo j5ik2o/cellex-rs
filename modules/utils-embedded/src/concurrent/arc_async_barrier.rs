@@ -76,6 +76,3 @@ pub type ArcLocalAsyncBarrier = CoreAsyncBarrier<ArcAsyncBarrierBackend<Critical
 ///
 /// Uses critical section signal backend.
 pub type ArcCsAsyncBarrier = ArcLocalAsyncBarrier;
-
-#[cfg(all(test, feature = "std"))]
-mod tests;

@@ -1,17 +1,23 @@
 #![allow(clippy::disallowed_types)]
 #![cfg(feature = "arc")]
 
-use alloc::{boxed::Box, sync::Arc};
+mod arc_rw_lock_backend;
+#[cfg(all(test, feature = "arc"))]
+mod tests;
 
+use alloc::{boxed::Box, sync::Arc};
+use core::marker::PhantomData;
+
+pub use arc_rw_lock_backend::{ArcCsSynchronizedRw, ArcLocalSynchronizedRw, ArcRwLockBackend, ArcSynchronizedRw};
 use async_trait::async_trait;
 use cellex_utils_core_rs::{
-  Synchronized as CoreSynchronized, SynchronizedMutexBackend, SynchronizedRw as CoreSynchronizedRw,
-  SynchronizedRwBackend,
+  sync::interrupt::{CriticalSectionInterruptPolicy, InterruptContextPolicy, NeverInterruptPolicy},
+  v2::sync::SharedError,
+  Synchronized as CoreSynchronized, SynchronizedMutexBackend,
 };
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   mutex::{Mutex, MutexGuard},
-  rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 /// Backend implementation for mutex-based synchronization using `Arc`
@@ -24,17 +30,20 @@ use embassy_sync::{
 /// * `RM` - Raw mutex type from embassy-sync
 /// * `T` - The value type being synchronized
 #[derive(Clone, Debug)]
-pub struct ArcMutexBackend<RM, T>
+pub struct ArcMutexBackend<RM, T, P = NeverInterruptPolicy>
 where
-  RM: RawMutex, {
-  inner: Arc<Mutex<RM, T>>,
+  RM: RawMutex,
+  P: InterruptContextPolicy, {
+  inner:   Arc<Mutex<RM, T>>,
+  _policy: PhantomData<P>,
 }
 
 #[async_trait(?Send)]
-impl<RM, T> SynchronizedMutexBackend<T> for ArcMutexBackend<RM, T>
+impl<RM, T, P> SynchronizedMutexBackend<T> for ArcMutexBackend<RM, T, P>
 where
   RM: RawMutex,
   T: Send,
+  P: InterruptContextPolicy + Send + Sync,
 {
   type Guard<'a>
     = MutexGuard<'a, RM, T>
@@ -44,89 +53,27 @@ where
   fn new(value: T) -> Self
   where
     T: Sized, {
-    Self { inner: Arc::new(Mutex::new(value)) }
+    Self { inner: Arc::new(Mutex::new(value)), _policy: PhantomData }
   }
 
-  async fn lock(&self) -> Self::Guard<'_> {
-    self.inner.lock().await
-  }
-}
-
-/// Backend implementation for read-write lock synchronization using `Arc`
-///
-/// Provides concurrent read access with exclusive write access using embassy-sync's
-/// `RwLock` with `Arc` for thread-safe reference counting.
-///
-/// # Type Parameters
-///
-/// * `RM` - Raw mutex type from embassy-sync
-/// * `T` - The value type being synchronized
-#[derive(Clone, Debug)]
-pub struct ArcRwLockBackend<RM, T>
-where
-  RM: RawMutex, {
-  inner: Arc<RwLock<RM, T>>,
-}
-
-#[async_trait(?Send)]
-impl<RM, T> SynchronizedRwBackend<T> for ArcRwLockBackend<RM, T>
-where
-  RM: RawMutex,
-  T: Send,
-{
-  type ReadGuard<'a>
-    = RwLockReadGuard<'a, RM, T>
-  where
-    Self: 'a;
-  type WriteGuard<'a>
-    = RwLockWriteGuard<'a, RM, T>
-  where
-    Self: 'a;
-
-  fn new(value: T) -> Self
-  where
-    T: Sized, {
-    Self { inner: Arc::new(RwLock::new(value)) }
-  }
-
-  async fn read(&self) -> Self::ReadGuard<'_> {
-    self.inner.read().await
-  }
-
-  async fn write(&self) -> Self::WriteGuard<'_> {
-    self.inner.write().await
+  async fn lock(&self) -> Result<Self::Guard<'_>, SharedError> {
+    P::check_blocking_allowed()?;
+    Ok(self.inner.lock().await)
   }
 }
 
 /// Type alias for `Arc`-based mutex synchronization
 ///
 /// Provides exclusive-access synchronization with configurable mutex backend.
-pub type ArcSynchronized<T, RM> = CoreSynchronized<ArcMutexBackend<RM, T>, T>;
-
-/// Type alias for `Arc`-based read-write lock synchronization
-///
-/// Provides concurrent reads with exclusive writes using configurable mutex backend.
-pub type ArcSynchronizedRw<T, RM> = CoreSynchronizedRw<ArcRwLockBackend<RM, T>, T>;
+pub type ArcSynchronized<T, RM> = CoreSynchronized<ArcMutexBackend<RM, T, NeverInterruptPolicy>, T>;
 
 /// Type alias for `ArcSynchronized` using `CriticalSectionRawMutex`
 ///
 /// Provides interrupt-safe critical section protection for embedded contexts.
-pub type ArcLocalSynchronized<T> = ArcSynchronized<T, CriticalSectionRawMutex>;
-
-/// Type alias for `ArcSynchronizedRw` using `CriticalSectionRawMutex`
-///
-/// Provides interrupt-safe read-write lock for embedded contexts.
-pub type ArcLocalSynchronizedRw<T> = ArcSynchronizedRw<T, CriticalSectionRawMutex>;
+pub type ArcLocalSynchronized<T> =
+  CoreSynchronized<ArcMutexBackend<CriticalSectionRawMutex, T, CriticalSectionInterruptPolicy>, T>;
 
 /// Alias for `ArcLocalSynchronized` for consistency
 ///
 /// Uses critical section mutex backend.
 pub type ArcCsSynchronized<T> = ArcLocalSynchronized<T>;
-
-/// Alias for `ArcLocalSynchronizedRw` for consistency
-///
-/// Uses critical section rwlock backend.
-pub type ArcCsSynchronizedRw<T> = ArcLocalSynchronizedRw<T>;
-
-#[cfg(all(test, feature = "std"))]
-mod tests;

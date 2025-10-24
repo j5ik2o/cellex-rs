@@ -47,6 +47,8 @@
 #![deny(clippy::naive_bytecount)]
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::cmp_null)]
+#![allow(unknown_lints)]
+#![allow(cfg_std_forbid)]
 
 //! Utilities for std runtime.
 //!
@@ -63,7 +65,10 @@ pub mod concurrent;
 pub mod sync;
 /// Tokio-specific timing utilities.
 pub mod timing;
+/// Adaptors exposing v2 abstractions with std backends.
+pub mod v2;
 
+#[allow(deprecated)]
 pub use cellex_utils_core_rs::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
   MpscHandle, PriorityMessage, QueueBase, QueueError, QueueHandle, QueueReader, QueueRw, QueueRwHandle, QueueSize,
@@ -71,9 +76,11 @@ pub use cellex_utils_core_rs::{
   Stack, StackBackend, StackHandle, StackStorage, StackStorageBackend, StateCell, TimerDeadline, DEFAULT_CAPACITY,
   DEFAULT_PRIORITY, PRIORITY_LEVELS,
 };
+pub use v2::collections::{SyncStdFifoQueue, SyncStdMpscQueue, SyncStdSpscQueue, SyncStdVecStack};
 
 /// Prelude module that re-exports commonly used types and traits.
 pub mod prelude {
+  #[allow(deprecated)]
   pub use cellex_utils_core_rs::{
     DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
     MpscHandle, PriorityMessage, QueueBase, QueueError, QueueReader, QueueRw, QueueRwHandle, QueueSize, QueueStorage,
@@ -82,6 +89,7 @@ pub mod prelude {
     PRIORITY_LEVELS,
   };
 
+  #[allow(deprecated)]
   pub use crate::{
     collections::{
       queue::{

@@ -2,12 +2,13 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::panic)]
-#![cfg(feature = "std")]
+
+extern crate std;
+
 use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
 use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared, DEFAULT_PRIORITY};
-#[cfg(feature = "std")]
 use futures::executor::block_on;
 use spin::RwLock;
 
@@ -33,14 +34,12 @@ use crate::{
   },
 };
 
-#[cfg(feature = "std")]
 #[derive(Debug, Clone)]
 enum Message {
   User(u32),
   System,
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn actor_system_spawns_and_processes_messages() {
   let mailbox_factory = TestMailboxFactory::unbounded();
@@ -73,7 +72,6 @@ fn actor_system_spawns_and_processes_messages() {
   assert_eq!(log.borrow().as_slice(), &[7]);
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn process_registry_registers_and_deregisters_actor() {
   #[derive(Debug, Clone)]
@@ -128,7 +126,6 @@ fn process_registry_registers_and_deregisters_actor() {
   assert!(matches!(resolution_after, ProcessResolution::Unresolved));
 }
 
-#[cfg(feature = "std")]
 #[test]
 fn responder_pid_allows_response_delivery() {
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;

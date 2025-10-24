@@ -13,7 +13,6 @@ repository = "https://github.com/j5ik2o/cellex-rs"
 default = ["rc"]
 rc = ["dep:embassy-sync"]
 arc = ["dep:embassy-sync", "dep:critical-section"]
-std = []
 embassy = ["arc", "dep:embassy-time", "dep:embassy-futures"]
 
 [dependencies]
@@ -22,7 +21,7 @@ embassy-sync = { workspace = true, default-features = false, optional = true }
 embassy-time = { workspace = true, default-features = false, optional = true }
 critical-section = { workspace = true, optional = true }
 embassy-futures = { workspace = true, default-features = false, optional = true }
-cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
+cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc", "interrupt-cortex-m"] }
 
 [dev-dependencies]
 static_assertions = { workspace = true }

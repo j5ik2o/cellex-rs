@@ -1,0 +1,408 @@
+@startuml scheduler_backpressure_flow
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title ActorScheduler リファクタリング - バックプレッシャフロー詳細
+
+participant Producer
+participant QueueMailbox
+participant ReadyQueueCoordinator
+participant WorkerExecutor
+participant MessageInvoker
+participant ActorCell
+participant Guardian
+participant DeadLetterQueue
+participant ObservabilityHub
+
+== メッセージEnqueue（容量上限到達） ==
+Producer -> QueueMailbox: enqueue(msg)
+activate QueueMailbox
+
+QueueMailbox -> QueueMailbox: check_capacity()
+note right
+  capacity = 1000
+  current = 990
+  reserve_for_system = 10
+
+  user_available = capacity - current - reserve_for_system
+  → user_available = 0 (満杯)
+end note
+
+alt System Message
+  QueueMailbox -> QueueMailbox: system_queue.push_back(msg)
+  note right
+    システムメッセージは
+    reserve_for_system 枠を使用
+    常に受け入れる
+  end note
+  QueueMailbox -> ReadyQueueCoordinator: notify_ready(idx)
+  QueueMailbox -> ObservabilityHub: metric: system_enqueue_count++
+
+else User Message + OverflowStrategy::DropOldest
+  QueueMailbox -> QueueMailbox: user_queue.pop_front()
+  note right
+    最古のメッセージを削除
+  end note
+  QueueMailbox -> DeadLetterQueue: send(dropped_msg)
+  QueueMailbox -> QueueMailbox: user_queue.push_back(msg)
+  QueueMailbox -> ObservabilityHub: metric: dropped_oldest_count++
+  QueueMailbox -> ReadyQueueCoordinator: notify_ready(idx)
+
+else User Message + OverflowStrategy::DropNewest
+  QueueMailbox -> DeadLetterQueue: send(msg)
+  QueueMailbox -> ObservabilityHub: metric: dropped_newest_count++
+  QueueMailbox --> Producer: Err(MailboxFull)
+  note left
+    新しいメッセージを拒否
+  end note
+
+else User Message + OverflowStrategy::BlockProducer
+  QueueMailbox -> QueueMailbox: wait_for_capacity(timeout)
+  note right
+    容量空きまで非同期待機
+    (async_notify で通知)
+  end note
+
+  alt タイムアウト前に容量確保
+    QueueMailbox -> QueueMailbox: user_queue.push_back(msg)
+    QueueMailbox -> ReadyQueueCoordinator: notify_ready(idx)
+    QueueMailbox -> ObservabilityHub: metric: blocked_producer_count++
+  else タイムアウト
+    QueueMailbox --> Producer: Err(EnqueueTimeout)
+    QueueMailbox -> ObservabilityHub: metric: timeout_count++
+  end
+
+else User Message + OverflowStrategy::Reject
+  QueueMailbox --> Producer: Err(MailboxFull)
+  QueueMailbox -> ObservabilityHub: metric: rejected_count++
+
+else User Message + OverflowStrategy::DeadLetter
+  QueueMailbox -> DeadLetterQueue: send(msg)
+  QueueMailbox -> ObservabilityHub: metric: dead_letter_count++
+  QueueMailbox --> Producer: Ok(()) but sent to DLQ
+end
+
+deactivate QueueMailbox
+
+== バックプレッシャ検出と Suspend ==
+WorkerExecutor -> MessageInvoker: invoke_batch(throughput_hint)
+activate MessageInvoker
+
+MessageInvoker -> ActorCell: check actor_state()
+ActorCell --> MessageInvoker: ActorState::Running
+
+MessageInvoker -> QueueMailbox: check_backpressure()
+activate QueueMailbox
+QueueMailbox -> QueueMailbox: calc usage ratio
+note right
+  current = 950
+  capacity = 1000
+  usage_ratio = 0.95
+
+  backpressure_threshold = 0.9
+  → バックプレッシャ検出
+end note
+QueueMailbox --> MessageInvoker: BackpressureDetected { usage: 0.95 }
+deactivate QueueMailbox
+
+MessageInvoker -> ActorCell: set_state(ActorState::Suspended)
+activate ActorCell
+ActorCell -> ActorCell: state = Suspended
+ActorCell -> ActorCell: suspend_reason = Backpressure
+ActorCell -> ActorCell: resume_on = WhenCapacityAvailable
+deactivate ActorCell
+
+MessageInvoker -> ReadyQueueCoordinator: handle_invoke_result(\n  idx,\n  InvokeResult::Suspended {\n    reason: SuspendReason::Backpressure,\n    resume_on: ResumeCondition::WhenCapacityAvailable\n  }\n)
+activate ReadyQueueCoordinator
+ReadyQueueCoordinator -> ReadyQueueCoordinator: unregister(idx)
+note right
+  ready queue から除外
+  Resume 通知まで処理しない
+end note
+deactivate ReadyQueueCoordinator
+
+MessageInvoker -> ObservabilityHub: metric: suspend_backpressure_count++
+deactivate MessageInvoker
+
+== 容量回復と Resume ==
+loop メッセージ処理により容量削減
+  MessageInvoker -> QueueMailbox: dequeue_batch(max)
+  activate QueueMailbox
+  QueueMailbox -> QueueMailbox: check_capacity_available()
+  note right
+    current = 850 (処理により削減)
+    capacity = 1000
+    usage_ratio = 0.85
+
+    resume_threshold = 0.7
+    → 容量回復を検出
+  end note
+  QueueMailbox -> QueueMailbox: notify_capacity_watchers()
+  deactivate QueueMailbox
+end
+
+QueueMailbox -> ActorCell: notify_capacity_available()
+activate ActorCell
+ActorCell -> ActorCell: check resume_on
+alt resume_on == WhenCapacityAvailable
+  ActorCell -> ActorCell: set_state(ActorState::Running)
+  ActorCell -> QueueMailbox: registry.notify_resume(idx)
+  activate QueueMailbox
+  QueueMailbox -> ReadyQueueCoordinator: register_ready(idx)
+  activate ReadyQueueCoordinator
+  ReadyQueueCoordinator -> ReadyQueueCoordinator: register_ready(idx)
+  note right
+    ready queue に再登録
+  end note
+  deactivate ReadyQueueCoordinator
+  deactivate QueueMailbox
+  ActorCell -> ObservabilityHub: metric: resume_from_backpressure_count++
+end
+deactivate ActorCell
+
+note over Producer, ObservabilityHub
+  **バックプレッシャ検出しきい値**
+  - suspend_threshold: 0.9 (90% 使用率でサスペンド)
+  - resume_threshold: 0.7 (70% まで下がったら再開)
+  - ヒステリシスにより頻繁な suspend/resume を防止
+
+  **OverflowStrategy 選択基準**
+  - DropOldest: ログ、メトリクスなど順序が重要でないもの
+  - DropNewest: 最新情報のみ必要な場合
+  - BlockProducer: リクエスト/レスポンスなど全メッセージが重要
+  - Reject: 高速失敗が望ましい場合
+  - DeadLetter: 後で再処理が必要な場合
+
+  **監視メトリクス**
+  - backpressure_suspend_count: バックプレッシャによるサスペンド回数
+  - capacity_usage_ratio: 現在の容量使用率
+  - overflow_strategy_triggered: 戦略発動回数（戦略別）
+  - resume_latency: サスペンドから再開までの時間
+end note
+
+@enduml
+
+@startuml scheduler_middleware_flow
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title ActorScheduler リファクタリング - ミドルウェアチェインフロー詳細
+
+participant WorkerExecutor
+participant MessageInvoker
+participant CompositeMiddleware
+participant TelemetryMiddleware
+participant LoggingMiddleware
+participant RateLimitMiddleware
+participant QueueMailbox
+participant ActorCell
+participant ObservabilityHub
+
+== Invoker 実行開始 ==
+WorkerExecutor -> MessageInvoker: invoke_batch(throughput_hint)
+activate MessageInvoker
+
+MessageInvoker -> MessageInvoker: create InvokeContext
+note right
+  InvokeContext {
+    idx: MailboxIndex,
+    throughput_hint: usize,
+    start_time: Instant,
+    metadata: HashMap<String, Value>
+  }
+end note
+
+== before_invoke ミドルウェアチェイン（順方向） ==
+MessageInvoker -> CompositeMiddleware: before_invoke(ctx)
+activate CompositeMiddleware
+
+CompositeMiddleware -> TelemetryMiddleware: before_invoke(ctx)
+activate TelemetryMiddleware
+TelemetryMiddleware -> TelemetryMiddleware: record start_time
+TelemetryMiddleware -> ObservabilityHub: span: invoke_start
+TelemetryMiddleware --> CompositeMiddleware: Continue(())
+deactivate TelemetryMiddleware
+
+CompositeMiddleware -> LoggingMiddleware: before_invoke(ctx)
+activate LoggingMiddleware
+LoggingMiddleware -> LoggingMiddleware: log "Invoking mailbox {idx}"
+LoggingMiddleware -> LoggingMiddleware: ctx.metadata["log_id"] = uuid
+LoggingMiddleware --> CompositeMiddleware: Continue(())
+deactivate LoggingMiddleware
+
+CompositeMiddleware -> RateLimitMiddleware: before_invoke(ctx)
+activate RateLimitMiddleware
+RateLimitMiddleware -> RateLimitMiddleware: check_rate_limit()
+note right
+  token_bucket.try_acquire()
+
+  current_tokens = 5
+  required = 1
+  → OK
+end note
+
+alt レート制限超過
+  RateLimitMiddleware -> RateLimitMiddleware: calc next_available_at
+  note right
+    next_available = now + 100ms
+  end note
+  RateLimitMiddleware -> ObservabilityHub: metric: rate_limit_triggered++
+  RateLimitMiddleware --> CompositeMiddleware: Break(()) ← 処理を保留
+
+  CompositeMiddleware --> MessageInvoker: ControlFlow::Break(())
+
+  MessageInvoker -> MessageInvoker: create suspend result
+  note right
+    InvokeResult::Suspended {
+      reason: RateLimit,
+      resume_on: After(100ms)
+    }
+  end note
+
+  MessageInvoker -> CompositeMiddleware: after_invoke(ctx, result)\n[スキップされない]
+  note left
+    Break でも after_invoke は実行
+    リソース解放のため
+  end note
+
+else レート制限OK
+  RateLimitMiddleware -> RateLimitMiddleware: consume token
+  RateLimitMiddleware --> CompositeMiddleware: Continue(())
+  deactivate RateLimitMiddleware
+
+  CompositeMiddleware --> MessageInvoker: ControlFlow::Continue(())
+  deactivate CompositeMiddleware
+
+  == メッセージ処理 ==
+  MessageInvoker -> ActorCell: check actor_state()
+  ActorCell --> MessageInvoker: ActorState::Running
+
+  MessageInvoker -> QueueMailbox: dequeue_batch(throughput_hint)
+  activate QueueMailbox
+  QueueMailbox --> MessageInvoker: Vec<Envelope>
+  deactivate QueueMailbox
+
+  loop 各Envelope（throughput_hint まで）
+    MessageInvoker -> ActorCell: handle_envelope(env)
+    activate ActorCell
+
+    alt 正常処理
+      ActorCell --> MessageInvoker: Ok(())
+    else エラー発生
+      ActorCell --> MessageInvoker: Err(ActorError)
+      MessageInvoker -> MessageInvoker: record error in ctx.metadata
+    end
+    deactivate ActorCell
+
+    MessageInvoker -> MessageInvoker: check throughput_hint
+    alt 処理件数 >= throughput_hint
+      MessageInvoker -> MessageInvoker: break loop (yield)
+      note right
+        フェアネス保証のため
+        InvokeResult::Yielded を返す
+      end note
+    end
+  end
+
+  MessageInvoker -> MessageInvoker: create result
+  note right
+    InvokeResult::Completed {
+      ready_hint: has_more_messages
+    }
+  end note
+
+  == after_invoke ミドルウェアチェイン（逆方向） ==
+  MessageInvoker -> CompositeMiddleware: after_invoke(ctx, result)
+  activate CompositeMiddleware
+
+  note over CompositeMiddleware
+    **逆順実行でリソース解放順序を制御**
+    before: [Telemetry, Logging, RateLimit]
+    after:  [RateLimit, Logging, Telemetry]
+  end note
+
+  CompositeMiddleware -> RateLimitMiddleware: after_invoke(ctx, result)
+  activate RateLimitMiddleware
+  RateLimitMiddleware -> RateLimitMiddleware: update metrics
+  RateLimitMiddleware -> ObservabilityHub: metric: tokens_consumed
+  deactivate RateLimitMiddleware
+
+  CompositeMiddleware -> LoggingMiddleware: after_invoke(ctx, result)
+  activate LoggingMiddleware
+  LoggingMiddleware -> LoggingMiddleware: log result
+  note right
+    log "Completed mailbox {idx}: {:?}" result
+    log_id = ctx.metadata["log_id"]
+  end note
+  deactivate LoggingMiddleware
+
+  CompositeMiddleware -> TelemetryMiddleware: after_invoke(ctx, result)
+  activate TelemetryMiddleware
+  TelemetryMiddleware -> TelemetryMiddleware: calc duration
+  note right
+    duration = Instant::now() - start_time
+  end note
+  TelemetryMiddleware -> ObservabilityHub: metric: invoke_duration_ms
+  TelemetryMiddleware -> ObservabilityHub: span: invoke_end
+  alt InvokeResult::Failed
+    TelemetryMiddleware -> ObservabilityHub: metric: invoke_error_count++
+  end
+  deactivate TelemetryMiddleware
+
+  deactivate CompositeMiddleware
+end
+
+MessageInvoker --> WorkerExecutor: InvokeResult
+deactivate MessageInvoker
+
+note over WorkerExecutor, ObservabilityHub
+  **ミドルウェア設計原則**
+  - before_invoke: 順方向実行（外→内）
+  - after_invoke: 逆方向実行（内→外）
+  - リソース取得/解放の対称性を保証
+
+  **ControlFlow 制御**
+  - Continue(()): 次のミドルウェアへ進む
+  - Break(()): チェインを中断、処理を保留
+  - Break でも after_invoke は実行される（リソース解放）
+
+  **CompositeMiddleware 実装**
+  ```rust
+  impl MiddlewareChain for CompositeMiddleware {
+    fn before_invoke(&mut self, ctx: &InvokeContext)
+      -> ControlFlow<(), ()> {
+      for mw in &mut self.middlewares {
+        match mw.before_invoke(ctx) {
+          ControlFlow::Continue(_) => continue,
+          ControlFlow::Break(_) => return ControlFlow::Break(()),
+        }
+      }
+      ControlFlow::Continue(())
+    }
+
+    fn after_invoke(&mut self, ctx: &InvokeContext,
+                    result: &InvokeResult) {
+      // 逆順で実行
+      for mw in self.middlewares.iter_mut().rev() {
+        mw.after_invoke(ctx, result);
+      }
+    }
+  }
+  ```
+
+  **標準ミドルウェア（Phase 2B で実装）**
+  - TelemetryMiddleware: OpenTelemetry span/metrics
+  - LoggingMiddleware: 構造化ログ（tracing）
+  - RateLimitMiddleware: トークンバケット制御
+  - TimeoutMiddleware: 実行時間制限
+  - CircuitBreakerMiddleware: サーキットブレーカー
+  - RetryMiddleware: 指数バックオフリトライ
+
+  **カスタムミドルウェア作成**
+  ユーザーは `MiddlewareChain` トレイトを実装して
+  独自のミドルウェアを追加可能（Phase 3 以降）
+end note
+
+@enduml

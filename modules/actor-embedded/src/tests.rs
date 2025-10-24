@@ -18,7 +18,7 @@ use cellex_actor_core_rs::api::{
 };
 use futures::task::{waker, ArcWake};
 
-use super::LocalMailboxRuntime;
+use super::LocalMailboxFactory;
 
 type TestResult<T = ()> = Result<T, String>;
 
@@ -57,7 +57,7 @@ fn block_on<F: Future>(mut future: F) -> F::Output {
 
 #[test]
 fn typed_actor_system_dispatch_next_processes_message() -> TestResult {
-  let mailbox_factory = LocalMailboxRuntime::default();
+  let mailbox_factory = LocalMailboxFactory::default();
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
   let mut system: GenericActorSystem<u32, _> =
     GenericActorSystem::new_with_actor_runtime(actor_runtime, GenericActorSystemConfig::default());
