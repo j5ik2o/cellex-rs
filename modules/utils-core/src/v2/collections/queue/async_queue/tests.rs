@@ -14,19 +14,23 @@ use crate::{
   },
 };
 
-fn block_on<F: Future>(mut future: F) -> F::Output {
-  fn raw_waker() -> RawWaker {
-    fn clone(_: *const ()) -> RawWaker {
-      raw_waker()
-    }
-    fn wake(_: *const ()) {}
-    fn wake_by_ref(_: *const ()) {}
-    fn drop(_: *const ()) {}
-    static VTABLE: RawWakerVTable = RawWakerVTable::new(clone, wake, wake_by_ref, drop);
-    RawWaker::new(ptr::null(), &VTABLE)
+fn raw_waker() -> RawWaker {
+  fn clone(_: *const ()) -> RawWaker {
+    raw_waker()
   }
+  fn wake(_: *const ()) {}
+  fn wake_by_ref(_: *const ()) {}
+  fn drop(_: *const ()) {}
+  static VTABLE: RawWakerVTable = RawWakerVTable::new(clone, wake, wake_by_ref, drop);
+  RawWaker::new(ptr::null(), &VTABLE)
+}
 
-  let waker = unsafe { Waker::from_raw(raw_waker()) };
+fn noop_waker() -> Waker {
+  unsafe { Waker::from_raw(raw_waker()) }
+}
+
+fn block_on<F: Future>(mut future: F) -> F::Output {
+  let waker = noop_waker();
   let mut future = unsafe { Pin::new_unchecked(&mut future) };
   let mut context = Context::from_waker(&waker);
 
@@ -79,4 +83,60 @@ fn close_prevents_further_operations() {
   assert_eq!(block_on(queue.poll()), Ok(1));
   assert_eq!(block_on(queue.poll()), Err(QueueError::Closed));
   assert_eq!(block_on(queue.offer(2)), Err(QueueError::Closed));
+}
+
+#[test]
+fn offer_blocks_until_space_available() {
+  let shared = make_shared_queue(1, OverflowPolicy::Block);
+  let queue: AsyncSpscQueue<i32, _, _> = AsyncQueue::new_spsc(shared);
+
+  assert!(matches!(block_on(queue.offer(1)), Ok(OfferOutcome::Enqueued)));
+
+  let mut offer_future = queue.offer(2);
+  let mut offer_future = unsafe { Pin::new_unchecked(&mut offer_future) };
+
+  let waker = noop_waker();
+  let mut context = Context::from_waker(&waker);
+
+  assert!(matches!(offer_future.as_mut().poll(&mut context), Poll::Pending));
+
+  assert_eq!(block_on(queue.poll()), Ok(1));
+
+  assert!(matches!(offer_future.as_mut().poll(&mut context), Poll::Ready(Ok(OfferOutcome::Enqueued))));
+}
+
+#[test]
+fn poll_blocks_until_item_available() {
+  let shared = make_shared_queue(1, OverflowPolicy::Block);
+  let queue: AsyncSpscQueue<i32, _, _> = AsyncQueue::new_spsc(shared);
+
+  let mut poll_future = queue.poll();
+  let mut poll_future = unsafe { Pin::new_unchecked(&mut poll_future) };
+
+  let waker = noop_waker();
+  let mut context = Context::from_waker(&waker);
+
+  assert!(matches!(poll_future.as_mut().poll(&mut context), Poll::Pending));
+
+  assert!(matches!(block_on(queue.offer(7)), Ok(OfferOutcome::Enqueued)));
+
+  assert_eq!(poll_future.as_mut().poll(&mut context), Poll::Ready(Ok(7)));
+}
+
+#[test]
+fn close_wakes_waiting_consumer() {
+  let shared = make_shared_queue(1, OverflowPolicy::Block);
+  let queue: AsyncSpscQueue<i32, _, _> = AsyncQueue::new_spsc(shared);
+
+  let mut poll_future = queue.poll();
+  let mut poll_future = unsafe { Pin::new_unchecked(&mut poll_future) };
+
+  let waker = noop_waker();
+  let mut context = Context::from_waker(&waker);
+
+  assert!(matches!(poll_future.as_mut().poll(&mut context), Poll::Pending));
+
+  assert!(block_on(queue.close()).is_ok());
+
+  assert_eq!(poll_future.as_mut().poll(&mut context), Poll::Ready(Err(QueueError::Closed)));
 }

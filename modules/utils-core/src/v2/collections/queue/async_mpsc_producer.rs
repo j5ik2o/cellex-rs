@@ -1,5 +1,6 @@
 use core::marker::PhantomData;
 
+use super::async_queue::offer_shared;
 use crate::{
   sync::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
@@ -29,8 +30,7 @@ where
 
   /// Offers an element to the queue using the underlying backend.
   pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
-    let mut guard = self.inner.lock().await;
-    guard.offer(item).await
+    offer_shared::<T, B, A>(&self.inner, item).await
   }
 
   /// Provides access to the shared backend.

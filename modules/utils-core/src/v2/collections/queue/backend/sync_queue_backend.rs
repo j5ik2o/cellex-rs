@@ -30,6 +30,14 @@ pub trait SyncQueueBackend<T> {
     self.len() == self.capacity()
   }
 
+  /// Returns the overflow policy currently configured for the backend.
+  fn overflow_policy(&self) -> OverflowPolicy;
+
+  /// Indicates whether the backend has been closed.
+  fn is_closed(&self) -> bool {
+    false
+  }
+
   /// Closes the backend, preventing further offers while allowing in-flight polls to complete.
   fn close(&mut self) {}
 }

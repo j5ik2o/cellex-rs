@@ -11,6 +11,71 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
+pub(super) async fn push_shared<T, B, A>(shared: &ArcShared<A>, item: T) -> Result<PushOutcome, StackError>
+where
+  B: AsyncStackBackend<T>,
+  A: AsyncMutexLike<B>, {
+  let mut value = Some(item);
+
+  loop {
+    let mut guard = shared.lock().await;
+
+    if guard.is_closed() {
+      return Err(StackError::Closed);
+    }
+
+    if guard.is_full() {
+      if let Some(waiter) = guard.prepare_push_wait() {
+        drop(guard);
+
+        match waiter.await {
+          | Ok(()) => continue,
+          | Err(err) => return Err(err),
+        }
+      } else {
+        drop(guard);
+        return Err(StackError::Full);
+      }
+    } else {
+      let result = guard.push(value.take().expect("push value already consumed")).await;
+      drop(guard);
+      return result;
+    }
+  }
+}
+
+pub(super) async fn pop_shared<T, B, A>(shared: &ArcShared<A>) -> Result<T, StackError>
+where
+  B: AsyncStackBackend<T>,
+  A: AsyncMutexLike<B>, {
+  loop {
+    let mut guard = shared.lock().await;
+
+    if guard.is_empty() {
+      if guard.is_closed() {
+        drop(guard);
+        return Err(StackError::Closed);
+      }
+
+      if let Some(waiter) = guard.prepare_pop_wait() {
+        drop(guard);
+
+        match waiter.await {
+          | Ok(()) => continue,
+          | Err(err) => return Err(err),
+        }
+      } else {
+        drop(guard);
+        return Err(StackError::Empty);
+      }
+    } else {
+      let result = guard.pop().await;
+      drop(guard);
+      return result;
+    }
+  }
+}
+
 /// Async stack API wrapping a shared backend guarded by an async-capable mutex.
 #[derive(Clone)]
 pub struct AsyncStack<T, B, A = SpinAsyncMutex<B>>
@@ -34,14 +99,12 @@ where
 
   /// Pushes an item onto the stack.
   pub async fn push(&self, item: T) -> Result<PushOutcome, StackError> {
-    let mut guard = self.inner.lock().await;
-    guard.push(item).await
+    push_shared::<T, B, A>(&self.inner, item).await
   }
 
   /// Pops the top item from the stack.
   pub async fn pop(&self) -> Result<T, StackError> {
-    let mut guard = self.inner.lock().await;
-    guard.pop().await
+    pop_shared::<T, B, A>(&self.inner).await
   }
 
   /// Returns the top item without removing it.

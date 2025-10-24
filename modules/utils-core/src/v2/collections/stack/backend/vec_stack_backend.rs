@@ -85,6 +85,14 @@ impl<T> StackBackend<T> for VecStackBackend<T> {
     self.storage.capacity()
   }
 
+  fn overflow_policy(&self) -> StackOverflowPolicy {
+    self.policy
+  }
+
+  fn is_closed(&self) -> bool {
+    self.closed
+  }
+
   fn close(&mut self) {
     self.closed = true;
   }

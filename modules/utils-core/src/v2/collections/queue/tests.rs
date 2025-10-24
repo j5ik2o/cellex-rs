@@ -137,6 +137,14 @@ mod fifo_backend {
       self.capacity
     }
 
+    fn overflow_policy(&self) -> OverflowPolicy {
+      self.policy
+    }
+
+    fn is_closed(&self) -> bool {
+      self.closed
+    }
+
     fn close(&mut self) {
       self.closed = true;
     }
@@ -164,7 +172,7 @@ mod priority_backend {
 
   use super::QueueConfig;
   use crate::v2::collections::queue::backend::{
-    OfferOutcome, OverflowPolicy, SyncPriorityBackend, QueueError, SyncQueueBackend,
+    OfferOutcome, OverflowPolicy, QueueError, SyncPriorityBackend, SyncQueueBackend,
   };
 
   /// Priority backend backed by a binary heap.
@@ -232,6 +240,14 @@ mod priority_backend {
 
     fn capacity(&self) -> usize {
       self.capacity
+    }
+
+    fn overflow_policy(&self) -> OverflowPolicy {
+      self.policy
+    }
+
+    fn is_closed(&self) -> bool {
+      self.closed
     }
 
     fn close(&mut self) {

@@ -1,5 +1,6 @@
 use core::marker::PhantomData;
 
+use super::async_queue::poll_shared;
 use crate::{
   sync::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
@@ -29,8 +30,7 @@ where
 
   /// Polls the next element from the queue.
   pub async fn poll(&self) -> Result<T, QueueError> {
-    let mut guard = self.inner.lock().await;
-    guard.poll().await
+    poll_shared::<T, B, A>(&self.inner).await
   }
 
   /// Signals that no more elements will be produced.

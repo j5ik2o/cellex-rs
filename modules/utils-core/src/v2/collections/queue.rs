@@ -21,8 +21,8 @@ pub use async_queue::{AsyncFifoQueue, AsyncMpscQueue, AsyncPriorityQueue, AsyncQ
 pub use async_spsc_consumer::AsyncSpscConsumer;
 pub use async_spsc_producer::AsyncSpscProducer;
 pub use backend::{
-  AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, OverflowPolicy, SyncPriorityBackend, QueueError,
-  SyncAdapterQueueBackend, SyncQueueBackend, VecRingBackend,
+  AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, OverflowPolicy, QueueError, SyncAdapterQueueBackend,
+  SyncPriorityBackend, SyncQueueBackend, VecRingBackend,
 };
 pub use capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek};
 pub use storage::{QueueStorage, VecRingStorage};

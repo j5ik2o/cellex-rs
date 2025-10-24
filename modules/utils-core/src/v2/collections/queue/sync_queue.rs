@@ -11,7 +11,7 @@ use crate::{
   },
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, SyncPriorityBackend, QueueError, SyncQueueBackend},
+      backend::{OfferOutcome, QueueError, SyncPriorityBackend, SyncQueueBackend},
       capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek},
       type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey},
     },

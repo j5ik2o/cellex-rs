@@ -101,6 +101,14 @@ impl<T> SyncQueueBackend<T> for VecRingBackend<T> {
     self.storage.capacity()
   }
 
+  fn overflow_policy(&self) -> OverflowPolicy {
+    self.policy
+  }
+
+  fn is_closed(&self) -> bool {
+    self.closed
+  }
+
   fn close(&mut self) {
     self.closed = true;
   }

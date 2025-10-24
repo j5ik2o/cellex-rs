@@ -19,6 +19,71 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
+pub(super) async fn offer_shared<T, B, A>(shared: &ArcShared<A>, item: T) -> Result<OfferOutcome, QueueError>
+where
+  B: AsyncQueueBackend<T>,
+  A: AsyncMutexLike<B>, {
+  let mut value = Some(item);
+
+  loop {
+    let mut guard = shared.lock().await;
+
+    if guard.is_closed() {
+      return Err(QueueError::Closed);
+    }
+
+    if guard.is_full() {
+      if let Some(waiter) = guard.prepare_producer_wait() {
+        drop(guard);
+
+        match waiter.await {
+          | Ok(()) => continue,
+          | Err(err) => return Err(err),
+        }
+      } else {
+        drop(guard);
+        return Err(QueueError::Full);
+      }
+    } else {
+      let result = guard.offer(value.take().expect("offer value already consumed")).await;
+      drop(guard);
+      return result;
+    }
+  }
+}
+
+pub(super) async fn poll_shared<T, B, A>(shared: &ArcShared<A>) -> Result<T, QueueError>
+where
+  B: AsyncQueueBackend<T>,
+  A: AsyncMutexLike<B>, {
+  loop {
+    let mut guard = shared.lock().await;
+
+    if guard.is_empty() {
+      if guard.is_closed() {
+        drop(guard);
+        return Err(QueueError::Closed);
+      }
+
+      if let Some(waiter) = guard.prepare_consumer_wait() {
+        drop(guard);
+
+        match waiter.await {
+          | Ok(()) => continue,
+          | Err(err) => return Err(err),
+        }
+      } else {
+        drop(guard);
+        return Err(QueueError::Empty);
+      }
+    } else {
+      let result = guard.poll().await;
+      drop(guard);
+      return result;
+    }
+  }
+}
+
 /// Async queue API wrapping a shared backend guarded by an async-capable mutex.
 #[derive(Clone)]
 pub struct AsyncQueue<T, K, B, A = SpinAsyncMutex<B>>
@@ -44,14 +109,12 @@ where
 
   /// Adds an element to the queue according to the backend's policy.
   pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
-    let mut guard = self.inner.lock().await;
-    guard.offer(item).await
+    offer_shared::<T, B, A>(&self.inner, item).await
   }
 
   /// Removes and returns the next available item.
   pub async fn poll(&self) -> Result<T, QueueError> {
-    let mut guard = self.inner.lock().await;
-    guard.poll().await
+    poll_shared::<T, B, A>(&self.inner).await
   }
 
   /// Requests the backend to transition into the closed state.

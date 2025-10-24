@@ -33,6 +33,14 @@ pub trait StackBackend<T> {
     self.len() == self.capacity()
   }
 
+  /// Returns the configured overflow policy.
+  fn overflow_policy(&self) -> StackOverflowPolicy;
+
+  /// Indicates whether the backend has been closed.
+  fn is_closed(&self) -> bool {
+    false
+  }
+
   /// Closes the backend, preventing further pushes while allowing remaining pops.
   fn close(&mut self) {}
 }
