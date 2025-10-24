@@ -86,7 +86,7 @@ where
 ```
 
 - 内部では `ArcShared<A>` を保持し、`A::lock().await?` の結果から backend (`B`) にアクセスする（`SharedError` は `QueueError::from` / `StackError::from` で写像して上位へ伝搬）。
-- `A = SpinAsyncMutex<B>` を core クレートのデフォルトとし、no_std/組込み環境でも依存追加なしで利用できるようにする。std/Tokio 環境での利用者向けには `utils-std` 側で `TokioAsyncMutex` や `AsyncStdMutex` を組み合わせた型エイリアス・ビルダーを提供する。
+- `A = SpinAsyncMutex<B>` を core クレートのデフォルトとし、no_std/組込み環境でも依存追加なしで利用できるようにする。`SpinAsyncMutexDefault<T>` / `SpinAsyncMutexCritical<T>` といった型エイリアスでポリシーを明示的に選択できるようにし、std/Tokio 環境での利用者向けには `utils-std` 側で `TokioAsyncMutex` や `AsyncStdMutex` を組み合わせた型エイリアス・ビルダーを提供する。
 - `AsyncMpscProducer` / `AsyncMpscConsumer` / `AsyncSpscProducer` / `AsyncSpscConsumer` を Capability に基づいて追加し、同期版と同じ型制約（例: `MpscKey: MultiProducer + SingleConsumer`）を維持する。
 - `PriorityKey` 用 async ラッパ (`peek_min`) も提供。
 - `len` / `capacity` 系のクエリも `Result` を返し、割り込み文脈でロック取得がブロック不可と判断された場合には `QueueError::WouldBlock` を上位へ伝搬する。バックエンド側で非同期計算が必要になった際にも互換的に拡張できる。

@@ -3,6 +3,8 @@ use core::marker::PhantomData;
 
 use async_trait::async_trait;
 
+#[cfg(feature = "interrupt-cortex-m")]
+use crate::sync::interrupt::CriticalSectionInterruptPolicy;
 use crate::{
   sync::{
     async_mutex_like::AsyncMutexLike,
@@ -74,3 +76,11 @@ where
     Ok(SpinAsyncMutex::lock(self))
   }
 }
+
+/// Default spin-based async mutex that never flags interrupt contexts.
+pub type SpinAsyncMutexDefault<T> = SpinAsyncMutex<T, NeverInterruptPolicy>;
+
+/// Spin-based async mutex tailored for Cortex-M targets; operations are only allowed in thread
+/// mode.
+#[cfg(feature = "interrupt-cortex-m")]
+pub type SpinAsyncMutexCritical<T> = SpinAsyncMutex<T, CriticalSectionInterruptPolicy>;
