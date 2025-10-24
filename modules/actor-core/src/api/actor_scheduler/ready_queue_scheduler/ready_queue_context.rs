@@ -70,8 +70,7 @@ where
 
   pub(crate) fn dequeue_ready(&self) -> Option<usize> {
     let mut state = self.state.lock();
-    let index = state.queue.pop_front()?;
-    state.queued[index] = false;
+    let index = state.pop_front()?;
     state.mark_running(index);
     Some(index)
   }

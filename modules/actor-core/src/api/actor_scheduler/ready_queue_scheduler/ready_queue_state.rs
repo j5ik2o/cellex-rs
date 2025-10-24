@@ -1,14 +1,28 @@
-use alloc::{collections::VecDeque, vec::Vec};
+use alloc::vec::Vec;
+
+use cellex_utils_core_rs::{
+  collections::queue::QueueError,
+  sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
+  v2::collections::queue::{
+    backend::{OfferOutcome, OverflowPolicy, VecRingBackend},
+    SharedVecRingQueue,
+    VecRingStorage,
+  },
+};
 
 pub(crate) struct ReadyQueueState {
-  pub(crate) queue:   VecDeque<usize>,
+  queue:              SharedVecRingQueue<usize>,
   pub(crate) queued:  Vec<bool>,
   pub(crate) running: Vec<bool>,
 }
 
 impl ReadyQueueState {
-  pub(crate) const fn new() -> Self {
-    Self { queue: VecDeque::new(), queued: Vec::new(), running: Vec::new() }
+  pub(crate) fn new() -> Self {
+    let storage = VecRingStorage::with_capacity(0);
+    let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::Grow);
+    let shared_backend = ArcShared::new(SpinSyncMutex::new(backend));
+    let queue = SharedVecRingQueue::new(shared_backend);
+    Self { queue, queued: Vec::new(), running: Vec::new() }
   }
 
   pub(crate) fn ensure_capacity(&mut self, len: usize) {
@@ -25,9 +39,24 @@ impl ReadyQueueState {
     if self.running[index] || self.queued[index] {
       return false;
     }
-    self.queue.push_back(index);
-    self.queued[index] = true;
-    true
+    match self.queue.offer(index) {
+      | Ok(OfferOutcome::Enqueued) | Ok(OfferOutcome::GrewTo { .. }) => {
+        self.queued[index] = true;
+        true
+      },
+      | Ok(OfferOutcome::DroppedOldest { .. }) | Ok(OfferOutcome::DroppedNewest { .. }) => {
+        debug_assert!(false, "ready queue should not drop entries under grow policy");
+        false
+      },
+      | Err(QueueError::Full(_))
+      | Err(QueueError::OfferError(_))
+      | Err(QueueError::WouldBlock)
+      | Err(QueueError::AllocError(_)) => false,
+      | Err(QueueError::Closed(_)) | Err(QueueError::Disconnected) | Err(QueueError::Empty) => {
+        debug_assert!(false, "ready queue backend returned unexpected state");
+        false
+      },
+    }
   }
 
   pub(crate) fn mark_running(&mut self, index: usize) {
@@ -43,6 +72,26 @@ impl ReadyQueueState {
     self.running[index] = false;
     if has_pending {
       let _ = self.enqueue_if_idle(index);
+    }
+  }
+
+  pub(crate) fn pop_front(&mut self) -> Option<usize> {
+    match self.queue.poll() {
+      | Ok(index) => {
+        if index < self.queued.len() {
+          self.queued[index] = false;
+        }
+        Some(index)
+      },
+      | Err(QueueError::Empty) => None,
+      | Err(QueueError::Closed(_)) | Err(QueueError::Disconnected) => None,
+      | Err(QueueError::Full(_))
+      | Err(QueueError::OfferError(_))
+      | Err(QueueError::WouldBlock)
+      | Err(QueueError::AllocError(_)) => {
+        debug_assert!(false, "ready queue backend returned unexpected error on poll");
+        None
+      },
     }
   }
 }
