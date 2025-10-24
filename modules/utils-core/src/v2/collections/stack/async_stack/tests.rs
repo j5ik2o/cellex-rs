@@ -7,6 +7,7 @@ use core::{
 
 use super::AsyncStack;
 use crate::{
+  cfg::{Feature, Module, Test},
   sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
   v2::{
     collections::stack::{
