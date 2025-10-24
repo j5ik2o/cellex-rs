@@ -10,6 +10,7 @@ use std::{
   sync::{Arc, Mutex},
   vec::Vec,
 };
+
 #[cfg(feature = "queue-v2")]
 use cellex_actor_core_rs::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared};
 

@@ -35,21 +35,13 @@ use super::{InvokeResult, MailboxIndex};
 ///
 /// # Migration from V1
 ///
-/// ```rust,no_run
+/// ```rust
 /// # extern crate alloc;
-/// # use cellex_actor_core_rs::api::actor_scheduler::{
-/// #   DefaultReadyQueueCoordinator, ReadyQueueCoordinator,
-/// #   LockFreeCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex
-/// # };
-/// // V1: Required Mutex wrapper
-/// let coord_v1 = Arc::new(Mutex::new(DefaultReadyQueueCoordinator::new(32)));
+/// # use cellex_actor_core_rs::api::actor_scheduler::{DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex};
+/// # use cellex_utils_core_rs::ArcShared;
+/// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
 /// let idx = MailboxIndex::new(0, 0);
-/// coord_v1.lock().unwrap().register_ready(idx);
-///
-/// // V2: No wrapper needed
-/// let coord_v2 = Arc::new(LockFreeCoordinatorV2::new(32));
-/// coord_v2.register_ready(idx); // &self
-/// # }
+/// coord.register_ready(idx);
 /// ```
 pub trait ReadyQueueCoordinatorV2: Send + Sync {
   /// Register a mailbox as ready for processing

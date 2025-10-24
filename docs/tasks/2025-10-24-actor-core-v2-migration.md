@@ -318,6 +318,7 @@
 - 実装タスク（実装・検証）:
   - [ ] `queue-v1` / `queue-v2` フィーチャーフラグを Cargo に追加し、`queue-v1` を既定・`queue-v2` をオプトインとするビルド設定と CI ジョブを実装する。
   - [x] `QueueRwCompat` を実装し、`TokioMailboxFactory` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。
+- [2025-10-24] `QueueMailbox` の内部状態を `QueueMailboxInternal` として切り出し、`QueueMailboxProducer`／`QueueMailboxRecv` を同構造体経由で共有するよう再構成。`QueuePollOutcome` も専用ファイルへ分離し、dylint の `type-per-file` 制約を満たすよう整理済み。
 - [x] ファサード層 API の戻り値変更に合わせて呼び出し元（scheduler、テストサポート等）を更新し、`queue-v1` / `queue-v2` 両ビルドで警告ゼロを確認する。
 - [x] Mailbox ファサード経由の happy path / 異常系統合テストを追加し、`queue-v1` / `queue-v2` 両方で `cargo test -p cellex-actor-core-rs --tests` が通ることを検証する。
   - [ ] ステージング向け smoke テストとメトリクス収集を実施し、切り戻し手順（フィーチャーフラグでの即時退避）を確認する。

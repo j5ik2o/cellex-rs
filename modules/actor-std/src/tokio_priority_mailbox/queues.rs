@@ -1,9 +1,8 @@
 #[cfg(feature = "queue-v1")]
 mod legacy {
-  use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
   use std::{collections::VecDeque, sync::Arc};
 
-  use cellex_actor_core_rs::shared::mailbox::messages::PriorityEnvelope;
+  use cellex_actor_core_rs::{api::metrics::MetricsSinkShared, shared::mailbox::messages::PriorityEnvelope};
   use cellex_utils_std_rs::{
     sync::{StdMutexGuard, StdSyncMutex},
     Element, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
@@ -212,8 +211,7 @@ mod legacy {
 
   pub(crate) fn configure_metrics<M>(_queues: &TokioPriorityQueues<M>, _sink: Option<MetricsSinkShared>)
   where
-    M: Element,
-  {
+    M: Element, {
   }
 }
 
@@ -434,14 +432,12 @@ mod compat {
 
   pub(crate) fn configure_metrics<M>(queues: &TokioPriorityQueues<M>, sink: Option<MetricsSinkShared>)
   where
-    M: Element,
-  {
+    M: Element, {
     queues.set_metrics_sink(sink);
   }
 }
 
-#[cfg(feature = "queue-v1")]
-pub(super) use legacy::{configure_metrics, TokioPriorityQueues};
-
 #[cfg(feature = "queue-v2")]
 pub(super) use compat::{configure_metrics, TokioPriorityQueues};
+#[cfg(feature = "queue-v1")]
+pub(super) use legacy::{configure_metrics, TokioPriorityQueues};

@@ -1,13 +1,13 @@
-use cellex_actor_core_rs::api::mailbox::Mailbox;
-use cellex_utils_std_rs::QueueError;
-
 #[cfg(feature = "queue-v2")]
 use std::{
   sync::{Arc, Mutex},
   vec::Vec,
 };
+
+use cellex_actor_core_rs::api::mailbox::Mailbox;
 #[cfg(feature = "queue-v2")]
 use cellex_actor_core_rs::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared};
+use cellex_utils_std_rs::QueueError;
 
 use super::*;
 
