@@ -1,5 +1,7 @@
 mod critical_section_interrupt_policy;
 mod never_interrupt_policy;
+#[cfg(test)]
+mod tests;
 
 pub use critical_section_interrupt_policy::CriticalSectionInterruptPolicy;
 pub use never_interrupt_policy::NeverInterruptPolicy;

@@ -11,7 +11,7 @@
 - ロック取得は `AsyncMutexLike::lock` を `await` する実装とし、失敗時は `SharedError` を返す。
 - **契約**: `lock` は `Future<Output = Result<Guard<'_, T>, SharedError>>` を返し、割り込み文脈では `Err(SharedError::InterruptContext)` を返す。`Guard` は `Deref<Target = T>` + `DerefMut` を実装し、`Send` な環境での共有に対応する。
 - `AsyncMutexLike<T>` の最小契約は「`lock(&self) -> impl Future<Output = Result<Guard<'_, T>, SharedError>>` を提供し、`Guard<'_, T>` は `Deref<Target = T>` かつ `Send`、トレイト自体も `Send + Sync`」であることを明示する。
-- 割り込み文脈で `lock` が呼ばれた場合は `SharedError::InterruptContext` を返す責務を負い、環境ごとに `InterruptContextPolicy`（例：`cortex_m::interrupt::active()`／`critical_section::is_active()`）で判定する。
+- 割り込み文脈で `lock` が呼ばれた場合は `SharedError::InterruptContext` を返す責務を負い、環境ごとに `InterruptContextPolicy`（例：Cortex-M では `SCB::vect_active()` を参照）で判定する。
 
 ### 2.1 InterruptContextPolicy の扱い
 

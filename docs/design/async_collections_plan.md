@@ -81,7 +81,7 @@
 ### フェーズ4: OverflowPolicy と ISR 方針の明文化
 ステータス: ⏳ 未着手（2025-10-24 時点）
 - `AsyncMutexLike::lock` を `Result<Guard, SharedError>` 返却に刷新し、割り込み文脈では `SharedError::InterruptContext` を伝搬させる。
-- `utils-core::sync::interrupt::InterruptContextPolicy` を導入し、`AsyncMutexLike` 実装がロック前に `check_blocking_allowed()` を必ず呼ぶ構造を整える。標準環境は `NeverInterruptPolicy`、組込みは `CriticalSectionInterruptPolicy` を採用できるようにする。
+- `utils-core::sync::interrupt::InterruptContextPolicy` を導入し、`AsyncMutexLike` 実装がロック前に `check_blocking_allowed()` を必ず呼ぶ構造を整える。標準環境は `NeverInterruptPolicy`、組込みは `CriticalSectionInterruptPolicy`（Cortex-M では `SCB::vect_active()` 判定）を採用できるようにする。
 - `OverflowPolicy::Block` は async 環境では `await` 待機に対応するが、割り込み文脈では同期版と同様に `QueueError::WouldBlock` / `StackError::WouldBlock` を即時返却することを仕様に反映する。
 - `SharedError::BorrowConflict` → `WouldBlock` → `Poll::Pending` という写像を整理し、擬似 async / 真 async の両方で揃える。
 - `InterruptContextPolicy` を thumb ターゲットで検証し、CI のクロスチェック（`cargo check --target thumbv6m-none-eabi --features async`）に組み込む。
