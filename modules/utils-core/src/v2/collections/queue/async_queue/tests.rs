@@ -7,10 +7,13 @@ use core::{
 
 use super::{AsyncMpscQueue, AsyncQueue, AsyncSpscQueue};
 use crate::{
-  sync::{async_mutex_like::SpinAsyncMutex, ArcShared},
-  v2::collections::queue::{
-    backend::{OfferOutcome, OverflowPolicy, QueueError, SyncAdapterQueueBackend, VecRingBackend},
-    VecRingStorage,
+  sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
+  v2::{
+    collections::queue::{
+      backend::{OfferOutcome, OverflowPolicy, QueueError, SyncAdapterQueueBackend, VecRingBackend},
+      VecRingStorage,
+    },
+    sync::SharedError,
   },
 };
 
@@ -49,6 +52,24 @@ fn make_shared_queue(
   let storage = VecRingStorage::with_capacity(capacity);
   let backend = VecRingBackend::new_with_storage(storage, policy);
   ArcShared::new(SpinAsyncMutex::new(SyncAdapterQueueBackend::new(backend)))
+}
+
+struct DenyPolicy;
+
+impl InterruptContextPolicy for DenyPolicy {
+  fn check_blocking_allowed() -> Result<(), SharedError> {
+    Err(SharedError::InterruptContext)
+  }
+}
+
+type DenyMutex<T> = SpinAsyncMutex<T, DenyPolicy>;
+
+fn make_interrupt_shared_queue(
+  capacity: usize,
+) -> ArcShared<DenyMutex<SyncAdapterQueueBackend<i32, VecRingBackend<i32>>>> {
+  let storage = VecRingStorage::with_capacity(capacity);
+  let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::Block);
+  ArcShared::new(DenyMutex::new(SyncAdapterQueueBackend::new(backend)))
 }
 
 #[test]
@@ -139,4 +160,18 @@ fn close_wakes_waiting_consumer() {
   assert!(block_on(queue.close()).is_ok());
 
   assert_eq!(poll_future.as_mut().poll(&mut context), Poll::Ready(Err(QueueError::Closed)));
+}
+
+#[test]
+fn interrupt_context_returns_would_block_errors() {
+  let shared = make_interrupt_shared_queue(2);
+  let queue: AsyncSpscQueue<i32, _, _> = AsyncQueue::new_spsc(shared);
+
+  assert_eq!(block_on(queue.offer(1)), Err(QueueError::WouldBlock));
+  assert_eq!(block_on(queue.poll()), Err(QueueError::WouldBlock));
+  assert_eq!(block_on(queue.close()), Err(QueueError::WouldBlock));
+  assert_eq!(block_on(queue.len()), Err(QueueError::WouldBlock));
+  assert_eq!(block_on(queue.capacity()), Err(QueueError::WouldBlock));
+  assert_eq!(block_on(queue.is_empty()), Err(QueueError::WouldBlock));
+  assert_eq!(block_on(queue.is_full()), Err(QueueError::WouldBlock));
 }

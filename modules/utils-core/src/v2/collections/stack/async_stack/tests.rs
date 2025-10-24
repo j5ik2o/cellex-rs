@@ -7,10 +7,13 @@ use core::{
 
 use super::AsyncStack;
 use crate::{
-  sync::{async_mutex_like::SpinAsyncMutex, ArcShared},
-  v2::collections::stack::{
-    backend::{PushOutcome, StackError, SyncAdapterStackBackend, VecStackBackend},
-    StackOverflowPolicy, VecStackStorage,
+  sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
+  v2::{
+    collections::stack::{
+      backend::{PushOutcome, StackError, SyncAdapterStackBackend, VecStackBackend},
+      StackOverflowPolicy, VecStackStorage,
+    },
+    sync::SharedError,
   },
 };
 
@@ -49,6 +52,24 @@ fn make_shared_stack(
   let storage = VecStackStorage::with_capacity(capacity);
   let backend = VecStackBackend::new_with_storage(storage, policy);
   ArcShared::new(SpinAsyncMutex::new(SyncAdapterStackBackend::new(backend)))
+}
+
+struct DenyPolicy;
+
+impl InterruptContextPolicy for DenyPolicy {
+  fn check_blocking_allowed() -> Result<(), SharedError> {
+    Err(SharedError::InterruptContext)
+  }
+}
+
+type DenyMutex<T> = SpinAsyncMutex<T, DenyPolicy>;
+
+fn make_interrupt_shared_stack(
+  capacity: usize,
+) -> ArcShared<DenyMutex<SyncAdapterStackBackend<i32, VecStackBackend<i32>>>> {
+  let storage = VecStackStorage::with_capacity(capacity);
+  let backend = VecStackBackend::new_with_storage(storage, StackOverflowPolicy::Block);
+  ArcShared::new(DenyMutex::new(SyncAdapterStackBackend::new(backend)))
 }
 
 #[test]
@@ -146,4 +167,19 @@ fn close_wakes_waiting_pop() {
   assert!(block_on(stack.close()).is_ok());
 
   assert_eq!(pop_future.as_mut().poll(&mut context), Poll::Ready(Err(StackError::Closed)));
+}
+
+#[test]
+fn interrupt_context_returns_would_block_errors() {
+  let shared = make_interrupt_shared_stack(2);
+  let stack: AsyncStack<i32, _, _> = AsyncStack::new(shared);
+
+  assert_eq!(block_on(stack.push(1)), Err(StackError::WouldBlock));
+  assert_eq!(block_on(stack.pop()), Err(StackError::WouldBlock));
+  assert_eq!(block_on(stack.peek()), Err(StackError::WouldBlock));
+  assert_eq!(block_on(stack.close()), Err(StackError::WouldBlock));
+  assert_eq!(block_on(stack.len()), Err(StackError::WouldBlock));
+  assert_eq!(block_on(stack.capacity()), Err(StackError::WouldBlock));
+  assert_eq!(block_on(stack.is_empty()), Err(StackError::WouldBlock));
+  assert_eq!(block_on(stack.is_full()), Err(StackError::WouldBlock));
 }
