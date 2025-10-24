@@ -1,7 +1,7 @@
 use core::cmp;
 
 use crate::v2::collections::queue::{
-  OfferOutcome, OverflowPolicy, QueueBackend, QueueError, QueueStorage, VecRingStorage,
+  OfferOutcome, OverflowPolicy, QueueError, QueueStorage, SyncQueueBackend, VecRingStorage,
 };
 
 /// Queue backend backed by a ring buffer storage.
@@ -60,7 +60,7 @@ impl<T> VecRingBackend<T> {
   }
 }
 
-impl<T> QueueBackend<T> for VecRingBackend<T> {
+impl<T> SyncQueueBackend<T> for VecRingBackend<T> {
   type Storage = VecRingStorage<T>;
 
   fn new(storage: Self::Storage, policy: OverflowPolicy) -> Self {

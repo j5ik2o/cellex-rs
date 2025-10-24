@@ -23,7 +23,7 @@
 
 3. **Tokio Backend 対応**
    - `TokioBoundedMpscBackend` 等を v2 backend として移植し、async API から利用可能にする。
-   - `StdVecStack` の async 版（`AsyncStdVecStack`）など、std 向けのデフォルト構成を整備する。
+   - `StdVecSyncStack` の async 版（`AsyncStdVecStack`）など、std 向けのデフォルト構成を整備する。
    - 擬似 async 実装をベースラインとして採用しつつ、Tokio/Embassy 等の真の async backend は後続フェーズで `async fn` を伴うトレイト拡張として導入する方針を明記する。
 
 4. **互換 API の橋渡し**
@@ -48,8 +48,13 @@
   ├─ async_queue/              // 非同期 Queue の検証コード
   ├─ async_mpsc_producer.rs    // 非同期 MPSC プロデューサ
   ├─ async_mpsc_consumer.rs    // 非同期 MPSC コンシューマ
-  ├─ queue_api.rs              // 同期 Queue API
-  ├─ mpsc_producer.rs          // 同期 MPSC プロデューサ
+  ├─ async_spsc_producer.rs    // 非同期 SPSC プロデューサ
+  ├─ async_spsc_consumer.rs    // 非同期 SPSC コンシューマ
+  ├─ sync_queue.rs             // 同期 Queue API
+  ├─ sync_mpsc_producer.rs     // 同期 MPSC プロデューサ
+  ├─ sync_mpsc_consumer.rs     // 同期 MPSC コンシューマ
+  ├─ sync_spsc_producer.rs     // 同期 SPSC プロデューサ
+  ├─ sync_spsc_consumer.rs     // 同期 SPSC コンシューマ
   └─ tests.rs                  // 同期 Queue のユニットテスト
   └─ ...
   ```

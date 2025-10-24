@@ -38,7 +38,7 @@ Storage 抽象 (QueueStorage, RingBufferStorage, StackStorage)
 
 | カテゴリ | 現行トレイト/型 | 観測された課題 | フェーズ2以降の方針 |
 | --- | --- | --- | --- |
-| Queue の IO | `QueueWriter`, `QueueReader`, `QueueRw` | `QueueRw::offer/poll/clean_up` が自身を再帰呼び出ししておりバグ。能力差を分離できていない。 | `QueueBackend` に集約し、Shared 層で `with_mut` を提供する案に移行。 |
+| Queue の IO | `QueueWriter`, `QueueReader`, `QueueRw` | `QueueRw::offer/poll/clean_up` が自身を再帰呼び出ししておりバグ。能力差を分離できていない。 | `SyncQueueBackend` に集約し、Shared 層で `with_mut` を提供する案に移行。 |
 | Handle | `QueueHandle`, `RingHandle`, `MpscHandle`, `StackHandle` | `Shared` トレイトを継承しつつ `Clone` を要求。`QueueHandle` が storage 自体を露出し抽象が崩れる。 | TypeKey + Backend の構成に置き換え、Handle 抽象を段階的に廃止。 |
 | Storage | `QueueStorage`, `RingBufferStorage`, `StackStorageBackend` | `SpinSyncMutex` / `RefCell` / `ArcShared` を同列に実装しており同期責務が混在。 | Storage は純粋データ操作に限定し、Shared 層を `ArcShared<T>` に統一。 |
 | Error | `QueueError<T>`（`Full/OfferError/Closed/Disconnected`） | Overflow 政策や割り込み失敗を表現できず、ArcShared のエラーをマッピングする余地がない。 | Spec 通り `QueueError` を再設計し、`OverflowPolicy`/`OfferOutcome` と併用する。 |
@@ -167,9 +167,8 @@ pub enum OfferOutcome {
 
 ## 次フェーズ (フェーズ2以降) に向けたフォローアップ
 
-1. `QueueBackend` / `QueueStorage` / `QueueError` の再設計を実装し、`ArcShared::with_mut` を通じた同期の統一を行う。
+1. `SyncQueueBackend` / `QueueStorage` / `QueueError` の再設計を実装し、`ArcShared::with_mut` を通じた同期の統一を行う。
 2. TypeKey + Capability を導入した新しい `Queue<T, K, B>` API を試作し、現行の `RingQueue` / `MpscQueue` をエイリアス化。
 3. Stack 側の抽象を Queue と揃え、`StackBackend` での `QueueSize` 依存を解消する。
 4. Mailbox (`actor-core`) のユニットテストを更新し、新しいエラー/政策を検証するテストケースを追加する。
 5. KPI 監視のため、ベンチ結果を `docs/design/collections_queue_spec.md` に追記する仕組みを検討する。
-

@@ -3,24 +3,24 @@ use core::marker::PhantomData;
 use crate::{
   sync::{sync_mutex_like::SyncMutexLike, ArcShared, Shared},
   v2::{
-    collections::queue::backend::{QueueBackend, QueueError},
+    collections::queue::backend::{QueueError, SyncQueueBackend},
     sync::SharedAccess,
   },
 };
 
 /// Consumer for queues tagged with
 /// [`MpscKey`](crate::v2::collections::queue::type_keys::MpscKey).
-pub struct MpscConsumer<T, B, M>
+pub struct SyncMpscConsumer<T, B, M>
 where
-  B: QueueBackend<T>,
+  B: SyncQueueBackend<T>,
   M: SyncMutexLike<B>, {
   pub(crate) inner: ArcShared<M>,
   _pd:              PhantomData<(T, B)>,
 }
 
-impl<T, B, M> MpscConsumer<T, B, M>
+impl<T, B, M> SyncMpscConsumer<T, B, M>
 where
-  B: QueueBackend<T>,
+  B: SyncQueueBackend<T>,
   M: SyncMutexLike<B>,
   ArcShared<M>: SharedAccess<B>,
 {

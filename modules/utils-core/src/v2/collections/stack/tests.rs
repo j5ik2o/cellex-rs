@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use super::Stack;
+use super::SyncStack;
 use crate::{
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::{
@@ -12,11 +12,11 @@ use crate::{
   },
 };
 
-fn make_stack<T>(capacity: usize, policy: StackOverflowPolicy) -> Stack<T, VecStackBackend<T>> {
+fn make_stack<T>(capacity: usize, policy: StackOverflowPolicy) -> SyncStack<T, VecStackBackend<T>> {
   let storage = VecStackStorage::with_capacity(capacity);
   let backend = VecStackBackend::new_with_storage(storage, policy);
   let shared = ArcShared::new(SpinSyncMutex::new(backend));
-  Stack::new(shared)
+  SyncStack::new(shared)
 }
 
 #[test]

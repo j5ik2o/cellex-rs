@@ -3,19 +3,19 @@ use core::marker::PhantomData;
 
 use async_trait::async_trait;
 
-use super::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, PriorityBackend, QueueBackend, QueueError};
+use super::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, PriorityBackend, QueueError, SyncQueueBackend};
 
 /// Adapter that exposes a synchronous queue backend through the async backend trait.
 pub struct SyncAdapterQueueBackend<T, B>
 where
-  B: QueueBackend<T>, {
+  B: SyncQueueBackend<T>, {
   backend: B,
   _pd:     PhantomData<T>,
 }
 
 impl<T, B> SyncAdapterQueueBackend<T, B>
 where
-  B: QueueBackend<T>,
+  B: SyncQueueBackend<T>,
 {
   /// Creates a new adapter wrapping the provided backend instance.
   #[must_use]
@@ -45,7 +45,7 @@ where
 #[async_trait(?Send)]
 impl<T, B> AsyncQueueBackend<T> for SyncAdapterQueueBackend<T, B>
 where
-  B: QueueBackend<T>,
+  B: SyncQueueBackend<T>,
 {
   async fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
     self.backend.offer(item)

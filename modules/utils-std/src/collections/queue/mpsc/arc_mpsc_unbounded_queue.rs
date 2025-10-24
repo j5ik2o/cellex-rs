@@ -18,7 +18,7 @@ mod tests;
 /// Unbounded multi-producer, single-consumer (MPSC) queue.
 ///
 /// # Deprecated
-/// Prefer [`utils_std::v2::collections::queue::StdMpscQueue`].
+/// Prefer [`utils_std::v2::collections::StdMpscSyncQueue`].
 ///
 /// An unbounded queue that can be safely accessed from multiple threads using `Arc`-based shared
 /// ownership. By default, it uses a Tokio unbounded channel backend, but a ring buffer backend can

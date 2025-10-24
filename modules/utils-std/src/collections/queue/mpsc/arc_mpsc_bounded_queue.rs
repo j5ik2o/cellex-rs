@@ -18,7 +18,7 @@ mod tests;
 /// Bounded multi-producer, single-consumer (MPSC) queue.
 ///
 /// # Deprecated
-/// Prefer [`utils_std::v2::collections::queue::StdMpscQueue`].
+/// Prefer [`utils_std::v2::collections::StdMpscSyncQueue`].
 ///
 /// A queue that can be safely accessed from multiple threads using `Arc`-based shared ownership.
 /// By default, it uses a Tokio channel backend, but a ring buffer backend can also be selected.

@@ -7,12 +7,12 @@ mod async_spsc_consumer;
 mod async_spsc_producer;
 pub mod backend;
 pub mod capabilities;
-mod mpsc_consumer;
-mod mpsc_producer;
-mod queue_api;
-mod spsc_consumer;
-mod spsc_producer;
 mod storage;
+mod sync_mpsc_consumer;
+mod sync_mpsc_producer;
+mod sync_queue;
+mod sync_spsc_consumer;
+mod sync_spsc_producer;
 pub mod type_keys;
 
 pub use async_mpsc_consumer::AsyncMpscConsumer;
@@ -21,23 +21,23 @@ pub use async_queue::{AsyncFifoQueue, AsyncMpscQueue, AsyncPriorityQueue, AsyncQ
 pub use async_spsc_consumer::AsyncSpscConsumer;
 pub use async_spsc_producer::AsyncSpscProducer;
 pub use backend::{
-  AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, OverflowPolicy, PriorityBackend, QueueBackend, QueueError,
-  SyncAdapterQueueBackend, VecRingBackend,
+  AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, OverflowPolicy, PriorityBackend, QueueError,
+  SyncAdapterQueueBackend, SyncQueueBackend, VecRingBackend,
 };
 pub use capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek};
-pub use mpsc_consumer::MpscConsumer;
-pub use mpsc_producer::MpscProducer;
-pub use queue_api::{FifoQueue, MpscQueue, PriorityQueue, Queue, SpscQueue};
-pub use spsc_consumer::SpscConsumer;
-pub use spsc_producer::SpscProducer;
 pub use storage::{QueueStorage, VecRingStorage};
+pub use sync_mpsc_consumer::SyncMpscConsumer;
+pub use sync_mpsc_producer::SyncMpscProducer;
+pub use sync_queue::{FifoQueue, MpscQueue, PriorityQueue, SpscQueue, SyncQueue};
+pub use sync_spsc_consumer::SyncSpscConsumer;
+pub use sync_spsc_producer::SyncSpscProducer;
 pub use type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey};
 
 #[cfg(test)]
 mod tests;
 
 /// Default shared queue alias backed by [`VecRingBackend`].
-pub type SharedVecRingQueue<T, K = FifoKey> = Queue<T, K, VecRingBackend<T>>;
+pub type SharedVecRingQueue<T, K = FifoKey> = SyncQueue<T, K, VecRingBackend<T>>;
 
 /// Default async shared queue alias backed by [`VecRingBackend`] via the sync adapter.
 pub type AsyncSharedVecRingQueue<T, K = FifoKey> = AsyncQueue<T, K, SyncAdapterQueueBackend<T, VecRingBackend<T>>>;

@@ -1,7 +1,7 @@
 use crate::v2::collections::queue::{storage::QueueStorage, OfferOutcome, OverflowPolicy, QueueError};
 
 /// Backend trait responsible for queue operations on top of a storage implementation.
-pub trait QueueBackend<T> {
+pub trait SyncQueueBackend<T> {
   /// Storage implementation backing the queue.
   type Storage: QueueStorage<T>;
 

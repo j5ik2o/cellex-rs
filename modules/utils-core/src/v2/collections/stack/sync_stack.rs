@@ -13,7 +13,7 @@ use crate::{
 
 /// Stack API parameterised by element type, backend, and shared guard.
 #[derive(Clone)]
-pub struct Stack<T, B, M = SpinSyncMutex<B>>
+pub struct SyncStack<T, B, M = SpinSyncMutex<B>>
 where
   B: StackBackend<T>,
   M: SyncMutexLike<B>, {
@@ -21,7 +21,7 @@ where
   _pd:   PhantomData<(T, B)>,
 }
 
-impl<T, B, M> Stack<T, B, M>
+impl<T, B, M> SyncStack<T, B, M>
 where
   B: StackBackend<T>,
   M: SyncMutexLike<B>,

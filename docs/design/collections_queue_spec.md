@@ -94,7 +94,7 @@ pub enum OfferOutcome {
 }
 ```
 
-### 4.2 QueueBackend トレイト
+### 4.2 SyncQueueBackend トレイト
 
 ```rust
 #[derive(Debug)]
@@ -107,7 +107,7 @@ pub enum QueueError {
     AllocError,
 }
 
-pub trait QueueBackend<T> {
+pub trait SyncQueueBackend<T> {
     type Storage: QueueStorage<T>;
 
     fn new(storage: Self::Storage, policy: OverflowPolicy) -> Self;
@@ -129,7 +129,7 @@ pub trait QueueBackend<T> {
 ### 4.3 PriorityBackend
 
 ```rust
-pub trait PriorityBackend<T: Ord>: QueueBackend<T> {
+pub trait PriorityBackend<T: Ord>: SyncQueueBackend<T> {
     fn peek_min(&self) -> Option<&T>;
 }
 ```
@@ -185,12 +185,12 @@ Queue ファサード実装ではこの表に従い `SharedError` をマッピ�
 ## 6. Queue ファサード
 
 ```rust
-pub struct Queue<T, K: TypeKey, B: QueueBackend<T>> {
+pub struct Queue<T, K: TypeKey, B: SyncQueueBackend<T>> {
     inner: ArcShared<B>,
     _pd: core::marker::PhantomData<(T, K)>,
 }
 
-impl<T, K: TypeKey, B: QueueBackend<T>> Queue<T, K, B> {
+impl<T, K: TypeKey, B: SyncQueueBackend<T>> Queue<T, K, B> {
     pub fn new(shared_backend: ArcShared<B>) -> Self {
         Self { inner: shared_backend, _pd: core::marker::PhantomData }
     }
@@ -222,7 +222,7 @@ pub type SpscQueue<T, B> = Queue<T, SpscKey, B>;
 
 impl<T, B> Queue<T, MpscKey, B>
 where
-    B: QueueBackend<T>,
+    B: SyncQueueBackend<T>,
     MpscKey: MultiProducer + SingleConsumer,
 {
     /// MPSC 専用ユーティリティをここに提供（例: producer ハンドル生成）。
@@ -230,7 +230,7 @@ where
 
 impl<T, B> Queue<T, SpscKey, B>
 where
-    B: QueueBackend<T>,
+    B: SyncQueueBackend<T>,
     SpscKey: SingleProducer + SingleConsumer,
 {
     // NOTE: TypeKey × Capability により、SPSC（SpscKey）では複数 Producer を生成するヘルパは公開しない。
@@ -395,7 +395,7 @@ Queue の場合は `QueueError::WouldBlock`、Stack の場合は `StackError::Wo
 | `MpscQueue<T>`        | `Queue<T, MpscKey, _>`              | `type SharedQueue<T, MpscKey, B> = Queue<T, MpscKey, B>` で互換提供 |
 | `RingQueue<T>`        | `Queue<T, FifoKey, _>`              | 溢れ政策は `OverflowPolicy` で指定             |
 | `PriorityQueue<T>`    | `Queue<T, PriorityKey, _>`          | `PriorityBackend<T>` 実装必須                 |
-| `QueueRw` 系トレイト     | 廃止（`QueueBackend` に集約）            | `ArcShared` の `with_mut` を利用               |
+| `QueueRw` 系トレイト     | 廃止（`SyncQueueBackend` に集約）         | `ArcShared` の `with_mut` を利用               |
 | 旧 `Stack` 実装            | `Stack<T, Backend>`（新トレイト準拠）        | `StackBackend` / `StackStorage` を実装する      |
 
 旧 API は `#[deprecated]` を付与し、移行ガイドで `cargo fix` / `sed` 例を提示する。
@@ -411,7 +411,7 @@ Queue の場合は `QueueError::WouldBlock`、Stack の場合は `StackError::Wo
 
 - コア実装（queue2 / stack2）は `no_std + alloc` のみを前提とし、同期は `ArcShared` 抽象に委譲する。
 - Tokio や Embassy 等のランタイムに合わせた Backend / Shared 実装は、`utils-std` / `utils-embedded` など環境別クレートで提供する。
-- 追加 Backend は `QueueBackend` / `StackBackend` を実装すればよく、TypeKey / Capability による API 安定性を活かして差し替えが可能。
+- 追加 Backend は `SyncQueueBackend` / `StackBackend` を実装すればよく、TypeKey / Capability による API 安定性を活かして差し替えが可能。
 - 例: `TokioMpscBackend` を `utils-std` に用意し、`Queue<T, MpscKey, TokioMpscBackend<T>>` で利用する。Embassy 向けには `CriticalSectionBackend` を `utils-embedded` に配置する。
 **`no_std + alloc` を中核に据え、Backend / Shared の差し替えだけで各ランタイムへ展開できる拡張性を維持する。**
 

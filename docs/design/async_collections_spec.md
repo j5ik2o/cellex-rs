@@ -14,7 +14,7 @@
 
 ## 3. Async Backend 層
 
-同期版（`QueueBackend` / `StackBackend`）と同じ責務を持つが、**専用の async トレイト**として定義する。`async fn` を直接公開し、実装では `async_trait` もしくは GAT + `impl Future` を用いて非同期処理を記述する。
+同期版（`SyncQueueBackend` / `StackBackend`）と同じ責務を持つが、**専用の async トレイト**として定義する。`async fn` を直接公開し、実装では `async_trait` もしくは GAT + `impl Future` を用いて非同期処理を記述する。
 
 ```rust
 pub trait AsyncQueueStorage<T> {
@@ -48,7 +48,7 @@ Stack 版も同様に `AsyncStackStorage` / `AsyncStackBackend` を定義し、`
 
 ### 3.1 擬似 async アダプタ（SyncAdapterBackend）
 
-- 初期フェーズでは同期 backend (`QueueBackend`) をラップする `SyncAdapterBackend` を用意し、`async fn` 内で `WouldBlock → Poll::Pending` 変換や Waker 登録を行う。
+- 初期フェーズでは同期 backend (`SyncQueueBackend`) をラップする `SyncAdapterBackend` を用意し、`async fn` 内で `WouldBlock → Poll::Pending` 変換や Waker 登録を行う。
 - 真の async backend（`TokioBoundedMpscBackend` など）は `async fn offer/poll` を直接実装し、I/O 待機を `Waker` ベースで処理する。
 - どちらの実装でも `OverflowPolicy::Block` を `await` 待機として扱い、割り込み文脈では `WouldBlock` を即時返却する。
 - `SyncAdapterBackend` は `tokio::sync::Notify`（std 環境）や `futures_intrusive::channel::State` 等を内部で利用し、busy-wait ではなく Waker ドリブンで起床させる。
@@ -108,7 +108,7 @@ where
 - `StackOverflowPolicy` は同期版と同様に `Block` / `Grow` のみを提供し、LIFO の整合性を保つため `DropNewest` / `DropOldest` はサポートしない。
 
 ## 6. Tokio backend と擬似 async backend
-- フェーズ1では `SyncAdapterBackend` が `QueueBackend` を Future 化し、`WouldBlock` を `Poll::Pending` に変換する。
+- フェーズ1では `SyncAdapterBackend` が `SyncQueueBackend` を Future 化し、`WouldBlock` を `Poll::Pending` に変換する。
 - フェーズ2以降で `TokioBoundedMpscBackend` / `TokioUnboundedMpscBackend` を `AsyncQueueBackend` として実装し、`Waker` 経由でバックプレッシャを制御する。
 - `tokio::sync::Mutex` / `tokio::sync::RwLock` を `AsyncMutexLike` として再利用しつつ、std-only 構成（`AsyncStdMutex`）と no_std 構成（`CriticalSectionAsyncMutex` 等）を切り替えられるようにする。
 

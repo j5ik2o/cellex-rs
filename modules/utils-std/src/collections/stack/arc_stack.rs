@@ -16,7 +16,7 @@ type ArcStackStorage<T> = ArcShared<StackStorageBackend<ArcShared<Mutex<StackBuf
 /// `Arc`-based thread-safe stack implementation.
 ///
 /// # Deprecated
-/// Prefer [`utils_std::v2::collections::stack::StdVecStack`].
+/// Prefer [`utils_std::v2::collections::StdVecSyncStack`].
 ///
 /// Provides a stack data structure that can be safely shared across multiple threads.
 /// Internally uses `Arc` and `Mutex` for synchronization.

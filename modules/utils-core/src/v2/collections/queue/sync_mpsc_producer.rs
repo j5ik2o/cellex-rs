@@ -3,24 +3,24 @@ use core::marker::PhantomData;
 use crate::{
   sync::{sync_mutex_like::SyncMutexLike, ArcShared},
   v2::{
-    collections::queue::backend::{OfferOutcome, QueueBackend, QueueError},
+    collections::queue::backend::{OfferOutcome, QueueError, SyncQueueBackend},
     sync::SharedAccess,
   },
 };
 
 /// Producer for queues tagged with
 /// [`MpscKey`](crate::v2::collections::queue::type_keys::MpscKey).
-pub struct MpscProducer<T, B, M>
+pub struct SyncMpscProducer<T, B, M>
 where
-  B: QueueBackend<T>,
+  B: SyncQueueBackend<T>,
   M: SyncMutexLike<B>, {
   pub(crate) inner: ArcShared<M>,
   _pd:              PhantomData<(T, B)>,
 }
 
-impl<T, B, M> MpscProducer<T, B, M>
+impl<T, B, M> SyncMpscProducer<T, B, M>
 where
-  B: QueueBackend<T>,
+  B: SyncQueueBackend<T>,
   M: SyncMutexLike<B>,
   ArcShared<M>: SharedAccess<B>,
 {
@@ -41,9 +41,9 @@ where
   }
 }
 
-impl<T, B, M> Clone for MpscProducer<T, B, M>
+impl<T, B, M> Clone for SyncMpscProducer<T, B, M>
 where
-  B: QueueBackend<T>,
+  B: SyncQueueBackend<T>,
   M: SyncMutexLike<B>,
   ArcShared<M>: SharedAccess<B>,
 {

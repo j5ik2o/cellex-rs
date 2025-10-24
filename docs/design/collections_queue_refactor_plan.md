@@ -34,7 +34,7 @@
 | 層 | 代表トレイト / 型 | 責務 | 具体例（計画時点） |
 | --- | --- | --- | --- |
 | Storage | `QueueStorage<T>` / `StackStorage<T>` | 生データバッファの読み書き管理（`alloc` のみ、`unsafe` はここに閉じ込める） | リングバッファ、固定長配列 |
-| Backend | `QueueBackend<T>` / `StackBackend<T>` | Storage を操作し offer/poll 等のロジックを提供（常に `&mut self`、同期は担当しない） | リングインデックス管理、ヒープベース優先度制御 |
+| Backend | `SyncQueueBackend<T>` / `StackBackend<T>` | Storage を操作し offer/poll 等のロジックを提供（常に `&mut self`、同期は担当しない） | リングインデックス管理、ヒープベース優先度制御 |
 | Shared | `ArcShared<T>`（薄い共有ラッパ） | Backend を共有しつつ同期を吸収する最小限の型。内部で `cfg` により Arc / Rc / critical-section 等を選択 | `ArcShared<MpscRingBackend<T>>`, `ArcShared<BinaryHeapBackend<T>>` |
 | Queue / Stack API | `Queue<T, K, Backend>` / `Stack<T, Backend>` | 利用者向け API。型レベルの区別子（TypeKey）と Backend を組み合わせて offer/poll 等を委譲し、溢れ政策・エラー整合性を保つ | `Queue<T, MpscKey, MpscRingBackend<T>>`, `Queue<T, PriorityKey, BinaryHeapBackend<T>>` |
 
@@ -87,7 +87,7 @@
 - 成果物: ADR（仮 `ADR-queue-refactor`）に同期戦略（ArcShared 切替条件）、TypeKey 契約、OverflowPolicy、KPI、エラー方針を明記。
 
 ### フェーズ2: Core 抽象の再編（見積り: 8pt）
-1. トレイト整備 (3pt): `QueueBackend` / `QueueStorage` を再設計し、Stack 側も同構成へ揃える。既存トレイト（`QueueRw` 等）の統廃合方針を決定し、共有層は `ArcShared<T>` へ一本化する。
+1. トレイト整備 (3pt): `SyncQueueBackend` / `QueueStorage` を再設計し、Stack 側も同構成へ揃える。既存トレイト（`QueueRw` 等）の統廃合方針を決定し、共有層は `ArcShared<T>` へ一本化する。
 2. Queue API 再編 (3pt): `Queue<T, K, Backend>` を導入し、既存の `RingQueue` 等を薄い型へ置換。`TypeKey` を導入し、型レベルで契約を表現。
 3. Priority 対応 (2pt): Priority 用 Backend/Storage 抽象を切り出し、`PriorityBackend<T: Ord>` のような専用トレイトを定義。Queue 側は `where B: PriorityBackend<T>` を通じて `peek_min` 等の操作を公開する。
 4. core 側ユニットテストは `alloc` のみで動作するダミー Backend を用意し、溢れ政策・エラー遷移・TypeKey 契約を検証。`cargo +stable test -p cellex-utils-core-rs` / `makers ci-check` を通しながら段階的に移行。
@@ -103,7 +103,7 @@
 3. ベンチ更新: Phase1 で取得したベースラインと比較し、性能回帰をチェック。
 
 ### フェーズ4: 仕上げとドキュメント（見積り: 5pt）
-- 旧 API を整理し `QueueBackend` 系抽象に一本化。`cargo check --no-default-features --features alloc` と thumb ターゲット向け `cargo check` で `no_std` 回帰を検証。
+- 旧 API を整理し `SyncQueueBackend` 系抽象に一本化。`cargo check --no-default-features --features alloc` と thumb ターゲット向け `cargo check` で `no_std` 回帰を検証。
 - `makers ci-check` と `cargo make coverage` を完走させ、性能回帰がないか確認。
 - Queue 設計に関するドキュメント／ADR／ミグレーションガイドを更新し、新構造とエラーハンドリング方針（例: `Result<(), QueueError<E>>` を基本とする）を明示。Priority/FIFO でのエラー差異もまとめる。
 
@@ -120,5 +120,5 @@
 ### ランタイム拡張の想定
 - コア（queue2 / stack2）は `no_std + alloc` 前提で実装し、同期は `ArcShared` の抽象に委譲する。
 - ランタイム固有の Backend / Shared 実装（Tokio, Embassy 等）は `utils-std`・`utils-embedded` など環境別クレートで提供する余地を残す。
-- Tokio 向けに `TokioMpscBackend`、Embassy 向けに `CriticalSectionBackend` 等を別実装として追加できるよう、core では `QueueBackend` / `StackBackend` の trait 境界を狭めない。
+- Tokio 向けに `TokioMpscBackend`、Embassy 向けに `CriticalSectionBackend` 等を別実装として追加できるよう、core では `SyncQueueBackend` / `StackBackend` の trait 境界を狭めない。
 - TypeKey / Capability により API 表面が安定するため、ランタイム別 Backend を差し替えても利用者コードは最小の変更で済む。
