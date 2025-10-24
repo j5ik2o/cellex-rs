@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, QueueError, SharedBound};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, SharedBound};
 
 use crate::{
   api::mailbox::{messages::SystemMessage, MailboxFactory, MailboxProducer},

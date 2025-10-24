@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, QueueError, QueueRw, QueueSize};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw, QueueSize};
 
 use super::recv::QueueMailboxRecv;
 use crate::api::{

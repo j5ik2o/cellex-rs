@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw, SharedBound};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, Flag, QueueRw, SharedBound};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,

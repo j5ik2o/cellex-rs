@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::QueueError;
+use cellex_utils_core_rs::collections::queue::QueueError;
 
 use super::{CustomEscalationSink, ParentGuardianSink};
 use crate::{

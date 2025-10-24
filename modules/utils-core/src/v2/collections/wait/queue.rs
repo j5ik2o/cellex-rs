@@ -8,7 +8,7 @@ pub struct WaitQueue<E> {
   waiters: VecDeque<ArcShared<WaitNode<E>>>,
 }
 
-impl<E: Copy> WaitQueue<E> {
+impl<E> WaitQueue<E> {
   /// Creates an empty queue.
   pub const fn new() -> Self {
     Self { waiters: VecDeque::new() }
@@ -32,9 +32,18 @@ impl<E: Copy> WaitQueue<E> {
   }
 
   /// Completes all waiters with the provided error.
-  pub fn notify_error_all(&mut self, error: E) {
+  pub fn notify_error_all(&mut self, error: E)
+  where
+    E: Clone, {
+    self.notify_error_all_with(|| error.clone());
+  }
+
+  /// Completes all waiters with errors produced by the supplied closure.
+  pub fn notify_error_all_with<F>(&mut self, mut make_error: F)
+  where
+    F: FnMut() -> E, {
     while let Some(node) = self.waiters.pop_front() {
-      node.complete_with_error(error);
+      node.complete_with_error(make_error());
     }
   }
 }

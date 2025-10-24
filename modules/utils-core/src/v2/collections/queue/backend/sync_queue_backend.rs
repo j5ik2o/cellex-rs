@@ -1,4 +1,7 @@
-use crate::v2::collections::queue::{storage::QueueStorage, OfferOutcome, OverflowPolicy, QueueError};
+use crate::{
+  collections::queue::QueueError,
+  v2::collections::queue::{storage::QueueStorage, OfferOutcome, OverflowPolicy},
+};
 
 /// Backend trait responsible for queue operations on top of a storage implementation.
 pub trait SyncQueueBackend<T> {
@@ -9,10 +12,10 @@ pub trait SyncQueueBackend<T> {
   fn new(storage: Self::Storage, policy: OverflowPolicy) -> Self;
 
   /// Adds an element to the queue according to the configured overflow policy.
-  fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError>;
+  fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>>;
 
   /// Removes and returns the next element from the queue.
-  fn poll(&mut self) -> Result<T, QueueError>;
+  fn poll(&mut self) -> Result<T, QueueError<T>>;
 
   /// Returns the number of elements currently stored.
   fn len(&self) -> usize;

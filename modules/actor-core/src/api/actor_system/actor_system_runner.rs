@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use core::{convert::Infallible, future::Future, num::NonZeroUsize, pin::Pin};
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element};
 
 use super::ActorSystem;
 use crate::{

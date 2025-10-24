@@ -8,7 +8,7 @@ extern crate std;
 use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
-use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Shared, DEFAULT_PRIORITY};
 use futures::executor::block_on;
 use spin::RwLock;
 

@@ -1,10 +1,11 @@
 use cellex_utils_core_rs::{
+  collections::queue::{QueueError, QueueError as V2QueueError},
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared, Shared},
   v2::collections::queue::{
-    backend::{OfferOutcome, OverflowPolicy, QueueError as V2QueueError, VecRingBackend},
+    backend::{OfferOutcome, OverflowPolicy, VecRingBackend},
     MpscQueue, VecRingStorage,
   },
-  Element, QueueBase, QueueError, QueueRw, QueueSize,
+  Element, QueueBase, QueueRw, QueueSize,
 };
 use spin::Mutex;
 
@@ -84,14 +85,15 @@ impl<M> QueueRwCompat<M> {
     }
   }
 
-  fn map_offer_error(entry: EntryShared<M>, error: V2QueueError) -> QueueError<M> {
+  fn map_offer_error(entry: EntryShared<M>, error: V2QueueError<EntryShared<M>>) -> QueueError<M> {
     match error {
-      | V2QueueError::Full => QueueError::Full(Self::reclaim(entry)),
-      | V2QueueError::Closed => QueueError::Closed(Self::reclaim(entry)),
-      | V2QueueError::WouldBlock => QueueError::OfferError(Self::reclaim(entry)),
-      | V2QueueError::AllocError => QueueError::OfferError(Self::reclaim(entry)),
+      | V2QueueError::Full(preserved) => QueueError::Full(Self::reclaim(preserved)),
+      | V2QueueError::Closed(preserved) => QueueError::Closed(Self::reclaim(preserved)),
+      | V2QueueError::AllocError(preserved) | V2QueueError::OfferError(preserved) => {
+        QueueError::OfferError(Self::reclaim(preserved))
+      },
+      | V2QueueError::WouldBlock | V2QueueError::Empty => QueueError::OfferError(Self::reclaim(entry)),
       | V2QueueError::Disconnected => QueueError::Disconnected,
-      | V2QueueError::Empty => QueueError::OfferError(Self::reclaim(entry)),
     }
   }
 }
@@ -129,10 +131,12 @@ where
     match self.queue.poll() {
       | Ok(entry) => Ok(Some(Self::reclaim(entry))),
       | Err(V2QueueError::Empty) => Ok(None),
-      | Err(V2QueueError::Disconnected) | Err(V2QueueError::Closed) | Err(V2QueueError::Full) => {
-        Err(QueueError::Disconnected)
-      },
-      | Err(V2QueueError::WouldBlock) | Err(V2QueueError::AllocError) => Err(QueueError::Disconnected),
+      | Err(V2QueueError::Disconnected)
+      | Err(V2QueueError::WouldBlock)
+      | Err(V2QueueError::AllocError(_))
+      | Err(V2QueueError::OfferError(_)) => Err(QueueError::Disconnected),
+      | Err(V2QueueError::Closed(preserved)) => Err(QueueError::Closed(Self::reclaim(preserved))),
+      | Err(V2QueueError::Full(preserved)) => Err(QueueError::Full(Self::reclaim(preserved))),
     }
   }
 

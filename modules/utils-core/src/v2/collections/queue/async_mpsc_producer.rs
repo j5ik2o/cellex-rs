@@ -2,11 +2,12 @@ use core::marker::PhantomData;
 
 use super::async_queue::offer_shared;
 use crate::{
+  collections::queue::QueueError,
   sync::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
-  v2::collections::queue::backend::{AsyncQueueBackend, OfferOutcome, QueueError},
+  v2::collections::queue::backend::{AsyncQueueBackend, OfferOutcome},
 };
 
 /// Async producer for queues tagged with
@@ -29,7 +30,7 @@ where
   }
 
   /// Offers an element to the queue using the underlying backend.
-  pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
+  pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     offer_shared::<T, B, A>(&self.inner, item).await
   }
 

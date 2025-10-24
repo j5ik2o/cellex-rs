@@ -5,7 +5,7 @@ use core::{
   task::{Context, Poll},
 };
 
-use cellex_utils_core_rs::{Element, QueueError, QueueRw};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw};
 
 use super::base::QueueMailbox;
 use crate::api::mailbox::MailboxSignal;
@@ -66,7 +66,19 @@ where
           this.wait = None;
           return Poll::Ready(Ok(message));
         },
-        | Err(QueueError::Full(_)) | Err(QueueError::OfferError(_)) => return Poll::Pending,
+        | Err(QueueError::Empty) => {
+          if this.wait.is_none() {
+            this.wait = Some(this.mailbox.signal.wait());
+          }
+        },
+        | Err(QueueError::WouldBlock) | Err(QueueError::Full(_)) | Err(QueueError::OfferError(_)) => {
+          return Poll::Pending
+        },
+        | Err(QueueError::AllocError(_)) => {
+          this.mailbox.closed.set(true);
+          this.wait = None;
+          return Poll::Ready(Err(QueueError::Disconnected));
+        },
       }
 
       if let Some(wait) = this.wait.as_mut() {

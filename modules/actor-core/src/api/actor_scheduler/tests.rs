@@ -12,7 +12,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element, DEFAULT_PRIORITY};
 use futures::{
   executor::{block_on, LocalPool},
   future::{poll_fn, FutureExt},

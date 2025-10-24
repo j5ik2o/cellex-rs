@@ -4,7 +4,7 @@ extern crate std;
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, cmp::Reverse, marker::PhantomData};
 
-use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Shared};
 
 use crate::{
   api::{

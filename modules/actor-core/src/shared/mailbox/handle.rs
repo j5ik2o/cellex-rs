@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element};
 
 use crate::{api::mailbox::Mailbox, shared::mailbox::signal::MailboxSignal};
 
