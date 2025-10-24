@@ -13,7 +13,6 @@ repository = "https://github.com/j5ik2o/cellex-rs"
 default = ["rc"]
 rc = ["dep:embassy-sync"]
 arc = ["dep:embassy-sync", "dep:critical-section"]
-std = []
 embassy = ["arc", "dep:embassy-time", "dep:embassy-futures"]
 
 [dependencies]
