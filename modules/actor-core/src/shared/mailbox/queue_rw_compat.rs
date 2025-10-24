@@ -9,9 +9,15 @@ use cellex_utils_core_rs::{
 };
 use spin::Mutex;
 
+use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
+
+#[cfg(test)]
+mod tests;
+
 type EntryShared<M> = ArcShared<Mutex<Option<M>>>;
 type Backend<M> = VecRingBackend<EntryShared<M>>;
 type Queue<M> = MpscQueue<EntryShared<M>, Backend<M>>;
+type MetricsBinding = ArcShared<SpinSyncMutex<Option<MetricsSinkShared>>>;
 
 #[derive(Clone, Copy)]
 enum CapacityModel {
@@ -23,12 +29,17 @@ enum CapacityModel {
 pub struct QueueRwCompat<M> {
   queue:          Queue<M>,
   capacity_model: CapacityModel,
+  metrics_sink:   MetricsBinding,
 }
 
 impl<M> Clone for QueueRwCompat<M> {
   fn clone(&self) -> Self {
     let shared = self.queue.shared().clone();
-    Self { queue: MpscQueue::new(shared), capacity_model: self.capacity_model }
+    Self {
+      queue:          MpscQueue::new(shared),
+      capacity_model: self.capacity_model,
+      metrics_sink:   self.metrics_sink.clone(),
+    }
   }
 }
 
@@ -52,7 +63,8 @@ impl<M> QueueRwCompat<M> {
     let backend = VecRingBackend::new_with_storage(storage, policy);
     let shared_backend = ArcShared::new(SpinSyncMutex::new(backend));
     let queue = MpscQueue::new(shared_backend);
-    Self { queue, capacity_model: model }
+    let metrics_sink = ArcShared::new(SpinSyncMutex::new(None));
+    Self { queue, capacity_model: model, metrics_sink }
   }
 
   fn reclaim(entry: EntryShared<M>) -> M {
@@ -77,11 +89,24 @@ impl<M> QueueRwCompat<M> {
 
   fn map_offer_outcome(&self, entry: EntryShared<M>, outcome: OfferOutcome) -> Result<(), QueueError<M>> {
     match outcome {
-      | OfferOutcome::Enqueued | OfferOutcome::DroppedOldest { .. } | OfferOutcome::GrewTo { .. } => {
+      | OfferOutcome::Enqueued => {
         drop(entry);
         Ok(())
       },
-      | OfferOutcome::DroppedNewest { .. } => Err(QueueError::Full(Self::reclaim(entry))),
+      | OfferOutcome::DroppedOldest { count } => {
+        self.record_event(MetricsEvent::MailboxDroppedOldest { count });
+        drop(entry);
+        Ok(())
+      },
+      | OfferOutcome::DroppedNewest { count } => {
+        self.record_event(MetricsEvent::MailboxDroppedNewest { count });
+        Err(QueueError::Full(Self::reclaim(entry)))
+      },
+      | OfferOutcome::GrewTo { capacity } => {
+        self.record_event(MetricsEvent::MailboxGrewTo { capacity });
+        drop(entry);
+        Ok(())
+      },
     }
   }
 
@@ -94,6 +119,22 @@ impl<M> QueueRwCompat<M> {
       | V2QueueError::WouldBlock | V2QueueError::Empty => QueueError::OfferError(Self::reclaim(entry)),
       | V2QueueError::Disconnected => QueueError::Disconnected,
     }
+  }
+
+  fn record_event(&self, event: MetricsEvent) {
+    let sink = {
+      let guard = self.metrics_sink.lock();
+      guard.clone()
+    };
+    if let Some(sink) = sink {
+      sink.with_ref(|sink| sink.record(event));
+    }
+  }
+
+  /// Updates the metrics sink used for queue-level instrumentation.
+  pub fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
+    let mut guard = self.metrics_sink.lock();
+    *guard = sink;
   }
 }
 

@@ -1,4 +1,7 @@
-use cellex_actor_core_rs::shared::mailbox::{messages::PriorityEnvelope, queue_rw_compat::QueueRwCompat};
+use cellex_actor_core_rs::{
+  api::metrics::MetricsSinkShared,
+  shared::mailbox::{messages::PriorityEnvelope, queue_rw_compat::QueueRwCompat},
+};
 use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
 use cellex_utils_std_rs::{Element, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter};
 
@@ -65,6 +68,12 @@ where
       total = total.saturating_add(capacity.to_usize());
     }
     QueueSize::limited(total)
+  }
+
+  pub(super) fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
+    for queue in &self.queues {
+      queue.set_metrics_sink(sink.clone());
+    }
   }
 }
 
@@ -134,6 +143,11 @@ where
       QueueSize::limited(total)
     }
   }
+
+  pub(super) fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
+    self.control.set_metrics_sink(sink.clone());
+    self.regular.set_metrics_sink(sink);
+  }
 }
 
 impl<M> QueueBase<PriorityEnvelope<M>> for TokioPriorityQueues<M>
@@ -195,4 +209,10 @@ where
   fn clean_up(&self) {
     self.clean_up();
   }
+}
+
+pub(super) fn configure_metrics<M>(queues: &TokioPriorityQueues<M>, sink: Option<MetricsSinkShared>)
+where
+  M: Element, {
+  queues.set_metrics_sink(sink);
 }

@@ -106,6 +106,12 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     self.try_send(message)
   }
 
+  /// Returns a reference to the underlying queue.
+  #[must_use]
+  pub fn queue(&self) -> &Q {
+    &self.queue
+  }
+
   /// Assigns a metrics sink for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.metrics_sink = sink;

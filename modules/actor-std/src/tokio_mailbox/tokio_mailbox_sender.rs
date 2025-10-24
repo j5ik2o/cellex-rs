@@ -1,7 +1,10 @@
 use cellex_actor_core_rs::api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared};
 use cellex_utils_std_rs::{Element, QueueError};
 
-use super::{notify_signal::NotifySignal, tokio_queue::TokioQueue};
+use super::{
+  notify_signal::NotifySignal,
+  tokio_queue::{self, TokioQueue},
+};
 
 /// Sender handle for Tokio mailbox
 ///
@@ -57,6 +60,7 @@ where
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    tokio_queue::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 }

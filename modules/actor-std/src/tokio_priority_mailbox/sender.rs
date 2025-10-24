@@ -4,7 +4,7 @@ use cellex_actor_core_rs::{
 };
 use cellex_utils_std_rs::Element;
 
-use super::{queues::TokioPriorityQueues, NotifySignal, PriorityQueueError};
+use super::{queues, queues::TokioPriorityQueues, NotifySignal, PriorityQueueError};
 
 /// Message sender handle for priority mailbox
 ///
@@ -142,6 +142,7 @@ where
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    queues::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 

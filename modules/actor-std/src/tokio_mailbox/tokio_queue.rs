@@ -1,3 +1,4 @@
+use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
 #[cfg(feature = "queue-v2")]
 use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
 use cellex_utils_std_rs::{Element, QueueSize};
@@ -6,6 +7,7 @@ use cellex_utils_std_rs::{Element, QueueSize};
 mod legacy {
   use std::sync::Arc;
 
+  use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
   use cellex_utils_std_rs::{
     collections::queue::mpsc::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue},
     Element, QueueBase, QueueError, QueueRw, QueueSize,
@@ -96,6 +98,8 @@ mod legacy {
         | TokioQueueKind::Bounded(queue) => queue.clean_up(),
       }
     }
+
+    pub(crate) fn set_metrics_sink(&self, _sink: Option<MetricsSinkShared>) {}
   }
 }
 
@@ -120,4 +124,18 @@ where
     | QueueSize::Limitless | QueueSize::Limited(0) => TokioQueue::unbounded(),
     | QueueSize::Limited(capacity) => TokioQueue::bounded(capacity, OverflowPolicy::Block),
   }
+}
+
+#[cfg(feature = "queue-v1")]
+pub(super) fn configure_metrics<M>(queue: &TokioQueue<M>, sink: Option<MetricsSinkShared>)
+where
+  M: Element, {
+  queue.set_metrics_sink(sink);
+}
+
+#[cfg(feature = "queue-v2")]
+pub(super) fn configure_metrics<M>(queue: &TokioQueue<M>, sink: Option<MetricsSinkShared>)
+where
+  M: Element, {
+  queue.set_metrics_sink(sink);
 }

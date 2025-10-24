@@ -11,8 +11,10 @@ use cellex_actor_core_rs::{
 use cellex_utils_std_rs::{Element, QueueSize};
 
 use super::{
-  factory::TokioPriorityMailboxFactory, queues::TokioPriorityQueues, sender::TokioPriorityMailboxSender, NotifySignal,
-  PriorityQueueError,
+  factory::TokioPriorityMailboxFactory,
+  queues::{self, TokioPriorityQueues},
+  sender::TokioPriorityMailboxSender,
+  NotifySignal, PriorityQueueError,
 };
 
 /// Priority mailbox for Tokio runtime
@@ -56,6 +58,7 @@ where
 
   /// Assigns a metrics sink to the underlying mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    queues::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 
@@ -100,6 +103,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    queues::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 }

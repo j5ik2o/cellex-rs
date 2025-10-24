@@ -8,8 +8,10 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_std_rs::{Element, QueueError, QueueSize};
 
 use super::{
-  notify_signal::NotifySignal, tokio_mailbox_factory::TokioMailboxFactory, tokio_mailbox_sender::TokioMailboxSender,
-  tokio_queue::TokioQueue,
+  notify_signal::NotifySignal,
+  tokio_mailbox_factory::TokioMailboxFactory,
+  tokio_mailbox_sender::TokioMailboxSender,
+  tokio_queue::{self, TokioQueue},
 };
 
 /// Mailbox implementation for Tokio runtime
@@ -105,6 +107,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    tokio_queue::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 }
