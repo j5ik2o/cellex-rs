@@ -85,7 +85,6 @@ where
 }
 
 /// Async queue API wrapping a shared backend guarded by an async-capable mutex.
-#[derive(Clone)]
 pub struct AsyncQueue<T, K, B, A = SpinAsyncMutex<B>>
 where
   K: TypeKey,
@@ -93,6 +92,17 @@ where
   A: AsyncMutexLike<B>, {
   inner: ArcShared<A>,
   _pd:   PhantomData<(T, K, B)>,
+}
+
+impl<T, K, B, A> Clone for AsyncQueue<T, K, B, A>
+where
+  K: TypeKey,
+  B: AsyncQueueBackend<T>,
+  A: AsyncMutexLike<B>,
+{
+  fn clone(&self) -> Self {
+    Self { inner: self.inner.clone(), _pd: PhantomData }
+  }
 }
 
 impl<T, K, B, A> AsyncQueue<T, K, B, A>

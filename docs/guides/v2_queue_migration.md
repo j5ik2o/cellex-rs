@@ -23,12 +23,21 @@ producer.offer(msg)?;
 let received = consumer.poll()?;
 ```
 
-std 環境からは `StdMpscSyncQueue` / `StdSpscSyncQueue` / `StdVecSyncStack` のコンストラクタを
+std 環境からは `SyncStdMpscQueue` / `SyncStdSpscQueue` / `SyncStdVecStack` のコンストラクタを
 利用すると `StdSyncMutex` ベースのバックエンドが自動的に組み立てられます。
 
 ```rust
 let queue = utils_std::v2::collections::make_std_mpsc_queue_drop_oldest(1024);
 let (producer, consumer) = queue.into_mpsc_pair();
+```
+
+Tokio ランタイムで利用する場合は `async_queue::make_tokio_mpsc_queue` を利用し、`TokioBoundedMpscBackend`
+と `TokioAsyncMutex` の組み合わせを手軽に構築できます。
+
+```rust
+let queue = utils_std::v2::collections::async_queue::make_tokio_mpsc_queue(1024);
+let (producer, consumer) = queue.into_mpsc_pair();
+producer.offer(msg).await?;
 ```
 
 ## 非推奨マーク
@@ -41,3 +50,4 @@ let (producer, consumer) = queue.into_mpsc_pair();
 
 - v2 Queue/Stack の設計: `docs/design/collections_queue_spec.md`
 - v2 std アダプタ: `modules/utils-std/src/v2/collections`
+- Tokio async キューガイド: `docs/guides/tokio_async_queue.md`

@@ -69,8 +69,9 @@
 - Future の Drop（キャンセル）時に待機ノードを安全に除去できる RAII ガードを設計し、リークしないことを単体テストで確認する。
 
 ### フェーズ3: Tokio backend / std adapter
-- `modules/utils-std/src/v2/` に `AsyncStdMpscQueue` / `AsyncStdVecStack` などのビルダー関数を用意。
-- 旧 API から async 版へ切り替えるための type alias / ガイドを整備。
+- `modules/utils-std/src/v2/collections/async_queue/` に Tokio backend 実装 (`TokioBoundedMpscBackend`) を追加し、`async_queue.rs` から公開する。
+- `modules/utils-std/src/v2/` に `TokioMpscQueue` のビルダー関数を用意し、旧 API から async 版へ切り替えるための type alias / ガイドを整備。
+- Embassy 連携は `modules/utils-embedded/src/v2/collections/async_queue.rs` で進め、`embassy-sync::channel::Channel` を backend 化する。
 - **Backlog**: `std::sync::mpsc` を使った擬似 async backend を最初に揃え、`Tokio` 固有の真の async backend は後続フェーズで追加する。
 - 利用者向けのデフォルト構成（例: `TokioMpscQueue<T>`）を型エイリアスとビルダーで提供し、複雑なジェネリクスを隠蔽する。
 

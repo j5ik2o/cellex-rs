@@ -104,6 +104,8 @@ where
 ## 6. Tokio backend と擬似 async backend
 - フェーズ1では `SyncAdapterBackend` が `SyncQueueBackend` を Future 化し、`WouldBlock` を `Poll::Pending` に変換する。
 - フェーズ2以降で `TokioBoundedMpscBackend` / `TokioUnboundedMpscBackend` を `AsyncQueueBackend` として実装し、`Waker` 経由でバックプレッシャを制御する。
+- 現行実装では `modules/utils-std/src/v2/collections/async_queue/tokio_bounded_mpsc_backend.rs` に Tokio 版 backend を配置し、`async_queue.rs` から公開している。
+- Embassy 版 backend (`modules/utils-embedded/src/v2/collections/async_queue.rs`) では `embassy_sync::channel::Channel` を用いて同様の待機キューを構成する。
 - `tokio::sync::Mutex` / `tokio::sync::RwLock` を `AsyncMutexLike` として再利用しつつ、std-only 構成（`AsyncStdMutex`）と no_std 構成（`CriticalSectionAsyncMutex` 等）を切り替えられるようにする。
 
 ## 7. エラーと SharedError

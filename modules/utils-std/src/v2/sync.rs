@@ -1,4 +1,4 @@
-//! Tokio-backed mutex wrapper compatible with `cellex-utils-core` traits.
+//! Tokio-specific synchronization adaptors for v2 abstractions.
 
 use async_trait::async_trait;
 use cellex_utils_core_rs::sync::async_mutex_like::AsyncMutexLike;
