@@ -38,6 +38,7 @@
 ## フェーズ構成
 
 ### フェーズ1: Async API の初期配置
+ステータス: ✅ 完了（2025-10-24 時点）
 - 追加の共有抽象は導入せず、`ArcShared` と `AsyncMutexLike` を直接組み合わせる。`ArcAsyncShared` や `AsyncSharedAccess` などの新ファイルは作成しない。
 - ストレージ層は同期版と共通の `QueueStorage` / `StackStorage` を利用し、非同期専用のストレージトレイトを追加しない。
 - **ディレクトリ構成は既存の `collections/queue`/`collections/stack` に async 系ファイルを責務別に並列配置する：**
@@ -63,12 +64,14 @@
 - `utils-std` や `utils-embedded` も同じ階層に async 用ファイルを追加し、Tokio 等の環境依存実装はそこで提供する。
 
 ### フェーズ2: AsyncQueue / AsyncStack API
+ステータス: ✅ 完了（2025-10-24 時点）
 - `AsyncQueue<T, K, B, A>` を導入し、TypeKey と Capability を尊重した async API を提供。
 - `SyncAdapterBackend` を用いた擬似 async 実装で offer/poll を `await` に対応させ、busy-wait ではなく `Notify` ベースの待機キューを実装する。
 - `MpscKey` / `SpscKey` 用の async プロデューサ / コンシューマ (`AsyncMpscProducer` 等) を追加。
 - Future の Drop（キャンセル）時に待機ノードを安全に除去できる RAII ガードを設計し、リークしないことを単体テストで確認する。
 
 ### フェーズ3: Tokio backend / std adapter
+ステータス: ✅ 完了（2025-10-24 時点）
 - `modules/utils-std/src/v2/collections/async_queue/` に Tokio backend 実装 (`TokioBoundedMpscBackend`) を追加し、`async_queue.rs` から公開する。
 - `modules/utils-std/src/v2/` に `TokioMpscQueue` のビルダー関数を用意し、旧 API から async 版へ切り替えるための type alias / ガイドを整備。
 - Embassy 連携は `modules/utils-embedded/src/v2/collections/async_queue.rs` で進め、`embassy-sync::channel::Channel` を backend 化する。
@@ -76,15 +79,20 @@
 - 利用者向けのデフォルト構成（例: `TokioMpscQueue<T>`）を型エイリアスとビルダーで提供し、複雑なジェネリクスを隠蔽する。
 
 ### フェーズ4: OverflowPolicy と ISR 方針の明文化
+ステータス: ⏳ 未着手（2025-10-24 時点）
+- `AsyncMutexLike::lock` を `Result<Guard, SharedError>` 返却に刷新し、割り込み文脈では `SharedError::InterruptContext` を伝搬させる。
+- `utils-core::sync::interrupt::InterruptContextPolicy` を導入し、`AsyncMutexLike` 実装がロック前に `check_blocking_allowed()` を必ず呼ぶ構造を整える。標準環境は `NeverInterruptPolicy`、組込みは `CriticalSectionInterruptPolicy` を採用できるようにする。
 - `OverflowPolicy::Block` は async 環境では `await` 待機に対応するが、割り込み文脈では同期版と同様に `QueueError::WouldBlock` / `StackError::WouldBlock` を即時返却することを仕様に反映する。
 - `SharedError::BorrowConflict` → `WouldBlock` → `Poll::Pending` という写像を整理し、擬似 async / 真 async の両方で揃える。
 - `InterruptContextPolicy` を thumb ターゲットで検証し、CI のクロスチェック（`cargo check --target thumbv6m-none-eabi --features async`）に組み込む。
 
 ### フェーズ5: 移行整備
+ステータス: ⏳ 未着手（2025-10-24 時点）
 - `docs/guides/async_queue_migration.md` を作成し、旧 Tokio ベース API からの移行手順を明示。
 - 既存コードベース（actor-std 等）の移行実験。
 
 ### フェーズ6: 最終切り替え
+ステータス: ⏳ 未着手（2025-10-24 時点）
 - 互換 API に `#[deprecated]` を付与し、利用箇所の修正を促す。
 - CI に async テストケースを追加し、ランタイム依存部分の regressions を防ぐ。
 - 並行性検証用に `loom` を活用する PoC を Backlog に保持し、実装安定後に導入する（フェーズ0/将来対応）。

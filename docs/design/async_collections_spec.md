@@ -8,9 +8,22 @@
 
 - 既存の `ArcShared<T>` をそのまま利用し、`T` に `AsyncMutexLike<B>` を実装した型（例: `tokio::sync::Mutex<B>`・`AsyncStdMutex<B>`）を格納する。
 - `ArcAsyncShared` や `AsyncSharedAccess` など新しいラッパ型は導入しない。同期 v2 と同じく共有抽象のみで完結し、層を増やさない。
-- ロック取得は `AsyncMutexLike::lock_async`（仮称）経由で `await` する実装とし、`SharedError` の扱いは同期版と同様に `Poisoned` / `BorrowConflict` を返す。
-- `AsyncMutexLike<T>` の最小契約は「`lock_async(&self) -> impl Future<Output = Result<Guard<'_, T>, SharedError>>` を提供し、`Guard<'_, T>` は `Deref<Target = T>` かつ `Send`、トレイト自体も `Send + Sync`」であることを明示する。
-- 割り込み文脈で `lock_async` が呼ばれた場合は `SharedError::InterruptContext` を返す責務を負い、環境ごとに `InterruptContextPolicy`（例：`cortex_m::interrupt::active()`／`critical_section::is_active()`）で判定する。
+- ロック取得は `AsyncMutexLike::lock` を `await` する実装とし、失敗時は `SharedError` を返す。
+- **契約**: `lock` は `Future<Output = Result<Guard<'_, T>, SharedError>>` を返し、割り込み文脈では `Err(SharedError::InterruptContext)` を返す。`Guard` は `Deref<Target = T>` + `DerefMut` を実装し、`Send` な環境での共有に対応する。
+- `AsyncMutexLike<T>` の最小契約は「`lock(&self) -> impl Future<Output = Result<Guard<'_, T>, SharedError>>` を提供し、`Guard<'_, T>` は `Deref<Target = T>` かつ `Send`、トレイト自体も `Send + Sync`」であることを明示する。
+- 割り込み文脈で `lock` が呼ばれた場合は `SharedError::InterruptContext` を返す責務を負い、環境ごとに `InterruptContextPolicy`（例：`cortex_m::interrupt::active()`／`critical_section::is_active()`）で判定する。
+
+### 2.1 InterruptContextPolicy の扱い
+
+- `utils-core::sync::interrupt` モジュールに `InterruptContextPolicy` トレイトを導入する。
+  ```rust
+  pub trait InterruptContextPolicy {
+    fn check_blocking_allowed() -> Result<(), SharedError>;
+  }
+  ```
+- 各 `AsyncMutexLike` 実装はロック直前に `P::check_blocking_allowed()` を呼び出し、ブロックが許可されない場合は `Err(SharedError::InterruptContext)` を返す。ポリシー型 `P` は実装固有に保持し、`SpinAsyncMutex<P>` のように静的に決定する。
+- `std`/Tokio 環境では `NeverInterruptPolicy`（常に許可）をデフォルトとし、`TokioAsyncMutex` などホスト向けミューテックスはこのポリシーを用いる。
+- 組込み/no_std 環境では `CriticalSectionInterruptPolicy` や `CortexMInterruptPolicy` など、ターゲット固有の割り込み検査を行う実装を提供し、利用側が明示的に選択する。
 
 ## 3. Async Backend 層
 
@@ -50,7 +63,7 @@ Stack 版も同様に `AsyncStackBackend` を定義し、関連ストレージ�
 ## 4. Async Queue ファサード
 
 ```rust
-pub struct AsyncQueue<T, K, B, A = AsyncStdMutex<B>>
+pub struct AsyncQueue<T, K, B, A = SpinAsyncMutex<B>>
 where
     K: TypeKey,
     B: AsyncQueueBackend<T>,
@@ -70,8 +83,8 @@ where
 }
 ```
 
-- 内部では `ArcShared<A>` を保持し、`A::lock_async().await` で backend (`B`) にアクセスする。
-- `A = AsyncStdMutex<B>` は std + Tokio ランタイム向けのデフォルトであり、thumb / no_std 環境では `CriticalSectionAsyncMutex<B>` などを明示的に指定する。
+- 内部では `ArcShared<A>` を保持し、`A::lock().await?` の結果から backend (`B`) にアクセスする（`SharedError` は `QueueError::from` / `StackError::from` で写像して上位へ伝搬）。
+- `A = SpinAsyncMutex<B>` を core クレートのデフォルトとし、no_std/組込み環境でも依存追加なしで利用できるようにする。std/Tokio 環境での利用者向けには `utils-std` 側で `TokioAsyncMutex` や `AsyncStdMutex` を組み合わせた型エイリアス・ビルダーを提供する。
 - `AsyncMpscProducer` / `AsyncMpscConsumer` / `AsyncSpscProducer` / `AsyncSpscConsumer` を Capability に基づいて追加し、同期版と同じ型制約（例: `MpscKey: MultiProducer + SingleConsumer`）を維持する。
 - `PriorityKey` 用 async ラッパ (`peek_min`) も提供。
 - `capacity()` は Backend 初期化時に確定する不変値をそのまま返すためロック不要で提供できる。ロックや再計算が必要な Backend では `async fn capacity` に拡張する。
@@ -81,7 +94,7 @@ where
 ## 5. Async Stack ファサード
 
 ```rust
-pub struct AsyncStack<T, B, A = AsyncStdMutex<B>>
+pub struct AsyncStack<T, B, A = SpinAsyncMutex<B>>
 where
     B: AsyncStackBackend<T>,
     A: AsyncMutexLike<B>;
