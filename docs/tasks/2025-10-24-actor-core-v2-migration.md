@@ -410,6 +410,7 @@
   - [x] `QueueError` → `MailboxError` 変換テーブルを実装し、単体テストで網羅性と整合性を検証する。
     - 2025-10-25: `api/mailbox/error.rs` に `MailboxError` / `MailboxOverflowPolicy` を追加し、`MailboxQueueCore::try_send_mailbox` / `try_dequeue_mailbox` で利用できる変換ヘルパを実装。既存 API 互換のため `QueueError` への逆変換も提供し、段階移行中は従来の `try_send` / `try_dequeue` が新エラーから再構築する形を採用した。
     - 2025-10-25: Tokio／Priority／embedded の各 Mailbox + Sender に `*_mailbox` 系 API を追加し、QueueError ベースの旧メソッドと併存する形で新エラー体系を露出。既存呼び出しコードに影響を与えずに新 API を段階導入できる状態を整備。
+    - 2025-10-25: 公開 API（`ActorContext` / `PriorityActorRef` 等）で `MailboxError` を返す補助メソッドを追加する移行方針を整理。現行の QueueError メソッドは維持したまま、利用者が任意で新エラーへ移行できる設計案を次フェーズで実装予定。
   - [ ] `QueueMailbox` を利用する主要モジュール（scheduler、deadletter、priority mailbox 等）を影響の小さい順に差し替え、各ステップで `queue-v1` / `queue-v2` 両ビルドを確認する。
   - [ ] 新たに追加する結合テスト（`QueueMailbox` + signal 実装）を `queue-v1` / `queue-v2` の双方で実行し、回帰を検出する仕組みを整える。
   - [ ] `cargo bench -p cellex-actor-core-rs --bench mailbox_throughput` を実行し、ベースラインとの差分を記録・報告するルーチンを確立する。
