@@ -1,10 +1,12 @@
 #[cfg(not(feature = "queue-v2"))]
 use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
 #[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::MailboxQueueDriver;
+#[cfg(feature = "queue-v2")]
 use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv},
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,

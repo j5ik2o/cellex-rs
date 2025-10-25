@@ -1,12 +1,18 @@
-use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
-  MailboxOptions,
-};
+#[cfg(feature = "queue-v1")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
+use cellex_actor_core_rs::api::mailbox::{queue_mailbox::QueueMailbox, MailboxOptions};
 use cellex_utils_std_rs::{Element, QueueSize, DEFAULT_CAPACITY, PRIORITY_LEVELS};
 
-use super::{
-  mailbox::TokioPriorityMailbox, queues::TokioPriorityQueues, sender::TokioPriorityMailboxSender, NotifySignal,
-};
+#[cfg(feature = "queue-v2")]
+use super::queues::PrioritySyncQueueDriver;
+#[cfg(feature = "queue-v1")]
+use super::queues::TokioPriorityQueues;
+use super::{mailbox::TokioPriorityMailbox, sender::TokioPriorityMailboxSender, NotifySignal};
+
+#[cfg(feature = "queue-v1")]
+type QueueHandle<M> = LegacyQueueDriver<TokioPriorityQueues<M>>;
+#[cfg(feature = "queue-v2")]
+type QueueHandle<M> = PrioritySyncQueueDriver<M>;
 
 /// Factory that creates priority mailboxes
 ///
@@ -94,7 +100,11 @@ impl TokioPriorityMailboxFactory {
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);
     let regular_capacity = self.resolve_regular_capacity(options.capacity);
-    let queue = LegacyQueueDriver::new(TokioPriorityQueues::<M>::new(self.levels, control_per_level, regular_capacity));
+    #[cfg(feature = "queue-v1")]
+    let queue: QueueHandle<M> =
+      LegacyQueueDriver::new(TokioPriorityQueues::<M>::new(self.levels, control_per_level, regular_capacity));
+    #[cfg(feature = "queue-v2")]
+    let queue: QueueHandle<M> = PrioritySyncQueueDriver::new(self.levels, control_per_level, regular_capacity);
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

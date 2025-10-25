@@ -1,5 +1,9 @@
+#[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::{MailboxQueueDriver, QueuePollOutcome};
 use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxOptions};
-use cellex_utils_std_rs::{QueueRw, QueueSize, DEFAULT_PRIORITY};
+#[cfg(all(feature = "queue-v1", not(feature = "queue-v2")))]
+use cellex_utils_std_rs::QueueRw;
+use cellex_utils_std_rs::{Element, QueueError, QueueSize, DEFAULT_PRIORITY};
 
 use super::*;
 
@@ -13,6 +17,30 @@ use std::{
 
 #[cfg(feature = "queue-v2")]
 use cellex_actor_core_rs::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared};
+
+#[cfg(all(feature = "queue-v1", not(feature = "queue-v2")))]
+fn dequeue_expected<M>(mailbox: &TokioPriorityMailbox<M>) -> Result<PriorityEnvelope<M>, String>
+where
+  M: Element, {
+  mailbox
+    .inner()
+    .queue()
+    .poll()
+    .map_err(|err| format!("poll queue: {:?}", err))?
+    .ok_or_else(|| "queue empty".to_string())
+}
+
+#[cfg(feature = "queue-v2")]
+fn dequeue_expected<M>(mailbox: &TokioPriorityMailbox<M>) -> Result<PriorityEnvelope<M>, String>
+where
+  M: Element, {
+  match MailboxQueueDriver::poll(mailbox.inner().queue()).map_err(|err| format!("poll queue: {:?}", err))? {
+    | QueuePollOutcome::Message(envelope) | QueuePollOutcome::Closed(envelope) => Ok(envelope),
+    | QueuePollOutcome::Empty | QueuePollOutcome::Pending => Err("queue empty".to_string()),
+    | QueuePollOutcome::Disconnected => Err("queue disconnected".to_string()),
+    | QueuePollOutcome::Err(err) => Err(format!("queue error: {:?}", err)),
+  }
+}
 
 #[cfg(feature = "queue-v2")]
 #[derive(Clone)]
@@ -47,24 +75,9 @@ fn priority_mailbox_orders_messages() -> TestResult {
     .send_control_with_priority(20, DEFAULT_PRIORITY + 3)
     .map_err(|err| format!("send medium priority: {:?}", err))?;
 
-  let first = mailbox
-    .inner()
-    .queue()
-    .poll()
-    .map_err(|err| format!("poll queue first: {:?}", err))?
-    .ok_or_else(|| "queue empty for first poll".to_string())?;
-  let second = mailbox
-    .inner()
-    .queue()
-    .poll()
-    .map_err(|err| format!("poll queue second: {:?}", err))?
-    .ok_or_else(|| "queue empty for second poll".to_string())?;
-  let third = mailbox
-    .inner()
-    .queue()
-    .poll()
-    .map_err(|err| format!("poll queue third: {:?}", err))?
-    .ok_or_else(|| "queue empty for third poll".to_string())?;
+  let first = dequeue_expected(&mailbox)?;
+  let second = dequeue_expected(&mailbox)?;
+  let third = dequeue_expected(&mailbox)?;
 
   assert_eq!(first.into_parts(), (99, DEFAULT_PRIORITY + 7));
   assert_eq!(second.into_parts(), (20, DEFAULT_PRIORITY + 3));
@@ -79,12 +92,7 @@ fn priority_sender_defaults_work() -> TestResult {
 
   sender.send(PriorityEnvelope::with_default_priority(5)).map_err(|err| format!("send default priority: {:?}", err))?;
 
-  let envelope = mailbox
-    .inner()
-    .queue()
-    .poll()
-    .map_err(|err| format!("poll queue: {:?}", err))?
-    .ok_or_else(|| "queue empty for default priority poll".to_string())?;
+  let envelope = dequeue_expected(&mailbox)?;
   let (_, priority) = envelope.into_parts();
   assert_eq!(priority, DEFAULT_PRIORITY);
   Ok(())
@@ -100,18 +108,8 @@ fn control_queue_preempts_regular_messages() -> TestResult {
     .send_control_with_priority(99, DEFAULT_PRIORITY + 5)
     .map_err(|err| format!("enqueue control message: {:?}", err))?;
 
-  let first = mailbox
-    .inner()
-    .queue()
-    .poll()
-    .map_err(|err| format!("poll queue first: {:?}", err))?
-    .ok_or_else(|| "queue empty for control poll".to_string())?;
-  let second = mailbox
-    .inner()
-    .queue()
-    .poll()
-    .map_err(|err| format!("poll queue second: {:?}", err))?
-    .ok_or_else(|| "queue empty for regular poll".to_string())?;
+  let first = dequeue_expected(&mailbox)?;
+  let second = dequeue_expected(&mailbox)?;
 
   assert_eq!(first.into_parts(), (99, DEFAULT_PRIORITY + 5));
   assert_eq!(second.into_parts(), (1, DEFAULT_PRIORITY));
