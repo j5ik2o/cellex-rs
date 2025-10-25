@@ -1,4 +1,6 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, SharedBound};
+use cellex_utils_core_rs::{
+  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, SharedBound,
+};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
@@ -50,13 +52,22 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     Self { core }
   }
 
+  /// Attempts to send a message and returns the underlying queue outcome.
+  pub fn try_send_with_outcome<M>(&self, message: M) -> Result<OfferOutcome, MailboxError<M>>
+  where
+    Q: MailboxQueueDriver<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.core.try_send_mailbox(message)
+  }
+
   /// Attempts to send a message (non-blocking) using the mailbox error model.
   pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
   where
     Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
-    self.core.try_send_mailbox(message)
+    self.try_send_with_outcome(message).map(|_| ())
   }
 
   /// Attempts to send a message (non-blocking).
@@ -77,7 +88,10 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
-    self.try_send_mailbox(message).map_err(Into::into)
+    match self.try_send_with_outcome(message) {
+      | Ok(_) => Ok(()),
+      | Err(error) => Err(error.into()),
+    }
   }
 
   /// Sends a message using the mailbox queue.

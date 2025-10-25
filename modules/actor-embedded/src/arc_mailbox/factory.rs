@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 #[cfg(not(feature = "queue-v2"))]
 use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
 #[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig, SyncQueueDriver};
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig};
 use cellex_actor_core_rs::api::mailbox::{
   queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
 };
@@ -12,6 +12,8 @@ use cellex_utils_embedded_rs::collections::queue::mpsc::ArcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
+#[cfg(feature = "queue-v2")]
+use super::sync_queue_handle::ArcSyncQueueDriver;
 use super::{arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal};
 
 /// Factory for constructing [`ArcMailbox`] instances.
@@ -84,7 +86,7 @@ where
     M: Element;
   #[cfg(feature = "queue-v2")]
   type Queue<M>
-    = SyncQueueDriver<M>
+    = ArcSyncQueueDriver<M, RM>
   where
     M: Element;
   type Signal = ArcSignal<RM>;
@@ -93,7 +95,7 @@ where
   where
     M: Element, {
     #[cfg(feature = "queue-v2")]
-    let queue = build_queue_driver::<M>(QueueDriverConfig::default());
+    let queue = ArcSyncQueueDriver::from_driver(build_queue_driver::<M>(QueueDriverConfig::default()));
     #[cfg(not(feature = "queue-v2"))]
     let queue = LegacyQueueDriver::new(ArcMpscUnboundedQueue::new());
     let signal = ArcSignal::new();

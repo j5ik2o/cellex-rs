@@ -46,7 +46,7 @@ impl<Q, S> QueueMailbox<Q, S> {
     Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
-    self.core.try_send_mailbox(message)
+    self.core.try_send_mailbox(message).map(|_| ())
   }
 
   /// Configures a metrics sink used for enqueue instrumentation.

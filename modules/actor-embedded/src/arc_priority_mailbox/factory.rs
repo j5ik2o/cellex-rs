@@ -1,14 +1,22 @@
 use core::marker::PhantomData;
 
-use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
-  MailboxOptions,
-};
+#[cfg(feature = "queue-v1")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
+use cellex_actor_core_rs::api::mailbox::{queue_mailbox::QueueMailbox, MailboxOptions};
 use cellex_utils_embedded_rs::{Element, QueueSize, DEFAULT_CAPACITY, PRIORITY_LEVELS};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{mailbox::ArcPriorityMailbox, queues::ArcPriorityQueues, sender::ArcPriorityMailboxSender};
+#[cfg(feature = "queue-v1")]
+use super::queues::ArcPriorityQueues;
+use super::{mailbox::ArcPriorityMailbox, sender::ArcPriorityMailboxSender};
+#[cfg(not(feature = "queue-v1"))]
+use super::{priority_sync_driver::PrioritySyncQueueDriver, priority_sync_handle::ArcPrioritySyncQueueDriver};
 use crate::arc_mailbox::ArcSignal;
+
+#[cfg(feature = "queue-v1")]
+type QueueHandle<M, RM> = LegacyQueueDriver<ArcPriorityQueues<M, RM>>;
+#[cfg(not(feature = "queue-v1"))]
+type QueueHandle<M, RM> = ArcPrioritySyncQueueDriver<M, RM>;
 
 /// Factory for constructing [`ArcPriorityMailbox`] instances.
 #[derive(Debug)]
@@ -67,7 +75,15 @@ where
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);
     let regular_capacity = self.resolve_regular_capacity(options.capacity);
-    let queue = LegacyQueueDriver::new(ArcPriorityQueues::new(self.levels, control_per_level, regular_capacity));
+    #[cfg(feature = "queue-v1")]
+    let queue: QueueHandle<M, RM> =
+      LegacyQueueDriver::new(ArcPriorityQueues::new(self.levels, control_per_level, regular_capacity));
+    #[cfg(not(feature = "queue-v1"))]
+    let queue: QueueHandle<M, RM> = ArcPrioritySyncQueueDriver::from_driver(PrioritySyncQueueDriver::new(
+      self.levels,
+      control_per_level,
+      regular_capacity,
+    ));
     let signal = ArcSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

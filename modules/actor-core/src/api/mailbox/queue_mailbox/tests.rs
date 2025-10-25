@@ -1,14 +1,21 @@
 #![cfg(feature = "queue-v2")]
 
+use core::{
+  future::Future,
+  pin::Pin,
+  task::{Context, Poll},
+};
+
 use cellex_utils_core_rs::{
   collections::queue::QueueError,
   v2::collections::queue::backend::{OfferOutcome, OverflowPolicy},
   Element, QueueSize,
 };
+use futures::task::noop_waker_ref;
 
 use super::{MailboxQueueDriver, QueueMailbox, QueuePollOutcome};
 use crate::api::{
-  mailbox::{queue_mailbox::SyncQueueDriver, MailboxError, MailboxOverflowPolicy},
+  mailbox::{queue_mailbox::SyncQueueDriver, Mailbox, MailboxError, MailboxOverflowPolicy},
   metrics::MetricsSinkShared,
   test_support::TestSignal,
 };
@@ -194,4 +201,55 @@ fn queue_mailbox_internal_error_preserves_message() {
     | other => panic!("unexpected error: {other:?}"),
   }
   assert!(!mailbox.core.closed().get(), "internal errors are recoverable");
+}
+
+#[cfg(feature = "queue-v2")]
+#[test]
+fn producer_reports_dropped_oldest_outcome() {
+  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
+  let signal = TestSignal::default();
+  let mailbox = QueueMailbox::new(driver, signal);
+  let producer = mailbox.producer();
+
+  producer.try_send_with_outcome(1u32).expect("first enqueue succeeds");
+  let outcome = producer.try_send_with_outcome(2u32).expect("drop oldest should still be a success");
+
+  match outcome {
+    | OfferOutcome::DroppedOldest { count } => assert_eq!(count, 1),
+    | other => panic!("unexpected outcome: {other:?}"),
+  }
+}
+
+#[cfg(feature = "queue-v2")]
+#[test]
+fn producer_reports_enqueued_outcome() {
+  let driver = SyncQueueDriver::bounded(2, OverflowPolicy::Block);
+  let signal = TestSignal::default();
+  let mailbox = QueueMailbox::new(driver, signal);
+  let producer = mailbox.producer();
+
+  let outcome = producer.try_send_with_outcome(42u32).expect("enqueue succeeds");
+
+  assert!(matches!(outcome, OfferOutcome::Enqueued));
+}
+
+#[cfg(feature = "queue-v2")]
+#[test]
+fn receiver_pending_until_message_arrives() {
+  let signal = TestSignal::default();
+  let mailbox = QueueMailbox::new(SyncQueueDriver::bounded(1, OverflowPolicy::Block), signal);
+  let mut recv_future = mailbox.recv();
+
+  let waker = noop_waker_ref();
+  let mut cx = Context::from_waker(waker);
+  let poll = unsafe { Pin::new_unchecked(&mut recv_future) }.poll(&mut cx);
+  assert!(matches!(poll, Poll::Pending), "expected pending poll, got {poll:?}");
+
+  mailbox.try_send_mailbox(99u32).expect("enqueue succeeds");
+
+  let result = unsafe { Pin::new_unchecked(&mut recv_future) }.poll(&mut cx);
+  match result {
+    | Poll::Ready(Ok(message)) => assert_eq!(message, 99u32),
+    | other => panic!("unexpected poll result: {other:?}"),
+  }
 }

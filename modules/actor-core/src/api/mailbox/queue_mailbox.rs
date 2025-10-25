@@ -22,6 +22,7 @@ pub use sync_queue_driver::SyncQueueDriver;
 #[cfg(all(test, feature = "queue-v2"))]
 mod tests;
 
+#[cfg(feature = "queue-v2")]
 use crate::api::mailbox::MailboxOverflowPolicy;
 
 /// Default queue driver type that `QueueMailbox` uses when constructing drivers internally.

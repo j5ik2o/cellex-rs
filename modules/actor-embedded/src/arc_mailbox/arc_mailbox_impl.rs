@@ -1,7 +1,5 @@
 #[cfg(not(feature = "queue-v2"))]
 use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
   mailbox::{
     queue_mailbox::{QueueMailbox, QueueMailboxRecv},
@@ -14,10 +12,12 @@ use cellex_utils_embedded_rs::collections::queue::mpsc::ArcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
+#[cfg(feature = "queue-v2")]
+use super::sync_queue_handle::ArcSyncQueueDriver;
 use super::{factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal};
 
 #[cfg(feature = "queue-v2")]
-type ArcMailboxQueue<M, RM> = SyncQueueDriver<M>;
+type ArcMailboxQueue<M, RM> = ArcSyncQueueDriver<M, RM>;
 #[cfg(not(feature = "queue-v2"))]
 type ArcMailboxQueue<M, RM> = LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>;
 

@@ -1,3 +1,5 @@
+#![cfg(feature = "queue-v1")]
+
 use cellex_actor_core_rs::shared::mailbox::messages::PriorityEnvelope;
 use cellex_utils_embedded_rs::{
   collections::queue::{priority::ArcPriorityQueue, ring::ArcRingQueue},

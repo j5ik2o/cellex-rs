@@ -72,7 +72,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   }
 
   /// Attempts to enqueue a message and returns mailbox-level errors.
-  pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
+  pub fn try_send_mailbox<M>(&self, message: M) -> Result<OfferOutcome, MailboxError<M>>
   where
     D: MailboxQueueDriver<M>,
     S: MailboxSignal,
@@ -87,7 +87,7 @@ impl<D, S> MailboxQueueCore<D, S> {
         self.record_enqueue();
         self.notify_ready();
         match outcome {
-          | OfferOutcome::Enqueued | OfferOutcome::DroppedOldest { .. } | OfferOutcome::GrewTo { .. } => Ok(()),
+          | OfferOutcome::Enqueued | OfferOutcome::DroppedOldest { .. } | OfferOutcome::GrewTo { .. } => Ok(outcome),
           | OfferOutcome::DroppedNewest { .. } => {
             panic!("MailboxQueueDriver must map DroppedNewest into an error before returning success");
           },
@@ -109,7 +109,10 @@ impl<D, S> MailboxQueueCore<D, S> {
     D: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
-    self.try_send_mailbox(message).map_err(Into::into)
+    match self.try_send_mailbox(message) {
+      | Ok(_) => Ok(()),
+      | Err(error) => Err(error.into()),
+    }
   }
 
   /// Attempts to dequeue a message, returning mailbox-level errors.
