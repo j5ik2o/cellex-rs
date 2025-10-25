@@ -1,7 +1,7 @@
 use core::fmt;
 
 use cellex_actor_core_rs::api::{
-  mailbox::{error::MailboxError, queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+  mailbox::{queue_mailbox::LegacyQueueDriver, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{Element, QueueError};
@@ -48,12 +48,12 @@ where
     self.inner.send(message)
   }
 
-  /// MailboxError 版の非同期送信 API。
+  /// Attempts to enqueue using the MailboxError-based API.
   pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
     self.inner.try_send_mailbox(message)
   }
 
-  /// MailboxError 版の同期送信 API。
+  /// Sends a message using the MailboxError-based API.
   pub fn send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
     self.inner.send_mailbox(message)
   }

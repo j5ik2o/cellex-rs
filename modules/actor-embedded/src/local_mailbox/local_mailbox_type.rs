@@ -2,9 +2,8 @@ use core::fmt;
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    error::MailboxError,
     queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
-    Mailbox,
+    Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
 };
@@ -112,12 +111,12 @@ where
   M: Element,
   LocalQueue<M>: Clone,
 {
-  /// MailboxError 版の送信 API を提供。
+  /// Sends a message using the MailboxError-based API.
   pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
     self.inner.try_send_mailbox(message)
   }
 
-  /// MailboxError 版の受信 Future を返す。
+  /// Returns the receive future when operating with MailboxError semantics.
   pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LegacyQueueDriver<LocalQueue<M>>, LocalSignal, M> {
     self.inner.recv()
   }

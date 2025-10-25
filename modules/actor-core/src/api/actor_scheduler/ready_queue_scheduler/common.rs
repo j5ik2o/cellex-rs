@@ -383,7 +383,7 @@ where
         #[allow(clippy::redundant_closure)]
         let envelope =
           PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(move |sys| map_clone(sys));
-        if parent_ref.sender().try_send(envelope).is_ok() {
+        if parent_ref.try_send_envelope_mailbox(envelope).is_ok() {
           return true;
         }
       }

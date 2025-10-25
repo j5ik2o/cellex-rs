@@ -1,9 +1,8 @@
 use cellex_actor_core_rs::{
   api::{
     mailbox::{
-      error::MailboxError,
       queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
-      Mailbox, MailboxOptions,
+      Mailbox, MailboxError, MailboxOptions,
     },
     metrics::MetricsSinkShared,
   },
@@ -90,16 +89,15 @@ where
   M: Element,
   RM: RawMutex,
 {
-  /// MailboxError 版の送信 API を提供。
-  pub fn try_send_mailbox(
-    &self,
-    envelope: PriorityEnvelope<M>,
-  ) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+  /// Sends an envelope using the MailboxError-based API.
+  pub fn try_send_mailbox(&self, envelope: PriorityEnvelope<M>) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
     self.inner.try_send_mailbox(envelope)
   }
 
-  /// MailboxError 版の受信 Future を返す。
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LegacyQueueDriver<ArcPriorityQueues<M, RM>>, ArcSignal<RM>, PriorityEnvelope<M>> {
+  /// Returns the receive future when operating with MailboxError semantics.
+  pub fn recv_mailbox(
+    &self,
+  ) -> QueueMailboxRecv<'_, LegacyQueueDriver<ArcPriorityQueues<M, RM>>, ArcSignal<RM>, PriorityEnvelope<M>> {
     self.inner.recv()
   }
 }

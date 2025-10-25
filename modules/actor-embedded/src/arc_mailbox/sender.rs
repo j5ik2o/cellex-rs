@@ -1,5 +1,5 @@
 use cellex_actor_core_rs::api::{
-  mailbox::{error::MailboxError, queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+  mailbox::{queue_mailbox::LegacyQueueDriver, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element, QueueError};

@@ -1,10 +1,11 @@
 use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueSize};
 
 use super::{core::MailboxQueueCore, driver::MailboxQueueDriver, recv::QueueMailboxRecv};
-use crate::api::mailbox::error::MailboxError;
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxHandle, MailboxProducer, MailboxSignal},
+  mailbox::{
+    queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxError, MailboxHandle, MailboxProducer, MailboxSignal,
+  },
   metrics::MetricsSinkShared,
 };
 
@@ -44,8 +45,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   where
     Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element,
-  {
+    M: Element, {
     self.core.try_send_mailbox(message)
   }
 
@@ -82,8 +82,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   where
     Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element,
-  {
+    M: Element, {
     QueueMailboxRecv::new(self)
   }
 }
@@ -129,6 +128,10 @@ where
 {
   fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
     <QueueMailboxProducer<Q, S>>::try_send(self, message)
+  }
+
+  fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    <QueueMailboxProducer<Q, S>>::try_send_mailbox(self, message)
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {

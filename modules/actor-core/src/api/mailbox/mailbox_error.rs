@@ -1,33 +1,8 @@
 //! Mailbox-specific error types and conversions from queue errors.
 
-#[cfg(feature = "queue-v2")]
-use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
 use cellex_utils_core_rs::{collections::queue::QueueError, Element};
 
-/// Policies that describe how a mailbox reacts when it reaches capacity.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MailboxOverflowPolicy {
-  /// The newest element is dropped while enqueueing.
-  DropNewest,
-  /// The oldest element is removed to make room for the new one.
-  DropOldest,
-  /// The queue grows dynamically to accommodate more elements.
-  Grow,
-  /// The producer blocks or retries until capacity becomes available.
-  Block,
-}
-
-#[cfg(feature = "queue-v2")]
-impl From<OverflowPolicy> for MailboxOverflowPolicy {
-  fn from(policy: OverflowPolicy) -> Self {
-    match policy {
-      | OverflowPolicy::DropNewest => Self::DropNewest,
-      | OverflowPolicy::DropOldest => Self::DropOldest,
-      | OverflowPolicy::Grow => Self::Grow,
-      | OverflowPolicy::Block => Self::Block,
-    }
-  }
-}
+use super::mailbox_overflow_policy::MailboxOverflowPolicy;
 
 /// Unified error type surfaced by mailbox operations.
 #[derive(Debug, Clone, PartialEq, Eq)]

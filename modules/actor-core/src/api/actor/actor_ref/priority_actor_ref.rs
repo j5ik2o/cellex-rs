@@ -1,7 +1,7 @@
 use cellex_utils_core_rs::{collections::queue::QueueError, Element, SharedBound};
 
 use crate::{
-  api::mailbox::{messages::SystemMessage, MailboxFactory, MailboxProducer},
+  api::mailbox::{messages::SystemMessage, MailboxError, MailboxFactory, MailboxProducer},
   shared::mailbox::messages::PriorityEnvelope,
 };
 
@@ -74,6 +74,15 @@ where
     self.sender.try_send(PriorityEnvelope::new(message, priority))
   }
 
+  /// Sends a message with the specified priority using the mailbox error model.
+  pub fn try_send_with_priority_mailbox(
+    &self,
+    message: M,
+    priority: i8,
+  ) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.sender.try_send_mailbox(PriorityEnvelope::new(message, priority))
+  }
+
   /// Sends a control-channel message with the specified priority.
   ///
   /// # Errors
@@ -86,12 +95,29 @@ where
     self.sender.try_send(PriorityEnvelope::control(message, priority))
   }
 
+  /// Sends a control message with the specified priority using the mailbox error model.
+  pub fn try_send_control_with_priority_mailbox(
+    &self,
+    message: M,
+    priority: i8,
+  ) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.sender.try_send_mailbox(PriorityEnvelope::control(message, priority))
+  }
+
   /// Sends a pre-built priority envelope.
   ///
   /// # Errors
   /// Returns [`QueueError`] when the mailbox rejects the message.
   pub fn try_send_envelope(&self, envelope: PriorityEnvelope<M>) -> Result<(), QueueError<PriorityEnvelope<M>>> {
     self.sender.try_send(envelope)
+  }
+
+  /// Sends a pre-built priority envelope using the mailbox error model.
+  pub fn try_send_envelope_mailbox(
+    &self,
+    envelope: PriorityEnvelope<M>,
+  ) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.sender.try_send_mailbox(envelope)
   }
 
   /// Returns the raw producer handle kept by the reference.
@@ -112,5 +138,13 @@ where
   /// Returns [`QueueError`] when the mailbox rejects the message.
   pub fn try_send_system(&self, message: SystemMessage) -> Result<(), QueueError<PriorityEnvelope<SystemMessage>>> {
     self.sender.try_send(PriorityEnvelope::from_system(message))
+  }
+
+  /// Sends a system message yielding the mailbox error model.
+  pub fn try_send_system_mailbox(
+    &self,
+    message: SystemMessage,
+  ) -> Result<(), MailboxError<PriorityEnvelope<SystemMessage>>> {
+    self.sender.try_send_mailbox(PriorityEnvelope::from_system(message))
   }
 }

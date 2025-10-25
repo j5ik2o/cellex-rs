@@ -5,7 +5,7 @@ use cellex_utils_core_rs::{
 use super::{MailboxQueueDriver, QueuePollOutcome};
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{error::MailboxError, MailboxSignal},
+  mailbox::{MailboxError, MailboxSignal},
   metrics::{MetricsEvent, MetricsSinkShared},
 };
 
