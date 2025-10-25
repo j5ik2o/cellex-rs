@@ -419,7 +419,8 @@
   - `QueueDriverConfig` / `build_queue_driver` を導入し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncQueueDriver` を共通生成する構成へ移行済み。  
   - embedded 系では `ArcMailboxFactory` / `LocalMailboxFactory` / `ArcMailboxSender` を `SyncQueueDriver` ベースに差し替え、`queue-v1` ビルドのみ `LegacyQueueDriver<QueueRwCompat<_>>` を経由する二重化を維持。`ArcPriorityMailboxFactory` も新設の `PrioritySyncQueueDriver` を経由して制御／通常レーンを多重化できるようになったため、優先度メールボックス経路から `QueueRwCompat` 依存を排除済み。  
   - `cellex-actor-embedded-rs` のフィーチャーフラグを調整し、`embedded_rc` が自動的に `queue-v1` を有効化しないよう変更。これにより queue-v2 既定時でも CI が両キュー機能を同時有効にせずにビルド可能となった。
-  - 現在のフェーズ5B進捗率（自己評価）: 約 80%（queue-v1 fallback テスト網羅と ActorRef 経路の MailboxError 化を完了。残課題: embedded_arc 非対象のフォールバック整理と最終レポート仕上げ）
+  - `embedded_arc` フィーチャーが Cargo features 経由で必ず `queue-v2` を伴うことを再確認し、ドキュメント上でも queue-v1 フォールバック対象外である旨を明文化。  
+  - 現在のフェーズ5B進捗率（自己評価）: 100%（embedded_arc 系フォールバック整理・ドキュメント反映・最終 CI 実行まで完了）
 - **Producer/Receiver 層 OfferOutcome/PollOutcome 対応 & エラー網羅テスト**  
   - `QueueMailboxProducer::try_send_with_outcome` / `try_send_mailbox` を評価する新しいユニットテストを追加し、`DropOldest` / `DropNewest` / `Grow` で `MetricsEvent::{MailboxDroppedOldest, MailboxDroppedNewest, MailboxGrewTo}` が発火することを `RecordingSink` で検証。`MailboxError::QueueFull` がポリシーとメッセージを保持して戻る回帰もカバー。  
   - `MailboxProducer::set_metrics_sink` / `Mailbox::set_metrics_sink` 実装を更新し、`MetricsSinkShared` が `MailboxQueueDriver` 側へ確実に伝播するよう統一。これにより embedded/Tokio 双方で OfferOutcome ベースのメトリクスが収集できるようになった。  
@@ -439,6 +440,20 @@
   - `ActorRef`／`PriorityActorRef` が `QueueMailboxProducer::try_send_mailbox` 経由で `MailboxError` を扱うよう更新。`DropNewest` 等のポリシー情報を保持したままデッドレターへ伝搬し、既存の `tell` / `tell_with_priority` / `send_system` テストが queue-v1/v2 双方で回帰を検出できる構成に整備。  
     - `cargo test -p cellex-actor-core-rs` および `cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1` → いずれも OK（警告のみ）  
     - `./scripts/ci-check.sh all` を再実行し、ワークスペース全体のフォーマット／lint／テストが queue-v2 既定構成で通過することを確認
+
+#### フェーズ5B完了報告（2025-10-25）
+- 実行コマンド（すべて成功、警告のみ）  
+  - `./scripts/ci-check.sh all`  
+  - `cargo test -p cellex-actor-core-rs`  
+  - `cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1`  
+  - `cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v1`  
+  - `cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v2`  
+  - `cargo check -p cellex-actor-embedded-rs --target thumbv6m-none-eabi --no-default-features --features alloc,embedded_rc,queue-v1`  
+  - `cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc,queue-v2`（ホスト検証向け、deprecation warning のみ）  
+- 結果整理  
+  - queue-v1 fallback は embedded_rc のみを対象。embedded_arc は queue-v2 専用（Cargo features で自動的に有効化）であり、ドキュメントで周知することで設定ミスを回避。  
+  - queue-v1 / queue-v2 双方での ActorRef 統合テストにより、デッドレター（DeliveryRejected）およびメトリクス（MailboxEnqueued）が一貫して発火することを確認。  
+  - RP2040 ターゲット（thumbv6m-none-eabi）での queue-v1 fallback コンパイルも継続して成功。
   - [x] `QueueError` → `MailboxError` 変換テーブルを実装し、単体テストで網羅性と整合性を検証する。
     - 2025-10-25: `api/mailbox/error.rs` に `MailboxError` / `MailboxOverflowPolicy` を追加し、`MailboxQueueCore::try_send_mailbox` / `try_dequeue_mailbox` で利用できる変換ヘルパを実装。既存 API 互換のため `QueueError` への逆変換も提供し、段階移行中は従来の `try_send` / `try_dequeue` が新エラーから再構築する形を採用した。
     - 2025-10-25: Tokio／Priority／embedded の各 Mailbox + Sender に `*_mailbox` 系 API を追加し、QueueError ベースの旧メソッドと併存する形で新エラー体系を露出。既存呼び出しコードに影響を与えずに新 API を段階導入できる状態を整備。
