@@ -1,9 +1,8 @@
 //! Mailbox-specific error types and conversions from queue errors.
 
-use cellex_utils_core_rs::{collections::queue::QueueError, Element};
-
 #[cfg(feature = "queue-v2")]
 use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
+use cellex_utils_core_rs::{collections::queue::QueueError, Element};
 
 /// Policies that describe how a mailbox reacts when it reaches capacity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,8 +33,7 @@ impl From<OverflowPolicy> for MailboxOverflowPolicy {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MailboxError<M>
 where
-  M: Element,
-{
+  M: Element, {
   /// The mailbox rejected a message due to capacity limits.
   QueueFull {
     /// Overflow handling strategy that produced the rejection.
@@ -71,7 +69,9 @@ where
   /// Converts a `QueueError` into a `MailboxError` using a default overflow policy hint.
   pub fn from_queue_error(error: QueueError<M>) -> Self {
     match error {
-      | QueueError::Full(message) => Self::QueueFull { policy: MailboxOverflowPolicy::DropNewest, preserved: message },
+      | QueueError::Full(message) => {
+        Self::QueueFull { policy: MailboxOverflowPolicy::DropNewest, preserved: message }
+      },
       | QueueError::OfferError(message) => Self::Internal { preserved: message },
       | QueueError::Closed(message) => Self::Closed { last: Some(message) },
       | QueueError::Disconnected => Self::Disconnected,
@@ -115,7 +115,6 @@ where
 
 fn panic_empty_to_internal<M>() -> M
 where
-  M: Element,
-{
+  M: Element, {
   panic!("QueueError::Empty cannot be converted into a MailboxError; caller must treat it as a non-error outcome");
 }

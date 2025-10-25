@@ -9,9 +9,8 @@ use cellex_utils_core_rs::{
 };
 use spin::Mutex;
 
-use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
-
 use super::{MailboxQueueDriver, QueuePollOutcome};
+use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
 
 type EntryShared<M> = ArcShared<Mutex<Option<M>>>;
 type Backend<M> = VecRingBackend<EntryShared<M>>;
@@ -33,7 +32,11 @@ pub struct SyncQueueDriver<M> {
 impl<M> Clone for SyncQueueDriver<M> {
   fn clone(&self) -> Self {
     let shared = self.queue.shared().clone();
-    Self { queue: MpscQueue::new(shared), capacity_model: self.capacity_model.clone(), metrics_sink: self.metrics_sink.clone() }
+    Self {
+      queue:          MpscQueue::new(shared),
+      capacity_model: self.capacity_model.clone(),
+      metrics_sink:   self.metrics_sink.clone(),
+    }
   }
 }
 
@@ -118,27 +121,25 @@ where
     let entry = ArcShared::new(Mutex::new(Some(message)));
     let cloned = entry.clone();
     match self.queue.offer(cloned) {
-      | Ok(outcome) => {
-        match outcome {
-          | OfferOutcome::Enqueued => {
-            drop(entry);
-            Ok(OfferOutcome::Enqueued)
-          },
-          | OfferOutcome::DroppedOldest { count } => {
-            self.record_event(MetricsEvent::MailboxDroppedOldest { count });
-            drop(entry);
-            Ok(OfferOutcome::DroppedOldest { count })
-          },
-          | OfferOutcome::DroppedNewest { count } => {
-            self.record_event(MetricsEvent::MailboxDroppedNewest { count });
-            Err(QueueError::Full(Self::reclaim(entry)))
-          },
-          | OfferOutcome::GrewTo { capacity } => {
-            self.record_event(MetricsEvent::MailboxGrewTo { capacity });
-            drop(entry);
-            Ok(OfferOutcome::GrewTo { capacity })
-          },
-        }
+      | Ok(outcome) => match outcome {
+        | OfferOutcome::Enqueued => {
+          drop(entry);
+          Ok(OfferOutcome::Enqueued)
+        },
+        | OfferOutcome::DroppedOldest { count } => {
+          self.record_event(MetricsEvent::MailboxDroppedOldest { count });
+          drop(entry);
+          Ok(OfferOutcome::DroppedOldest { count })
+        },
+        | OfferOutcome::DroppedNewest { count } => {
+          self.record_event(MetricsEvent::MailboxDroppedNewest { count });
+          Err(QueueError::Full(Self::reclaim(entry)))
+        },
+        | OfferOutcome::GrewTo { capacity } => {
+          self.record_event(MetricsEvent::MailboxGrewTo { capacity });
+          drop(entry);
+          Ok(OfferOutcome::GrewTo { capacity })
+        },
       },
       | Err(error) => match error {
         | V2QueueError::Full(preserved) => Err(QueueError::Full(Self::reclaim(preserved))),

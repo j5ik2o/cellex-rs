@@ -6,10 +6,7 @@ use cellex_actor_core_rs::api::mailbox::SingleThread;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::mailbox::{
   queue_mailbox::{LegacyQueueDriver, QueueMailbox},
-  MailboxFactory,
-  MailboxOptions,
-  MailboxPair,
-  QueueMailboxProducer,
+  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer,
 };
 use cellex_utils_embedded_rs::Element;
 

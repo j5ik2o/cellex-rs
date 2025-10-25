@@ -2,11 +2,7 @@ use core::marker::PhantomData;
 
 use cellex_actor_core_rs::api::mailbox::{
   queue_mailbox::{LegacyQueueDriver, QueueMailbox},
-  MailboxFactory,
-  MailboxOptions,
-  MailboxPair,
-  QueueMailboxProducer,
-  ThreadSafe,
+  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
 };
 use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;

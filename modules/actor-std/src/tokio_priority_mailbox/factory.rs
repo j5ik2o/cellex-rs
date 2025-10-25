@@ -1,4 +1,7 @@
-use cellex_actor_core_rs::api::mailbox::{queue_mailbox::{LegacyQueueDriver, QueueMailbox}, MailboxOptions};
+use cellex_actor_core_rs::api::mailbox::{
+  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
+  MailboxOptions,
+};
 use cellex_utils_std_rs::{Element, QueueSize, DEFAULT_CAPACITY, PRIORITY_LEVELS};
 
 use super::{

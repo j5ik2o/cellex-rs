@@ -6,6 +6,8 @@ use cellex_utils_core_rs::{collections::queue::QueueError, QueueSize};
 
 use crate::api::metrics::MetricsSinkShared;
 
+/// Mailbox-specific error types and conversions.
+pub mod error;
 /// Mailbox concurrency modes
 mod mailbox_concurrency;
 pub mod messages;
@@ -17,14 +19,12 @@ mod queue_mailbox_producer;
 mod single_thread;
 /// Thread-safe mailbox
 mod thread_safe;
-/// Mailbox-specific error types and conversions.
-pub mod error;
 
+pub use error::{MailboxError, MailboxOverflowPolicy};
 pub use mailbox_concurrency::*;
 pub use queue_mailbox_producer::*;
 pub use single_thread::*;
 pub use thread_safe::*;
-pub use error::{MailboxError, MailboxOverflowPolicy};
 
 use crate::api::actor_scheduler::ready_queue_scheduler::ReadyQueueHandle;
 // Re-export shared mailbox types

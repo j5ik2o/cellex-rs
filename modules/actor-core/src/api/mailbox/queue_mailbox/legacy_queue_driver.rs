@@ -1,16 +1,11 @@
 use core::ops::Deref;
 
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
-  v2::collections::queue::backend::OfferOutcome,
-  Element,
-  QueueRw,
-  QueueSize,
+  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, QueueRw, QueueSize,
 };
 
-use crate::api::metrics::MetricsSinkShared;
-
 use super::{MailboxQueueDriver, QueuePollOutcome};
+use crate::api::metrics::MetricsSinkShared;
 
 /// Adapter that allows legacy `QueueRw` implementations to satisfy `MailboxQueueDriver`.
 pub struct LegacyQueueDriver<Q> {

@@ -1,5 +1,8 @@
 use cellex_actor_core_rs::{
-  api::{mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer}, metrics::MetricsSinkShared},
+  api::{
+    mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+    metrics::MetricsSinkShared,
+  },
   shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_embedded_rs::{Element, QueueError};
@@ -13,8 +16,7 @@ use crate::arc_mailbox::ArcSignal;
 pub struct ArcPriorityMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
-  RM: RawMutex,
-{
+  RM: RawMutex, {
   pub(crate) inner: QueueMailboxProducer<LegacyQueueDriver<ArcPriorityQueues<M, RM>>, ArcSignal<RM>>,
 }
 

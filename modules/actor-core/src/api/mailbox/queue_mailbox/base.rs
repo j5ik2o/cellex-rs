@@ -53,8 +53,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   pub fn len_usize<M>(&self) -> usize
   where
     Q: MailboxQueueDriver<M>,
-    M: Element,
-  {
+    M: Element, {
     self.core.len::<M>().to_usize()
   }
 
@@ -63,8 +62,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   pub fn capacity_usize<M>(&self) -> usize
   where
     Q: MailboxQueueDriver<M>,
-    M: Element,
-  {
+    M: Element, {
     self.core.capacity::<M>().to_usize()
   }
 }

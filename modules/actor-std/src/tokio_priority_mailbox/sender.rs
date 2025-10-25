@@ -1,5 +1,8 @@
 use cellex_actor_core_rs::{
-  api::{mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer}, metrics::MetricsSinkShared},
+  api::{
+    mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+    metrics::MetricsSinkShared,
+  },
   shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_std_rs::Element;
@@ -12,8 +15,7 @@ use super::{queues, queues::TokioPriorityQueues, NotifySignal, PriorityQueueErro
 /// Supports sending messages with specified priority and control messages.
 pub struct TokioPriorityMailboxSender<M>
 where
-  M: Element,
-{
+  M: Element, {
   inner: QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>,
 }
 
@@ -148,7 +150,9 @@ where
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(
+    inner: QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>,
+  ) -> Self {
     Self { inner }
   }
 }

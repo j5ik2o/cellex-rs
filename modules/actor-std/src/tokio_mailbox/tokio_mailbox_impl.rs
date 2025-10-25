@@ -20,8 +20,7 @@ use super::{
 #[derive(Clone, Debug)]
 pub struct TokioMailbox<M>
 where
-  M: Element,
-{
+  M: Element, {
   pub(super) inner: QueueMailbox<LegacyQueueDriver<TokioQueue<M>>, NotifySignal>,
 }
 

@@ -1,7 +1,10 @@
 use cellex_utils_core_rs::Element;
 
 use crate::{
-  api::{mailbox::{queue_mailbox::MailboxQueueDriver, MailboxConcurrency}, messaging::MetadataStorageMode},
+  api::{
+    mailbox::{queue_mailbox::MailboxQueueDriver, MailboxConcurrency},
+    messaging::MetadataStorageMode,
+  },
   shared::mailbox::{handle::MailboxHandle, options::MailboxOptions, producer::MailboxProducer, signal::MailboxSignal},
 };
 

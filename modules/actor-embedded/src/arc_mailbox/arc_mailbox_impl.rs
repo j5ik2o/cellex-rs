@@ -15,8 +15,7 @@ use super::{factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSig
 pub struct ArcMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
-  RM: RawMutex,
-{
+  RM: RawMutex, {
   pub(crate) inner: QueueMailbox<LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>, ArcSignal<RM>>,
 }
 

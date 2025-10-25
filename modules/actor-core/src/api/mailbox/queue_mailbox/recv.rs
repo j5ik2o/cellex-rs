@@ -8,15 +8,14 @@ use core::{
 use cellex_utils_core_rs::{collections::queue::QueueError, Element};
 
 use super::{base::QueueMailbox, driver::MailboxQueueDriver};
-use crate::api::mailbox::MailboxSignal;
+use crate::api::mailbox::{error::MailboxError, MailboxSignal};
 
 /// Future for receiving messages.
 pub struct QueueMailboxRecv<'a, Q, S, M>
 where
   Q: MailboxQueueDriver<M>,
   S: MailboxSignal,
-  M: Element,
-{
+  M: Element, {
   pub(super) mailbox: &'a QueueMailbox<Q, S>,
   pub(super) wait:    Option<S::WaitFuture<'a>>,
   pub(super) marker:  PhantomData<M>,
@@ -47,7 +46,7 @@ where
       return Poll::Ready(Err(QueueError::Disconnected));
     }
     loop {
-      match this.mailbox.core.try_dequeue() {
+      match this.mailbox.core.try_dequeue_mailbox() {
         | Ok(Some(message)) => {
           this.wait = None;
           return Poll::Ready(Ok(message));
@@ -57,28 +56,17 @@ where
             this.wait = Some(this.mailbox.core.signal().wait());
           }
         },
-        | Err(QueueError::Disconnected) => {
-          this.mailbox.core.closed().set(true);
-          this.wait = None;
-          return Poll::Ready(Err(QueueError::Disconnected));
-        },
-        | Err(QueueError::Closed(message)) => {
-          this.mailbox.core.closed().set(true);
-          this.wait = None;
-          return Poll::Ready(Ok(message));
-        },
-        | Err(QueueError::Empty) => {
-          if this.wait.is_none() {
-            this.wait = Some(this.mailbox.core.signal().wait());
-          }
-        },
-        | Err(QueueError::WouldBlock) | Err(QueueError::Full(_)) | Err(QueueError::OfferError(_)) => {
-          return Poll::Pending
-        },
-        | Err(QueueError::AllocError(_)) => {
-          this.mailbox.core.closed().set(true);
-          this.wait = None;
-          return Poll::Ready(Err(QueueError::Disconnected));
+        | Err(mailbox_error) => match Self::map_mailbox_error(mailbox_error) {
+          | QueueMailboxRecvOutcome::Message(message) => {
+            this.wait = None;
+            return Poll::Ready(Ok(message));
+          },
+          | QueueMailboxRecvOutcome::Retry => return Poll::Pending,
+          | QueueMailboxRecvOutcome::Disconnected => {
+            this.mailbox.core.closed().set(true);
+            this.wait = None;
+            return Poll::Ready(Err(QueueError::Disconnected));
+          },
         },
       }
 
@@ -91,6 +79,31 @@ where
           | Poll::Pending => return Poll::Pending,
         }
       }
+    }
+  }
+}
+
+enum QueueMailboxRecvOutcome<M> {
+  Message(M),
+  Retry,
+  Disconnected,
+}
+
+impl<'a, Q, S, M> QueueMailboxRecv<'a, Q, S, M>
+where
+  Q: MailboxQueueDriver<M>,
+  S: MailboxSignal,
+  M: Element,
+{
+  fn map_mailbox_error(error: MailboxError<M>) -> QueueMailboxRecvOutcome<M> {
+    match error {
+      | MailboxError::QueueFull { .. } => QueueMailboxRecvOutcome::Retry,
+      | MailboxError::Disconnected => QueueMailboxRecvOutcome::Disconnected,
+      | MailboxError::Closed { last: Some(message) } => QueueMailboxRecvOutcome::Message(message),
+      | MailboxError::Closed { last: None } => QueueMailboxRecvOutcome::Disconnected,
+      | MailboxError::Backpressure => QueueMailboxRecvOutcome::Retry,
+      | MailboxError::ResourceExhausted { .. } => QueueMailboxRecvOutcome::Disconnected,
+      | MailboxError::Internal { .. } => QueueMailboxRecvOutcome::Retry,
     }
   }
 }

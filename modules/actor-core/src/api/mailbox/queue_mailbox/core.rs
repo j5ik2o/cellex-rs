@@ -1,18 +1,13 @@
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
-  v2::collections::queue::backend::OfferOutcome,
-  Element,
-  Flag,
-  QueueSize,
+  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, Flag, QueueSize,
 };
 
+use super::{MailboxQueueDriver, QueuePollOutcome};
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
   mailbox::{error::MailboxError, MailboxSignal},
   metrics::{MetricsEvent, MetricsSinkShared},
 };
-
-use super::{MailboxQueueDriver, QueuePollOutcome};
 
 /// Core mailbox state shared between handle and producer implementations.
 pub struct MailboxQueueCore<D, S> {
@@ -63,8 +58,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   pub fn len<M>(&self) -> QueueSize
   where
     D: MailboxQueueDriver<M>,
-    M: Element,
-  {
+    M: Element, {
     self.queue.len()
   }
 
@@ -73,8 +67,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   pub fn capacity<M>(&self) -> QueueSize
   where
     D: MailboxQueueDriver<M>,
-    M: Element,
-  {
+    M: Element, {
     self.queue.capacity()
   }
 
@@ -83,8 +76,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   where
     D: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element,
-  {
+    M: Element, {
     if self.closed.get() {
       return Err(MailboxError::Disconnected);
     }
@@ -97,9 +89,7 @@ impl<D, S> MailboxQueueCore<D, S> {
         match outcome {
           | OfferOutcome::Enqueued | OfferOutcome::DroppedOldest { .. } | OfferOutcome::GrewTo { .. } => Ok(()),
           | OfferOutcome::DroppedNewest { .. } => {
-            panic!(
-              "MailboxQueueDriver must map DroppedNewest into an error before returning success"
-            );
+            panic!("MailboxQueueDriver must map DroppedNewest into an error before returning success");
           },
         }
       },
@@ -118,8 +108,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   where
     D: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element,
-  {
+    M: Element, {
     self.try_send_mailbox(message).map_err(Into::into)
   }
 
@@ -127,8 +116,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   pub fn try_dequeue_mailbox<M>(&self) -> Result<Option<M>, MailboxError<M>>
   where
     D: MailboxQueueDriver<M>,
-    M: Element,
-  {
+    M: Element, {
     match self.queue.poll() {
       | Ok(QueuePollOutcome::Message(message)) => Ok(Some(message)),
       | Ok(QueuePollOutcome::Empty) | Ok(QueuePollOutcome::Pending) => Ok(None),
@@ -149,8 +137,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   pub fn try_dequeue<M>(&self) -> Result<Option<M>, QueueError<M>>
   where
     D: MailboxQueueDriver<M>,
-    M: Element,
-  {
+    M: Element, {
     match self.try_dequeue_mailbox() {
       | Ok(value) => Ok(value),
       | Err(error) => Err(error.into()),
@@ -162,8 +149,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   where
     D: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element,
-  {
+    M: Element, {
     let _ = self.queue.close();
     self.signal.notify();
     self.closed.set(true);
@@ -190,8 +176,7 @@ impl<D, S> MailboxQueueCore<D, S> {
   fn handle_queue_error<M>(&self, error: QueueError<M>) -> Result<Option<M>, MailboxError<M>>
   where
     D: MailboxQueueDriver<M>,
-    M: Element,
-  {
+    M: Element, {
     let mailbox_error = MailboxError::from_queue_error(error);
     if mailbox_error.closes_mailbox() {
       self.closed.set(true);

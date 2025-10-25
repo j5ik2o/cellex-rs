@@ -9,11 +9,7 @@ use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
 use crate::api::{
   mailbox::{
     queue_mailbox::{LegacyQueueDriver, QueueMailbox},
-    MailboxFactory,
-    MailboxOptions,
-    MailboxPair,
-    QueueMailboxProducer,
-    ThreadSafe,
+    MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
   },
   test_support::{common::TestQueue, test_signal::TestSignal},
 };

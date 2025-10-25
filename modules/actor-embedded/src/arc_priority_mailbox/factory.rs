@@ -1,6 +1,9 @@
 use core::marker::PhantomData;
 
-use cellex_actor_core_rs::api::mailbox::{queue_mailbox::{LegacyQueueDriver, QueueMailbox}, MailboxOptions};
+use cellex_actor_core_rs::api::mailbox::{
+  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
+  MailboxOptions,
+};
 use cellex_utils_embedded_rs::{Element, QueueSize, DEFAULT_CAPACITY, PRIORITY_LEVELS};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 

@@ -1,4 +1,7 @@
-use cellex_actor_core_rs::api::{mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer}, metrics::MetricsSinkShared};
+use cellex_actor_core_rs::api::{
+  mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+  metrics::MetricsSinkShared,
+};
 use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element, QueueError};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
@@ -9,8 +12,7 @@ use super::signal::ArcSignal;
 pub struct ArcMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
-  RM: RawMutex,
-{
+  RM: RawMutex, {
   pub(crate) inner: QueueMailboxProducer<LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>, ArcSignal<RM>>,
 }
 

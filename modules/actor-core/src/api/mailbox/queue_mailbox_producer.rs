@@ -2,11 +2,13 @@ use cellex_utils_core_rs::{collections::queue::QueueError, Element, SharedBound}
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{error::MailboxError, queue_mailbox::MailboxQueueCore, MailboxSignal},
+  mailbox::{
+    error::MailboxError,
+    queue_mailbox::{MailboxQueueCore, MailboxQueueDriver},
+    MailboxSignal,
+  },
   metrics::MetricsSinkShared,
 };
-
-use crate::api::mailbox::queue_mailbox::MailboxQueueDriver;
 
 /// Sending handle that shares queue ownership with
 /// [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).
@@ -54,8 +56,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   where
     Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element,
-  {
+    M: Element, {
     self.core.try_send_mailbox(message)
   }
 
@@ -103,8 +104,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   where
     Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element,
-  {
+    M: Element, {
     self.try_send_mailbox(message)
   }
 

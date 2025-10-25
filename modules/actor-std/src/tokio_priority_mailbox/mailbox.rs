@@ -23,8 +23,7 @@ use super::{
 /// Control messages are processed with higher priority than regular messages.
 pub struct TokioPriorityMailbox<M>
 where
-  M: Element,
-{
+  M: Element, {
   inner: QueueMailbox<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>,
 }
 

@@ -1,18 +1,14 @@
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
-  v2::collections::queue::backend::OfferOutcome,
-  Element,
-  QueueSize,
+  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, QueueSize,
 };
 
-use crate::api::metrics::MetricsSinkShared;
 use super::QueuePollOutcome;
+use crate::api::metrics::MetricsSinkShared;
 
 /// Abstraction over queue backends used by `QueueMailbox`.
 pub trait MailboxQueueDriver<M>: Clone
 where
-  M: Element,
-{
+  M: Element, {
   /// Returns the current queue length in abstract `QueueSize` units.
   fn len(&self) -> QueueSize;
 

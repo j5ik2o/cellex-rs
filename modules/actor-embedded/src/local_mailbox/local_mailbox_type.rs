@@ -19,8 +19,7 @@ use super::{
 /// Uses `Rc`-based queue to deliver messages in `!Send` environments.
 pub struct LocalMailbox<M>
 where
-  M: Element,
-{
+  M: Element, {
   pub(super) inner: QueueMailbox<LegacyQueueDriver<LocalQueue<M>>, LocalSignal>,
 }
 

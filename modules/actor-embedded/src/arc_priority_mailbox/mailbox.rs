@@ -19,8 +19,7 @@ use crate::arc_mailbox::ArcSignal;
 pub struct ArcPriorityMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
-  RM: RawMutex,
-{
+  RM: RawMutex, {
   pub(crate) inner: QueueMailbox<LegacyQueueDriver<ArcPriorityQueues<M, RM>>, ArcSignal<RM>>,
 }
 

@@ -1,6 +1,9 @@
 use core::fmt;
 
-use cellex_actor_core_rs::api::{mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer}, metrics::MetricsSinkShared};
+use cellex_actor_core_rs::api::{
+  mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+  metrics::MetricsSinkShared,
+};
 use cellex_utils_embedded_rs::{Element, QueueError};
 
 use super::{local_queue::LocalQueue, local_signal::LocalSignal};
@@ -10,8 +13,7 @@ use super::{local_queue::LocalQueue, local_signal::LocalSignal};
 /// A handle for sending messages to the mailbox asynchronously.
 pub struct LocalMailboxSender<M>
 where
-  M: Element,
-{
+  M: Element, {
   pub(super) inner: QueueMailboxProducer<LegacyQueueDriver<LocalQueue<M>>, LocalSignal>,
 }
 
