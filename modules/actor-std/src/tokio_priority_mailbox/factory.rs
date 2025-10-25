@@ -1,4 +1,4 @@
-use cellex_actor_core_rs::api::mailbox::{queue_mailbox::QueueMailbox, MailboxOptions};
+use cellex_actor_core_rs::api::mailbox::{queue_mailbox::{LegacyQueueDriver, QueueMailbox}, MailboxOptions};
 use cellex_utils_std_rs::{Element, QueueSize, DEFAULT_CAPACITY, PRIORITY_LEVELS};
 
 use super::{
@@ -91,7 +91,7 @@ impl TokioPriorityMailboxFactory {
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);
     let regular_capacity = self.resolve_regular_capacity(options.capacity);
-    let queue = TokioPriorityQueues::<M>::new(self.levels, control_per_level, regular_capacity);
+    let queue = LegacyQueueDriver::new(TokioPriorityQueues::<M>::new(self.levels, control_per_level, regular_capacity));
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

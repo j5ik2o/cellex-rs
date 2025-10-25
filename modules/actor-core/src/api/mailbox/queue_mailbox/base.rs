@@ -1,6 +1,6 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw, QueueSize};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueSize};
 
-use super::{core::MailboxQueueCore, recv::QueueMailboxRecv};
+use super::{core::MailboxQueueCore, driver::MailboxQueueDriver, recv::QueueMailboxRecv};
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
   mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxHandle, MailboxProducer, MailboxSignal},
@@ -52,9 +52,9 @@ impl<Q, S> QueueMailbox<Q, S> {
   #[must_use]
   pub fn len_usize<M>(&self) -> usize
   where
-    Q: QueueRw<M>,
-    S: MailboxSignal,
-    M: Element, {
+    Q: MailboxQueueDriver<M>,
+    M: Element,
+  {
     self.core.len::<M>().to_usize()
   }
 
@@ -62,9 +62,9 @@ impl<Q, S> QueueMailbox<Q, S> {
   #[must_use]
   pub fn capacity_usize<M>(&self) -> usize
   where
-    Q: QueueRw<M>,
-    S: MailboxSignal,
-    M: Element, {
+    Q: MailboxQueueDriver<M>,
+    M: Element,
+  {
     self.core.capacity::<M>().to_usize()
   }
 }
@@ -87,7 +87,7 @@ impl<Q, S> core::fmt::Debug for QueueMailbox<Q, S> {
 
 impl<M, Q, S> MailboxHandle<M> for QueueMailbox<Q, S>
 where
-  Q: QueueRw<M> + Clone,
+  Q: MailboxQueueDriver<M> + Clone,
   S: MailboxSignal,
   M: Element,
 {
@@ -104,7 +104,7 @@ where
 
 impl<M, Q, S> MailboxProducer<M> for QueueMailboxProducer<Q, S>
 where
-  Q: QueueRw<M> + Clone,
+  Q: MailboxQueueDriver<M> + Clone,
   S: MailboxSignal,
   M: Element,
 {
@@ -123,7 +123,7 @@ where
 
 impl<M, Q, S> Mailbox<M> for QueueMailbox<Q, S>
 where
-  Q: QueueRw<M>,
+  Q: MailboxQueueDriver<M>,
   S: MailboxSignal,
   M: Element,
 {

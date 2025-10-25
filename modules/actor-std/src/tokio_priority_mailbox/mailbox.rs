@@ -1,7 +1,7 @@
 use cellex_actor_core_rs::{
   api::{
     mailbox::{
-      queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+      queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
       Mailbox, MailboxOptions,
     },
     metrics::MetricsSinkShared,
@@ -23,8 +23,9 @@ use super::{
 /// Control messages are processed with higher priority than regular messages.
 pub struct TokioPriorityMailbox<M>
 where
-  M: Element, {
-  inner: QueueMailbox<TokioPriorityQueues<M>, NotifySignal>,
+  M: Element,
+{
+  inner: QueueMailbox<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>,
 }
 
 impl<M> TokioPriorityMailbox<M>
@@ -52,7 +53,7 @@ where
   ///
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<TokioPriorityQueues<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailbox<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal> {
     &self.inner
   }
 
@@ -63,7 +64,7 @@ where
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailbox<TokioPriorityQueues<M>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(inner: QueueMailbox<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>) -> Self {
     Self { inner }
   }
 }
@@ -73,7 +74,7 @@ where
   M: Element,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, TokioPriorityQueues<M>, NotifySignal, PriorityEnvelope<M>>
+    = QueueMailboxRecv<'a, LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal, PriorityEnvelope<M>>
   where
     Self: 'a;
   type SendError = PriorityQueueError<M>;

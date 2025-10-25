@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+    queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
     Mailbox,
   },
   metrics::MetricsSinkShared,
@@ -20,8 +20,9 @@ use super::{
 #[derive(Clone, Debug)]
 pub struct TokioMailbox<M>
 where
-  M: Element, {
-  pub(super) inner: QueueMailbox<TokioQueue<M>, NotifySignal>,
+  M: Element,
+{
+  pub(super) inner: QueueMailbox<LegacyQueueDriver<TokioQueue<M>>, NotifySignal>,
 }
 
 impl<M> TokioMailbox<M>
@@ -66,7 +67,7 @@ where
   /// # Returns
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<TokioQueue<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailbox<LegacyQueueDriver<TokioQueue<M>>, NotifySignal> {
     &self.inner
   }
 }
@@ -77,7 +78,7 @@ where
   TokioQueue<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, TokioQueue<M>, NotifySignal, M>
+    = QueueMailboxRecv<'a, LegacyQueueDriver<TokioQueue<M>>, NotifySignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;

@@ -1,4 +1,10 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, Flag, QueueRw, QueueSize};
+use cellex_utils_core_rs::{
+  collections::queue::QueueError,
+  v2::collections::queue::backend::OfferOutcome,
+  Element,
+  Flag,
+  QueueSize,
+};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
@@ -6,25 +12,27 @@ use crate::api::{
   metrics::{MetricsEvent, MetricsSinkShared},
 };
 
+use super::{MailboxQueueDriver, QueuePollOutcome};
+
 /// Core mailbox state shared between handle and producer implementations.
-pub struct MailboxQueueCore<Q, S> {
-  queue:          Q,
+pub struct MailboxQueueCore<D, S> {
+  queue:          D,
   signal:         S,
   closed:         Flag,
   metrics_sink:   Option<MetricsSinkShared>,
   scheduler_hook: Option<ReadyQueueHandle>,
 }
 
-impl<Q, S> MailboxQueueCore<Q, S> {
+impl<D, S> MailboxQueueCore<D, S> {
   /// Creates a new core with the provided queue and signal.
   #[must_use]
-  pub fn new(queue: Q, signal: S) -> Self {
+  pub fn new(queue: D, signal: S) -> Self {
     Self { queue, signal, closed: Flag::default(), metrics_sink: None, scheduler_hook: None }
   }
 
-  /// Returns a reference to the underlying queue.
+  /// Returns a reference to the underlying queue driver.
   #[must_use]
-  pub const fn queue(&self) -> &Q {
+  pub const fn queue(&self) -> &D {
     &self.queue
   }
 
@@ -54,8 +62,9 @@ impl<Q, S> MailboxQueueCore<Q, S> {
   #[must_use]
   pub fn len<M>(&self) -> QueueSize
   where
-    Q: QueueRw<M>,
-    M: Element, {
+    D: MailboxQueueDriver<M>,
+    M: Element,
+  {
     self.queue.len()
   }
 
@@ -63,27 +72,34 @@ impl<Q, S> MailboxQueueCore<Q, S> {
   #[must_use]
   pub fn capacity<M>(&self) -> QueueSize
   where
-    Q: QueueRw<M>,
-    M: Element, {
+    D: MailboxQueueDriver<M>,
+    M: Element,
+  {
     self.queue.capacity()
   }
 
   /// Attempts to enqueue a message into the underlying queue.
   pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
-    Q: QueueRw<M>,
+    D: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element, {
+    M: Element,
+  {
     if self.closed.get() {
       return Err(QueueError::Disconnected);
     }
 
     match self.queue.offer(message) {
-      | Ok(()) => {
+      | Ok(outcome) => {
         self.signal.notify();
         self.record_enqueue();
         self.notify_ready();
-        Ok(())
+        match outcome {
+          | OfferOutcome::Enqueued | OfferOutcome::DroppedOldest { .. } | OfferOutcome::GrewTo { .. } => Ok(()),
+          | OfferOutcome::DroppedNewest { .. } => {
+            panic!("MailboxQueueDriver must map DroppedNewest into QueueError::Full before returning success");
+          },
+        }
       },
       | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
         self.closed.set(true);
@@ -96,18 +112,33 @@ impl<Q, S> MailboxQueueCore<Q, S> {
   /// Attempts to dequeue a message from the underlying queue.
   pub fn try_dequeue<M>(&self) -> Result<Option<M>, QueueError<M>>
   where
-    Q: QueueRw<M>,
-    M: Element, {
-    self.queue.poll()
+    D: MailboxQueueDriver<M>,
+    M: Element,
+  {
+    match self.queue.poll() {
+      | Ok(QueuePollOutcome::Message(message)) => Ok(Some(message)),
+      | Ok(QueuePollOutcome::Empty) | Ok(QueuePollOutcome::Pending) => Ok(None),
+      | Ok(QueuePollOutcome::Disconnected) => {
+        self.closed.set(true);
+        Err(QueueError::Disconnected)
+      },
+      | Ok(QueuePollOutcome::Closed(message)) => {
+        self.closed.set(true);
+        Err(QueueError::Closed(message))
+      },
+      | Ok(QueuePollOutcome::Err(error)) => Err(error),
+      | Err(error) => Err(error),
+    }
   }
 
   /// Closes the queue and notifies waiting receivers.
   pub fn close<M>(&self)
   where
-    Q: QueueRw<M>,
+    D: MailboxQueueDriver<M>,
     S: MailboxSignal,
-    M: Element, {
-    self.queue.clean_up();
+    M: Element,
+  {
+    let _ = self.queue.close();
     self.signal.notify();
     self.closed.set(true);
   }
@@ -131,9 +162,9 @@ impl<Q, S> MailboxQueueCore<Q, S> {
   }
 }
 
-impl<Q, S> Clone for MailboxQueueCore<Q, S>
+impl<D, S> Clone for MailboxQueueCore<D, S>
 where
-  Q: Clone,
+  D: Clone,
   S: Clone,
 {
   fn clone(&self) -> Self {
@@ -147,7 +178,7 @@ where
   }
 }
 
-impl<Q, S> core::fmt::Debug for MailboxQueueCore<Q, S> {
+impl<D, S> core::fmt::Debug for MailboxQueueCore<D, S> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     f.debug_struct("MailboxQueueCore").finish()
   }

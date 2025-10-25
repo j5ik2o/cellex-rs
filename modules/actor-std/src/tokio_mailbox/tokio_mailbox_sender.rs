@@ -1,4 +1,7 @@
-use cellex_actor_core_rs::api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared};
+use cellex_actor_core_rs::api::{
+  mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+  metrics::MetricsSinkShared,
+};
 use cellex_utils_std_rs::{Element, QueueError};
 
 use super::{
@@ -12,8 +15,9 @@ use super::{
 #[derive(Clone, Debug)]
 pub struct TokioMailboxSender<M>
 where
-  M: Element, {
-  pub(super) inner: QueueMailboxProducer<TokioQueue<M>, NotifySignal>,
+  M: Element,
+{
+  pub(super) inner: QueueMailboxProducer<LegacyQueueDriver<TokioQueue<M>>, NotifySignal>,
 }
 
 impl<M> TokioMailboxSender<M>
@@ -54,7 +58,7 @@ where
   /// # Returns
   /// An immutable reference to the internal producer
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<TokioQueue<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<LegacyQueueDriver<TokioQueue<M>>, NotifySignal> {
     &self.inner
   }
 

@@ -1,10 +1,12 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw, SharedBound};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, SharedBound};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
   mailbox::{queue_mailbox::MailboxQueueCore, MailboxSignal},
   metrics::MetricsSinkShared,
 };
+
+use crate::api::mailbox::queue_mailbox::MailboxQueueDriver;
 
 /// Sending handle that shares queue ownership with
 /// [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).
@@ -62,7 +64,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// - `QueueError::Full`: Queue is full
   pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
-    Q: QueueRw<M>,
+    Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
     self.core.try_send(message)
@@ -80,7 +82,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Returns [`QueueError`] when the queue rejects the message.
   pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
-    Q: QueueRw<M>,
+    Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
     self.try_send(message)

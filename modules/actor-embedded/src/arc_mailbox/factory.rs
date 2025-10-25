@@ -1,7 +1,12 @@
 use core::marker::PhantomData;
 
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
+  MailboxFactory,
+  MailboxOptions,
+  MailboxPair,
+  QueueMailboxProducer,
+  ThreadSafe,
 };
 use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;
@@ -72,7 +77,7 @@ where
   where
     M: Element;
   type Queue<M>
-    = ArcMpscUnboundedQueue<M, RM>
+    = LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>
   where
     M: Element;
   type Signal = ArcSignal<RM>;
@@ -80,7 +85,7 @@ where
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = ArcMpscUnboundedQueue::new();
+    let queue = LegacyQueueDriver::new(ArcMpscUnboundedQueue::new());
     let signal = ArcSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

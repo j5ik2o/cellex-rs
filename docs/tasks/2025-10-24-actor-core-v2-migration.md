@@ -168,8 +168,8 @@
   ```text
   TokioMailboxFactory
       │ (MailboxOptions)
-      ├─▶ QueueMailbox<QueueRwCompat<M>, NotifySignal>
-      │       ├─ QueueMailboxProducer<QueueRwCompat<M>, NotifySignal>
+      ├─▶ QueueMailbox<LegacyQueueDriver<QueueRwCompat<M>>, NotifySignal>
+      │       ├─ QueueMailboxProducer<LegacyQueueDriver<QueueRwCompat<M>>, NotifySignal>
       │       └─ QueueMailboxRecv<QueueRwCompat<M>, NotifySignal, M>
       │
       └─▶ TokioMailbox / TokioMailboxSender ラッパー（外部 API は現状維持）
@@ -182,7 +182,7 @@
   1. `QueueRwCompat<T>`（仮称）を新設し、`v2::collections::queue::MpscQueue` と `OfferOutcome` / `PollOutcome` / `QueueError` を旧 `QueueRw`/`QueueError<T>` に変換する責務を集中させる。
   2. `TokioMailboxFactory` では `TokioQueue` を段階的に廃止し、`QueueRwCompat` + `v2::SharedVecRingQueue` を採用する。既存の `MailboxOptions` からは `Option<usize>` を取得し、`VecRingBackend` の初期ストレージ容量と `OverflowPolicy`（bounded = `Block`、unbounded = `Grow`）を決定する。実装では `create_tokio_queue` ヘルパーを介して `QueueRwCompat` を生成し、`queue-v1`/`queue-v2` の両フィーチャーで同一コードパスを通す。
   3. `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` は直接的な変更を最小限にしつつ、`QueueRwCompat` 経由で新 API を呼び出すことで段階移行を実現する。`len()` / `capacity()` は既に `usize` ラッパーを導入済みのため、新ラッパーから `usize` を取得して変換する。
-  4. `TokioMailbox` / `TokioMailboxSender` のパブリック API はそのまま保ち、内部フィールドのみ `QueueMailbox<QueueRwCompat<M>, NotifySignal>` に差し替える。これにより外部利用者への破壊的変更を避けつつ順次差し替えが可能。
+  4. `TokioMailbox` / `TokioMailboxSender` のパブリック API はそのまま保ち、内部フィールドのみ `QueueMailbox<LegacyQueueDriver<QueueRwCompat<M>>, NotifySignal>` に差し替える。これにより外部利用者への破壊的変更を避けつつ順次差し替えが可能。
 
 - **データフロー（送信）**
   1. `TokioMailboxSender::try_send` → `QueueMailboxProducer::try_send`。

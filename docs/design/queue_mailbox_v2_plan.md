@@ -50,10 +50,10 @@
 
   ```rust
   pub trait MailboxQueueDriver<M: Element>: Clone {
-    fn len(&self) -> usize;
-    fn capacity(&self) -> usize;
+    fn len(&self) -> QueueSize;
+    fn capacity(&self) -> QueueSize;
     fn offer(&self, message: M) -> Result<OfferOutcome, QueueError<M>>;
-    fn poll(&self) -> Result<PollOutcome<M>, QueueError<M>>;
+    fn poll(&self) -> Result<QueuePollOutcome<M>, QueueError<M>>;
     fn close(&self) -> Result<Option<M>, QueueError<M>>;
     fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>);
   }

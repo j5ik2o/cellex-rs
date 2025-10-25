@@ -5,17 +5,18 @@ use core::{
   task::{Context, Poll},
 };
 
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element};
 
-use super::base::QueueMailbox;
+use super::{base::QueueMailbox, driver::MailboxQueueDriver};
 use crate::api::mailbox::MailboxSignal;
 
 /// Future for receiving messages.
 pub struct QueueMailboxRecv<'a, Q, S, M>
 where
-  Q: QueueRw<M>,
+  Q: MailboxQueueDriver<M>,
   S: MailboxSignal,
-  M: Element, {
+  M: Element,
+{
   pub(super) mailbox: &'a QueueMailbox<Q, S>,
   pub(super) wait:    Option<S::WaitFuture<'a>>,
   pub(super) marker:  PhantomData<M>,
@@ -23,7 +24,7 @@ where
 
 impl<'a, Q, S, M> QueueMailboxRecv<'a, Q, S, M>
 where
-  Q: QueueRw<M>,
+  Q: MailboxQueueDriver<M>,
   S: MailboxSignal,
   M: Element,
 {
@@ -34,7 +35,7 @@ where
 
 impl<'a, Q, S, M> Future for QueueMailboxRecv<'a, Q, S, M>
 where
-  Q: QueueRw<M>,
+  Q: MailboxQueueDriver<M>,
   S: MailboxSignal,
   M: Element,
 {

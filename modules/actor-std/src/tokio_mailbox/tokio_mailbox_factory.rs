@@ -1,5 +1,10 @@
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
+  MailboxFactory,
+  MailboxOptions,
+  MailboxPair,
+  QueueMailboxProducer,
+  ThreadSafe,
 };
 use cellex_utils_std_rs::Element;
 
@@ -70,7 +75,7 @@ impl MailboxFactory for TokioMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = TokioQueue<M>
+    = LegacyQueueDriver<TokioQueue<M>>
   where
     M: Element;
   type Signal = NotifySignal;
@@ -78,7 +83,7 @@ impl MailboxFactory for TokioMailboxFactory {
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = create_tokio_queue::<M>(options.capacity);
+    let queue = LegacyQueueDriver::new(create_tokio_queue::<M>(options.capacity));
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

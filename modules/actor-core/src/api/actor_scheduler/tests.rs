@@ -45,7 +45,7 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+      queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
       Mailbox, MailboxFactory, MailboxOptions, QueueMailboxProducer, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
@@ -127,7 +127,7 @@ impl CompatMailboxFactory {
 
 #[cfg(feature = "queue-v2")]
 struct CompatMailbox<M> {
-  inner: QueueMailbox<QueueRwCompat<M>, TestSignal>,
+  inner: QueueMailbox<LegacyQueueDriver<QueueRwCompat<M>>, TestSignal>,
 }
 
 #[cfg(feature = "queue-v2")]
@@ -142,7 +142,7 @@ where
 
 #[cfg(feature = "queue-v2")]
 struct CompatMailboxProducer<M> {
-  inner: QueueMailboxProducer<QueueRwCompat<M>, TestSignal>,
+  inner: QueueMailboxProducer<LegacyQueueDriver<QueueRwCompat<M>>, TestSignal>,
   _pd:   PhantomData<M>,
 }
 
@@ -197,7 +197,7 @@ where
   M: Element,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, QueueRwCompat<M>, TestSignal, M>
+    = QueueMailboxRecv<'a, LegacyQueueDriver<QueueRwCompat<M>>, TestSignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -244,7 +244,7 @@ impl MailboxFactory for CompatMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = QueueRwCompat<M>
+    = LegacyQueueDriver<QueueRwCompat<M>>
   where
     M: Element;
   type Signal = TestSignal;
@@ -253,7 +253,7 @@ impl MailboxFactory for CompatMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = QueueRwCompat::bounded(capacity, self.policy);
+    let queue = LegacyQueueDriver::new(QueueRwCompat::bounded(capacity, self.policy));
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let producer = mailbox.producer();

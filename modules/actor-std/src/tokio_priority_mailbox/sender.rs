@@ -1,5 +1,5 @@
 use cellex_actor_core_rs::{
-  api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared},
+  api::{mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer}, metrics::MetricsSinkShared},
   shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_std_rs::Element;
@@ -12,8 +12,9 @@ use super::{queues, queues::TokioPriorityQueues, NotifySignal, PriorityQueueErro
 /// Supports sending messages with specified priority and control messages.
 pub struct TokioPriorityMailboxSender<M>
 where
-  M: Element, {
-  inner: QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal>,
+  M: Element,
+{
+  inner: QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>,
 }
 
 impl<M> TokioPriorityMailboxSender<M>
@@ -136,7 +137,7 @@ where
   ///
   /// An immutable reference to the internal producer
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal> {
     &self.inner
   }
 
@@ -147,7 +148,7 @@ where
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(inner: QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>) -> Self {
     Self { inner }
   }
 }

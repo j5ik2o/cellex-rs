@@ -1,4 +1,4 @@
-use cellex_actor_core_rs::api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared};
+use cellex_actor_core_rs::api::{mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer}, metrics::MetricsSinkShared};
 use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element, QueueError};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
@@ -9,8 +9,9 @@ use super::signal::ArcSignal;
 pub struct ArcMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
-  RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
+  RM: RawMutex,
+{
+  pub(crate) inner: QueueMailboxProducer<LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcMailboxSender<M, RM>
@@ -30,7 +31,7 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>, ArcSignal<RM>> {
     &self.inner
   }
 

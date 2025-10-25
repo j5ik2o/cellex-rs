@@ -2,7 +2,7 @@ use core::fmt;
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+    queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
     Mailbox,
   },
   metrics::MetricsSinkShared,
@@ -19,8 +19,9 @@ use super::{
 /// Uses `Rc`-based queue to deliver messages in `!Send` environments.
 pub struct LocalMailbox<M>
 where
-  M: Element, {
-  pub(super) inner: QueueMailbox<LocalQueue<M>, LocalSignal>,
+  M: Element,
+{
+  pub(super) inner: QueueMailbox<LegacyQueueDriver<LocalQueue<M>>, LocalSignal>,
 }
 
 impl<M> LocalMailbox<M>
@@ -56,7 +57,7 @@ where
   ///
   /// A reference to the `QueueMailbox`
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<LocalQueue<M>, LocalSignal> {
+  pub const fn inner(&self) -> &QueueMailbox<LegacyQueueDriver<LocalQueue<M>>, LocalSignal> {
     &self.inner
   }
 
@@ -72,7 +73,7 @@ where
   LocalQueue<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, LocalQueue<M>, LocalSignal, M>
+    = QueueMailboxRecv<'a, LegacyQueueDriver<LocalQueue<M>>, LocalSignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;

@@ -1,7 +1,7 @@
 use cellex_actor_core_rs::{
   api::{
     mailbox::{
-      queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+      queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
       Mailbox, MailboxOptions,
     },
     metrics::MetricsSinkShared,
@@ -19,8 +19,9 @@ use crate::arc_mailbox::ArcSignal;
 pub struct ArcPriorityMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
-  RM: RawMutex, {
-  pub(crate) inner: QueueMailbox<ArcPriorityQueues<M, RM>, ArcSignal<RM>>,
+  RM: RawMutex,
+{
+  pub(crate) inner: QueueMailbox<LegacyQueueDriver<ArcPriorityQueues<M, RM>>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcPriorityMailbox<M, RM>
@@ -34,7 +35,7 @@ where
   }
 
   /// Returns the underlying queue mailbox.
-  pub fn inner(&self) -> &QueueMailbox<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailbox<LegacyQueueDriver<ArcPriorityQueues<M, RM>>, ArcSignal<RM>> {
     &self.inner
   }
 
@@ -50,7 +51,7 @@ where
   RM: RawMutex,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, ArcPriorityQueues<M, RM>, ArcSignal<RM>, PriorityEnvelope<M>>
+    = QueueMailboxRecv<'a, LegacyQueueDriver<ArcPriorityQueues<M, RM>>, ArcSignal<RM>, PriorityEnvelope<M>>
   where
     Self: 'a;
   type SendError = QueueError<PriorityEnvelope<M>>;

@@ -5,7 +5,11 @@ use cellex_actor_core_rs::api::mailbox::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer,
+  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
+  MailboxFactory,
+  MailboxOptions,
+  MailboxPair,
+  QueueMailboxProducer,
 };
 use cellex_utils_embedded_rs::Element;
 
@@ -77,7 +81,7 @@ impl MailboxFactory for LocalMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = LocalQueue<M>
+    = LegacyQueueDriver<LocalQueue<M>>
   where
     M: Element;
   type Signal = LocalSignal;
@@ -85,7 +89,7 @@ impl MailboxFactory for LocalMailboxFactory {
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = LocalQueue::new();
+    let queue = LegacyQueueDriver::new(LocalQueue::new());
     let signal = LocalSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();
