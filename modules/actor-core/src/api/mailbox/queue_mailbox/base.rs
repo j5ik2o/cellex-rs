@@ -135,7 +135,9 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    <QueueMailboxProducer<Q, S>>::set_metrics_sink(self, sink);
+    let queue_sink = sink.clone();
+    self.core.queue().set_metrics_sink(queue_sink);
+    self.core.set_metrics_sink(sink);
   }
 
   fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
@@ -180,6 +182,8 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    let queue_sink = sink.clone();
+    self.core.queue().set_metrics_sink(queue_sink);
     self.core.set_metrics_sink(sink);
   }
 }

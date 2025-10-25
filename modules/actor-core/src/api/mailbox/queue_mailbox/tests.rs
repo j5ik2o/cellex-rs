@@ -1,5 +1,8 @@
 #![cfg(feature = "queue-v2")]
 
+extern crate alloc;
+
+use alloc::vec::Vec;
 use core::{
   future::Future,
   pin::Pin,
@@ -8,6 +11,7 @@ use core::{
 
 use cellex_utils_core_rs::{
   collections::queue::QueueError,
+  sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::collections::queue::backend::{OfferOutcome, OverflowPolicy},
   Element, QueueSize,
 };
@@ -15,8 +19,8 @@ use futures::task::noop_waker_ref;
 
 use super::{MailboxQueueDriver, QueueMailbox, QueuePollOutcome};
 use crate::api::{
-  mailbox::{queue_mailbox::SyncQueueDriver, Mailbox, MailboxError, MailboxOverflowPolicy},
-  metrics::MetricsSinkShared,
+  mailbox::{queue_mailbox::SyncQueueDriver, Mailbox, MailboxError, MailboxOverflowPolicy, MailboxProducer},
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
   test_support::TestSignal,
 };
 
@@ -71,6 +75,28 @@ where
   fn overflow_policy(&self) -> Option<MailboxOverflowPolicy> {
     self.overflow_policy
   }
+}
+
+struct RecordingSink {
+  events: ArcShared<SpinSyncMutex<Vec<MetricsEvent>>>,
+}
+
+impl RecordingSink {
+  fn new() -> (Self, ArcShared<SpinSyncMutex<Vec<MetricsEvent>>>) {
+    let events = ArcShared::new(SpinSyncMutex::new(Vec::new()));
+    (Self { events: events.clone() }, events)
+  }
+}
+
+impl MetricsSink for RecordingSink {
+  fn record(&self, event: MetricsEvent) {
+    self.events.lock().push(event);
+  }
+}
+
+fn make_metrics_sink() -> (MetricsSinkShared, ArcShared<SpinSyncMutex<Vec<MetricsEvent>>>) {
+  let (sink, events) = RecordingSink::new();
+  (MetricsSinkShared::new(sink), events)
 }
 
 fn queue_full<T: Element>(message: T) -> QueueError<T> {
@@ -252,4 +278,80 @@ fn receiver_pending_until_message_arrives() {
     | Poll::Ready(Ok(message)) => assert_eq!(message, 99u32),
     | other => panic!("unexpected poll result: {other:?}"),
   }
+}
+
+#[cfg(feature = "queue-v2")]
+#[test]
+fn producer_records_drop_oldest_metric() {
+  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
+  let signal = TestSignal::default();
+  let mut mailbox = QueueMailbox::new(driver, signal);
+  let (sink, events) = make_metrics_sink();
+  Mailbox::set_metrics_sink(&mut mailbox, Some(sink.clone()));
+  let mut producer = mailbox.producer();
+  MailboxProducer::set_metrics_sink(&mut producer, Some(sink));
+
+  producer.try_send_with_outcome(1u32).expect("first enqueue succeeds");
+  producer.try_send_with_outcome(2u32).expect("drop oldest succeeds");
+
+  let recorded = events.lock().clone();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxDroppedOldest { count: 1 })),
+    "expected MailboxDroppedOldest event but got {recorded:?}"
+  );
+}
+
+#[cfg(feature = "queue-v2")]
+#[test]
+fn producer_records_drop_newest_metric_and_error() {
+  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest);
+  let signal = TestSignal::default();
+  let mut mailbox = QueueMailbox::new(driver, signal);
+  let (sink, events) = make_metrics_sink();
+  Mailbox::set_metrics_sink(&mut mailbox, Some(sink.clone()));
+  let mut producer = mailbox.producer();
+  MailboxProducer::set_metrics_sink(&mut producer, Some(sink));
+
+  producer.try_send_mailbox(1u32).expect("first enqueue succeeds");
+  let error = producer.try_send_mailbox(2u32).expect_err("second enqueue should fail");
+
+  match error {
+    | MailboxError::QueueFull { policy, preserved } => {
+      assert_eq!(policy, MailboxOverflowPolicy::DropNewest);
+      assert_eq!(preserved, 2u32);
+    },
+    | other => panic!("unexpected error: {other:?}"),
+  }
+
+  let recorded = events.lock().clone();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxDroppedNewest { count: 1 })),
+    "expected MailboxDroppedNewest event but got {recorded:?}"
+  );
+}
+
+#[cfg(feature = "queue-v2")]
+#[test]
+fn producer_records_grow_metric() {
+  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::Grow);
+  let signal = TestSignal::default();
+  let mut mailbox = QueueMailbox::new(driver, signal);
+  let (sink, events) = make_metrics_sink();
+  Mailbox::set_metrics_sink(&mut mailbox, Some(sink.clone()));
+  let mut producer = mailbox.producer();
+  MailboxProducer::set_metrics_sink(&mut producer, Some(sink));
+
+  producer.try_send_with_outcome(1u32).expect("first enqueue succeeds");
+  let outcome = producer.try_send_with_outcome(2u32).expect("growth enqueue succeeds");
+
+  match outcome {
+    | OfferOutcome::GrewTo { capacity } => assert!(capacity >= 2, "unexpected capacity {capacity}"),
+    | other => panic!("expected growth outcome, got {other:?}"),
+  }
+
+  let recorded = events.lock().clone();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxGrewTo { capacity } if *capacity >= 2)),
+    "expected MailboxGrewTo event but got {recorded:?}"
+  );
 }

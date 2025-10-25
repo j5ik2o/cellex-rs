@@ -171,8 +171,12 @@ impl<D, S> MailboxQueueCore<D, S> {
   }
 
   fn record_enqueue(&self) {
+    self.record_event(MetricsEvent::MailboxEnqueued);
+  }
+
+  fn record_event(&self, event: MetricsEvent) {
     if let Some(sink) = &self.metrics_sink {
-      sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
+      sink.with_ref(|sink| sink.record(event));
     }
   }
 

@@ -23,6 +23,9 @@ use crate::{
   },
 };
 
+#[cfg(test)]
+mod tests;
+
 type ActorProcessRegistry<AR> =
   ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>;
 type ActorRegistryShared<AR> = ArcShared<ActorProcessRegistry<AR>>;
