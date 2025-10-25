@@ -44,6 +44,78 @@
 4. `QueueRwCompat` にメトリクスフック／OfferOutcome フックを設定する API を整理し、Tokio/priority からの利用手順を明記する。
 5. `QueueError` → `MailboxError` 変換表と、それに対応するユニットテストの網羅方針を設計メモに追記する。
 
+## 2025-10-25 追加メモ: SyncQueue 直接保持構造の骨子
+
+- `MailboxQueueCore` は後続フェーズで "ドライバ" 抽象を介してキューへアクセスする。共通トレイト案:
+
+  ```rust
+  pub trait MailboxQueueDriver<M: Element>: Clone {
+    fn len(&self) -> usize;
+    fn capacity(&self) -> usize;
+    fn offer(&self, message: M) -> Result<OfferOutcome, QueueError<M>>;
+    fn poll(&self) -> Result<PollOutcome<M>, QueueError<M>>;
+    fn close(&self) -> Result<Option<M>, QueueError<M>>;
+    fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>);
+  }
+  ```
+
+  - `PollOutcome<M>` は `SyncQueue` 直結時に `MpscQueue::poll` が返す `QueueError::Empty` / `QueueError::WouldBlock` を `PollOutcome::Empty` / `PollOutcome::Pending` へマップする薄いラッパ。
+  - 互換層 (`LegacyQueueDriver`) では `QueueRwCompat` を抱え、`offer` が `Ok(())` を返した場合は `OfferOutcome::Enqueued` を生成する。
+  - v2 直結層 (`SyncQueueDriver`) では `SyncQueue<EntryShared<M>, VecRingBackend<_>>` を保持し、`offer` の戻り値や `poll` の `QueueError` をそのまま Mailbox レイヤに伝搬する。
+
+- `MailboxQueueCore<Q, S>` の型パラメータ `Q` は上記ドライバを実装する型に差し替える。これにより `len` / `capacity` / `try_send` / `try_dequeue` / `close` はドライバ経由で `OfferOutcome` / `PollOutcome` を受け取り、メトリクスとスケジューラ通知を処理できる。
+
+- メトリクスフックの扱い:
+  - `MailboxQueueCore::set_metrics_sink` はドライバへ委譲し、各ドライバ実装が `QueueRwCompat::set_metrics_sink` または `SyncQueueDriver` 内部の `ArcShared<SpinSyncMutex<Option<MetricsSinkShared>>>` を更新する。
+  - `OfferOutcome::{DroppedOldest,DroppedNewest,GrewTo}` はドライバ側でメトリクスイベントへ変換し、`MailboxQueueCore` は `MailboxEnqueued` のみを記録する構造に簡素化できる。
+
+- `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` はジェネリクス境界を `Q: MailboxQueueDriver<M>` へ更新し、旧 `QueueRw` 境界を段階的に撤廃する。
+
+## 2025-10-25 追加メモ: MailboxError 雛形
+
+- `MailboxError<M>` のドラフト（後続フェーズで実装想定）:
+
+  ```rust
+  pub enum MailboxError<M> {
+    QueueFull { policy: OverflowPolicy, preserved: Option<M> },
+    Disconnected,
+    Closed { last: Option<M> },
+    Backpressure,
+    ResourceExhausted,
+    Internal,
+  }
+  ```
+
+  - `policy` は `OfferOutcome::DroppedNewest` など発生源のポリシーを保持。
+  - `preserved` は `QueueError::Full(message)` のメッセージ再取得用。DropOldest 系では `None`、DropNewest では `Some(message)`。
+  - `ResourceExhausted` は `QueueError::AllocError`、`Internal` は `QueueError::OfferError` に対応。
+
+- `QueueError` からの変換テーブル更新案:
+
+  | QueueError / Outcome             | MailboxError                                                  |
+  |----------------------------------|---------------------------------------------------------------|
+  | `QueueError::Full(message)`      | `MailboxError::QueueFull { policy: OverflowPolicy::DropNewest, preserved: Some(message) }`
+  | `OfferOutcome::DroppedOldest`    | `Ok(())`（メトリクスのみ記録）                                |
+  | `OfferOutcome::DroppedNewest`    | `MailboxError::QueueFull { policy: OverflowPolicy::DropNewest, preserved: Some(message) }`
+  | `OfferOutcome::GrewTo(capacity)` | `Ok(())`（`MailboxGrewTo` を記録）                             |
+  | `QueueError::WouldBlock`         | `MailboxError::Backpressure`                                  |
+  | `QueueError::Disconnected`       | `MailboxError::Disconnected`                                   |
+  | `QueueError::Closed(message)`    | `MailboxError::Closed { last: Some(message) }`                |
+  | `QueueError::AllocError(message)`| `MailboxError::ResourceExhausted`（デッドレター対象）           |
+  | `QueueError::OfferError(message)`| `MailboxError::Internal`（ログ＋デッドレター）                 |
+
+- `QueueMailboxRecv` は `PollOutcome` から `MailboxError` へ変換するヘルパを備え、`QueueError::Closed` や `Disconnected` を明示的に区別する。
+
+## 2025-10-25 追加メモ: queue-v1 / queue-v2 併存時のドライバ構成
+
+- `queue-v1` ビルド: `MailboxQueueCore` へ渡す `Q` は `LegacyQueueDriver<M>`。
+- `queue-v2` ビルド（既定）: 標準は `SyncQueueDriver<EntryShared<M>>`。Tokio/priority 互換ルートは当面 `LegacyQueueDriver` を利用しつつ、逐次 `SyncQueueDriver` へ移行する。
+- `LegacyQueueDriver` と `SyncQueueDriver` はどちらも `Clone + Send + Sync` 条件を満たす必要がある。
+
+- テスト指針:
+  - ドライバごとの差異を吸収する共通テストセットを `mailbox/queue_mailbox/tests.rs`（新設予定）へ集約し、`#[cfg(feature = "queue-v2")]` で双方のドライバを検証する。
+  - 互換層を削除可能になったタイミングで `LegacyQueueDriver` を `deprecated` 化し、段階的な撤廃スケジュールをドキュメントへ追記する。
+
 ## TODO（Stage 2 実装項目）
 1. `QueueMailbox` を `SyncQueue` 直接保持へ切り替え。
 2. `QueueMailboxProducer::try_send` を `OfferOutcome` 駆動に完全移行（DroppedOldest/GrewTo をメトリクス発火、DroppedNewest -> Full エラー返却）。
