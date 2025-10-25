@@ -38,11 +38,11 @@
 - `QueueMailbox` が複数箇所で用いられており、互換インターフェースのバランスを崩すとコンパイルエラーが多発する。
 
 ## TODO（Stage 1 実装項目）
-1. `QueueMailbox` の内部構造を `QueueMailboxCore<Q>` のような薄いラッパへ分解する。
-2. `QueueMailboxProducer` が `OfferOutcome` を明示的に扱えるようにする（`QueueRw::offer` の戻り値チェックを見直し、Dropped/Grew の情報を取り出す）。
-3. `QueueMailboxRecv` が `QueueError::WouldBlock` を `Poll::Pending` に変換するロジックを整理し、整合性テストを追加する。
-4. `QueueRwCompat` に `MailboxQueueMetricsHook`（または同等の API）を設け、Drop/Grow イベントを `QueueMailbox` 側からも扱えるようにする。※別PRで調整済み。
-5. `QueueError` → `MailboxError` 変換表を docs/design に追記。
+1. `QueueMailbox` の内部構造を `QueueMailboxCore<Q, S>`（仮称）として切り出し、キュー操作・シグナル・メトリクス・スケジューラ通知を集約する。
+2. `QueueMailboxProducer` に `OfferOutcome` を扱う仕組みを導入し、Dropped/Grew 情報をメトリクス／デッドレターへ反映する設計をまとめる。
+3. `QueueMailboxRecv` について、`QueueError::WouldBlock` や v2 側の `PollOutcome` を `Poll::Pending`／`MailboxError` へマッピングする方針を文書化し、テスト計画を追加する。
+4. `QueueRwCompat` にメトリクスフック／OfferOutcome フックを設定する API を整理し、Tokio/priority からの利用手順を明記する。
+5. `QueueError` → `MailboxError` 変換表と、それに対応するユニットテストの網羅方針を設計メモに追記する。
 
 ## TODO（Stage 2 実装項目）
 1. `QueueMailbox` を `SyncQueue` 直接保持へ切り替え。
@@ -60,3 +60,42 @@
 - Stage 1 の TODO を個別の PR に分割し、`queue-v2` を既定とした状態で `QueueMailbox` の内部構造を整える。
 - Stage 2 では `QueueRwCompat` 依存削減を優先し、段階的に `SyncQueue` へ移行。完了後にフェーズ5Bのリストと紐付けて残作業を洗い出す。
 - 各ステップ完了時に本メモとフェーズ文書を更新し、CI コマンド結果を記録する。
+
+## 現行実装の確認メモ（2025-10-26）
+
+- `QueueMailbox` は `QueueMailboxInternal<Q, S>` をメンバに持ち、内部で v1 `QueueRw<M>` と `QueueError<M>` を直接扱っている。
+- `QueueMailboxProducer` / `QueueMailboxRecv` も `QueueRw` 前提で実装されており、`OfferOutcome` / `PollOutcome` の概念はまだ導入されていない。
+- メトリクス通知は `QueueMailboxInternal::try_send` 内で `MailboxEnqueued` のみ発火。Dropped/Grew の情報は保持していない。
+- `QueueMailbox::close` は `queue.clean_up()` → `signal.notify()` → `closed.set(true)` の順で処理される。v2 へ切り替える際もこの順序を維持する。
+- `QueueRwCompat` は Tokio / priority 向けに導入されているが、`QueueMailbox` 自体は `QueueRw` に依存しているため、フェーズ5Bで `SyncQueue` へ切り替える必要がある。
+
+## OfferOutcome / PollOutcome ハンドリング案（暫定）
+
+| v2 戻り値/イベント                     | Mailbox レイヤでの扱い                                      | メトリクス/ログ                          |
+|----------------------------------------|--------------------------------------------------------------|------------------------------------------|
+| `OfferOutcome::Enqueued`               | `Ok(())`                                                     | `MailboxEnqueued` を記録                 |
+| `OfferOutcome::DroppedOldest { count }`| `Ok(())`                                                     | `MailboxDroppedOldest { count }` を記録 |
+| `OfferOutcome::DroppedNewest { count }`| `Err(MailboxError::QueueFull { policy: DropNewest })`        | `MailboxDroppedNewest { count }` を記録 |
+| `OfferOutcome::GrewTo { capacity }`    | `Ok(())`                                                     | `MailboxGrewTo { capacity }` を記録      |
+| `PollOutcome::Item(T)`                 | `Ok(Some(T))`                                                | なし                                     |
+| `PollOutcome::WouldWait`/`Idle`        | `Ok(None)` → シグナル待機                                    | なし                                     |
+| `PollOutcome::Closed { last: Option<T> }`| `Err(MailboxError::Closed { last })`                         | なし                                     |
+
+## MailboxError 変換テーブル（ドラフト）
+
+| QueueError / Outcome            | MailboxError (案)                              | 備考                                        |
+|--------------------------------|-----------------------------------------------|---------------------------------------------|
+| `QueueError::Full`             | `MailboxError::QueueFull { policy: DropNewest }` | 既存のバックプレッシャーを QueueFull へ集約 |
+| `QueueError::Disconnected`    | `MailboxError::Disconnected`                  | DeadLetter / Scheduler 停止へ通知         |
+| `QueueError::Closed`          | `MailboxError::Closed { last: Option<T> }`    | v2 の `PollOutcome::Closed` と整合         |
+| `QueueError::WouldBlock`      | `MailboxError::Backpressure`                  | ログ出力のみ。`OfferOutcome::WouldBlock` を想定 |
+| `QueueError::AllocError`      | `MailboxError::ResourceExhausted`             | 致命ログ＋デッドレター                     |
+| `QueueError::OfferError`      | `MailboxError::Internal`                      | 互換層では発生しない想定（ガード対象）      |
+
+## Stage 1 実装計画（更新）
+
+1. 設計メモ整備（本ドキュメントの更新）
+2. メトリクス・エラー処理の抽象化インターフェース検討
+3. `QueueMailboxInternal` → `MailboxQueueCore`（仮称）への責務再編
+4. OfferOutcome/PollOutcome を受ける `QueueMailboxProducer` / `QueueMailboxRecv` のインターフェース設計
+5. MailboxError 変換テーブルとテスト計画の具体化

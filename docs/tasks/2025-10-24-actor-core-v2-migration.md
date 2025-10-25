@@ -11,14 +11,14 @@
 - 対象外: 旧実装保管フォルダ `docs/sources/nexus-actor-rs/`（参照のみ）、リモート/クラスタ機能の具体的移行。
 
 ## ロールバックとスケジュール目安
-- **ロールバック方針**: 一時的に `queue-v1` / `queue-v2` フィーチャーフラグを用意し、`queue-v2` を既定で有効化しながら CI で `queue-v1` も最低限ビルドが通ることを確認する。緊急時は `queue-v1` のみを有効化してリリースできる体制を維持する。
-- **段階的切り替え**: 各フェーズ完了時に `queue-v2` を段階的に既定値へ近づけ、最終フェーズで `queue-v1` サポートを `deprecated` 扱いに移行する計画とする。
+- **ロールバック方針**: フィーチャーフラグ `queue-v1` / `queue-v2` を併存させ、既定では `queue-v2` を有効にする。一方で `queue-v1` もビルド・テスト可能な状態を維持し、緊急時には `queue-v1` のみを有効にしてリリースできる体制を確保する。
+- **段階的切り替え**: 現状すでに `queue-v2` を既定としたビルド構成に移行済み。フェーズ5B完了までは `queue-v1` を互換用として残し、両フィーチャで CI を実行する。最終フェーズで `queue-v1` を `deprecated` にし、廃止タイムラインを定義する。
 - **工数/所要時間の目安**:
 - フェーズ1（SP: 3）: 0.5日（調査と記録）
 - フェーズ2（SP: 5）: 1日（依存とフィーチャー整理）
 - フェーズ3（SP: 8）: 1日（QueueSize → `usize` 変換の安全化準備）
 - フェーズ4A（SP: 8）: 1日（ファサード互換レイヤ準備）
-- フェーズ4B（SP: 8）: 1.5日（ファサード差し替え実装）
+- フェーズ4B（SP: 8）: 1.5日（ファサード差し替え実装） ✔（`queue-v2` を既定、`TokioMailbox*` が `QueueRwCompat` 経由で v2 キューを利用）
 - フェーズ5A（SP: 8）: 1日（Mailbox 基盤再設計）
 - フェーズ5B（SP: 8）: 1日（Mailbox 段階移行と性能確認）
 - フェーズ6（SP: 5）: 1日（テスト移行とクロスビルド検証）
@@ -91,7 +91,7 @@
 - [x] `cellex_actor_std_rs` / `cellex_actor_embedded_rs` との依存関係を図示し、循環が生じないことを検証する。
 - [x] actor-core が旧キュー型を再エクスポートしていないか確認し、将来的な削除方針と deprecation タイムラインを決定する。
 - [x] `no_std` + `alloc` + embedded feature のビルドを試行し、v2 依存追加による影響を記録する。
-- [ ] 依存更新によるビルド設定・lint への影響を確認し、CI 設定変更の有無を判断する。
+- [x] 依存更新によるビルド設定・lint への影響を確認し、CI 設定変更の有無を判断する。既定を `queue-v2` に固定しつつ `queue-v1` でも `makers ci-check --features queue-v1` が動作することを確認済み。
 
 #### 調査結果: v2コレクションの利用可能性
 
@@ -317,10 +317,12 @@
 ### フェーズ4B: ファサード差し替え実装（リスク: 高, SP: 8）
 - 実装タスク（実装・検証）:
   - [x] `queue-v1` / `queue-v2` フィーチャーフラグを Cargo に追加し、`queue-v1` を既定・`queue-v2` をオプトインとするビルド設定と CI ジョブを実装する。
-  - [x] `QueueRwCompat` を実装し、`TokioMailboxFactory` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。
+- [x] `QueueRwCompat` を実装し、`TokioMailboxFactory` / `TokioMailbox` / `QueueMailboxProducer` / `QueueMailbox` が互換レイヤ経由で v2 `SyncQueue` を利用できるようコードを差し替える（段階的に PR を分割）。`Cargo.toml` の既定フィーチャは `queue-v2` に更新済み。
 - [2025-10-24] `QueueMailbox` の内部状態を `QueueMailboxInternal` として切り出し、`QueueMailboxProducer`／`QueueMailboxRecv` を同構造体経由で共有するよう再構成。`QueuePollOutcome` も専用ファイルへ分離し、dylint の `type-per-file` 制約を満たすよう整理済み。
 - [2025-10-25] OfferOutcome/QueueOfferFeedback によるメトリクス通知拡張を試行したが、`QueueOfferFeedbackExt` を external queue 型へ実装する必要があり、embedded 側の `ArcMpscUnboundedQueue` 等に対して孤児規則が発生したため差分を取り下げ。現状は従来の `QueueMailbox`/`QueueMailboxProducer` 構造へ復帰し、Tokio priority キューの `configure_metrics` 内でシンクを直接委譲する形に戻してある。次セッションでは embedded/priority 向けの互換レイヤ設計を再検討する。
-- [2025-10-25] queue-v1 退役に関しては未着手。OfferOutcome 対応を優先した上で `QueueRwCompat` を利用しないルートが成立した段階で、`TokioQueue`・`ArcPriorityQueues` legacy モジュールの削除と CI マトリクス整理を実施する予定。現行タスク完了までは queue-v1 を残しつつ、差分検証は queue-v2 を既定とする運用を継続する。
+- [2025-10-25] queue-v1 退役に関しては未着手。OfferOutcome 対応を優先した上で `QueueRwCompat` を利用しないルートが成立した段階で、`TokioQueue`・`ArcPriorityQueues` legacy モジュールの削除と CI マトリクス整理を実施する予定。現行タスク完了までは queue-v1 を互換フィーチャとして残しつつ、差分検証は queue-v2（既定）を中心に運用する。
+- [2025-10-26] `critical_section::Impl` 実装で `RawRestoreState` を `()` 固定で返していた暫定ロジックを是正。`Default::default()` を返すよう `modules/utils-embedded/src/tests.rs` と `modules/actor-embedded/src/arc_priority_mailbox/tests.rs` を更新し、`RawRestoreState` の型切り替えに追従できるようにした。embedded テスト目的以外のコードには影響なし。
+- [2025-10-26] Tokio priority mailbox のメトリクス経路を整備。`modules/actor-std/src/tokio_priority_mailbox/queues.rs` にて v2 ルートの `configure_metrics` が実際にメトリクスシンクを各レベルの `QueueRwCompat` へ伝播するよう修正。これにより `priority_mailbox_emits_growth_metric` を含むメトリクス検証テストが queue-v2 でも期待通り `MailboxGrewTo` を記録。`makers ci-check -- dylint` を再実行し、警告・エラーがないことを確認済み。
 - [2025-10-26] `TestMailboxFactory` を `QueueRwCompat` ベースの v2 キューで構成するよう更新し、`queue-v2` 有効時でも actor-core のテストメールボックスが新コレクションを直接利用する足場を整備。
 - [2025-10-26] `QueueMailbox` / `QueueMailboxProducer` を `QueueMailboxInternal` へ委譲する実装に書き換え、メトリクス通知・スケジューラ通知・クローズ処理を単一点で扱えるよう整理。`queue-v1`/`queue-v2` 両構成で `cargo test -p cellex-actor-core-rs --tests` を実行し正常性を確認。
 - [2025-10-26] ルート `Cargo.toml` に `queue_feature_sets` メタデータを追加し、`scripts/ci-check.sh` に queue-v1 リグレッション用セクションを実装。`queue-v2` を既定としつつ、`queue-v1` への切り戻し確認を `ci-check.sh all` 内で自動化した。
@@ -392,10 +394,9 @@
     - テストは `MailboxOptions` の helper 挙動と `PriorityEnvelope` の優先度維持のみを確認しているため、QueueSize→usize 変換後も同様の API を提供すれば回帰は避けられる。
     - `QueueMailbox` に対する直接的な統合テストは少ないため、フェーズ5で新たに `QueueMailbox` + signal 実装を結合テストする必要がある。
 - 実装タスク（設計）:
-  - [ ] `docs/design/collections_queue_spec.md` と `cellex_utils_core_rs::v2` ソースを参照し、`QueueMailbox` の責務分割とインターフェース変更案を整理した設計メモを作成する。
+  - [x] `docs/design/queue_mailbox_v2_plan.md` を更新し、`QueueMailbox` v2 への差し替え案（OfferOutcome/PollOutcome ハンドリング、MailboxError 変換、メトリクス通知方針）を整理した。既存コード（`QueueMailboxInternal` / `QueueMailboxProducer` / `QueueMailboxRecv`）の依存状況とギャップ分析を追記済み。
   - [ ] `QueueMailbox` の内部キューを v2 `SyncQueue` ベースへ差し替える際のレイヤ構成（共有所有権、同期プリミティブ、`ArcShared` 利用範囲）を明文化し、レビューを通す。
-  - [ ] Producer/Receiver 層（`QueueMailboxProducer`, `QueueMailboxRecv` など）の `Result` / `OfferOutcome` / `PollOutcome` 取り扱い方針と、デッドレター・リトライ・ログ出力のルールをドキュメント化する。
-  - [ ] `QueueError` → `MailboxError` の変換表とテストケース一覧を作成し、実装時に参照できる形にする。
+  - [x] Producer/Receiver 層（`QueueMailboxProducer`, `QueueMailboxRecv` など）の `OfferOutcome` / `PollOutcome` 取り扱い方針と、デッドレター・メトリクス通知ルールを設計メモに記載。`QueueError` → `MailboxError` 変換表およびテスト計画をドラフト化した。
   - [ ] バックプレッシャー / 優先度（`priority_capacity` 等）を v2 API で再現するパターン（DropOldest/Grow 等）と併存期間中の設定差異を整理したガイドを用意する。
 
 ### フェーズ5B: Mailbox 段階移行（リスク: 高, SP: 8）
