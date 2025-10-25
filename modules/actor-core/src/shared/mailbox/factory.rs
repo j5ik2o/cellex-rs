@@ -1,7 +1,10 @@
-use cellex_utils_core_rs::{Element, QueueRw};
+use cellex_utils_core_rs::Element;
 
 use crate::{
-  api::{mailbox::MailboxConcurrency, messaging::MetadataStorageMode},
+  api::{
+    mailbox::{queue_mailbox::MailboxQueueDriver, MailboxConcurrency},
+    messaging::MetadataStorageMode,
+  },
   shared::mailbox::{handle::MailboxHandle, options::MailboxOptions, producer::MailboxProducer, signal::MailboxSignal},
 };
 
@@ -20,7 +23,7 @@ pub trait MailboxFactory {
   type Signal: MailboxSignal;
 
   /// Type of message queue
-  type Queue<M>: QueueRw<M> + Clone
+  type Queue<M>: MailboxQueueDriver<M> + Clone
   where
     M: Element;
 

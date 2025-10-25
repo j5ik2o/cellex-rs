@@ -62,3 +62,17 @@ tokio-condvar = "0.3.0"
 tokio-util = "0.7.16"
 tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false }
+
+[workspace.metadata.queue_feature_sets]
+queue-v1-all = [
+  { package = "cellex-utils-core-rs", features = ["alloc", "queue-v1"], default_features = false },
+  { package = "cellex-actor-core-rs", features = ["alloc", "queue-v1"], default_features = false },
+  { package = "cellex-utils-std-rs", features = ["queue-v1"], default_features = false },
+  { package = "cellex-actor-std-rs", features = ["queue-v1", "rt-multi-thread"], default_features = false },
+]
+queue-v2-all = [
+  { package = "cellex-utils-core-rs", features = ["alloc", "queue-v2"], default_features = false },
+  { package = "cellex-actor-core-rs", features = ["alloc", "queue-v2"], default_features = false },
+  { package = "cellex-utils-std-rs", features = ["queue-v2"], default_features = false },
+  { package = "cellex-actor-std-rs", features = ["queue-v2", "rt-multi-thread"], default_features = false },
+]

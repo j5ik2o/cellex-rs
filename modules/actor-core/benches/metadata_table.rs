@@ -23,7 +23,7 @@ type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEn
 
 #[cfg(not(target_has_atomic = "ptr"))]
 type NoopDispatchFn = dyn Fn(AnyMessage, i8) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>>;
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element};
 
 fn noop_sender<M, C>() -> MessageSender<M, C>
 where

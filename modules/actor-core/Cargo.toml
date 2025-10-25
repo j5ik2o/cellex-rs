@@ -10,8 +10,10 @@ readme = "../../README.md"
 repository = "https://github.com/j5ik2o/cellex-rs"
 
 [features]
-default = ["alloc"]
+default = ["alloc", "queue-v2"]
 alloc = []
+queue-v1 = ["cellex-utils-core-rs/queue-v1"]
+queue-v2 = ["cellex-utils-core-rs/queue-v2"]
 tracing-support = ["tracing"]
 json = ["dep:cellex-serialization-json-rs"]
 prost = ["dep:cellex-serialization-prost-rs"]

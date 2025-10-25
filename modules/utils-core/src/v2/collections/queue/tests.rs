@@ -2,10 +2,11 @@ extern crate alloc;
 
 use super::SyncQueue;
 use crate::{
+  collections::queue::QueueError,
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
+      backend::{OfferOutcome, OverflowPolicy, VecRingBackend},
       capabilities::{SingleConsumer, SingleProducer, SupportsPeek},
       type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey},
       VecRingStorage,
@@ -68,7 +69,10 @@ mod fifo_backend {
   use alloc::collections::VecDeque;
 
   use super::QueueConfig;
-  use crate::v2::collections::queue::backend::{OfferOutcome, OverflowPolicy, QueueError, SyncQueueBackend};
+  use crate::{
+    collections::queue::QueueError,
+    v2::collections::queue::backend::{OfferOutcome, OverflowPolicy, SyncQueueBackend},
+  };
 
   /// Simple FIFO backend used for unit tests.
   pub struct FifoBackend<T> {
@@ -92,9 +96,9 @@ mod fifo_backend {
       FifoBackend::new(storage, policy)
     }
 
-    fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
+    fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>> {
       if self.closed {
-        return Err(QueueError::Closed);
+        return Err(QueueError::Closed(item));
       }
       if self.buffer.len() < self.capacity {
         self.buffer.push_back(item);
@@ -107,7 +111,7 @@ mod fifo_backend {
           self.buffer.push_back(item);
           Ok(OfferOutcome::DroppedOldest { count: 1 })
         },
-        | OverflowPolicy::Block => Err(QueueError::Full),
+        | OverflowPolicy::Block => Err(QueueError::Full(item)),
         | OverflowPolicy::Grow => {
           self.capacity += 1;
           self.buffer.push_back(item);
@@ -116,12 +120,12 @@ mod fifo_backend {
       }
     }
 
-    fn poll(&mut self) -> Result<T, QueueError> {
+    fn poll(&mut self) -> Result<T, QueueError<T>> {
       match self.buffer.pop_front() {
         | Some(item) => Ok(item),
         | None => {
           if self.closed {
-            Err(QueueError::Closed)
+            Err(QueueError::Disconnected)
           } else {
             Err(QueueError::Empty)
           }
@@ -171,8 +175,9 @@ mod priority_backend {
   use core::cmp::Reverse;
 
   use super::QueueConfig;
-  use crate::v2::collections::queue::backend::{
-    OfferOutcome, OverflowPolicy, QueueError, SyncPriorityBackend, SyncQueueBackend,
+  use crate::{
+    collections::queue::QueueError,
+    v2::collections::queue::backend::{OfferOutcome, OverflowPolicy, SyncPriorityBackend, SyncQueueBackend},
   };
 
   /// Priority backend backed by a binary heap.
@@ -197,9 +202,9 @@ mod priority_backend {
       BinaryHeapBackend::new(storage, policy)
     }
 
-    fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
+    fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>> {
       if self.closed {
-        return Err(QueueError::Closed);
+        return Err(QueueError::Closed(item));
       }
       if self.heap.len() < self.capacity {
         self.heap.push(Reverse(item));
@@ -212,7 +217,7 @@ mod priority_backend {
           self.heap.push(Reverse(item));
           Ok(OfferOutcome::DroppedOldest { count: 1 })
         },
-        | OverflowPolicy::Block => Err(QueueError::Full),
+        | OverflowPolicy::Block => Err(QueueError::Full(item)),
         | OverflowPolicy::Grow => {
           self.capacity += 1;
           self.heap.push(Reverse(item));
@@ -221,12 +226,12 @@ mod priority_backend {
       }
     }
 
-    fn poll(&mut self) -> Result<T, QueueError> {
+    fn poll(&mut self) -> Result<T, QueueError<T>> {
       match self.heap.pop() {
         | Some(Reverse(item)) => Ok(item),
         | None => {
           if self.closed {
-            Err(QueueError::Closed)
+            Err(QueueError::Disconnected)
           } else {
             Err(QueueError::Empty)
           }
@@ -291,7 +296,7 @@ fn block_policy_reports_full() {
 
   assert_eq!(queue.offer(10).unwrap(), OfferOutcome::Enqueued);
   let err = queue.offer(20).unwrap_err();
-  assert_eq!(err, QueueError::Full);
+  assert!(matches!(err, QueueError::Full(value) if value == 20));
 }
 
 #[test]
@@ -306,10 +311,10 @@ fn grow_policy_increases_capacity() {
   assert_eq!(queue.capacity(), 2);
 
   queue.close().unwrap();
-  assert!(matches!(queue.offer(3), Err(QueueError::Closed)));
+  assert!(matches!(queue.offer(3), Err(QueueError::Closed(value)) if value == 3));
   assert_eq!(queue.poll().unwrap(), 1);
   assert_eq!(queue.poll().unwrap(), 2);
-  assert!(matches!(queue.poll(), Err(QueueError::Closed)));
+  assert!(matches!(queue.poll(), Err(QueueError::Disconnected)));
 }
 
 #[test]
@@ -333,9 +338,9 @@ fn priority_queue_supports_peek() {
 
 #[test]
 fn shared_error_mapping_matches_spec() {
-  assert_eq!(QueueError::from(SharedError::Poisoned), QueueError::Disconnected);
-  assert_eq!(QueueError::from(SharedError::BorrowConflict), QueueError::WouldBlock);
-  assert_eq!(QueueError::from(SharedError::InterruptContext), QueueError::WouldBlock);
+  assert_eq!(QueueError::<()>::from(SharedError::Poisoned), QueueError::Disconnected);
+  assert_eq!(QueueError::<()>::from(SharedError::BorrowConflict), QueueError::WouldBlock);
+  assert_eq!(QueueError::<()>::from(SharedError::InterruptContext), QueueError::WouldBlock);
 }
 
 #[test]

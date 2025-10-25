@@ -37,7 +37,7 @@
     M: Element + 'static,
   {
     handle: TokioSystemHandle<M>,
-    main_actor: ActorRef<M, GenericActorRuntime<TokioMailboxRuntime>>,
+    main_actor: ActorRef<M, GenericActorRuntime<TokioMailboxFactory>>,
   }
 
   impl<M> TokioActorSystem<M>
@@ -46,7 +46,7 @@
   {
     pub async fn new<P>(props: P, name: &str) -> Result<Self, StartError>
     where
-      P: Into<Props<M, GenericActorRuntime<TokioMailboxRuntime>>>,
+      P: Into<Props<M, GenericActorRuntime<TokioMailboxFactory>>>,
     {
       // GenericActorRuntime + GenericActorSystem::builder で Guardian を起動し、
       // ActorSystemRunner + TokioSystemHandle を内部で構築する
@@ -66,7 +66,7 @@
   }
   ```
 - 内部処理
-  - `GenericActorRuntime::new(TokioMailboxRuntime)` + `ActorSystem::builder` を利用し、`launch_tokio` 的なヘルパーで `TokioSystemHandle` を生成。
+  - `GenericActorRuntime::new(TokioMailboxFactory)` + `ActorSystem::builder` を利用し、`launch_tokio` 的なヘルパーで `TokioSystemHandle` を生成。
   - Guardian Props の `spawn` はファサード内部で完結させ、その `ActorRef` を保持して `tell` へ委譲する。
 
 ### 2. `root_context.spawn` の取り扱い

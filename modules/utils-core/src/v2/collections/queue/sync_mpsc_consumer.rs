@@ -1,11 +1,9 @@
 use core::marker::PhantomData;
 
 use crate::{
+  collections::queue::QueueError,
   sync::{sync_mutex_like::SyncMutexLike, ArcShared, Shared},
-  v2::{
-    collections::queue::backend::{QueueError, SyncQueueBackend},
-    sync::SharedAccess,
-  },
+  v2::{collections::queue::backend::SyncQueueBackend, sync::SharedAccess},
 };
 
 /// Consumer for queues tagged with
@@ -29,7 +27,7 @@ where
   }
 
   /// Polls the next element from the queue.
-  pub fn poll(&self) -> Result<T, QueueError> {
+  pub fn poll(&self) -> Result<T, QueueError<T>> {
     let result = self.inner.with_mut(|backend: &mut B| backend.poll()).map_err(QueueError::from)?;
     result
   }

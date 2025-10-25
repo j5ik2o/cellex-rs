@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::{ArcShared, QueueError, SharedBound, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{collections::queue::QueueError, ArcShared, SharedBound, DEFAULT_PRIORITY};
 
 use crate::{
   api::{

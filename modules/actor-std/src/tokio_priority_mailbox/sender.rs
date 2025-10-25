@@ -1,10 +1,13 @@
 use cellex_actor_core_rs::{
-  api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared},
+  api::{
+    mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+    metrics::MetricsSinkShared,
+  },
   shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_std_rs::Element;
 
-use super::{queues::TokioPriorityQueues, NotifySignal, PriorityQueueError};
+use super::{queues, queues::TokioPriorityQueues, NotifySignal, PriorityQueueError};
 
 /// Message sender handle for priority mailbox
 ///
@@ -13,7 +16,7 @@ use super::{queues::TokioPriorityQueues, NotifySignal, PriorityQueueError};
 pub struct TokioPriorityMailboxSender<M>
 where
   M: Element, {
-  inner: QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal>,
+  inner: QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>,
 }
 
 impl<M> TokioPriorityMailboxSender<M>
@@ -136,17 +139,20 @@ where
   ///
   /// An immutable reference to the internal producer
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    queues::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(
+    inner: QueueMailboxProducer<LegacyQueueDriver<TokioPriorityQueues<M>>, NotifySignal>,
+  ) -> Self {
     Self { inner }
   }
 }

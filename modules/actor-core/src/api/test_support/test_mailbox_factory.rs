@@ -1,15 +1,21 @@
-use cellex_utils_core_rs::{Element, MpscQueue, QueueSize};
+#[cfg(feature = "queue-v2")]
+use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
+use cellex_utils_core_rs::Element;
+#[cfg(not(feature = "queue-v2"))]
+use cellex_utils_core_rs::MpscQueue;
 
+#[cfg(not(feature = "queue-v2"))]
+use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
 use crate::api::{
   mailbox::{
-    queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+    queue_mailbox::{LegacyQueueDriver, QueueMailbox},
+    MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
   },
-  test_support::{common::TestQueue, shared_backend_handle::SharedBackendHandle, test_signal::TestSignal},
+  test_support::{common::TestQueue, test_signal::TestSignal},
 };
 
 #[derive(Clone, Debug, Default)]
-/// Minimal use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used by unit tests to build
-/// queue-backed mailboxes.
+/// Minimal [`MailboxFactory`] implementation used by unit tests to build queue-backed mailboxes.
 pub struct TestMailboxFactory {
   capacity: Option<usize>,
 }
@@ -34,9 +40,9 @@ impl TestMailboxFactory {
   }
 
   const fn resolve_capacity(&self, options: MailboxOptions) -> Option<usize> {
-    match options.capacity {
-      | QueueSize::Limitless => self.capacity,
-      | QueueSize::Limited(value) => Some(value),
+    match options.capacity_limit() {
+      | Some(limit) => Some(limit),
+      | None => self.capacity,
     }
   }
 }
@@ -52,7 +58,7 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = TestQueue<M>
+    = LegacyQueueDriver<TestQueue<M>>
   where
     M: Element;
   type Signal = TestSignal;
@@ -61,7 +67,13 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = MpscQueue::new(SharedBackendHandle::new(capacity));
+    #[cfg(feature = "queue-v2")]
+    let queue = match capacity {
+      | Some(0) | None => LegacyQueueDriver::new(TestQueue::unbounded()),
+      | Some(limit) => LegacyQueueDriver::new(TestQueue::bounded(limit, OverflowPolicy::Block)),
+    };
+    #[cfg(not(feature = "queue-v2"))]
+    let queue = LegacyQueueDriver::new(MpscQueue::new(SharedBackendHandle::new(capacity)));
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

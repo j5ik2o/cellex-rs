@@ -69,7 +69,7 @@ extern crate alloc;
 
 use core::time::Duration;
 
-use cellex_utils_core_rs::QueueError;
+use cellex_utils_core_rs::collections::queue::QueueError;
 
 use crate::api::mailbox::messages::SystemMessage;
 
@@ -82,6 +82,9 @@ pub mod api;
 pub mod internal;
 /// Shared abstractions reused by api/internal
 pub mod shared;
+
+#[cfg(all(feature = "queue-v1", feature = "queue-v2"))]
+compile_error!("queue-v1 と queue-v2 を同時には有効化できません");
 
 /// Function type alias for converting system messages to message type.
 #[cfg(target_has_atomic = "ptr")]

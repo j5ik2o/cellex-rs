@@ -11,6 +11,21 @@ pub enum MetricsEvent {
   MailboxEnqueued,
   /// A message was dequeued from a mailbox.
   MailboxDequeued,
+  /// A mailbox evicted the oldest messages to make room for new arrivals.
+  MailboxDroppedOldest {
+    /// Number of messages that were evicted.
+    count: usize,
+  },
+  /// A mailbox rejected the newest messages due to overflow policy.
+  MailboxDroppedNewest {
+    /// Number of messages that were rejected.
+    count: usize,
+  },
+  /// A mailbox grew its storage capacity to accommodate more messages.
+  MailboxGrewTo {
+    /// New capacity after growth.
+    capacity: usize,
+  },
   /// Telemetry handling logic was invoked.
   TelemetryInvoked,
   /// Duration, in nanoseconds, spent executing telemetry handlers.

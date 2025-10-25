@@ -62,7 +62,7 @@ struct CoordinatorState {
 ///
 /// // Thread 2
 /// coord.register_ready(MailboxIndex::new(1, 0)); // Waits for Mutex
-/// # }
+/// #
 /// ```
 ///
 /// # Performance Characteristics
@@ -93,7 +93,7 @@ impl DefaultReadyQueueCoordinatorV2 {
   /// # use cellex_utils_core_rs::ArcShared;
   /// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
   /// // Can be shared across threads without additional Mutex!
-  /// # }
+  /// #
   /// ```
   pub fn new(throughput: usize) -> Self {
     Self {
@@ -113,11 +113,13 @@ impl DefaultReadyQueueCoordinatorV2 {
   /// ```rust,no_run
   /// # extern crate alloc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::DefaultReadyQueueCoordinatorV2;
+  /// # use cellex_utils_core_rs::ArcShared;
+  /// # use futures::executor::block_on;
   /// # async fn example() {
-  /// let coord = Arc::new(DefaultReadyQueueCoordinatorV2::new(32));
+  /// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
   /// coord.wait_for_signal().await;
   /// # }
-  /// # }
+  /// # block_on(example());
   /// ```
   pub async fn wait_for_signal(&self) {
     use futures::future::poll_fn;

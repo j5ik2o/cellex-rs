@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+    queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
     Mailbox,
   },
   metrics::MetricsSinkShared,
@@ -8,8 +8,10 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_std_rs::{Element, QueueError, QueueSize};
 
 use super::{
-  notify_signal::NotifySignal, tokio_mailbox_runtime::TokioMailboxRuntime, tokio_mailbox_sender::TokioMailboxSender,
-  tokio_queue::TokioQueue,
+  notify_signal::NotifySignal,
+  tokio_mailbox_factory::TokioMailboxFactory,
+  tokio_mailbox_sender::TokioMailboxSender,
+  tokio_queue::{self, TokioQueue},
 };
 
 /// Mailbox implementation for Tokio runtime
@@ -19,7 +21,7 @@ use super::{
 pub struct TokioMailbox<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailbox<TokioQueue<M>, NotifySignal>,
+  pub(super) inner: QueueMailbox<LegacyQueueDriver<TokioQueue<M>>, NotifySignal>,
 }
 
 impl<M> TokioMailbox<M>
@@ -35,7 +37,7 @@ where
   /// A pair of mailbox and sender handle
   #[must_use]
   pub fn new(capacity: usize) -> (Self, TokioMailboxSender<M>) {
-    TokioMailboxRuntime.with_capacity(capacity)
+    TokioMailboxFactory.with_capacity(capacity)
   }
 
   /// Creates an unbounded mailbox
@@ -44,7 +46,7 @@ where
   /// A pair of mailbox and sender handle
   #[must_use]
   pub fn unbounded() -> (Self, TokioMailboxSender<M>) {
-    TokioMailboxRuntime.unbounded()
+    TokioMailboxFactory.unbounded()
   }
 
   /// Creates a new sender handle
@@ -64,7 +66,7 @@ where
   /// # Returns
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<TokioQueue<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailbox<LegacyQueueDriver<TokioQueue<M>>, NotifySignal> {
     &self.inner
   }
 }
@@ -75,7 +77,7 @@ where
   TokioQueue<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, TokioQueue<M>, NotifySignal, M>
+    = QueueMailboxRecv<'a, LegacyQueueDriver<TokioQueue<M>>, NotifySignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -105,6 +107,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    tokio_queue::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 }

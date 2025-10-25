@@ -7,8 +7,8 @@ use crate::{
 
 /// Internal state container for `GenericActorRuntime`.
 ///
-/// This structure holds the use cellex_actor_core_rs::api::mailbox::MailboxRuntime; and scheduler
-/// builder configuration used by the actor runtime implementation.
+/// This structure holds the [`MailboxFactory`] and scheduler builder configuration used by the
+/// actor runtime implementation.
 #[derive(Clone)]
 pub(crate) struct GenericActorRuntimeState<MF>
 where
@@ -25,10 +25,8 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
-  /// Creates a new runtime state with the given use
-  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
-  ///
-  /// Initializes with a default ready-queue scheduler builder.
+  /// Creates a new runtime state with the given mailbox factory and installs the default
+  /// ready-queue scheduler builder.
   #[must_use]
   pub(crate) fn new(mailbox_factory: MF) -> Self {
     Self {
@@ -37,7 +35,7 @@ where
     }
   }
 
-  /// Returns a reference to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Returns a reference to the mailbox factory.
   #[must_use]
   #[allow(clippy::missing_const_for_fn)]
   pub(crate) fn mailbox_factory(&self) -> &MF {

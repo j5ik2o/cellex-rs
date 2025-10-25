@@ -10,8 +10,10 @@ repository = "https://github.com/j5ik2o/cellex-rs"
 readme = "../../README.md"
 
 [features]
-default = ["alloc"]
+default = ["alloc", "queue-v2"]
 alloc = []
+queue-v1 = []
+queue-v2 = []
 interrupt-cortex-m = ["cortex-m"]
 
 [dependencies]

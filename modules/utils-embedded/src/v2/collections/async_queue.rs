@@ -5,10 +5,11 @@ use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use async_trait::async_trait;
 use cellex_utils_core_rs::{
+  collections::queue::QueueError,
   sync::ArcShared,
   v2::collections::{
     queue::{
-      backend::{AsyncQueueBackend, OfferOutcome, QueueError},
+      backend::{AsyncQueueBackend, OfferOutcome},
       capabilities::MultiProducer,
       type_keys::MpscKey,
       AsyncQueue,
@@ -33,8 +34,8 @@ where
   channel:          Channel<M, T, N>,
   size:             AtomicUsize,
   closed:           AtomicBool,
-  producer_waiters: WaitQueue<QueueError>,
-  consumer_waiters: WaitQueue<QueueError>,
+  producer_waiters: WaitQueue<QueueError<T>>,
+  consumer_waiters: WaitQueue<QueueError<T>>,
 }
 
 impl<T, M, const N: usize> EmbassyBoundedMpscBackend<T, M, N>
@@ -47,16 +48,16 @@ where
       channel:          Channel::new(),
       size:             AtomicUsize::new(0),
       closed:           AtomicBool::new(false),
-      producer_waiters: WaitQueue::new(),
-      consumer_waiters: WaitQueue::new(),
+      producer_waiters: WaitQueue::<QueueError<T>>::new(),
+      consumer_waiters: WaitQueue::<QueueError<T>>::new(),
     }
   }
 
-  fn register_producer_waiter(&mut self) -> WaitHandle<QueueError> {
+  fn register_producer_waiter(&mut self) -> WaitHandle<QueueError<T>> {
     self.producer_waiters.register()
   }
 
-  fn register_consumer_waiter(&mut self) -> WaitHandle<QueueError> {
+  fn register_consumer_waiter(&mut self) -> WaitHandle<QueueError<T>> {
     self.consumer_waiters.register()
   }
 
@@ -68,14 +69,16 @@ where
     let _ = self.consumer_waiters.notify_success();
   }
 
-  fn fail_all_waiters(&mut self, error: QueueError) {
-    self.producer_waiters.notify_error_all(error);
-    self.consumer_waiters.notify_error_all(error);
+  fn fail_all_waiters<F>(&mut self, mut make_error: F)
+  where
+    F: FnMut() -> QueueError<T>, {
+    self.producer_waiters.notify_error_all_with(|| make_error());
+    self.consumer_waiters.notify_error_all_with(|| make_error());
   }
 
   fn mark_closed(&mut self) {
     self.closed.store(true, Ordering::SeqCst);
-    self.fail_all_waiters(QueueError::Closed);
+    self.fail_all_waiters(|| QueueError::Disconnected);
   }
 
   fn is_closed(&self) -> bool {
@@ -97,9 +100,9 @@ where
   M: RawMutex,
   T: Send,
 {
-  async fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
+  async fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     if self.is_closed() {
-      return Err(QueueError::Closed);
+      return Err(QueueError::Closed(item));
     }
 
     let mut value = Some(item);
@@ -114,7 +117,7 @@ where
         | Err(TrySendError::Full(v)) => {
           value = Some(v);
           if self.is_closed() {
-            return Err(QueueError::Closed);
+            return Err(QueueError::Closed(value.take().expect("value consumed")));
           }
           let waiter = self.register_producer_waiter();
           waiter.await?;
@@ -123,7 +126,7 @@ where
     }
   }
 
-  async fn poll(&mut self) -> Result<T, QueueError> {
+  async fn poll(&mut self) -> Result<T, QueueError<T>> {
     loop {
       match self.channel.try_receive() {
         | Ok(value) => {
@@ -133,7 +136,7 @@ where
         },
         | Err(TryReceiveError::Empty) => {
           if self.is_closed() {
-            return Err(QueueError::Closed);
+            return Err(QueueError::Disconnected);
           }
           let waiter = self.register_consumer_waiter();
           waiter.await?;
@@ -142,7 +145,7 @@ where
     }
   }
 
-  async fn close(&mut self) -> Result<(), QueueError> {
+  async fn close(&mut self) -> Result<(), QueueError<T>> {
     self.mark_closed();
     while self.channel.try_receive().is_ok() {
       self.size.fetch_sub(1, Ordering::SeqCst);
@@ -158,7 +161,7 @@ where
     self.capacity()
   }
 
-  fn prepare_producer_wait(&mut self) -> Option<WaitHandle<QueueError>> {
+  fn prepare_producer_wait(&mut self) -> Option<WaitHandle<QueueError<T>>> {
     if self.is_closed() {
       None
     } else {
@@ -166,7 +169,7 @@ where
     }
   }
 
-  fn prepare_consumer_wait(&mut self) -> Option<WaitHandle<QueueError>> {
+  fn prepare_consumer_wait(&mut self) -> Option<WaitHandle<QueueError<T>>> {
     if self.is_closed() {
       None
     } else {

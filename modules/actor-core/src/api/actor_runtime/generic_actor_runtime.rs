@@ -19,11 +19,10 @@ use crate::{
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage, supervision::FailureEventHandler},
 };
 
-/// Helper alias mapping a runtime bundle back to its use
+/// Helper alias mapping a runtime bundle back to its associated mailbox factory.
 pub(crate) type BundleMailbox<MF> = MailboxOf<GenericActorRuntime<MF>>;
 
-/// Runtime bundle that decorates a use cellex_actor_core_rs::api::mailbox::MailboxRuntime; with
-/// GenericActorSystem-specific capabilities.
+/// Runtime bundle that decorates a [`MailboxFactory`] with generic actor-system capabilities.
 #[derive(Clone)]
 pub struct GenericActorRuntime<MF>
 where
@@ -46,7 +45,7 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
 {
-  /// Creates a new bundle for the supplied use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Creates a new bundle for the supplied mailbox factory.
   #[must_use]
   pub fn new(actor_runtime: MF) -> Self {
     Self {
@@ -61,22 +60,21 @@ where
     }
   }
 
-  /// Returns a reference to the wrapped use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Returns a reference to the wrapped mailbox factory.
   #[must_use]
   #[allow(clippy::missing_const_for_fn)]
   pub fn mailbox_factory(&self) -> &MF {
     self.core.mailbox_factory()
   }
 
-  /// Consumes the bundle and yields the underlying use
-  /// cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Consumes the bundle and yields the underlying mailbox factory.
   #[must_use]
   pub fn into_mailbox_factory(self) -> MF {
     let Self { core, .. } = self;
     core.into_mailbox_factory()
   }
 
-  /// Borrows the shared handle to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime;.
+  /// Borrows the shared handle to the underlying mailbox factory.
   #[must_use]
   pub fn mailbox_factory_shared(&self) -> ArcShared<MF> {
     self.core.mailbox_factory_shared()

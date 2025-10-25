@@ -1,6 +1,6 @@
 use core::fmt;
 
-use cellex_utils_core_rs::QueueError;
+use cellex_utils_core_rs::collections::queue::QueueError;
 
 use crate::shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage};
 

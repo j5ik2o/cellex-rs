@@ -9,7 +9,7 @@
 | actor | `ActorRef`, `ActorSystem`, `Props`, `Behavior`, `Behaviors`, `SupervisorStrategy`, `MessageAdapterRef`, `TypedContext`(旧`Context`), `RootContext` | `modules/actor-core/src/api/actor/*.rs` | Typed DSL（`receive`/`supervise`/`message_adapter`）と基本操作レイヤ（TypedContext は後日リネーム予定） |
 | messaging | `MessageEnvelope` | `modules/actor-core/src/api/messaging/message_envelope.rs` | ユーザーメッセージとシステムメッセージの橋渡し |
 | identity | `ActorId`, `ActorPath` | `modules/actor-core/src/api/identity/{actor_id.rs,actor_path.rs}` | ルーティング／名前解決用 ID 型 |
-| system-support | `Mailbox`, `MailboxRuntime`, `MailboxSignal`, `PriorityEnvelope`, `SystemMessage`, `Spawn`, `Timer` | `modules/actor-core/src/api/actor/system_support.rs`（実体は `runtime/mailbox/*` など） | std/embedded 両対応の抽象境界。`ActorSystem` 初期化は `ActorSystem::new_with_runtime_and_event_stream` 経由に一本化 |
+| system-support | `Mailbox`, `MailboxFactory`, `MailboxSignal`, `PriorityEnvelope`, `SystemMessage`, `Spawn`, `Timer` | `modules/actor-core/src/api/actor/system_support.rs`（実体は `runtime/mailbox/*` など） | std/embedded 両対応の抽象境界。`ActorSystem` 初期化は共通ファクトリ経由に一本化 |
 | supervision | `Supervisor`, `SupervisorDirective`, `NoopSupervisor`, `FailureEvent`, `FailureEscalationStage`, `EscalationSink`, `FailureEventHandler`, `FailureEventListener`, `RootEscalationSink` | `modules/actor-core/src/api/supervision/*.rs` | ユーザー拡張ポイントとして公開する監督/失敗ハンドラ |
 | shared | `Shared`, `StateCell` | 外部クレート (`cellex_utils_core_rs`) を `api/shared.rs` で再エクスポート | 共有状態抽象 |
 | event_stream | `FailureEventStream` | `modules/actor-core/src/api/event_stream.rs` | 実装は `actor-std` / `actor-embedded` など外部クレート側で提供 |
@@ -35,7 +35,7 @@
 ## 公開可否ポリシー指針
 
 - API レイヤは `pub`、Runtime/Platform は原則 `pub(crate)` で閉じる。
-- Runtime の型を API が利用する場合は型 alias または専用 wrapper で公開する（例: `api::actor::system_support::MailboxRuntime` は trait のみ公開し、具象型は内部）。
+- Runtime の型を API が利用する場合は型 alias または専用 wrapper で公開する（例: `api::actor::system_support::MailboxFactory` は trait のみ公開し、具象型は内部）。
 - `SystemMessage` は外部に晒さず、ユーザーは `MessageEnvelope::system()` のようなヘルパー経由で扱う設計に改める。
 
 この分類を基準に、以降のステップでファイル配置と可視性を段階的に移行する。

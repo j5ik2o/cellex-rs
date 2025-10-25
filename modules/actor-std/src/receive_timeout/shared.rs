@@ -12,10 +12,10 @@ use cellex_utils_std_rs::{
 use futures::future::poll_fn;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use crate::TokioMailboxRuntime;
+use crate::TokioMailboxFactory;
 
 /// Producer for sending `PriorityEnvelope<AnyMessage>` to Tokio mailbox.
-pub(super) type TokioSender = <TokioMailboxRuntime as MailboxFactory>::Producer<PriorityEnvelope<AnyMessage>>;
+pub(super) type TokioSender = <TokioMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<AnyMessage>>;
 
 #[derive(Debug)]
 pub(super) enum Command {

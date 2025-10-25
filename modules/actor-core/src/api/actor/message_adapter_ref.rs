@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element};
 
 use crate::{
   api::{

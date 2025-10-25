@@ -5,13 +5,14 @@ use super::{
   sync_spsc_producer::SyncSpscProducer,
 };
 use crate::{
+  collections::queue::QueueError,
   sync::{
     sync_mutex_like::{SpinSyncMutex, SyncMutexLike},
     ArcShared, Shared,
   },
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, QueueError, SyncPriorityBackend, SyncQueueBackend},
+      backend::{OfferOutcome, SyncPriorityBackend, SyncQueueBackend},
       capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek},
       type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey},
     },
@@ -44,17 +45,17 @@ where
   }
 
   /// Enqueues an item according to the backend's overflow policy.
-  pub fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
+  pub fn offer(&self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     self.inner.with_mut(|backend: &mut B| backend.offer(item)).map_err(QueueError::from)?
   }
 
   /// Dequeues the next available item.
-  pub fn poll(&self) -> Result<T, QueueError> {
+  pub fn poll(&self) -> Result<T, QueueError<T>> {
     self.inner.with_mut(|backend: &mut B| backend.poll()).map_err(QueueError::from)?
   }
 
   /// Requests the backend to transition into the closed state.
-  pub fn close(&self) -> Result<(), QueueError> {
+  pub fn close(&self) -> Result<(), QueueError<T>> {
     self
       .inner
       .with_mut(|backend: &mut B| {
@@ -110,7 +111,7 @@ where
   PriorityKey: SupportsPeek,
 {
   /// Retrieves the smallest element without removing it.
-  pub fn peek_min(&self) -> Result<Option<T>, QueueError> {
+  pub fn peek_min(&self) -> Result<Option<T>, QueueError<T>> {
     self.inner.with_mut(|backend: &mut B| Ok(backend.peek_min().cloned())).map_err(QueueError::from)?
   }
 }

@@ -70,7 +70,7 @@ async fn test_actor_loop_updates_state_multi_thread() -> TestResult {
 
 async fn run_typed_actor_system_handles_user_messages() -> TestResult {
   let mut system: GenericActorSystem<u32, _> = GenericActorSystem::new_with_actor_runtime(
-    GenericActorRuntime::new(TokioMailboxRuntime),
+    GenericActorRuntime::new(TokioMailboxFactory),
     GenericActorSystemConfig::default(),
   );
 
@@ -93,7 +93,7 @@ async fn run_typed_actor_system_handles_user_messages() -> TestResult {
 }
 
 async fn run_receive_timeout_triggers() -> TestResult {
-  let mailbox_factory = TokioMailboxRuntime;
+  let mailbox_factory = TokioMailboxFactory;
   let mut config: GenericActorSystemConfig<TokioActorRuntime> = GenericActorSystemConfig::default();
   config.set_receive_timeout_scheduler_factory_shared_opt(Some(ReceiveTimeoutSchedulerFactoryShared::new(
     TokioReceiveTimeoutSchedulerFactory::new(),

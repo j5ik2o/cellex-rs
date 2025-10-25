@@ -5,12 +5,13 @@ use super::{
   async_spsc_consumer::AsyncSpscConsumer, async_spsc_producer::AsyncSpscProducer,
 };
 use crate::{
+  collections::queue::QueueError,
   sync::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
   v2::collections::queue::{
-    backend::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, QueueError},
+    backend::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome},
     capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek},
     type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey},
   },
@@ -19,7 +20,7 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-pub(super) async fn offer_shared<T, B, A>(shared: &ArcShared<A>, item: T) -> Result<OfferOutcome, QueueError>
+pub(super) async fn offer_shared<T, B, A>(shared: &ArcShared<A>, item: T) -> Result<OfferOutcome, QueueError<T>>
 where
   B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>, {
@@ -29,7 +30,7 @@ where
     let mut guard = <A as AsyncMutexLike<B>>::lock(&**shared).await.map_err(QueueError::from)?;
 
     if guard.is_closed() {
-      return Err(QueueError::Closed);
+      return Err(QueueError::Closed(value.take().expect("offer value already consumed")));
     }
 
     if guard.is_full() {
@@ -42,7 +43,7 @@ where
         }
       } else {
         drop(guard);
-        return Err(QueueError::Full);
+        return Err(QueueError::Full(value.take().expect("offer value already consumed")));
       }
     } else {
       let result = guard.offer(value.take().expect("offer value already consumed")).await;
@@ -52,7 +53,7 @@ where
   }
 }
 
-pub(super) async fn poll_shared<T, B, A>(shared: &ArcShared<A>) -> Result<T, QueueError>
+pub(super) async fn poll_shared<T, B, A>(shared: &ArcShared<A>) -> Result<T, QueueError<T>>
 where
   B: AsyncQueueBackend<T>,
   A: AsyncMutexLike<B>, {
@@ -62,7 +63,7 @@ where
     if guard.is_empty() {
       if guard.is_closed() {
         drop(guard);
-        return Err(QueueError::Closed);
+        return Err(QueueError::Disconnected);
       }
 
       if let Some(waiter) = guard.prepare_consumer_wait() {
@@ -118,45 +119,45 @@ where
   }
 
   /// Adds an element to the queue according to the backend's policy.
-  pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
+  pub async fn offer(&self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     offer_shared::<T, B, A>(&self.inner, item).await
   }
 
   /// Removes and returns the next available item.
-  pub async fn poll(&self) -> Result<T, QueueError> {
+  pub async fn poll(&self) -> Result<T, QueueError<T>> {
     poll_shared::<T, B, A>(&self.inner).await
   }
 
   /// Requests the backend to transition into the closed state.
-  pub async fn close(&self) -> Result<(), QueueError> {
+  pub async fn close(&self) -> Result<(), QueueError<T>> {
     let mut guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     guard.close().await
   }
 
   /// Returns the current number of stored elements.
   #[must_use]
-  pub async fn len(&self) -> Result<usize, QueueError> {
+  pub async fn len(&self) -> Result<usize, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.len())
   }
 
   /// Returns the storage capacity.
   #[must_use]
-  pub async fn capacity(&self) -> Result<usize, QueueError> {
+  pub async fn capacity(&self) -> Result<usize, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.capacity())
   }
 
   /// Indicates whether the queue is empty.
   #[must_use]
-  pub async fn is_empty(&self) -> Result<bool, QueueError> {
+  pub async fn is_empty(&self) -> Result<bool, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.is_empty())
   }
 
   /// Indicates whether the queue is full.
   #[must_use]
-  pub async fn is_full(&self) -> Result<bool, QueueError> {
+  pub async fn is_full(&self) -> Result<bool, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.is_full())
   }
@@ -176,7 +177,7 @@ where
   PriorityKey: SupportsPeek,
 {
   /// Retrieves the smallest element without removing it.
-  pub async fn peek_min(&self) -> Result<Option<T>, QueueError> {
+  pub async fn peek_min(&self) -> Result<Option<T>, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.peek_min().cloned())
   }

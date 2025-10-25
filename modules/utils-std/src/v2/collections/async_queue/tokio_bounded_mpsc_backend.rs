@@ -1,10 +1,11 @@
 use std::fmt;
 
 use cellex_utils_core_rs::{
+  collections::queue::QueueError,
   sync::ArcShared,
   v2::collections::{
     queue::{
-      backend::{AsyncQueueBackend, OfferOutcome, QueueError},
+      backend::{AsyncQueueBackend, OfferOutcome},
       capabilities::MultiProducer,
       type_keys::MpscKey,
       AsyncQueue,
@@ -22,8 +23,8 @@ pub struct TokioBoundedMpscBackend<T> {
   receiver:         mpsc::Receiver<T>,
   capacity:         usize,
   closed:           bool,
-  producer_waiters: WaitQueue<QueueError>,
-  consumer_waiters: WaitQueue<QueueError>,
+  producer_waiters: WaitQueue<QueueError<T>>,
+  consumer_waiters: WaitQueue<QueueError<T>>,
 }
 
 impl<T> TokioBoundedMpscBackend<T> {
@@ -37,16 +38,16 @@ impl<T> TokioBoundedMpscBackend<T> {
       receiver,
       capacity,
       closed: false,
-      producer_waiters: WaitQueue::new(),
-      consumer_waiters: WaitQueue::new(),
+      producer_waiters: WaitQueue::<QueueError<T>>::new(),
+      consumer_waiters: WaitQueue::<QueueError<T>>::new(),
     }
   }
 
-  fn register_producer_waiter(&mut self) -> WaitHandle<QueueError> {
+  fn register_producer_waiter(&mut self) -> WaitHandle<QueueError<T>> {
     self.producer_waiters.register()
   }
 
-  fn register_consumer_waiter(&mut self) -> WaitHandle<QueueError> {
+  fn register_consumer_waiter(&mut self) -> WaitHandle<QueueError<T>> {
     self.consumer_waiters.register()
   }
 
@@ -58,16 +59,18 @@ impl<T> TokioBoundedMpscBackend<T> {
     let _ = self.consumer_waiters.notify_success();
   }
 
-  fn fail_all_waiters(&mut self, error: QueueError) {
-    self.producer_waiters.notify_error_all(error);
-    self.consumer_waiters.notify_error_all(error);
+  fn fail_all_waiters<F>(&mut self, mut make_error: F)
+  where
+    F: FnMut() -> QueueError<T>, {
+    self.producer_waiters.notify_error_all_with(|| make_error());
+    self.consumer_waiters.notify_error_all_with(|| make_error());
   }
 
   fn mark_closed(&mut self) {
     self.closed = true;
     self.sender = None;
     self.receiver.close();
-    self.fail_all_waiters(QueueError::Closed);
+    self.fail_all_waiters(|| QueueError::Disconnected);
   }
 }
 
@@ -86,14 +89,14 @@ impl<T> AsyncQueueBackend<T> for TokioBoundedMpscBackend<T>
 where
   T: Send + 'static,
 {
-  async fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
+  async fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     if self.closed {
-      return Err(QueueError::Closed);
+      return Err(QueueError::Closed(item));
     }
 
     let sender = match self.sender.as_ref() {
       | Some(sender) => sender,
-      | None => return Err(QueueError::Closed),
+      | None => return Err(QueueError::Closed(item)),
     };
 
     match sender.send(item).await {
@@ -101,14 +104,15 @@ where
         self.notify_consumer_waiter();
         Ok(OfferOutcome::Enqueued)
       },
-      | Err(_) => {
+      | Err(error) => {
+        let value = error.0;
         self.mark_closed();
-        Err(QueueError::Closed)
+        Err(QueueError::Closed(value))
       },
     }
   }
 
-  async fn poll(&mut self) -> Result<T, QueueError> {
+  async fn poll(&mut self) -> Result<T, QueueError<T>> {
     match self.receiver.recv().await {
       | Some(item) => {
         self.notify_producer_waiter();
@@ -116,12 +120,12 @@ where
       },
       | None => {
         self.mark_closed();
-        Err(QueueError::Closed)
+        Err(QueueError::Disconnected)
       },
     }
   }
 
-  async fn close(&mut self) -> Result<(), QueueError> {
+  async fn close(&mut self) -> Result<(), QueueError<T>> {
     self.mark_closed();
     Ok(())
   }
@@ -134,7 +138,7 @@ where
     self.capacity
   }
 
-  fn prepare_producer_wait(&mut self) -> Option<WaitHandle<QueueError>> {
+  fn prepare_producer_wait(&mut self) -> Option<WaitHandle<QueueError<T>>> {
     if self.closed || self.sender.is_none() {
       None
     } else {
@@ -142,7 +146,7 @@ where
     }
   }
 
-  fn prepare_consumer_wait(&mut self) -> Option<WaitHandle<QueueError>> {
+  fn prepare_consumer_wait(&mut self) -> Option<WaitHandle<QueueError<T>>> {
     if self.closed || self.sender.is_none() {
       None
     } else {

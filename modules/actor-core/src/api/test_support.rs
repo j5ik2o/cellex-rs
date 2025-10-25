@@ -1,7 +1,6 @@
 //! Test support exports for mailbox-related components.
 //!
-//! Re-exports helpers that simplify constructing use
-//! cellex_actor_core_rs::api::mailbox::MailboxRuntime;s and signals in unit tests.
+//! Re-exports helpers that simplify constructing mailbox factories and signals in unit tests.
 mod common;
 mod shared_backend_handle;
 mod test_mailbox_factory;

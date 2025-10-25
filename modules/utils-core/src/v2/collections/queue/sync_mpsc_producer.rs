@@ -1,9 +1,10 @@
 use core::marker::PhantomData;
 
 use crate::{
+  collections::queue::QueueError,
   sync::{sync_mutex_like::SyncMutexLike, ArcShared},
   v2::{
-    collections::queue::backend::{OfferOutcome, QueueError, SyncQueueBackend},
+    collections::queue::backend::{OfferOutcome, SyncQueueBackend},
     sync::SharedAccess,
   },
 };
@@ -29,7 +30,7 @@ where
   }
 
   /// Offers an element to the queue using the underlying backend.
-  pub fn offer(&self, item: T) -> Result<OfferOutcome, QueueError> {
+  pub fn offer(&self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     let result = self.inner.with_mut(|backend: &mut B| backend.offer(item)).map_err(QueueError::from)?;
     result
   }

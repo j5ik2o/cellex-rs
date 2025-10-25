@@ -6,7 +6,7 @@ use cellex_actor_core_rs::{
 };
 
 use super::{shared::TokioSender, tokio_receive_timeout_scheduler::TokioReceiveTimeoutScheduler};
-use crate::TokioMailboxRuntime;
+use crate::TokioMailboxFactory;
 
 /// `ReceiveTimeoutSchedulerFactory` implementation for Tokio runtime.
 ///
@@ -31,7 +31,7 @@ impl Default for TokioReceiveTimeoutSchedulerFactory {
   }
 }
 
-impl ReceiveTimeoutSchedulerFactory<AnyMessage, TokioMailboxRuntime> for TokioReceiveTimeoutSchedulerFactory {
+impl ReceiveTimeoutSchedulerFactory<AnyMessage, TokioMailboxFactory> for TokioReceiveTimeoutSchedulerFactory {
   fn create(&self, sender: TokioSender, map_system: MapSystemShared<AnyMessage>) -> Box<dyn ReceiveTimeoutScheduler> {
     Box::new(TokioReceiveTimeoutScheduler::new(sender, map_system))
   }

@@ -2,22 +2,25 @@
 
 use core::future::Future;
 
-use cellex_utils_core_rs::{QueueError, QueueSize};
+use cellex_utils_core_rs::{collections::queue::QueueError, QueueSize};
 
 use crate::api::metrics::MetricsSinkShared;
 
+/// Mailbox-specific error types and conversions.
+pub mod error;
 /// Mailbox concurrency modes
 mod mailbox_concurrency;
 pub mod messages;
 /// Queue-based mailbox implementation
 pub mod queue_mailbox;
-/// Queue use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+/// Queue mailbox producer utilities shared across runtimes.
 mod queue_mailbox_producer;
 /// Single-threaded mailbox
 mod single_thread;
 /// Thread-safe mailbox
 mod thread_safe;
 
+pub use error::{MailboxError, MailboxOverflowPolicy};
 pub use mailbox_concurrency::*;
 pub use queue_mailbox_producer::*;
 pub use single_thread::*;

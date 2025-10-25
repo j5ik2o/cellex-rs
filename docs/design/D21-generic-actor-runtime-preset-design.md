@@ -49,8 +49,8 @@
 ### 1. プリセット構築の責務分離とハイレベルレイヤー
 
 - `actor-std` に `TokioActorRuntimePreset`（仮称）構造体と `TokioActorRuntimePresetBuilder` を追加。
-  - フィールド例: `mailbox_runtime: TokioMailboxRuntime`, `scheduler: ActorSchedulerHandleBuilder<_>`, `receive_timeout: Option<...>`, `metrics: Option<MetricsSinkShared>`, `concurrency: TokioConcurrencyMode`。
-  - `into_runtime(self) -> GenericActorRuntime<TokioMailboxRuntime>` を実装し、内部で `GenericActorRuntime::new(self.mailbox_runtime)` に設定を適用。
+  - フィールド例: `mailbox_runtime: TokioMailboxFactory`, `scheduler: ActorSchedulerHandleBuilder<_>`, `receive_timeout: Option<...>`, `metrics: Option<MetricsSinkShared>`, `concurrency: TokioConcurrencyMode`。
+  - `into_runtime(self) -> GenericActorRuntime<TokioMailboxFactory>` を実装し、内部で `GenericActorRuntime::new(self.mailbox_runtime)` に設定を適用。
   - 既存の `tokio_actor_runtime()` は `TokioActorRuntimePreset::default().into_runtime()` の薄いラッパへ移行。
 - さらにプリセットを利用するハイレベル構造体として `TokioActorRuntime`（`GenericActorRuntime` を内包し、Tokio 固有設定を固定化）と `TokioActorSystem`（`ActorSystem` + `TokioSystemHandle` を内包）を `actor-std` に追加する。
   - `TokioActorRuntime` は `TokioActorRuntimePreset` を内部的に用いて初期化し、公共 API としては `TokioActorRuntime::new(options)` などを提供。
@@ -63,7 +63,7 @@
 ### 2. 並列度設定と API
 
 - 各プリセット構造体に `concurrency` フィールド（`enum { ThreadSafe, SingleThread }`）を持たせる。
-- Tokio 向け SingleThread 選択時には、`TokioMailboxRuntime` とは別に `TokioLocalMailboxRuntime`（仮称）を導入し、`MailboxFactory::Concurrency = SingleThread` を返す。
+- Tokio 向け SingleThread 選択時には、`TokioMailboxFactory` とは別に `TokioLocalMailboxRuntime`（仮称）を導入し、`MailboxFactory::Concurrency = SingleThread` を返す。
 - Embedded 向けは既存の feature (`embedded_rc` / `embedded_arc`) と `concurrency` フィールドを同期させる。明示的な指定が無い場合は feature から自動推論するが、オプションを尊重する優先順位を設ける。
 
 ### 3. `Send + Sync` 緩和に向けた core 修正

@@ -3,8 +3,11 @@ use core::marker::PhantomData;
 
 use async_trait::async_trait;
 
-use super::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, QueueError, SyncPriorityBackend, SyncQueueBackend};
-use crate::v2::collections::wait::{WaitHandle, WaitQueue};
+use super::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, SyncPriorityBackend, SyncQueueBackend};
+use crate::{
+  collections::queue::QueueError,
+  v2::collections::wait::{WaitHandle, WaitQueue},
+};
 
 /// Adapter that exposes a synchronous queue backend through the async backend trait.
 pub struct SyncAdapterQueueBackend<T, B>
@@ -12,8 +15,8 @@ where
   B: SyncQueueBackend<T>, {
   backend:          B,
   _pd:              PhantomData<T>,
-  producer_waiters: WaitQueue<QueueError>,
-  consumer_waiters: WaitQueue<QueueError>,
+  producer_waiters: WaitQueue<QueueError<T>>,
+  consumer_waiters: WaitQueue<QueueError<T>>,
 }
 
 impl<T, B> SyncAdapterQueueBackend<T, B>
@@ -26,8 +29,8 @@ where
     Self {
       backend,
       _pd: PhantomData,
-      producer_waiters: WaitQueue::<QueueError>::new(),
-      consumer_waiters: WaitQueue::<QueueError>::new(),
+      producer_waiters: WaitQueue::<QueueError<T>>::new(),
+      consumer_waiters: WaitQueue::<QueueError<T>>::new(),
     }
   }
 
@@ -49,11 +52,11 @@ where
     &mut self.backend
   }
 
-  pub(crate) fn register_producer_waiter(&mut self) -> WaitHandle<QueueError> {
+  pub(crate) fn register_producer_waiter(&mut self) -> WaitHandle<QueueError<T>> {
     self.producer_waiters.register()
   }
 
-  pub(crate) fn register_consumer_waiter(&mut self) -> WaitHandle<QueueError> {
+  pub(crate) fn register_consumer_waiter(&mut self) -> WaitHandle<QueueError<T>> {
     self.consumer_waiters.register()
   }
 
@@ -65,9 +68,11 @@ where
     let _ = self.consumer_waiters.notify_success();
   }
 
-  pub(crate) fn fail_all_waiters(&mut self, error: QueueError) {
-    self.producer_waiters.notify_error_all(error);
-    self.consumer_waiters.notify_error_all(error);
+  pub(crate) fn fail_all_waiters<F>(&mut self, mut make_error: F)
+  where
+    F: FnMut() -> QueueError<T>, {
+    self.producer_waiters.notify_error_all_with(|| make_error());
+    self.consumer_waiters.notify_error_all_with(|| make_error());
   }
 }
 
@@ -76,7 +81,7 @@ impl<T, B> AsyncQueueBackend<T> for SyncAdapterQueueBackend<T, B>
 where
   B: SyncQueueBackend<T>,
 {
-  async fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
+  async fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     let result = self.backend.offer(item);
     if result.is_ok() {
       self.notify_consumer_waiter();
@@ -84,7 +89,7 @@ where
     result
   }
 
-  async fn poll(&mut self) -> Result<T, QueueError> {
+  async fn poll(&mut self) -> Result<T, QueueError<T>> {
     match self.backend.poll() {
       | Ok(item) => {
         self.notify_producer_waiter();
@@ -94,9 +99,9 @@ where
     }
   }
 
-  async fn close(&mut self) -> Result<(), QueueError> {
+  async fn close(&mut self) -> Result<(), QueueError<T>> {
     self.backend.close();
-    self.fail_all_waiters(QueueError::Closed);
+    self.fail_all_waiters(|| QueueError::Disconnected);
     Ok(())
   }
 
@@ -108,7 +113,7 @@ where
     self.backend.capacity()
   }
 
-  fn prepare_producer_wait(&mut self) -> Option<WaitHandle<QueueError>> {
+  fn prepare_producer_wait(&mut self) -> Option<WaitHandle<QueueError<T>>> {
     if self.backend.overflow_policy() == super::OverflowPolicy::Block && !self.backend.is_closed() {
       Some(self.register_producer_waiter())
     } else {
@@ -116,7 +121,7 @@ where
     }
   }
 
-  fn prepare_consumer_wait(&mut self) -> Option<WaitHandle<QueueError>> {
+  fn prepare_consumer_wait(&mut self) -> Option<WaitHandle<QueueError<T>>> {
     if self.backend.is_closed() {
       None
     } else {

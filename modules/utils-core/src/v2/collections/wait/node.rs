@@ -14,7 +14,7 @@ pub struct WaitNode<E> {
   result: Mutex<Option<Result<(), E>>>,
 }
 
-impl<E: Copy> WaitNode<E> {
+impl<E> WaitNode<E> {
   /// Creates a new pending waiter node.
   pub const fn new() -> Self {
     Self { state: AtomicU8::new(STATE_PENDING), waker: Mutex::new(None), result: Mutex::new(None) }
@@ -45,27 +45,15 @@ impl<E: Copy> WaitNode<E> {
   }
 
   /// Polls the waiter for completion.
-  pub fn poll(&self, cx: &mut Context<'_>) -> Poll<Result<(), E>> {
+  pub fn poll(&self, cx: &mut Context<'_>) -> Poll<()> {
     match self.state.load(Ordering::Acquire) {
-      | STATE_COMPLETED => {
-        let guard = self.result.lock();
-        let value = match *guard {
-          | Some(result) => result,
-          | None => panic!("completed waiter must hold a result"),
-        };
-        Poll::Ready(value)
-      },
+      | STATE_COMPLETED => Poll::Ready(()),
       | STATE_CANCELLED => Poll::Pending,
       | _ => {
         *self.waker.lock() = Some(cx.waker().clone());
 
         if self.state.load(Ordering::Acquire) == STATE_COMPLETED {
-          let guard = self.result.lock();
-          let value = match *guard {
-            | Some(result) => result,
-            | None => panic!("completed waiter must hold a result"),
-          };
-          Poll::Ready(value)
+          Poll::Ready(())
         } else {
           Poll::Pending
         }
@@ -81,5 +69,10 @@ impl<E: Copy> WaitNode<E> {
   /// Completes the waiter successfully.
   pub fn complete_ok(&self) -> bool {
     self.complete(Ok(()))
+  }
+
+  /// Takes the completion result if available.
+  pub fn take_result(&self) -> Option<Result<(), E>> {
+    self.result.lock().take()
   }
 }

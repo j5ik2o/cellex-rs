@@ -7,10 +7,11 @@ use core::{
 
 use super::{AsyncMpscQueue, AsyncQueue, AsyncSpscQueue};
 use crate::{
+  collections::queue::QueueError,
   sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, OverflowPolicy, QueueError, SyncAdapterQueueBackend, VecRingBackend},
+      backend::{OfferOutcome, OverflowPolicy, SyncAdapterQueueBackend, VecRingBackend},
       VecRingStorage,
     },
     sync::SharedError,
@@ -102,8 +103,8 @@ fn close_prevents_further_operations() {
   assert!(matches!(block_on(queue.offer(1)), Ok(OfferOutcome::Enqueued)));
   assert!(block_on(queue.close()).is_ok());
   assert_eq!(block_on(queue.poll()), Ok(1));
-  assert_eq!(block_on(queue.poll()), Err(QueueError::Closed));
-  assert_eq!(block_on(queue.offer(2)), Err(QueueError::Closed));
+  assert_eq!(block_on(queue.poll()), Err(QueueError::Disconnected));
+  assert_eq!(block_on(queue.offer(2)), Err(QueueError::Closed(2)));
 }
 
 #[test]
@@ -159,7 +160,7 @@ fn close_wakes_waiting_consumer() {
 
   assert!(block_on(queue.close()).is_ok());
 
-  assert_eq!(poll_future.as_mut().poll(&mut context), Poll::Ready(Err(QueueError::Closed)));
+  assert_eq!(poll_future.as_mut().poll(&mut context), Poll::Ready(Err(QueueError::Disconnected)));
 }
 
 #[test]

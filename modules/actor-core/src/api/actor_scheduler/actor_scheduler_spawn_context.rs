@@ -24,11 +24,9 @@ where
   MF: MailboxFactory + Clone + 'static,
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone, {
-  /// use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used to create queue-backed actor
-  /// mailboxes.
+  /// Mailbox factory used to create queue-backed actor mailboxes.
   pub mailbox_factory:        MF,
-  /// Shared clone of the use cellex_actor_core_rs::api::mailbox::MailboxRuntime; for components
-  /// that require `ArcShared` access.
+  /// Shared clone of the same mailbox factory for components that require `ArcShared` access.
   pub mailbox_factory_shared: ArcShared<MF>,
   /// Mapping utilities used to translate system messages for the target actor type.
   pub map_system:             MapSystemShared<AnyMessage>,

@@ -12,7 +12,6 @@ where
   MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
   MF::Signal: Clone,
   MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
-  /// Builds a shared factory bound to the use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
-  /// for the given actor runtime.
+  /// Builds a shared factory bound to the mailbox factory for the given actor runtime.
   fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>;
 }

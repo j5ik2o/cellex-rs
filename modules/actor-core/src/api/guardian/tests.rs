@@ -8,6 +8,8 @@ use alloc::{
   vec::Vec,
 };
 
+#[cfg(feature = "queue-v2")]
+use cellex_utils_core_rs::QueueRw;
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 use spin::Mutex;
 

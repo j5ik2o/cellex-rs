@@ -56,7 +56,7 @@ fn closed_backend_rejects_offer_and_poll() {
 
   backend.offer(1).unwrap();
   backend.close();
-  assert!(matches!(backend.offer(2), Err(QueueError::Closed)));
+  assert!(matches!(backend.offer(2), Err(QueueError::Closed(value)) if value == 2));
   assert_eq!(backend.poll().unwrap(), 1);
-  assert!(matches!(backend.poll(), Err(QueueError::Closed)));
+  assert!(matches!(backend.poll(), Err(QueueError::Disconnected)));
 }

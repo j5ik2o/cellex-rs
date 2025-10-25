@@ -8,7 +8,7 @@ use cellex_actor_core_rs::api::{
 };
 use cellex_actor_std_rs::{tokio_actor_runtime, FailureEventHub, TokioActorRuntime, TokioSystemHandle};
 
-async fn run_tokio_actor_runtime_processes_messages(worker_count: NonZeroUsize) {
+async fn run_tokio_actor_system_processes_messages(worker_count: NonZeroUsize) {
   let failure_hub = FailureEventHub::new();
   let actor_runtime: TokioActorRuntime = tokio_actor_runtime();
   let config = GenericActorSystemConfig::default()
@@ -37,15 +37,15 @@ async fn run_tokio_actor_runtime_processes_messages(worker_count: NonZeroUsize) 
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn tokio_actor_runtime_processes_messages() {
+async fn tokio_actor_system_processes_messages() {
   let worker_count = NonZeroUsize::new(1).expect("non-zero worker count");
-  run_tokio_actor_runtime_processes_messages(worker_count).await;
+  run_tokio_actor_system_processes_messages(worker_count).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn tokio_actor_runtime_processes_messages_multi_thread() {
+async fn tokio_actor_system_processes_messages_multi_thread() {
   let worker_count = NonZeroUsize::new(2).expect("non-zero worker count");
-  run_tokio_actor_runtime_processes_messages(worker_count).await;
+  run_tokio_actor_system_processes_messages(worker_count).await;
 }
 
 async fn run_tokio_system_handle_can_be_aborted(worker_count: NonZeroUsize) {

@@ -7,12 +7,12 @@ use cellex_actor_core_rs::api::{
   actor_runtime::GenericActorRuntime,
   actor_system::{GenericActorSystem, GenericActorSystemConfig},
 };
-use cellex_actor_std_rs::TokioMailboxRuntime;
+use cellex_actor_std_rs::TokioMailboxFactory;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
   let mut system: GenericActorSystem<u32, _> = GenericActorSystem::new_with_actor_runtime(
-    GenericActorRuntime::new(TokioMailboxRuntime),
+    GenericActorRuntime::new(TokioMailboxFactory),
     GenericActorSystemConfig::default(),
   );
   let mut root = system.root_context();

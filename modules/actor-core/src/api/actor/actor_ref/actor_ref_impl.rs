@@ -1,6 +1,6 @@
 use core::{future::Future, marker::PhantomData};
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared, SharedBound};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element, Shared, SharedBound};
 use spin::RwLock;
 
 use super::priority_actor_ref::PriorityActorRef;
@@ -237,7 +237,9 @@ where
           QueueError::Closed(envelope)
         }
       },
-      | QueueError::Disconnected => QueueError::Disconnected,
+      | QueueError::Disconnected | QueueError::Empty | QueueError::WouldBlock | QueueError::AllocError(_) => {
+        QueueError::Disconnected
+      },
     }
   }
 

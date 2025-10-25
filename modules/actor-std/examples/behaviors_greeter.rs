@@ -8,7 +8,7 @@ use cellex_actor_core_rs::api::{
   actor_runtime::GenericActorRuntime,
   actor_system::{GenericActorSystem, GenericActorSystemConfig},
 };
-use cellex_actor_std_rs::TokioMailboxRuntime;
+use cellex_actor_std_rs::TokioMailboxFactory;
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Clone, Debug)]
@@ -25,7 +25,7 @@ fn main() {
   let _ = FmtSubscriber::builder().with_env_filter(env_filter).try_init();
 
   let mut system: GenericActorSystem<Command, _> = GenericActorSystem::new_with_actor_runtime(
-    GenericActorRuntime::new(TokioMailboxRuntime),
+    GenericActorRuntime::new(TokioMailboxFactory),
     GenericActorSystemConfig::default(),
   );
   let mut root = system.root_context();

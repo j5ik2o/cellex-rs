@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
+use cellex_utils_core_rs::collections::queue::QueueError;
 use tokio::{pin, time::sleep};
 
 use super::{make_tokio_mpsc_queue, TokioMpscQueue};
@@ -42,6 +42,6 @@ async fn close_prevents_further_operations() {
   queue.offer("hello").await.unwrap();
   queue.close().await.unwrap();
   assert_eq!(queue.poll().await.unwrap(), "hello");
-  assert_eq!(queue.poll().await.err(), Some(QueueError::Closed));
-  assert_eq!(queue.offer("world").await.err(), Some(QueueError::Closed));
+  assert_eq!(queue.poll().await.err(), Some(QueueError::Disconnected));
+  assert!(matches!(queue.offer("world").await.err(), Some(QueueError::Closed(msg)) if msg == "world"));
 }
