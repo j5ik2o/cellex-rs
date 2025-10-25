@@ -8,7 +8,7 @@ use crate::{
   api::{
     actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{messages::SystemMessage, MailboxFactory},
+    mailbox::{messages::SystemMessage, MailboxError, MailboxFactory},
     messaging::{MessageMetadata, MessageSender, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
@@ -156,12 +156,12 @@ where
         return Err(QueueError::Disconnected);
       };
       let actor_ref = handle.with_ref(|actor_ref: &PriorityActorRef<AnyMessage, MailboxOf<AR>>| actor_ref.clone());
-      let send_result = actor_ref.try_send_envelope(envelope);
-      return Self::map_send_result(Some(registry), pid_opt.as_ref(), send_result);
+      let send_result = actor_ref.try_send_envelope_mailbox(envelope);
+      return Self::map_mailbox_result(Some(registry), pid_opt.as_ref(), send_result);
     }
 
-    let send_result = inner.try_send_envelope(envelope);
-    Self::map_send_result(registry, pid_opt.as_ref(), send_result)
+    let send_result = inner.try_send_envelope_mailbox(envelope);
+    Self::map_mailbox_result(registry, pid_opt.as_ref(), send_result)
   }
 
   #[allow(dead_code)]
@@ -180,14 +180,17 @@ where
     Self::dispatch_envelope_with_parts(inner, pid_slot, registry, envelope, DeadLetterReason::UnregisteredPid)
   }
 
-  fn map_send_result(
+  fn map_mailbox_result(
     registry: ActorRegistrySharedRef<'_, AR>,
     pid: Option<&Pid>,
-    result: Result<(), QueueError<PriorityEnvelope<AnyMessage>>>,
+    result: Result<(), MailboxError<PriorityEnvelope<AnyMessage>>>,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     match result {
       | Ok(()) => Ok(()),
-      | Err(error) => Err(Self::handle_send_error(registry, pid, error)),
+      | Err(error) => {
+        let queue_error: QueueError<PriorityEnvelope<AnyMessage>> = error.into();
+        Err(Self::handle_send_error(registry, pid, queue_error))
+      },
     }
   }
 

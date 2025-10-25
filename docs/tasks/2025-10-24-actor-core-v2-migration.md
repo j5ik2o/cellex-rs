@@ -419,13 +419,26 @@
   - `QueueDriverConfig` / `build_queue_driver` を導入し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncQueueDriver` を共通生成する構成へ移行済み。  
   - embedded 系では `ArcMailboxFactory` / `LocalMailboxFactory` / `ArcMailboxSender` を `SyncQueueDriver` ベースに差し替え、`queue-v1` ビルドのみ `LegacyQueueDriver<QueueRwCompat<_>>` を経由する二重化を維持。`ArcPriorityMailboxFactory` も新設の `PrioritySyncQueueDriver` を経由して制御／通常レーンを多重化できるようになったため、優先度メールボックス経路から `QueueRwCompat` 依存を排除済み。  
   - `cellex-actor-embedded-rs` のフィーチャーフラグを調整し、`embedded_rc` が自動的に `queue-v1` を有効化しないよう変更。これにより queue-v2 既定時でも CI が両キュー機能を同時有効にせずにビルド可能となった。
+  - 現在のフェーズ5B進捗率（自己評価）: 約 80%（queue-v1 fallback テスト網羅と ActorRef 経路の MailboxError 化を完了。残課題: embedded_arc 非対象のフォールバック整理と最終レポート仕上げ）
 - **Producer/Receiver 層 OfferOutcome/PollOutcome 対応 & エラー網羅テスト**  
   - `QueueMailboxProducer::try_send_with_outcome` / `try_send_mailbox` を評価する新しいユニットテストを追加し、`DropOldest` / `DropNewest` / `Grow` で `MetricsEvent::{MailboxDroppedOldest, MailboxDroppedNewest, MailboxGrewTo}` が発火することを `RecordingSink` で検証。`MailboxError::QueueFull` がポリシーとメッセージを保持して戻る回帰もカバー。  
   - `MailboxProducer::set_metrics_sink` / `Mailbox::set_metrics_sink` 実装を更新し、`MetricsSinkShared` が `MailboxQueueDriver` 側へ確実に伝播するよう統一。これにより embedded/Tokio 双方で OfferOutcome ベースのメトリクスが収集できるようになった。  
   - `QueueMailboxRecv` は従来どおり `PollOutcome::Pending` を待機する構造を維持（`MailboxDequeued` は ReadyQueueScheduler 側で記録）。デッドレター向けの `MailboxError` 変換は既存テストで回帰済み。
   - `LegacyQueueDriver` / `QueueRwCompat` 依存箇所を検索し、`#[cfg(feature = "queue-v1")]` ガード配下（embedded_rc 等）のみで参照されていることを再確認。queue-v2 既定経路では新 `SyncQueueDriver` のみが使用される状態を維持。
 - **全体テスト・CI とドキュメント更新**  
-  - 2025-10-25 時点の差分を含め `./scripts/ci-check.sh all` を再実行し、queue-v2 既定／queue-v1 互換（`cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v1`）双方が通ることを確認済み。今後も各サブタスク完了時に更新する。
+  - 2025-10-25 時点の差分を含め `./scripts/ci-check.sh all` を再実行し、queue-v2 既定／queue-v1 互換（`cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v1`）双方が通ることを確認済み。  
+  - 2025-10-25: embedded_rc + queue-v1 で RP2040 ターゲットのクロスビルド確認を実施  
+    - `cargo check -p cellex-actor-embedded-rs --target thumbv6m-none-eabi --no-default-features --features alloc,embedded_rc,queue-v1` → OK  
+  - 2025-10-25: embedded_arc + queue-v2 で RP2040 クロスビルドを試行したが、`alloc::sync::Arc` が `target_has_atomic = "ptr"` 非対応環境で生成できないためビルド不可（`alloc::sync` が cfg 除外）。embedded_arc はホスト向け検証専用とし、組込み cross チェックは embedded_rc で継続する方針。
+  - 2025-10-25: `actor_ref_dead_letter_and_metrics_on_queue_v1_embedded_rc_factory` を追加し、embedded_rc + queue-v1 構成で `DeliveryRejected` デッドレターと `MailboxEnqueued` メトリクスが発火する統合テストを整備。  
+    - `cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1 actor_ref_dead_letter_and_metrics_on_queue_v1_embedded_rc_factory` → OK（警告のみ、テスト成功）
+    - 優先度経路の網羅性を高めるため、`tell_with_priority` / `send_system` でのオーバーフロー時挙動 (`DeliveryRejected` + `MailboxEnqueued`) も queue-v1 fallback で検証。  
+      - `cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1 actor_ref_tell_with_priority_queue_v1_emits_dead_letter` → OK  
+      - `cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1 actor_ref_send_system_queue_v1_emits_dead_letter` → OK  
+    - embedded_arc 構成はフィーチャ依存上 queue-v2 専用（`embedded_arc` が `queue-v2` を必須とするため）。queue-v1 fallback は embedded_rc でのみ維持されることを明記。
+  - `ActorRef`／`PriorityActorRef` が `QueueMailboxProducer::try_send_mailbox` 経由で `MailboxError` を扱うよう更新。`DropNewest` 等のポリシー情報を保持したままデッドレターへ伝搬し、既存の `tell` / `tell_with_priority` / `send_system` テストが queue-v1/v2 双方で回帰を検出できる構成に整備。  
+    - `cargo test -p cellex-actor-core-rs` および `cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1` → いずれも OK（警告のみ）  
+    - `./scripts/ci-check.sh all` を再実行し、ワークスペース全体のフォーマット／lint／テストが queue-v2 既定構成で通過することを確認
   - [x] `QueueError` → `MailboxError` 変換テーブルを実装し、単体テストで網羅性と整合性を検証する。
     - 2025-10-25: `api/mailbox/error.rs` に `MailboxError` / `MailboxOverflowPolicy` を追加し、`MailboxQueueCore::try_send_mailbox` / `try_dequeue_mailbox` で利用できる変換ヘルパを実装。既存 API 互換のため `QueueError` への逆変換も提供し、段階移行中は従来の `try_send` / `try_dequeue` が新エラーから再構築する形を採用した。
     - 2025-10-25: Tokio／Priority／embedded の各 Mailbox + Sender に `*_mailbox` 系 API を追加し、QueueError ベースの旧メソッドと併存する形で新エラー体系を露出。既存呼び出しコードに影響を与えずに新 API を段階導入できる状態を整備。
