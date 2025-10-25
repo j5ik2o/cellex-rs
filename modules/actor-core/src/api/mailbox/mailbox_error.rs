@@ -4,6 +4,9 @@ use cellex_utils_core_rs::{collections::queue::QueueError, Element};
 
 use super::mailbox_overflow_policy::MailboxOverflowPolicy;
 
+#[cfg(test)]
+mod tests;
+
 /// Unified error type surfaced by mailbox operations.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MailboxError<M>
