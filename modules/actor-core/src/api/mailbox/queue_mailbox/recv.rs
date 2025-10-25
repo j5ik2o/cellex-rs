@@ -7,18 +7,18 @@ use core::{
 
 use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw};
 
-use super::{base::QueueMailbox, internal::QueueMailboxInternal, poll_outcome::QueuePollOutcome};
+use super::base::QueueMailbox;
 use crate::api::mailbox::MailboxSignal;
 
-/// Future that receives messages from the queue mailbox.
+/// Future for receiving messages.
 pub struct QueueMailboxRecv<'a, Q, S, M>
 where
   Q: QueueRw<M>,
   S: MailboxSignal,
   M: Element, {
-  pub(super) inner:  &'a QueueMailboxInternal<Q, S>,
-  pub(super) wait:   Option<S::WaitFuture<'a>>,
-  pub(super) marker: PhantomData<M>,
+  pub(super) mailbox: &'a QueueMailbox<Q, S>,
+  pub(super) wait:    Option<S::WaitFuture<'a>>,
+  pub(super) marker:  PhantomData<M>,
 }
 
 impl<'a, Q, S, M> QueueMailboxRecv<'a, Q, S, M>
@@ -28,11 +28,7 @@ where
   M: Element,
 {
   pub(super) const fn new(mailbox: &'a QueueMailbox<Q, S>) -> Self {
-    Self { inner: mailbox.inner(), wait: None, marker: PhantomData }
-  }
-
-  fn poll_queue(&self) -> QueuePollOutcome<M> {
-    QueuePollOutcome::from_result(self.inner.try_dequeue())
+    Self { mailbox, wait: None, marker: PhantomData }
   }
 }
 
@@ -46,48 +42,42 @@ where
 
   fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
     let this = unsafe { self.get_unchecked_mut() };
-    if this.inner.is_closed() {
+    if this.mailbox.closed.get() {
       return Poll::Ready(Err(QueueError::Disconnected));
     }
-
     loop {
-      match this.poll_queue() {
-        | QueuePollOutcome::Message(message) => {
+      match this.mailbox.queue.poll() {
+        | Ok(Some(message)) => {
           this.wait = None;
           return Poll::Ready(Ok(message));
         },
-        | QueuePollOutcome::Empty => {
+        | Ok(None) => {
           if this.wait.is_none() {
-            let wait_future = {
-              let signal = this.inner.signal();
-              signal.wait()
-            };
-            this.wait = Some(wait_future);
+            this.wait = Some(this.mailbox.signal.wait());
           }
         },
-        | QueuePollOutcome::Pending => return Poll::Pending,
-        | QueuePollOutcome::Disconnected => {
-          this.inner.closed().set(true);
+        | Err(QueueError::Disconnected) => {
+          this.mailbox.closed.set(true);
           this.wait = None;
           return Poll::Ready(Err(QueueError::Disconnected));
         },
-        | QueuePollOutcome::Closed(message) => {
-          this.inner.closed().set(true);
+        | Err(QueueError::Closed(message)) => {
+          this.mailbox.closed.set(true);
           this.wait = None;
           return Poll::Ready(Ok(message));
         },
-        | QueuePollOutcome::Err(QueueError::Full(_)) | QueuePollOutcome::Err(QueueError::OfferError(_)) => {
+        | Err(QueueError::Empty) => {
+          if this.wait.is_none() {
+            this.wait = Some(this.mailbox.signal.wait());
+          }
+        },
+        | Err(QueueError::WouldBlock) | Err(QueueError::Full(_)) | Err(QueueError::OfferError(_)) => {
           return Poll::Pending
         },
-        | QueuePollOutcome::Err(QueueError::AllocError(_)) => {
-          this.inner.closed().set(true);
+        | Err(QueueError::AllocError(_)) => {
+          this.mailbox.closed.set(true);
           this.wait = None;
           return Poll::Ready(Err(QueueError::Disconnected));
-        },
-        | QueuePollOutcome::Err(other) => {
-          this.inner.closed().set(true);
-          this.wait = None;
-          return Poll::Ready(Err(other));
         },
       }
 

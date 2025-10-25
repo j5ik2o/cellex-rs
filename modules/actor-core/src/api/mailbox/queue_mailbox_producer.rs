@@ -1,15 +1,27 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw, SharedBound};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, Flag, QueueRw, SharedBound};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{queue_mailbox::QueueMailboxInternal, MailboxSignal},
-  metrics::MetricsSinkShared,
+  mailbox::MailboxSignal,
+  metrics::{MetricsEvent, MetricsSinkShared},
 };
 
-/// Sending handle that shares ownership with the mailbox.
+/// Sending handle that shares queue ownership with
+/// [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).
+///
+/// Sending handle that shares queue ownership with the mailbox.
+/// Allows safe message sending from multiple threads.
+///
+/// # Type Parameters
+/// - `Q`: Message queue implementation type
+/// - `S`: Notification signal implementation type
 #[derive(Clone)]
 pub struct QueueMailboxProducer<Q, S> {
-  inner: QueueMailboxInternal<Q, S>,
+  pub(crate) queue:          Q,
+  pub(crate) signal:         S,
+  pub(crate) closed:         Flag,
+  pub(crate) metrics_sink:   Option<MetricsSinkShared>,
+  pub(crate) scheduler_hook: Option<ReadyQueueHandle>,
 }
 
 impl<Q, S> core::fmt::Debug for QueueMailboxProducer<Q, S> {
@@ -35,20 +47,57 @@ where
 }
 
 impl<Q, S> QueueMailboxProducer<Q, S> {
-  pub(crate) fn from_internal(inner: QueueMailboxInternal<Q, S>) -> Self {
-    Self { inner }
-  }
-
-  /// Attempts to send a message without blocking.
+  /// Attempts to send a message (non-blocking).
+  ///
+  /// Returns an error immediately if the queue is full.
+  ///
+  /// # Arguments
+  /// - `message`: Message to send
+  ///
+  /// # Returns
+  /// `Ok(())` on success, `Err(QueueError)` on failure
+  ///
+  /// # Errors
+  /// - `QueueError::Disconnected`: Mailbox is closed
+  /// - `QueueError::Full`: Queue is full
   pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
     Q: QueueRw<M>,
     S: MailboxSignal,
     M: Element, {
-    self.inner.try_send(message)
+    if self.closed.get() {
+      return Err(QueueError::Disconnected);
+    }
+
+    match self.queue.offer(message) {
+      | Ok(()) => {
+        self.signal.notify();
+        if let Some(sink) = &self.metrics_sink {
+          sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
+        }
+        if let Some(hook) = &self.scheduler_hook {
+          hook.notify_ready();
+        }
+        Ok(())
+      },
+      | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
+        self.closed.set(true);
+        Err(err)
+      },
+      | Err(err) => Err(err),
+    }
   }
 
-  /// Convenience method delegating to [`Self::try_send`].
+  /// Sends a message using the mailbox queue.
+  ///
+  /// # Arguments
+  /// - `message`: Message to send
+  ///
+  /// # Returns
+  /// `Ok(())` on success, `Err(QueueError)` on failure
+  ///
+  /// # Errors
+  /// Returns [`QueueError`] when the queue rejects the message.
   pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
     Q: QueueRw<M>,
@@ -60,16 +109,16 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Returns a reference to the underlying queue.
   #[must_use]
   pub fn queue(&self) -> &Q {
-    self.inner.queue()
+    &self.queue
   }
 
-  /// Updates the metrics sink observed by this producer.
+  /// Assigns a metrics sink for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.metrics_sink = sink;
   }
 
-  /// Updates the scheduler hook observed by this producer.
+  /// Installs a scheduler hook for notifying ready queue updates.
   pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
-    self.inner.set_scheduler_hook(hook);
+    self.scheduler_hook = hook;
   }
 }

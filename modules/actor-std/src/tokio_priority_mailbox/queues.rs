@@ -273,6 +273,12 @@ mod compat {
       }
     }
 
+    pub(super) fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
+      for queue in &self.queues {
+        queue.set_metrics_sink(sink.clone());
+      }
+    }
+
     pub(super) fn len(&self) -> usize {
       self.queues.iter().map(|queue| queue.len().to_usize()).sum()
     }
@@ -287,12 +293,6 @@ mod compat {
         total = total.saturating_add(capacity.to_usize());
       }
       QueueSize::limited(total)
-    }
-
-    pub(super) fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
-      for queue in &self.queues {
-        queue.set_metrics_sink(sink.clone());
-      }
     }
   }
 
@@ -346,6 +346,11 @@ mod compat {
       self.regular.clean_up();
     }
 
+    pub(super) fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
+      self.control.set_metrics_sink(sink.clone());
+      self.regular.set_metrics_sink(sink);
+    }
+
     fn len_queue_size(&self) -> QueueSize {
       let control_len = self.control.len();
       let regular_len = self.regular.len().to_usize();
@@ -361,11 +366,6 @@ mod compat {
         let total = control_cap.to_usize().saturating_add(regular_cap.to_usize());
         QueueSize::limited(total)
       }
-    }
-
-    pub(super) fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
-      self.control.set_metrics_sink(sink.clone());
-      self.regular.set_metrics_sink(sink);
     }
   }
 
