@@ -1,37 +1,33 @@
 use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw, QueueSize};
 
-use super::recv::QueueMailboxRecv;
+use super::{internal::QueueMailboxInternal, recv::QueueMailboxRecv};
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
   mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxHandle, MailboxProducer, MailboxSignal},
-  metrics::{MetricsEvent, MetricsSinkShared},
+  metrics::MetricsSinkShared,
 };
 
 /// Mailbox backed by a queue and notification signal.
 pub struct QueueMailbox<Q, S> {
-  pub(super) queue:          Q,
-  pub(super) signal:         S,
-  pub(super) closed:         cellex_utils_core_rs::Flag,
-  pub(super) metrics_sink:   Option<MetricsSinkShared>,
-  pub(super) scheduler_hook: Option<ReadyQueueHandle>,
+  pub(super) inner: QueueMailboxInternal<Q, S>,
 }
 
 impl<Q, S> QueueMailbox<Q, S> {
   /// Creates a new queue mailbox.
   pub fn new(queue: Q, signal: S) -> Self {
-    Self { queue, signal, closed: cellex_utils_core_rs::Flag::default(), metrics_sink: None, scheduler_hook: None }
+    Self { inner: QueueMailboxInternal::new(queue, signal) }
   }
 
   /// Gets a reference to the internal queue.
   #[must_use]
   pub const fn queue(&self) -> &Q {
-    &self.queue
+    self.inner.queue()
   }
 
   /// Gets a reference to the internal signal.
   #[must_use]
   pub const fn signal(&self) -> &S {
-    &self.signal
+    self.inner.signal()
   }
 
   /// Creates a producer handle for sending messages.
@@ -39,23 +35,17 @@ impl<Q, S> QueueMailbox<Q, S> {
   where
     Q: Clone,
     S: Clone, {
-    QueueMailboxProducer {
-      queue:          self.queue.clone(),
-      signal:         self.signal.clone(),
-      closed:         self.closed.clone(),
-      metrics_sink:   self.metrics_sink.clone(),
-      scheduler_hook: self.scheduler_hook.clone(),
-    }
+    QueueMailboxProducer { inner: self.inner.clone() }
   }
 
   /// Configures a metrics sink used for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink;
+    self.inner.set_metrics_sink(sink);
   }
 
   /// Installs a scheduler hook that is notified when new messages arrive.
   pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
-    self.scheduler_hook = hook;
+    self.inner.set_scheduler_hook(hook);
   }
 
   /// Returns the current queue length as `usize`.
@@ -65,7 +55,7 @@ impl<Q, S> QueueMailbox<Q, S> {
     Q: QueueRw<M>,
     S: MailboxSignal,
     M: Element, {
-    self.queue.len().to_usize()
+    self.inner.len::<M>().to_usize()
   }
 
   /// Returns the queue capacity as `usize`.
@@ -75,13 +65,7 @@ impl<Q, S> QueueMailbox<Q, S> {
     Q: QueueRw<M>,
     S: MailboxSignal,
     M: Element, {
-    self.queue.capacity().to_usize()
-  }
-
-  pub(super) fn record_enqueue(&self) {
-    if let Some(sink) = &self.metrics_sink {
-      sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
-    }
+    self.inner.capacity::<M>().to_usize()
   }
 }
 
@@ -91,13 +75,7 @@ where
   S: Clone,
 {
   fn clone(&self) -> Self {
-    Self {
-      queue:          self.queue.clone(),
-      signal:         self.signal.clone(),
-      closed:         self.closed.clone(),
-      metrics_sink:   self.metrics_sink.clone(),
-      scheduler_hook: self.scheduler_hook.clone(),
-    }
+    Self { inner: self.inner.clone() }
   }
 }
 
@@ -120,7 +98,7 @@ where
   }
 
   fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>> {
-    self.queue().poll()
+    self.inner.try_dequeue()
   }
 }
 
@@ -156,21 +134,7 @@ where
   type SendError = QueueError<M>;
 
   fn try_send(&self, message: M) -> Result<(), Self::SendError> {
-    match self.queue.offer(message) {
-      | Ok(()) => {
-        self.signal.notify();
-        self.record_enqueue();
-        if let Some(hook) = &self.scheduler_hook {
-          hook.notify_ready();
-        }
-        Ok(())
-      },
-      | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
-        self.closed.set(true);
-        Err(err)
-      },
-      | Err(err) => Err(err),
-    }
+    self.inner.try_send(message)
   }
 
   fn recv(&self) -> Self::RecvFuture<'_> {
@@ -178,24 +142,22 @@ where
   }
 
   fn len(&self) -> QueueSize {
-    self.queue.len()
+    self.inner.len()
   }
 
   fn capacity(&self) -> QueueSize {
-    self.queue.capacity()
+    self.inner.capacity()
   }
 
   fn close(&self) {
-    self.queue.clean_up();
-    self.signal.notify();
-    self.closed.set(true);
+    self.inner.close()
   }
 
   fn is_closed(&self) -> bool {
-    self.closed.get()
+    self.inner.is_closed()
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink;
+    self.inner.set_metrics_sink(sink);
   }
 }

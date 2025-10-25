@@ -42,40 +42,40 @@ where
 
   fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
     let this = unsafe { self.get_unchecked_mut() };
-    if this.mailbox.closed.get() {
+    if this.mailbox.inner.closed().get() {
       return Poll::Ready(Err(QueueError::Disconnected));
     }
     loop {
-      match this.mailbox.queue.poll() {
+      match this.mailbox.inner.try_dequeue() {
         | Ok(Some(message)) => {
           this.wait = None;
           return Poll::Ready(Ok(message));
         },
         | Ok(None) => {
           if this.wait.is_none() {
-            this.wait = Some(this.mailbox.signal.wait());
+            this.wait = Some(this.mailbox.inner.signal().wait());
           }
         },
         | Err(QueueError::Disconnected) => {
-          this.mailbox.closed.set(true);
+          this.mailbox.inner.closed().set(true);
           this.wait = None;
           return Poll::Ready(Err(QueueError::Disconnected));
         },
         | Err(QueueError::Closed(message)) => {
-          this.mailbox.closed.set(true);
+          this.mailbox.inner.closed().set(true);
           this.wait = None;
           return Poll::Ready(Ok(message));
         },
         | Err(QueueError::Empty) => {
           if this.wait.is_none() {
-            this.wait = Some(this.mailbox.signal.wait());
+            this.wait = Some(this.mailbox.inner.signal().wait());
           }
         },
         | Err(QueueError::WouldBlock) | Err(QueueError::Full(_)) | Err(QueueError::OfferError(_)) => {
           return Poll::Pending
         },
         | Err(QueueError::AllocError(_)) => {
-          this.mailbox.closed.set(true);
+          this.mailbox.inner.closed().set(true);
           this.wait = None;
           return Poll::Ready(Err(QueueError::Disconnected));
         },

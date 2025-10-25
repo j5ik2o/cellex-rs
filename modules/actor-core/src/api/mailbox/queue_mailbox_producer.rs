@@ -1,9 +1,9 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, Flag, QueueRw, SharedBound};
+use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw, SharedBound};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::MailboxSignal,
-  metrics::{MetricsEvent, MetricsSinkShared},
+  mailbox::{queue_mailbox::QueueMailboxInternal, MailboxSignal},
+  metrics::MetricsSinkShared,
 };
 
 /// Sending handle that shares queue ownership with
@@ -17,11 +17,7 @@ use crate::api::{
 /// - `S`: Notification signal implementation type
 #[derive(Clone)]
 pub struct QueueMailboxProducer<Q, S> {
-  pub(crate) queue:          Q,
-  pub(crate) signal:         S,
-  pub(crate) closed:         Flag,
-  pub(crate) metrics_sink:   Option<MetricsSinkShared>,
-  pub(crate) scheduler_hook: Option<ReadyQueueHandle>,
+  pub(crate) inner: QueueMailboxInternal<Q, S>,
 }
 
 impl<Q, S> core::fmt::Debug for QueueMailboxProducer<Q, S> {
@@ -65,27 +61,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
     Q: QueueRw<M>,
     S: MailboxSignal,
     M: Element, {
-    if self.closed.get() {
-      return Err(QueueError::Disconnected);
-    }
-
-    match self.queue.offer(message) {
-      | Ok(()) => {
-        self.signal.notify();
-        if let Some(sink) = &self.metrics_sink {
-          sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
-        }
-        if let Some(hook) = &self.scheduler_hook {
-          hook.notify_ready();
-        }
-        Ok(())
-      },
-      | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
-        self.closed.set(true);
-        Err(err)
-      },
-      | Err(err) => Err(err),
-    }
+    self.inner.try_send(message)
   }
 
   /// Sends a message using the mailbox queue.
@@ -109,16 +85,16 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Returns a reference to the underlying queue.
   #[must_use]
   pub fn queue(&self) -> &Q {
-    &self.queue
+    self.inner.queue()
   }
 
   /// Assigns a metrics sink for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink;
+    self.inner.set_metrics_sink(sink);
   }
 
   /// Installs a scheduler hook for notifying ready queue updates.
   pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
-    self.scheduler_hook = hook;
+    self.inner.set_scheduler_hook(hook);
   }
 }

@@ -322,6 +322,7 @@
 - [2025-10-25] OfferOutcome/QueueOfferFeedback によるメトリクス通知拡張を試行したが、`QueueOfferFeedbackExt` を external queue 型へ実装する必要があり、embedded 側の `ArcMpscUnboundedQueue` 等に対して孤児規則が発生したため差分を取り下げ。現状は従来の `QueueMailbox`/`QueueMailboxProducer` 構造へ復帰し、Tokio priority キューの `configure_metrics` 内でシンクを直接委譲する形に戻してある。次セッションでは embedded/priority 向けの互換レイヤ設計を再検討する。
 - [2025-10-25] queue-v1 退役に関しては未着手。OfferOutcome 対応を優先した上で `QueueRwCompat` を利用しないルートが成立した段階で、`TokioQueue`・`ArcPriorityQueues` legacy モジュールの削除と CI マトリクス整理を実施する予定。現行タスク完了までは queue-v1 を残しつつ、差分検証は queue-v2 を既定とする運用を継続する。
 - [2025-10-26] `TestMailboxFactory` を `QueueRwCompat` ベースの v2 キューで構成するよう更新し、`queue-v2` 有効時でも actor-core のテストメールボックスが新コレクションを直接利用する足場を整備。
+- [2025-10-26] `QueueMailbox` / `QueueMailboxProducer` を `QueueMailboxInternal` へ委譲する実装に書き換え、メトリクス通知・スケジューラ通知・クローズ処理を単一点で扱えるよう整理。`queue-v1`/`queue-v2` 両構成で `cargo test -p cellex-actor-core-rs --tests` を実行し正常性を確認。
 - [2025-10-26] ルート `Cargo.toml` に `queue_feature_sets` メタデータを追加し、`scripts/ci-check.sh` に queue-v1 リグレッション用セクションを実装。`queue-v2` を既定としつつ、`queue-v1` への切り戻し確認を `ci-check.sh all` 内で自動化した。
 - [x] ファサード層 API の戻り値変更に合わせて呼び出し元（scheduler、テストサポート等）を更新し、`queue-v1` / `queue-v2` 両ビルドで警告ゼロを確認する。
 - [x] Mailbox ファサード経由の happy path / 異常系統合テストを追加し、`queue-v1` / `queue-v2` 両方で `cargo test -p cellex-actor-core-rs --tests` が通ることを検証する。
