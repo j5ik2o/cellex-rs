@@ -8,7 +8,7 @@ use cellex_utils_core_rs::{
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::MailboxSignal,
+  mailbox::{error::MailboxError, MailboxSignal},
   metrics::{MetricsEvent, MetricsSinkShared},
 };
 
@@ -78,15 +78,15 @@ impl<D, S> MailboxQueueCore<D, S> {
     self.queue.capacity()
   }
 
-  /// Attempts to enqueue a message into the underlying queue.
-  pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
+  /// Attempts to enqueue a message and returns mailbox-level errors.
+  pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
   where
     D: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element,
   {
     if self.closed.get() {
-      return Err(QueueError::Disconnected);
+      return Err(MailboxError::Disconnected);
     }
 
     match self.queue.offer(message) {
@@ -97,20 +97,34 @@ impl<D, S> MailboxQueueCore<D, S> {
         match outcome {
           | OfferOutcome::Enqueued | OfferOutcome::DroppedOldest { .. } | OfferOutcome::GrewTo { .. } => Ok(()),
           | OfferOutcome::DroppedNewest { .. } => {
-            panic!("MailboxQueueDriver must map DroppedNewest into QueueError::Full before returning success");
+            panic!(
+              "MailboxQueueDriver must map DroppedNewest into an error before returning success"
+            );
           },
         }
       },
-      | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
-        self.closed.set(true);
-        Err(err)
+      | Err(error) => {
+        let mailbox_error = MailboxError::from_queue_error(error);
+        if mailbox_error.closes_mailbox() {
+          self.closed.set(true);
+        }
+        Err(mailbox_error)
       },
-      | Err(err) => Err(err),
     }
   }
 
-  /// Attempts to dequeue a message from the underlying queue.
-  pub fn try_dequeue<M>(&self) -> Result<Option<M>, QueueError<M>>
+  /// Attempts to enqueue a message into the underlying queue, returning legacy queue errors.
+  pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
+  where
+    D: MailboxQueueDriver<M>,
+    S: MailboxSignal,
+    M: Element,
+  {
+    self.try_send_mailbox(message).map_err(Into::into)
+  }
+
+  /// Attempts to dequeue a message, returning mailbox-level errors.
+  pub fn try_dequeue_mailbox<M>(&self) -> Result<Option<M>, MailboxError<M>>
   where
     D: MailboxQueueDriver<M>,
     M: Element,
@@ -120,14 +134,26 @@ impl<D, S> MailboxQueueCore<D, S> {
       | Ok(QueuePollOutcome::Empty) | Ok(QueuePollOutcome::Pending) => Ok(None),
       | Ok(QueuePollOutcome::Disconnected) => {
         self.closed.set(true);
-        Err(QueueError::Disconnected)
+        Err(MailboxError::Disconnected)
       },
       | Ok(QueuePollOutcome::Closed(message)) => {
         self.closed.set(true);
-        Err(QueueError::Closed(message))
+        Err(MailboxError::Closed { last: Some(message) })
       },
-      | Ok(QueuePollOutcome::Err(error)) => Err(error),
-      | Err(error) => Err(error),
+      | Ok(QueuePollOutcome::Err(error)) => self.handle_queue_error(error),
+      | Err(error) => self.handle_queue_error(error),
+    }
+  }
+
+  /// Attempts to dequeue a message from the underlying queue, returning legacy queue errors.
+  pub fn try_dequeue<M>(&self) -> Result<Option<M>, QueueError<M>>
+  where
+    D: MailboxQueueDriver<M>,
+    M: Element,
+  {
+    match self.try_dequeue_mailbox() {
+      | Ok(value) => Ok(value),
+      | Err(error) => Err(error.into()),
     }
   }
 
@@ -159,6 +185,18 @@ impl<D, S> MailboxQueueCore<D, S> {
     if let Some(sink) = &self.metrics_sink {
       sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
     }
+  }
+
+  fn handle_queue_error<M>(&self, error: QueueError<M>) -> Result<Option<M>, MailboxError<M>>
+  where
+    D: MailboxQueueDriver<M>,
+    M: Element,
+  {
+    let mailbox_error = MailboxError::from_queue_error(error);
+    if mailbox_error.closes_mailbox() {
+      self.closed.set(true);
+    }
+    Err(mailbox_error)
   }
 }
 
