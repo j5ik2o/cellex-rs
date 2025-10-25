@@ -94,7 +94,7 @@ impl<D, S> MailboxQueueCore<D, S> {
         }
       },
       | Err(error) => {
-        let mailbox_error = MailboxError::from_queue_error(error);
+        let mailbox_error = self.convert_queue_error(error);
         if mailbox_error.closes_mailbox() {
           self.closed.set(true);
         }
@@ -177,11 +177,24 @@ impl<D, S> MailboxQueueCore<D, S> {
   where
     D: MailboxQueueDriver<M>,
     M: Element, {
-    let mailbox_error = MailboxError::from_queue_error(error);
+    let mailbox_error = self.convert_queue_error(error);
     if mailbox_error.closes_mailbox() {
       self.closed.set(true);
     }
     Err(mailbox_error)
+  }
+
+  fn convert_queue_error<M>(&self, error: QueueError<M>) -> MailboxError<M>
+  where
+    D: MailboxQueueDriver<M>,
+    M: Element, {
+    match error {
+      | QueueError::Full(message) => match self.queue.overflow_policy() {
+        | Some(policy) => MailboxError::from_queue_error_with_policy(QueueError::Full(message), policy),
+        | None => MailboxError::from_queue_error(QueueError::Full(message)),
+      },
+      | other => MailboxError::from_queue_error(other),
+    }
   }
 }
 

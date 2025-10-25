@@ -10,7 +10,10 @@ use cellex_utils_core_rs::{
 use spin::Mutex;
 
 use super::{MailboxQueueDriver, QueuePollOutcome};
-use crate::api::metrics::{MetricsEvent, MetricsSinkShared};
+use crate::api::{
+  mailbox::MailboxOverflowPolicy,
+  metrics::{MetricsEvent, MetricsSinkShared},
+};
 
 type EntryShared<M> = ArcShared<Mutex<Option<M>>>;
 type Backend<M> = VecRingBackend<EntryShared<M>>;
@@ -30,6 +33,7 @@ enum CapacityModel {
 pub struct SyncQueueDriver<M> {
   queue:          Queue<M>,
   capacity_model: CapacityModel,
+  policy:         OverflowPolicy,
   metrics_sink:   MetricsBinding,
 }
 
@@ -39,6 +43,7 @@ impl<M> Clone for SyncQueueDriver<M> {
     Self {
       queue:          MpscQueue::new(shared),
       capacity_model: self.capacity_model,
+      policy:         self.policy,
       metrics_sink:   self.metrics_sink.clone(),
     }
   }
@@ -63,7 +68,7 @@ impl<M> SyncQueueDriver<M> {
     let shared_backend = ArcShared::new(SpinSyncMutex::new(backend));
     let queue = MpscQueue::new(shared_backend);
     let metrics_sink = ArcShared::new(SpinSyncMutex::new(None));
-    Self { queue, capacity_model: model, metrics_sink }
+    Self { queue, capacity_model: model, policy, metrics_sink }
   }
 
   fn reclaim(entry: EntryShared<M>) -> M {
@@ -110,6 +115,15 @@ where
       | CapacityModel::Bounded(limit) => QueueSize::limited(limit),
       | CapacityModel::Unbounded => QueueSize::limitless(),
     }
+  }
+
+  fn overflow_policy(&self) -> Option<MailboxOverflowPolicy> {
+    Some(match self.policy {
+      | OverflowPolicy::DropNewest => MailboxOverflowPolicy::DropNewest,
+      | OverflowPolicy::DropOldest => MailboxOverflowPolicy::DropOldest,
+      | OverflowPolicy::Grow => MailboxOverflowPolicy::Grow,
+      | OverflowPolicy::Block => MailboxOverflowPolicy::Block,
+    })
   }
 
   fn offer(&self, message: M) -> Result<OfferOutcome, QueueError<M>> {

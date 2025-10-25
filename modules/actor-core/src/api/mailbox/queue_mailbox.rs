@@ -16,3 +16,6 @@ pub use poll_outcome::QueuePollOutcome;
 pub use recv::QueueMailboxRecv;
 #[cfg(feature = "queue-v2")]
 pub use sync_queue_driver::SyncQueueDriver;
+
+#[cfg(all(test, feature = "queue-v2"))]
+mod tests;

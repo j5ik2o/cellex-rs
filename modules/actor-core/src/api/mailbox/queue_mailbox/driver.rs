@@ -3,7 +3,7 @@ use cellex_utils_core_rs::{
 };
 
 use super::QueuePollOutcome;
-use crate::api::metrics::MetricsSinkShared;
+use crate::api::{mailbox::MailboxOverflowPolicy, metrics::MetricsSinkShared};
 
 /// Abstraction over queue backends used by `QueueMailbox`.
 pub trait MailboxQueueDriver<M>: Clone
@@ -26,4 +26,10 @@ where
 
   /// Installs or removes a metrics sink used for queue-level instrumentation.
   fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>);
+
+  /// Returns the overflow policy associated with `QueueError::Full` when produced by `offer`.
+  #[allow(unused_variables)]
+  fn overflow_policy(&self) -> Option<MailboxOverflowPolicy> {
+    None
+  }
 }
