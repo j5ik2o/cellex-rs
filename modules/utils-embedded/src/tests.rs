@@ -12,7 +12,7 @@ mod critical_section {
   unsafe impl Impl for TestCriticalSection {
     unsafe fn acquire() -> RawRestoreState {
       while LOCK.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {}
-      ()
+      Default::default()
     }
 
     unsafe fn release(_: RawRestoreState) {

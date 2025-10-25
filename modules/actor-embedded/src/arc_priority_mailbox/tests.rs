@@ -21,7 +21,7 @@ static CS_INIT: AtomicBool = AtomicBool::new(false);
 unsafe impl Impl for TestCriticalSection {
   unsafe fn acquire() -> RawRestoreState {
     while CS_LOCK.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {}
-    ()
+    Default::default()
   }
 
   unsafe fn release(_: RawRestoreState) {
