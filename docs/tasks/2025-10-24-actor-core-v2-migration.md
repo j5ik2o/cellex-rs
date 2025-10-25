@@ -450,6 +450,8 @@
   - `cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v2`  
   - `cargo check -p cellex-actor-embedded-rs --target thumbv6m-none-eabi --no-default-features --features alloc,embedded_rc,queue-v1`  
   - `cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc,queue-v2`（ホスト検証向け、deprecation warning のみ）  
+  - `cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi --no-default-features --features alloc,queue-v2`  
+  - `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi --no-default-features --features alloc,queue-v2`（`rustup target add thumbv8m.main-none-eabi` 済みで成功。CI でのターゲット追加をフォローアップ）  
 - 結果整理  
   - queue-v1 fallback は embedded_rc のみを対象。embedded_arc は queue-v2 専用（Cargo features で自動的に有効化）であり、ドキュメントで周知することで設定ミスを回避。  
   - queue-v1 / queue-v2 双方での ActorRef 統合テストにより、デッドレター（DeliveryRejected）およびメトリクス（MailboxEnqueued）が一貫して発火することを確認。  
@@ -487,6 +489,20 @@
 - [ ] Tokio 系テストを v2 API 対応へ書き換え、`#[tokio::test(flavor = "multi_thread")]` 等の実行形態を再評価する（必要に応じて `worker_threads` を明記）。
 - [ ] Embedded 向けテストの feature gating を見直し、`cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi --no-default-features --features embedded,queue-v2` と `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi --no-default-features --features embedded,queue-v2` を実行して結果を記録する。
 - [ ] `cargo test -p cellex-actor-core-rs --tests`, `makers ci-check`, `./scripts/ci-check.sh all` を移行段階ごとに実行するスケジュールを定義し、CI ワークフローへの追加（v2 フラグ付きのジョブ）を検討する。
+
+#### テスト棚卸 (2025-10-25 時点)
+- **クリティカルパス**  
+  - `modules/actor-std/src/tokio_mailbox/tests.rs` … queue-v2 前提の単体テストは存在するが、`#[tokio::test]` のフレーバーが混在。`current_thread` / `multi_thread` 切り分けの妥当性を再確認し、必要なら `worker_threads` 明示や `rt-multi-thread` Feature 前提の実行に統一する。  
+  - `modules/actor-std/src/tokio_priority_mailbox/tests.rs` … queue-v1 fallback パス (`#[cfg(all(feature = "queue-v1", not(feature = "queue-v2")))]`) が残存。queue-v2 を既定にするフェーズでは、v2 API での制御レーン優先／ドロップ／メトリクス検証を強化し、queue-v1 分岐を統合テストへ移す計画が必要。
+- **エッジケース**  
+  - `modules/actor-core/src/api/actor_scheduler/tests.rs` … `QueueRwCompat` + `LegacyQueueDriver` を直接利用しており、queue-v2 でも互換レイヤー経由。`SyncQueueDriver` 版のテストケースを追加し、スケジューラの ready/not-ready 判定やメトリクス伝播を新 API でカバーする。  
+  - `modules/actor-core/src/api/actor/actor_ref/actor_ref_impl/tests_queue_v1.rs` … queue-v1 fallback 回帰テストとして維持。queue-v2 版は `tests.rs` に実装済みなので、将来的な廃止スケジュールに合わせて最終的に queue-v1 特有のケースを `integration/` 配下へ移動予定。
+- **Embedded 系**  
+  - `modules/actor-embedded/src/tests.rs` / `arc_priority_mailbox/tests.rs` 等は queue-v2 で実行されるが、`thumbv8m.main-none-eabi` ターゲットのクロスチェックが未実施。フェーズ6で `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi --no-default-features --features embedded,queue-v2` を走らせ、RP2350 相当の結果を記録する。
+
+- 2025-10-25: `actor_scheduler::tests` を `SyncQueueDriver` ベースへ移行し、`ReadyQueueScheduler` 系のメトリクス／デッドレター挙動を queue-v2 API で検証。`cargo test -p cellex-actor-core-rs --tests` および `cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1` を実行し、双方成功（警告のみ）。
+- 2025-10-25: クロスチェック進捗更新。`cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi --no-default-features --features alloc,queue-v2` → OK（警告のみ）。`rustup target add thumbv8m.main-none-eabi` 実施後に `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi --no-default-features --features alloc,queue-v2` も成功（警告のみ）。CI でも同ターゲットの追加を検討する。
+- 2025-10-25: Tokio メールボックス系テストを再確認。`cargo test -p cellex-actor-std-rs tokio_mailbox` / `cargo test -p cellex-actor-std-rs tokio_priority_mailbox` → いずれも成功（警告のみ）。`current_thread` / `multi_thread` 重複テストの扱いと性能ベンチ (`mailbox_throughput`) の測定方針はフェーズ6後半で整理する予定。
 
 ### フェーズ7: 段階的リリースとクリーンアップ（リスク: 低, SP: 3）
 - [ ] 互換レイヤを置いたまま actor-core 内の利用箇所をモジュール単位で移行し、完了後に旧 API 依存を削除する。

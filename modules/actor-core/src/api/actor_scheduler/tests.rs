@@ -27,7 +27,7 @@ use spin::RwLock;
 
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
 #[cfg(feature = "queue-v2")]
-use crate::shared::mailbox::queue_rw_compat::QueueRwCompat;
+use crate::api::mailbox::queue_mailbox::{MailboxQueueDriver, SyncQueueDriver};
 use crate::{
   api::{
     actor::{
@@ -45,7 +45,7 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
+      queue_mailbox::{QueueMailbox, QueueMailboxRecv},
       Mailbox, MailboxFactory, MailboxOptions, QueueMailboxProducer, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
@@ -109,13 +109,13 @@ impl MetricsSink for EventRecordingSink {
 
 #[cfg(feature = "queue-v2")]
 #[derive(Clone, Copy)]
-struct CompatMailboxFactory {
+struct SyncMailboxFactory {
   capacity: usize,
   policy:   OverflowPolicy,
 }
 
 #[cfg(feature = "queue-v2")]
-impl CompatMailboxFactory {
+impl SyncMailboxFactory {
   const fn bounded(capacity: usize, policy: OverflowPolicy) -> Self {
     Self { capacity, policy }
   }
@@ -126,12 +126,12 @@ impl CompatMailboxFactory {
 }
 
 #[cfg(feature = "queue-v2")]
-struct CompatMailbox<M> {
-  inner: QueueMailbox<LegacyQueueDriver<QueueRwCompat<M>>, TestSignal>,
+struct SyncMailbox<M> {
+  inner: QueueMailbox<SyncQueueDriver<M>, TestSignal>,
 }
 
 #[cfg(feature = "queue-v2")]
-impl<M> Clone for CompatMailbox<M>
+impl<M> Clone for SyncMailbox<M>
 where
   M: Element,
 {
@@ -141,13 +141,13 @@ where
 }
 
 #[cfg(feature = "queue-v2")]
-struct CompatMailboxProducer<M> {
-  inner: QueueMailboxProducer<LegacyQueueDriver<QueueRwCompat<M>>, TestSignal>,
+struct SyncMailboxProducer<M> {
+  inner: QueueMailboxProducer<SyncQueueDriver<M>, TestSignal>,
   _pd:   PhantomData<M>,
 }
 
 #[cfg(feature = "queue-v2")]
-impl<M> Clone for CompatMailboxProducer<M>
+impl<M> Clone for SyncMailboxProducer<M>
 where
   M: Element,
 {
@@ -157,7 +157,7 @@ where
 }
 
 #[cfg(feature = "queue-v2")]
-impl<M> MailboxHandle<M> for CompatMailbox<M>
+impl<M> MailboxHandle<M> for SyncMailbox<M>
 where
   M: Element,
 {
@@ -173,7 +173,7 @@ where
 }
 
 #[cfg(feature = "queue-v2")]
-impl<M> MailboxProducer<M> for CompatMailboxProducer<M>
+impl<M> MailboxProducer<M> for SyncMailboxProducer<M>
 where
   M: Element,
 {
@@ -192,12 +192,12 @@ where
 }
 
 #[cfg(feature = "queue-v2")]
-impl<M> Mailbox<M> for CompatMailbox<M>
+impl<M> Mailbox<M> for SyncMailbox<M>
 where
   M: Element,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, LegacyQueueDriver<QueueRwCompat<M>>, TestSignal, M>
+    = QueueMailboxRecv<'a, SyncQueueDriver<M>, TestSignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -233,18 +233,18 @@ where
 }
 
 #[cfg(feature = "queue-v2")]
-impl MailboxFactory for CompatMailboxFactory {
+impl MailboxFactory for SyncMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
-    = CompatMailbox<M>
+    = SyncMailbox<M>
   where
     M: Element;
   type Producer<M>
-    = CompatMailboxProducer<M>
+    = SyncMailboxProducer<M>
   where
     M: Element;
   type Queue<M>
-    = LegacyQueueDriver<QueueRwCompat<M>>
+    = SyncQueueDriver<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -253,11 +253,11 @@ impl MailboxFactory for CompatMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = LegacyQueueDriver::new(QueueRwCompat::bounded(capacity, self.policy));
+    let queue = SyncQueueDriver::bounded(capacity, self.policy);
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let producer = mailbox.producer();
-    (CompatMailbox { inner: mailbox }, CompatMailboxProducer { inner: producer, _pd: PhantomData })
+    (SyncMailbox { inner: mailbox }, SyncMailboxProducer { inner: producer, _pd: PhantomData })
   }
 }
 
@@ -467,7 +467,7 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 #[cfg(feature = "queue-v2")]
 #[test]
 fn scheduler_records_drop_oldest_metric() {
-  let mailbox_factory = CompatMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
+  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
   let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
   let events = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
@@ -478,7 +478,7 @@ fn scheduler_records_drop_oldest_metric() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
-    handler_from_message::<CompatMailboxFactory, _>(|_, _| {}),
+    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
   )
   .unwrap();
 
@@ -497,7 +497,7 @@ fn scheduler_records_drop_oldest_metric() {
 #[cfg(feature = "queue-v2")]
 #[test]
 fn scheduler_records_drop_newest_metric() {
-  let mailbox_factory = CompatMailboxFactory::bounded(1, OverflowPolicy::DropNewest);
+  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropNewest);
   let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
   let events = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
@@ -508,7 +508,7 @@ fn scheduler_records_drop_newest_metric() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
-    handler_from_message::<CompatMailboxFactory, _>(|_, _| {}),
+    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
   )
   .unwrap();
 
