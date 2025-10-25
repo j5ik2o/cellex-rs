@@ -6,8 +6,8 @@ use crate::api::{
   metrics::{MetricsEvent, MetricsSinkShared},
 };
 
-/// Internal structure shared between mailbox handles.
-pub struct QueueMailboxInternal<Q, S> {
+/// Core mailbox state shared between handle and producer implementations.
+pub struct MailboxQueueCore<Q, S> {
   queue:          Q,
   signal:         S,
   closed:         Flag,
@@ -15,8 +15,8 @@ pub struct QueueMailboxInternal<Q, S> {
   scheduler_hook: Option<ReadyQueueHandle>,
 }
 
-impl<Q, S> QueueMailboxInternal<Q, S> {
-  /// Creates a new internal state container.
+impl<Q, S> MailboxQueueCore<Q, S> {
+  /// Creates a new core with the provided queue and signal.
   #[must_use]
   pub fn new(queue: Q, signal: S) -> Self {
     Self { queue, signal, closed: Flag::default(), metrics_sink: None, scheduler_hook: None }
@@ -34,7 +34,7 @@ impl<Q, S> QueueMailboxInternal<Q, S> {
     &self.signal
   }
 
-  /// Returns a reference to the closed flag.
+  /// Returns the closed flag for this mailbox.
   #[must_use]
   pub const fn closed(&self) -> &Flag {
     &self.closed
@@ -131,7 +131,7 @@ impl<Q, S> QueueMailboxInternal<Q, S> {
   }
 }
 
-impl<Q, S> Clone for QueueMailboxInternal<Q, S>
+impl<Q, S> Clone for MailboxQueueCore<Q, S>
 where
   Q: Clone,
   S: Clone,
@@ -147,8 +147,8 @@ where
   }
 }
 
-impl<Q, S> core::fmt::Debug for QueueMailboxInternal<Q, S> {
+impl<Q, S> core::fmt::Debug for MailboxQueueCore<Q, S> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    f.debug_struct("QueueMailboxInternal").finish()
+    f.debug_struct("MailboxQueueCore").finish()
   }
 }

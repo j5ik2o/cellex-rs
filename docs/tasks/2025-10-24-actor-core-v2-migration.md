@@ -395,9 +395,12 @@
     - `QueueMailbox` に対する直接的な統合テストは少ないため、フェーズ5で新たに `QueueMailbox` + signal 実装を結合テストする必要がある。
 - 実装タスク（設計）:
   - [x] `docs/design/queue_mailbox_v2_plan.md` を更新し、`QueueMailbox` v2 への差し替え案（OfferOutcome/PollOutcome ハンドリング、MailboxError 変換、メトリクス通知方針）を整理した。既存コード（`QueueMailboxInternal` / `QueueMailboxProducer` / `QueueMailboxRecv`）の依存状況とギャップ分析を追記済み。
-  - [ ] `QueueMailbox` の内部キューを v2 `SyncQueue` ベースへ差し替える際のレイヤ構成（共有所有権、同期プリミティブ、`ArcShared` 利用範囲）を明文化し、レビューを通す。
+  - [x] `QueueMailbox` の内部キューを v2 `SyncQueue` ベースへ差し替える際のレイヤ構成（共有所有権、同期プリミティブ、`ArcShared` 利用範囲）を明文化し、レビューを通す。
+    - 2025-10-25: `MailboxQueueCore` のキュー保持形を `SyncQueue<EntryShared<M>, Backend<M>>`（`EntryShared<M> = ArcShared<Mutex<Option<M>>>`）とし、共有所有権は `ArcShared<SpinSyncMutex<Backend<M>>>` に集約する構成で整理。`queue-v2` 既定では `VecRingBackend<EntryShared<M>>` を `OverflowPolicy::{Grow,DropOldest,DropNewest}` と組み合わせ、queue-v1 互換では同じ `SyncQueue` を `QueueRwCompat` で包んで `QueueRw` トレイトへ露出させる二層構造を取る。これにより既存の `MailboxQueueCore<Q, S>` ジェネリクスは `Q` に直接 `SyncQueue` を受け取れる一方、Tokio/priority など互換経路では `Q = QueueRwCompat<M>` を与えるだけで移行期間中の差し替えが可能になる旨をドキュメント化済み。
   - [x] Producer/Receiver 層（`QueueMailboxProducer`, `QueueMailboxRecv` など）の `OfferOutcome` / `PollOutcome` 取り扱い方針と、デッドレター・メトリクス通知ルールを設計メモに記載。`QueueError` → `MailboxError` 変換表およびテスト計画をドラフト化した。
-  - [ ] バックプレッシャー / 優先度（`priority_capacity` 等）を v2 API で再現するパターン（DropOldest/Grow 等）と併存期間中の設定差異を整理したガイドを用意する。
+  - [x] バックプレッシャー / 優先度（`priority_capacity` 等）を v2 API で再現するパターン（DropOldest/Grow 等）と併存期間中の設定差異を整理したガイドを用意する。
+    - 2025-10-25: `MailboxOptions::{capacity,priority_capacity}` の `QueueSize` 変換テーブルを作成。`capacity_limit = None` は `OverflowPolicy::Grow` を割り当て、有限値を持つ場合は既定で `OverflowPolicy::Block`（必要に応じて優先度付きメールボックスで DropOldest/DropNewest を選択）へマップする。優先度制御は `TokioPriorityQueues` のレベル毎 `QueueRwCompat` → 将来的な `SyncQueue<PriorityEnvelope<M>, VecRingBackend<_>>` へ置換する計画を記し、`priority_capacity_limit` が `Some` の場合は各レーンの容量を `total / levels` で割り当て、余りは高優先度側へ与える運用を明文化。キュー差し替え後も queue-v1 互換経路では従来通り `OverflowPolicy::Block` を使用し、queue-v2 では Dropped/Grew イベントがメトリクスへ流れることを確認するチェックリストを追加した。
+- [x] `QueueMailboxInternal` を `MailboxQueueCore` へ再編し、`QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` が共通コアを経由するようリファクタリング。現行挙動・メトリクス連携は維持したまま責務分離を完了（`modules/actor-core/src/api/mailbox/queue_mailbox/{core.rs,base.rs,queue_mailbox_producer.rs,recv.rs}`）。
 
 ### フェーズ5B: Mailbox 段階移行（リスク: 高, SP: 8）
 - 実装タスク（実装・検証）:

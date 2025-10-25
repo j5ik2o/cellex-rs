@@ -1,6 +1,6 @@
 use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueRw, QueueSize};
 
-use super::{internal::QueueMailboxInternal, recv::QueueMailboxRecv};
+use super::{core::MailboxQueueCore, recv::QueueMailboxRecv};
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
   mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxHandle, MailboxProducer, MailboxSignal},
@@ -9,25 +9,25 @@ use crate::api::{
 
 /// Mailbox backed by a queue and notification signal.
 pub struct QueueMailbox<Q, S> {
-  pub(super) inner: QueueMailboxInternal<Q, S>,
+  pub(super) core: MailboxQueueCore<Q, S>,
 }
 
 impl<Q, S> QueueMailbox<Q, S> {
   /// Creates a new queue mailbox.
   pub fn new(queue: Q, signal: S) -> Self {
-    Self { inner: QueueMailboxInternal::new(queue, signal) }
+    Self { core: MailboxQueueCore::new(queue, signal) }
   }
 
   /// Gets a reference to the internal queue.
   #[must_use]
   pub const fn queue(&self) -> &Q {
-    self.inner.queue()
+    self.core.queue()
   }
 
   /// Gets a reference to the internal signal.
   #[must_use]
   pub const fn signal(&self) -> &S {
-    self.inner.signal()
+    self.core.signal()
   }
 
   /// Creates a producer handle for sending messages.
@@ -35,17 +35,17 @@ impl<Q, S> QueueMailbox<Q, S> {
   where
     Q: Clone,
     S: Clone, {
-    QueueMailboxProducer { inner: self.inner.clone() }
+    QueueMailboxProducer::from_core(self.core.clone())
   }
 
   /// Configures a metrics sink used for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.core.set_metrics_sink(sink);
   }
 
   /// Installs a scheduler hook that is notified when new messages arrive.
   pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
-    self.inner.set_scheduler_hook(hook);
+    self.core.set_scheduler_hook(hook);
   }
 
   /// Returns the current queue length as `usize`.
@@ -55,7 +55,7 @@ impl<Q, S> QueueMailbox<Q, S> {
     Q: QueueRw<M>,
     S: MailboxSignal,
     M: Element, {
-    self.inner.len::<M>().to_usize()
+    self.core.len::<M>().to_usize()
   }
 
   /// Returns the queue capacity as `usize`.
@@ -65,7 +65,7 @@ impl<Q, S> QueueMailbox<Q, S> {
     Q: QueueRw<M>,
     S: MailboxSignal,
     M: Element, {
-    self.inner.capacity::<M>().to_usize()
+    self.core.capacity::<M>().to_usize()
   }
 }
 
@@ -75,7 +75,7 @@ where
   S: Clone,
 {
   fn clone(&self) -> Self {
-    Self { inner: self.inner.clone() }
+    Self { core: self.core.clone() }
   }
 }
 
@@ -98,7 +98,7 @@ where
   }
 
   fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>> {
-    self.inner.try_dequeue()
+    self.core.try_dequeue()
   }
 }
 
@@ -134,7 +134,7 @@ where
   type SendError = QueueError<M>;
 
   fn try_send(&self, message: M) -> Result<(), Self::SendError> {
-    self.inner.try_send(message)
+    self.core.try_send(message)
   }
 
   fn recv(&self) -> Self::RecvFuture<'_> {
@@ -142,22 +142,22 @@ where
   }
 
   fn len(&self) -> QueueSize {
-    self.inner.len()
+    self.core.len()
   }
 
   fn capacity(&self) -> QueueSize {
-    self.inner.capacity()
+    self.core.capacity()
   }
 
   fn close(&self) {
-    self.inner.close()
+    self.core.close()
   }
 
   fn is_closed(&self) -> bool {
-    self.inner.is_closed()
+    self.core.is_closed()
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.core.set_metrics_sink(sink);
   }
 }
