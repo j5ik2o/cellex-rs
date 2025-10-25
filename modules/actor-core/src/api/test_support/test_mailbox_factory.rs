@@ -1,10 +1,16 @@
-use cellex_utils_core_rs::{Element, MpscQueue};
+#[cfg(feature = "queue-v2")]
+use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
+use cellex_utils_core_rs::Element;
+#[cfg(not(feature = "queue-v2"))]
+use cellex_utils_core_rs::MpscQueue;
 
+#[cfg(not(feature = "queue-v2"))]
+use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
 use crate::api::{
   mailbox::{
     queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
   },
-  test_support::{common::TestQueue, shared_backend_handle::SharedBackendHandle, test_signal::TestSignal},
+  test_support::{common::TestQueue, test_signal::TestSignal},
 };
 
 #[derive(Clone, Debug, Default)]
@@ -61,6 +67,12 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
+    #[cfg(feature = "queue-v2")]
+    let queue = match capacity {
+      | Some(0) | None => TestQueue::unbounded(),
+      | Some(limit) => TestQueue::bounded(limit, OverflowPolicy::Block),
+    };
+    #[cfg(not(feature = "queue-v2"))]
     let queue = MpscQueue::new(SharedBackendHandle::new(capacity));
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);

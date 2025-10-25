@@ -321,6 +321,7 @@
 - [2025-10-24] `QueueMailbox` の内部状態を `QueueMailboxInternal` として切り出し、`QueueMailboxProducer`／`QueueMailboxRecv` を同構造体経由で共有するよう再構成。`QueuePollOutcome` も専用ファイルへ分離し、dylint の `type-per-file` 制約を満たすよう整理済み。
 - [2025-10-25] OfferOutcome/QueueOfferFeedback によるメトリクス通知拡張を試行したが、`QueueOfferFeedbackExt` を external queue 型へ実装する必要があり、embedded 側の `ArcMpscUnboundedQueue` 等に対して孤児規則が発生したため差分を取り下げ。現状は従来の `QueueMailbox`/`QueueMailboxProducer` 構造へ復帰し、Tokio priority キューの `configure_metrics` 内でシンクを直接委譲する形に戻してある。次セッションでは embedded/priority 向けの互換レイヤ設計を再検討する。
 - [2025-10-25] queue-v1 退役に関しては未着手。OfferOutcome 対応を優先した上で `QueueRwCompat` を利用しないルートが成立した段階で、`TokioQueue`・`ArcPriorityQueues` legacy モジュールの削除と CI マトリクス整理を実施する予定。現行タスク完了までは queue-v1 を残しつつ、差分検証は queue-v2 を既定とする運用を継続する。
+- [2025-10-26] `TestMailboxFactory` を `QueueRwCompat` ベースの v2 キューで構成するよう更新し、`queue-v2` 有効時でも actor-core のテストメールボックスが新コレクションを直接利用する足場を整備。
 - [2025-10-26] ルート `Cargo.toml` に `queue_feature_sets` メタデータを追加し、`scripts/ci-check.sh` に queue-v1 リグレッション用セクションを実装。`queue-v2` を既定としつつ、`queue-v1` への切り戻し確認を `ci-check.sh all` 内で自動化した。
 - [x] ファサード層 API の戻り値変更に合わせて呼び出し元（scheduler、テストサポート等）を更新し、`queue-v1` / `queue-v2` 両ビルドで警告ゼロを確認する。
 - [x] Mailbox ファサード経由の happy path / 異常系統合テストを追加し、`queue-v1` / `queue-v2` 両方で `cargo test -p cellex-actor-core-rs --tests` が通ることを検証する。
@@ -391,14 +392,14 @@
     - `QueueMailbox` に対する直接的な統合テストは少ないため、フェーズ5で新たに `QueueMailbox` + signal 実装を結合テストする必要がある。
 - 実装タスク（設計）:
   - [ ] `docs/design/collections_queue_spec.md` と `cellex_utils_core_rs::v2` ソースを参照し、`QueueMailbox` の責務分割とインターフェース変更案を整理した設計メモを作成する。
-  - [ ] `QueueMailbox<Q, S>` を v2 `SyncQueue` 系へ置き換える際のレイヤ構成（共有所有権、同期プリミティブ、`ArcShared` 利用範囲）を明文化し、レビューを通す。
+  - [ ] `QueueMailbox` の内部キューを v2 `SyncQueue` ベースへ差し替える際のレイヤ構成（共有所有権、同期プリミティブ、`ArcShared` 利用範囲）を明文化し、レビューを通す。
   - [ ] Producer/Receiver 層（`QueueMailboxProducer`, `QueueMailboxRecv` など）の `Result` / `OfferOutcome` / `PollOutcome` 取り扱い方針と、デッドレター・リトライ・ログ出力のルールをドキュメント化する。
   - [ ] `QueueError` → `MailboxError` の変換表とテストケース一覧を作成し、実装時に参照できる形にする。
   - [ ] バックプレッシャー / 優先度（`priority_capacity` 等）を v2 API で再現するパターン（DropOldest/Grow 等）と併存期間中の設定差異を整理したガイドを用意する。
 
 ### フェーズ5B: Mailbox 段階移行（リスク: 高, SP: 8）
 - 実装タスク（実装・検証）:
-  - [ ] `QueueMailbox<Q, S>` の内部ストレージを v1 `QueueRw` から v2 `SyncQueue` に置き換え、互換アダプタ経由で切り替えられるよう段階的にコードを実装する。
+  - [ ] `QueueMailbox` の内部ストレージを v1 `QueueRw` から v2 `SyncQueue` に差し替え、互換アダプタ経由で段階的に切り替えられるようコードを実装する。
   - [ ] Producer/Receiver 層を新しい `Result` / `OfferOutcome` / `PollOutcome` 仕様に合わせて実装し、失敗時のデッドレター送信・リトライ・ログをテストで保証する。
   - [ ] `QueueError` → `MailboxError` 変換テーブルを実装し、単体テストで網羅性と整合性を検証する。
   - [ ] `QueueMailbox` を利用する主要モジュール（scheduler、deadletter、priority mailbox 等）を影響の小さい順に差し替え、各ステップで `queue-v1` / `queue-v2` 両ビルドを確認する。
