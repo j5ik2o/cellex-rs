@@ -1,7 +1,7 @@
 use core::fmt;
 
 use cellex_actor_core_rs::api::{
-  mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+  mailbox::{error::MailboxError, queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{Element, QueueError};
@@ -46,6 +46,16 @@ where
   /// Returns `QueueError` if the queue is closed
   pub fn send(&self, message: M) -> Result<(), QueueError<M>> {
     self.inner.send(message)
+  }
+
+  /// MailboxError 版の非同期送信 API。
+  pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.try_send_mailbox(message)
+  }
+
+  /// MailboxError 版の同期送信 API。
+  pub fn send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.send_mailbox(message)
   }
 
   /// Returns a reference to the internal mailbox producer.

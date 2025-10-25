@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::{
   api::{
-    mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+    mailbox::{error::MailboxError, queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
     metrics::MetricsSinkShared,
   },
   shared::mailbox::messages::PriorityEnvelope,
@@ -67,5 +67,21 @@ where
   /// Updates the metrics sink associated with the producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.inner.set_metrics_sink(sink);
+  }
+
+  /// MailboxError 版の非同期送信 API。
+  pub fn try_send_mailbox(
+    &self,
+    envelope: PriorityEnvelope<M>,
+  ) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.inner.try_send_mailbox(envelope)
+  }
+
+  /// MailboxError 版の同期送信 API。
+  pub fn send_mailbox(
+    &self,
+    envelope: PriorityEnvelope<M>,
+  ) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.inner.send_mailbox(envelope)
   }
 }

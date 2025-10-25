@@ -1,6 +1,7 @@
 use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueSize};
 
 use super::{core::MailboxQueueCore, driver::MailboxQueueDriver, recv::QueueMailboxRecv};
+use crate::api::mailbox::error::MailboxError;
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
   mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxHandle, MailboxProducer, MailboxSignal},
@@ -38,6 +39,16 @@ impl<Q, S> QueueMailbox<Q, S> {
     QueueMailboxProducer::from_core(self.core.clone())
   }
 
+  /// Attempts to enqueue a message returning `MailboxError`.
+  pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
+  where
+    Q: MailboxQueueDriver<M>,
+    S: MailboxSignal,
+    M: Element,
+  {
+    self.core.try_send_mailbox(message)
+  }
+
   /// Configures a metrics sink used for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.core.set_metrics_sink(sink);
@@ -64,6 +75,16 @@ impl<Q, S> QueueMailbox<Q, S> {
     Q: MailboxQueueDriver<M>,
     M: Element, {
     self.core.capacity::<M>().to_usize()
+  }
+
+  /// Returns the mailbox receive future that yields `MailboxError` on failure.
+  pub fn recv_mailbox<'a, M>(&'a self) -> QueueMailboxRecv<'a, Q, S, M>
+  where
+    Q: MailboxQueueDriver<M>,
+    S: MailboxSignal,
+    M: Element,
+  {
+    QueueMailboxRecv::new(self)
   }
 }
 

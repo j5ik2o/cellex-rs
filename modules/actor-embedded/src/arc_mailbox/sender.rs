@@ -1,5 +1,5 @@
 use cellex_actor_core_rs::api::{
-  mailbox::{queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
+  mailbox::{error::MailboxError, queue_mailbox::LegacyQueueDriver, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element, QueueError};
@@ -30,6 +30,16 @@ where
   /// Sends a message, waiting for capacity when required.
   pub fn send(&self, message: M) -> Result<(), QueueError<M>> {
     self.inner.send(message)
+  }
+
+  /// Attempts to enqueue a message returning `MailboxError`.
+  pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.try_send_mailbox(message)
+  }
+
+  /// Sends a message returning `MailboxError`.
+  pub fn send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.send_mailbox(message)
   }
 
   /// Returns the underlying queue mailbox producer.

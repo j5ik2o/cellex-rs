@@ -1,5 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
+    error::MailboxError,
     queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
     Mailbox,
   },
@@ -109,5 +110,21 @@ where
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     tokio_queue::configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
+  }
+}
+
+impl<M> TokioMailbox<M>
+where
+  M: Element,
+  TokioQueue<M>: Clone,
+{
+  /// MailboxError 版の送信 API。
+  pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.try_send_mailbox(message)
+  }
+
+  /// MailboxError 版の待受 Future を返す補助メソッド。
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LegacyQueueDriver<TokioQueue<M>>, NotifySignal, M> {
+    self.inner.recv()
   }
 }

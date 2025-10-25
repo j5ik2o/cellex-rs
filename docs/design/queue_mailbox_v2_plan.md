@@ -107,6 +107,7 @@
 - `QueueMailboxRecv` は `PollOutcome` から `MailboxError` へ変換するヘルパを備え、`QueueError::Closed` や `Disconnected` を明示的に区別する。
 
 - 2025-10-25 実装状況: `api/mailbox/error.rs` を追加し、`MailboxQueueCore::try_send_mailbox` / `try_dequeue_mailbox` で利用できる `MailboxError` 変換を提供。互換用の `try_send` / `try_dequeue` は新エラーから `QueueError` へ再変換する構成とし、既存呼び出し元の挙動を維持したまま新エラー体系へ段階移行できるようにした。
+- 2025-10-25: Tokio / Priority / embedded 各ファサードの Mailbox / Sender に `try_send_mailbox` / `send_mailbox` / `recv_mailbox` を追加し、新エラー API を公開。従来の `QueueError` ベース API と並存させることで、呼び出し側を段階的に移行できる。
 
 ## 2025-10-25 追加メモ: queue-v1 / queue-v2 併存時のドライバ構成
 
