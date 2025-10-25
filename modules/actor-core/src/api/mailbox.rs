@@ -11,7 +11,7 @@ mod mailbox_concurrency;
 pub mod messages;
 /// Queue-based mailbox implementation
 pub mod queue_mailbox;
-/// Queue use cellex_actor_core_rs::api::mailbox::MailboxRuntime;
+/// Queue mailbox producer utilities shared across runtimes.
 mod queue_mailbox_producer;
 /// Single-threaded mailbox
 mod single_thread;

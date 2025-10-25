@@ -300,7 +300,7 @@
 - **Cargo 設定案**
   - `modules/utils-core`: `queue-v1`（旧 `collections::queue`）と `queue-v2`（`v2::collections::queue`）を排他にする `cfg` を追加。`default = ["alloc", "queue-v2"]` とし、後方互換ビルドでは `--no-default-features --features alloc,queue-v1` を使用。
   - `modules/actor-core`: 新フィーチャーを透過的に引き継ぐラッパー (`queue-v1` 有効時は旧 `TokioQueue` / `QueueRw`、`queue-v2` 有効時は `QueueRwCompat`) を `cfg(feature = "queue-v2")` で切り替える。`dev-dependencies` も同様に調整。
-  - `modules/actor-std` / `modules/actor-embedded`: MailboxRuntime 実装が直接 `QueueMailbox` を参照するため、それぞれ `queue-v1` / `queue-v2` を透過させ、`TokioQueue` など旧型を `#[cfg(feature = "queue-v1")]` で保持。
+  - `modules/actor-std` / `modules/actor-embedded`: MailboxFactory 実装が直接 `QueueMailbox` を参照するため、それぞれ `queue-v1` / `queue-v2` を透過させ、`TokioQueue` など旧型を `#[cfg(feature = "queue-v1")]` で保持。
   - ルート `Cargo.toml` には workspace フィーチャー `queue-v1-all` / `queue-v2-all` を追加し、CI から一括切り替えできるようにする。
 
 - **ビルド / テストマトリクス案**

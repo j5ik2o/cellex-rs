@@ -14,8 +14,7 @@ use crate::api::{
 };
 
 #[derive(Clone, Debug, Default)]
-/// Minimal use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used by unit tests to build
-/// queue-backed mailboxes.
+/// Minimal [`MailboxFactory`] implementation used by unit tests to build queue-backed mailboxes.
 pub struct TestMailboxFactory {
   capacity: Option<usize>,
 }

@@ -10,7 +10,7 @@ mod hw {
 
   use alloc_cortex_m::CortexMHeap;
   use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
-  use cellex_actor_embedded_rs::LocalMailboxRuntime;
+  use cellex_actor_embedded_rs::LocalMailboxFactory;
   use cortex_m::{asm, interrupt};
   use cortex_m_rt::entry;
   use embedded_hal::digital::v2::OutputPin;
@@ -71,7 +71,7 @@ mod hw {
       Rc::new(RefCell::new(pins.gpio25.into_function::<FunctionSioOutput>().into_push_pull_output()));
     let system_clock_hz = clocks.system_clock.freq().to_Hz();
 
-    let mut system = ActorSystem::new(LocalMailboxRuntime::default());
+    let mut system = ActorSystem::new(LocalMailboxFactory::default());
     let mut root = system.root_context();
 
     let behavior_led = led_pin.clone();
