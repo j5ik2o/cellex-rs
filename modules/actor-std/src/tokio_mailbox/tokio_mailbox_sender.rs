@@ -1,13 +1,21 @@
+#[cfg(not(feature = "queue-v2"))]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
+#[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
-  mailbox::{queue_mailbox::LegacyQueueDriver, MailboxError, QueueMailboxProducer},
+  mailbox::{queue_mailbox::MailboxQueueDriver, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_std_rs::{Element, QueueError};
 
-use super::{
-  notify_signal::NotifySignal,
-  tokio_queue::{self, TokioQueue},
-};
+use super::notify_signal::NotifySignal;
+#[cfg(not(feature = "queue-v2"))]
+use super::tokio_queue::{self, TokioQueue};
+
+#[cfg(feature = "queue-v2")]
+type TokioQueueDriver<M> = SyncQueueDriver<M>;
+#[cfg(not(feature = "queue-v2"))]
+type TokioQueueDriver<M> = LegacyQueueDriver<TokioQueue<M>>;
 
 /// Sender handle for Tokio mailbox
 ///
@@ -16,13 +24,13 @@ use super::{
 pub struct TokioMailboxSender<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailboxProducer<LegacyQueueDriver<TokioQueue<M>>, NotifySignal>,
+  pub(super) inner: QueueMailboxProducer<TokioQueueDriver<M>, NotifySignal>,
 }
 
 impl<M> TokioMailboxSender<M>
 where
   M: Element,
-  TokioQueue<M>: Clone,
+  TokioQueueDriver<M>: Clone,
 {
   /// Attempts to send a message (non-blocking)
   ///
@@ -67,13 +75,16 @@ where
   /// # Returns
   /// An immutable reference to the internal producer
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<LegacyQueueDriver<TokioQueue<M>>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<TokioQueueDriver<M>, NotifySignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    #[cfg(not(feature = "queue-v2"))]
     tokio_queue::configure_metrics(self.inner.queue(), sink.clone());
+    #[cfg(feature = "queue-v2")]
+    self.inner.queue().set_metrics_sink(sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 }

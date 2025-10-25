@@ -1,15 +1,22 @@
+#[cfg(not(feature = "queue-v2"))]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
+#[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{LegacyQueueDriver, QueueMailbox},
-  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
 };
-use cellex_utils_std_rs::Element;
+#[cfg(feature = "queue-v2")]
+use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
+use cellex_utils_std_rs::{Element, QueueSize};
 
-use super::{
-  notify_signal::NotifySignal,
-  tokio_mailbox_impl::TokioMailbox,
-  tokio_mailbox_sender::TokioMailboxSender,
-  tokio_queue::{create_tokio_queue, TokioQueue},
-};
+#[cfg(not(feature = "queue-v2"))]
+use super::tokio_queue::{create_tokio_queue, TokioQueue};
+use super::{notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender};
+
+#[cfg(feature = "queue-v2")]
+type TokioQueueDriver<M> = SyncQueueDriver<M>;
+#[cfg(not(feature = "queue-v2"))]
+type TokioQueueDriver<M> = LegacyQueueDriver<TokioQueue<M>>;
 
 /// Factory that creates Tokio mailboxes.
 ///
@@ -71,7 +78,7 @@ impl MailboxFactory for TokioMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = LegacyQueueDriver<TokioQueue<M>>
+    = TokioQueueDriver<M>
   where
     M: Element;
   type Signal = NotifySignal;
@@ -79,6 +86,12 @@ impl MailboxFactory for TokioMailboxFactory {
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
+    #[cfg(feature = "queue-v2")]
+    let queue = match options.capacity {
+      | QueueSize::Limitless | QueueSize::Limited(0) => SyncQueueDriver::unbounded(),
+      | QueueSize::Limited(capacity) => SyncQueueDriver::bounded(capacity, OverflowPolicy::Block),
+    };
+    #[cfg(not(feature = "queue-v2"))]
     let queue = LegacyQueueDriver::new(create_tokio_queue::<M>(options.capacity));
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);

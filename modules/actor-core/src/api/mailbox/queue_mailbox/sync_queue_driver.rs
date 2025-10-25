@@ -17,6 +17,10 @@ type Backend<M> = VecRingBackend<EntryShared<M>>;
 type Queue<M> = MpscQueue<EntryShared<M>, Backend<M>>;
 type MetricsBinding = ArcShared<SpinSyncMutex<Option<MetricsSinkShared>>>;
 
+#[cfg(test)]
+mod tests;
+
+#[derive(Clone, Copy)]
 enum CapacityModel {
   Bounded(usize),
   Unbounded,
@@ -34,17 +38,8 @@ impl<M> Clone for SyncQueueDriver<M> {
     let shared = self.queue.shared().clone();
     Self {
       queue:          MpscQueue::new(shared),
-      capacity_model: self.capacity_model.clone(),
+      capacity_model: self.capacity_model,
       metrics_sink:   self.metrics_sink.clone(),
-    }
-  }
-}
-
-impl Clone for CapacityModel {
-  fn clone(&self) -> Self {
-    match self {
-      | CapacityModel::Bounded(value) => CapacityModel::Bounded(*value),
-      | CapacityModel::Unbounded => CapacityModel::Unbounded,
     }
   }
 }

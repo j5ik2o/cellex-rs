@@ -1,6 +1,4 @@
 use cellex_actor_core_rs::api::metrics::MetricsSinkShared;
-#[cfg(feature = "queue-v2")]
-use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
 use cellex_utils_std_rs::{Element, QueueSize};
 
 #[cfg(feature = "queue-v1")]
@@ -111,29 +109,9 @@ where
   TokioQueue::with_capacity(size)
 }
 
-#[cfg(feature = "queue-v2")]
-pub(super) type TokioQueue<M> = cellex_actor_core_rs::shared::mailbox::queue_rw_compat::QueueRwCompat<M>;
-
-#[cfg(feature = "queue-v2")]
-pub(super) fn create_tokio_queue<M>(size: QueueSize) -> TokioQueue<M>
-where
-  M: Element, {
-  match size {
-    | QueueSize::Limitless | QueueSize::Limited(0) => TokioQueue::unbounded(),
-    | QueueSize::Limited(capacity) => TokioQueue::bounded(capacity, OverflowPolicy::Block),
-  }
-}
-
 #[cfg(feature = "queue-v1")]
 pub(super) fn configure_metrics<M>(queue: &TokioQueue<M>, sink: Option<MetricsSinkShared>)
 where
   M: Element, {
   let _ = (queue, sink);
-}
-
-#[cfg(feature = "queue-v2")]
-pub(super) fn configure_metrics<M>(queue: &TokioQueue<M>, sink: Option<MetricsSinkShared>)
-where
-  M: Element, {
-  queue.set_metrics_sink(sink);
 }

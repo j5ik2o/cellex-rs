@@ -1,18 +1,26 @@
+#[cfg(not(feature = "queue-v2"))]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
+#[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
+    queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
 };
 use cellex_utils_std_rs::{Element, QueueError, QueueSize};
 
+#[cfg(not(feature = "queue-v2"))]
+use super::tokio_queue::{self, TokioQueue};
 use super::{
-  notify_signal::NotifySignal,
-  tokio_mailbox_factory::TokioMailboxFactory,
-  tokio_mailbox_sender::TokioMailboxSender,
-  tokio_queue::{self, TokioQueue},
+  notify_signal::NotifySignal, tokio_mailbox_factory::TokioMailboxFactory, tokio_mailbox_sender::TokioMailboxSender,
 };
+
+#[cfg(feature = "queue-v2")]
+type TokioQueueDriver<M> = SyncQueueDriver<M>;
+#[cfg(not(feature = "queue-v2"))]
+type TokioQueueDriver<M> = LegacyQueueDriver<TokioQueue<M>>;
 
 /// Mailbox implementation for Tokio runtime
 ///
@@ -21,7 +29,7 @@ use super::{
 pub struct TokioMailbox<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailbox<LegacyQueueDriver<TokioQueue<M>>, NotifySignal>,
+  pub(super) inner: QueueMailbox<TokioQueueDriver<M>, NotifySignal>,
 }
 
 impl<M> TokioMailbox<M>
@@ -56,7 +64,7 @@ where
   #[must_use]
   pub fn producer(&self) -> TokioMailboxSender<M>
   where
-    TokioQueue<M>: Clone,
+    TokioQueueDriver<M>: Clone,
     NotifySignal: Clone, {
     TokioMailboxSender { inner: self.inner.producer() }
   }
@@ -66,7 +74,7 @@ where
   /// # Returns
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<LegacyQueueDriver<TokioQueue<M>>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailbox<TokioQueueDriver<M>, NotifySignal> {
     &self.inner
   }
 }
@@ -74,10 +82,10 @@ where
 impl<M> Mailbox<M> for TokioMailbox<M>
 where
   M: Element,
-  TokioQueue<M>: Clone,
+  TokioQueueDriver<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, LegacyQueueDriver<TokioQueue<M>>, NotifySignal, M>
+    = QueueMailboxRecv<'a, TokioQueueDriver<M>, NotifySignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -107,7 +115,10 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    #[cfg(not(feature = "queue-v2"))]
     tokio_queue::configure_metrics(self.inner.queue(), sink.clone());
+    #[cfg(feature = "queue-v2")]
+    self.inner.queue().set_metrics_sink(sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 }
@@ -115,7 +126,7 @@ where
 impl<M> TokioMailbox<M>
 where
   M: Element,
-  TokioQueue<M>: Clone,
+  TokioQueueDriver<M>: Clone,
 {
   /// Sends a message using the MailboxError-based API.
   pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
@@ -123,7 +134,7 @@ where
   }
 
   /// Returns the receive future when working with MailboxError-based semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LegacyQueueDriver<TokioQueue<M>>, NotifySignal, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, TokioQueueDriver<M>, NotifySignal, M> {
     self.inner.recv()
   }
 }

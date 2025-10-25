@@ -833,7 +833,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 
   block_on(scheduler.dispatch_next()).unwrap();
 
-  let envelope = parent_mailbox.queue().poll().unwrap().unwrap();
+  let envelope = parent_mailbox.try_dequeue().unwrap().unwrap();
   let (msg, _, channel) = envelope.into_parts_with_channel();
   assert_eq!(channel, PriorityChannel::Control);
   match msg.downcast::<MessageEnvelope<Message>>().expect("expected MessageEnvelope<Message> in parent mailbox") {

@@ -5,11 +5,12 @@ use cellex_utils_core_rs::Element;
 use cellex_utils_core_rs::MpscQueue;
 
 #[cfg(not(feature = "queue-v2"))]
+use crate::api::mailbox::queue_mailbox::LegacyQueueDriver;
+#[cfg(not(feature = "queue-v2"))]
 use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
 use crate::api::{
   mailbox::{
-    queue_mailbox::{LegacyQueueDriver, QueueMailbox},
-    MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+    queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
   },
   test_support::{common::TestQueue, test_signal::TestSignal},
 };
@@ -57,8 +58,14 @@ impl MailboxFactory for TestMailboxFactory {
     = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
   where
     M: Element;
+  #[cfg(not(feature = "queue-v2"))]
   type Queue<M>
     = LegacyQueueDriver<TestQueue<M>>
+  where
+    M: Element;
+  #[cfg(feature = "queue-v2")]
+  type Queue<M>
+    = TestQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -69,8 +76,8 @@ impl MailboxFactory for TestMailboxFactory {
     let capacity = self.resolve_capacity(options);
     #[cfg(feature = "queue-v2")]
     let queue = match capacity {
-      | Some(0) | None => LegacyQueueDriver::new(TestQueue::unbounded()),
-      | Some(limit) => LegacyQueueDriver::new(TestQueue::bounded(limit, OverflowPolicy::Block)),
+      | Some(0) | None => TestQueue::unbounded(),
+      | Some(limit) => TestQueue::bounded(limit, OverflowPolicy::Block),
     };
     #[cfg(not(feature = "queue-v2"))]
     let queue = LegacyQueueDriver::new(MpscQueue::new(SharedBackendHandle::new(capacity)));

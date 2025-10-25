@@ -8,8 +8,6 @@ use alloc::{
   vec::Vec,
 };
 
-#[cfg(feature = "queue-v2")]
-use cellex_utils_core_rs::QueueRw;
 use cellex_utils_core_rs::DEFAULT_PRIORITY;
 use spin::Mutex;
 
@@ -29,7 +27,7 @@ use crate::{
     test_support::TestMailboxFactory,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{handle::MailboxHandle, messages::PriorityEnvelope},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
@@ -56,12 +54,12 @@ fn guardian_sends_restart_message() {
   let parent_path = ActorPath::new();
   let (actor_id, _path) = guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
-  let first_envelope = mailbox.queue().poll().unwrap().unwrap();
+  let first_envelope = mailbox.try_dequeue().unwrap().unwrap();
   assert_eq!(extract_system(first_envelope.into_parts().0), SystemMessage::Watch(parent_id));
 
   assert!(guardian.notify_failure(actor_id, ActorFailure::from_message("panic")).unwrap().is_none());
 
-  let envelope = mailbox.queue().poll().unwrap().unwrap();
+  let envelope = mailbox.try_dequeue().unwrap().unwrap();
   let (message, priority, channel) = envelope.into_parts_with_channel();
   assert_eq!(extract_system(message), SystemMessage::Restart);
   assert!(priority > DEFAULT_PRIORITY);
@@ -88,12 +86,12 @@ fn guardian_sends_stop_message() {
   let parent_path = ActorPath::new();
   let (actor_id, _path) = guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
-  let watch_envelope = mailbox.queue().poll().unwrap().unwrap();
+  let watch_envelope = mailbox.try_dequeue().unwrap().unwrap();
   assert_eq!(extract_system(watch_envelope.into_parts().0), SystemMessage::Watch(parent_id));
 
   assert!(guardian.notify_failure(actor_id, ActorFailure::from_message("panic")).unwrap().is_none());
 
-  let envelope = mailbox.queue().poll().unwrap().unwrap();
+  let envelope = mailbox.try_dequeue().unwrap().unwrap();
   assert_eq!(extract_system(envelope.into_parts().0), SystemMessage::Stop);
 }
 
@@ -108,11 +106,11 @@ fn guardian_emits_unwatch_on_remove() {
   let (actor_id, _path) = guardian.register_child(ref_control, system_mapper(), Some(parent_id), &parent_path).unwrap();
 
   // consume watch message
-  let _ = mailbox.queue().poll().unwrap().unwrap();
+  let _ = mailbox.try_dequeue().unwrap().unwrap();
 
   let _ = guardian.remove_child(actor_id);
 
-  let envelope = mailbox.queue().poll().unwrap().unwrap();
+  let envelope = mailbox.try_dequeue().unwrap().unwrap();
   assert_eq!(extract_system(envelope.into_parts().0), SystemMessage::Unwatch(parent_id));
 }
 
