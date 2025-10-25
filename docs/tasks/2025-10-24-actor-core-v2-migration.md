@@ -381,6 +381,12 @@
 - `actor_scheduler` テストに `CompatMailboxFactory` を追加し、ReadyQueueScheduler 経由の結合テストで `MailboxDroppedOldest` / `MailboxDroppedNewest` が発火することを確認。Tokio 側の結合テストと合わせてメトリクス導線を網羅。
 - `./scripts/ci-check.sh all` を再実行し、メトリクス拡張後のワークスペースビルドと `dylint` チェックが完走することを確認。
 
+#### 進捗メモ（2025-10-25 作業ログ）
+- `QueueDriverConfig` / `build_queue_driver` を `queue_mailbox` モジュールに追加し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncQueueDriver` を共有設定から生成するよう統一。`queue-v1` では既存のレガシードライバ経路を維持。
+- `queue_mailbox/tests.rs` に `ErrorDriver` を用いたユニットテストを追加し、`MailboxQueueCore::convert_queue_error` が `DropOldest` / `Backpressure` / `ResourceExhausted` / `Internal` を正しく `MailboxError` へ写像することを確認。従来の `DropNewest` / `Block` 観点と合わせてエラー網羅率を引き上げた。
+- `./scripts/ci-check.sh all`（2025-10-25 実行）でワークスペース全体のフォーマット・ビルド・テスト・dylint が完走したことを確認。コマンド出力は `target/` 配下に保持している。
+- 次フェーズでは `QueueMailbox::new` 呼び出し元（Tokio/embedded/test_support 等）へドライバ DI を広げつつ、`QueueMailboxProducer` / `QueueMailboxRecv` の `OfferOutcome` / `PollOutcome` 対応リライトとデッドレター挙動の回帰確認を優先する。
+
 ### フェーズ5A: Mailbox 基盤再設計（リスク: 高, SP: 8）
 - 事前分析（実装開始前に全項目を完了すること）:
   - [x] `modules/actor-core/src/api/mailbox/queue_mailbox/base.rs` と `queue_mailbox/recv.rs`, `queue_mailbox_producer.rs` を読み込み、`QueueRw` メソッドと戻り値の利用箇所（特に `unwrap` / `expect`）を洗い出す。
@@ -405,8 +411,18 @@
 
 ### フェーズ5B: Mailbox 段階移行（リスク: 高, SP: 8）
 - 実装タスク（実装・検証）:
-  - [ ] `QueueMailbox` の内部ストレージを v1 `QueueRw` から v2 `SyncQueue` に差し替え、互換アダプタ経由で段階的に切り替えられるようコードを実装する。
-  - [ ] Producer/Receiver 層を新しい `Result` / `OfferOutcome` / `PollOutcome` 仕様に合わせて実装し、失敗時のデッドレター送信・リトライ・ログをテストで保証する。
+  - [ ] `QueueMailbox` の内部ストレージを v1 `QueueRw` から v2 `SyncQueue` に差し替え、互換アダプタ経由で段階的に切り替えられるようコードを実装する。※ queue-v2: Test/Tokio ファクトリ完了、embedded 系のドライバ DI 移行を進行中
+  - [ ] Producer/Receiver 層を新しい `Result` / `OfferOutcome` / `PollOutcome` 仕様に合わせて実装し、失敗時のデッドレター送信・リトライ・ログをテストで保証する。※ MailboxError 変換テスト追加済み、本体リライトとデッドレター検証は未着手
+
+#### 進捗状況（2025-10-25 時点）
+- **QueueMailbox のコア差し替え本体**  
+  - `QueueDriverConfig` / `build_queue_driver` を導入し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncQueueDriver` を共通生成する構成へ移行済み。  
+  - embedded 系では `ArcMailboxFactory` / `LocalMailboxFactory` を `SyncQueueDriver` 利用へ切り替え、`queue-v1` フィーチャ時のみレガシードライバを保持。priority mailbox 系と `QueueRwCompat` を利用する経路の整理が残タスク。
+- **Producer/Receiver 層 OfferOutcome/PollOutcome 対応 & エラー網羅テスト**  
+  - `QueueMailbox` 経由のユニットテストを追加し、`DropNewest`/`DropOldest`/`Block` に加えて `Backpressure`・`ResourceExhausted`・`Internal` を `MailboxError` へ変換する経路を網羅。  
+  - Producer / Receiver 本体のリライトおよびデッドレター・ログ検証は未着手。
+- **全体テスト・CI とドキュメント更新**  
+  - `./scripts/ci-check.sh all` を 2025-10-25 時点のコードで完走させ本節へ反映済み。今後も各サブタスク完了時に更新する。
   - [x] `QueueError` → `MailboxError` 変換テーブルを実装し、単体テストで網羅性と整合性を検証する。
     - 2025-10-25: `api/mailbox/error.rs` に `MailboxError` / `MailboxOverflowPolicy` を追加し、`MailboxQueueCore::try_send_mailbox` / `try_dequeue_mailbox` で利用できる変換ヘルパを実装。既存 API 互換のため `QueueError` への逆変換も提供し、段階移行中は従来の `try_send` / `try_dequeue` が新エラーから再構築する形を採用した。
     - 2025-10-25: Tokio／Priority／embedded の各 Mailbox + Sender に `*_mailbox` 系 API を追加し、QueueError ベースの旧メソッドと併存する形で新エラー体系を露出。既存呼び出しコードに影響を与えずに新 API を段階導入できる状態を整備。

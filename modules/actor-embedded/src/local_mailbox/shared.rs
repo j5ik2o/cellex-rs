@@ -1,43 +1,47 @@
 use core::task::Waker;
 
-#[cfg(not(feature = "embedded_rc"))]
+#[cfg(all(not(feature = "embedded_rc"), not(feature = "queue-v2")))]
 use cellex_utils_embedded_rs::collections::queue::mpsc::ArcLocalMpscUnboundedQueue;
-#[cfg(feature = "embedded_rc")]
+#[cfg(all(feature = "embedded_rc", not(feature = "queue-v2")))]
 use cellex_utils_embedded_rs::collections::queue::mpsc::RcMpscUnboundedQueue;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+#[cfg(all(feature = "embedded_rc", not(feature = "queue-v2")))]
+use cellex_utils_embedded_rs::sync::RcShared;
 #[cfg(feature = "embedded_rc")]
-use cellex_utils_embedded_rs::sync::{RcShared, RcStateCell};
-use cellex_utils_embedded_rs::{Element, StateCell};
+use cellex_utils_embedded_rs::sync::RcStateCell;
+#[cfg(not(feature = "queue-v2"))]
+use cellex_utils_embedded_rs::Element;
+use cellex_utils_embedded_rs::StateCell;
 
-#[cfg(feature = "embedded_rc")]
+#[cfg(all(feature = "embedded_rc", not(feature = "queue-v2")))]
 pub(super) type LocalQueueInner<M> = RcShared<RcMpscUnboundedQueue<M>>;
 
-#[cfg(not(feature = "embedded_rc"))]
+#[cfg(all(not(feature = "embedded_rc"), not(feature = "queue-v2")))]
 pub(super) type LocalQueueInner<M> = ArcLocalMpscUnboundedQueue<M>;
 
-#[cfg(feature = "embedded_rc")]
+#[cfg(all(feature = "embedded_rc", not(feature = "queue-v2")))]
 pub(super) fn new_queue<M>() -> LocalQueueInner<M>
 where
   M: Element, {
   RcShared::new(RcMpscUnboundedQueue::new())
 }
 
-#[cfg(not(feature = "embedded_rc"))]
+#[cfg(all(not(feature = "embedded_rc"), not(feature = "queue-v2")))]
 pub(super) fn new_queue<M>() -> LocalQueueInner<M>
 where
   M: Element, {
   ArcLocalMpscUnboundedQueue::new()
 }
 
-#[cfg(feature = "embedded_rc")]
+#[cfg(all(feature = "embedded_rc", not(feature = "queue-v2")))]
 pub(super) fn clone_queue<M>(inner: &LocalQueueInner<M>) -> LocalQueueInner<M>
 where
   M: Element, {
   inner.clone()
 }
 
-#[cfg(not(feature = "embedded_rc"))]
+#[cfg(all(not(feature = "embedded_rc"), not(feature = "queue-v2")))]
 pub(super) fn clone_queue<M>(inner: &LocalQueueInner<M>) -> LocalQueueInner<M>
 where
   M: Element, {

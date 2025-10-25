@@ -1,18 +1,28 @@
 use core::fmt;
 
+#[cfg(not(feature = "queue-v2"))]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
+#[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{LegacyQueueDriver, QueueMailbox, QueueMailboxRecv},
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
 
+#[cfg(not(feature = "queue-v2"))]
+use super::local_queue::LocalQueue;
 use super::{
-  local_mailbox_factory::LocalMailboxFactory, local_mailbox_sender::LocalMailboxSender, local_queue::LocalQueue,
-  local_signal::LocalSignal,
+  local_mailbox_factory::LocalMailboxFactory, local_mailbox_sender::LocalMailboxSender, local_signal::LocalSignal,
 };
+
+#[cfg(feature = "queue-v2")]
+type LocalMailboxQueue<M> = SyncQueueDriver<M>;
+#[cfg(not(feature = "queue-v2"))]
+type LocalMailboxQueue<M> = LegacyQueueDriver<LocalQueue<M>>;
 
 /// Asynchronous mailbox for local thread.
 ///
@@ -20,13 +30,13 @@ use super::{
 pub struct LocalMailbox<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailbox<LegacyQueueDriver<LocalQueue<M>>, LocalSignal>,
+  pub(super) inner: QueueMailbox<LocalMailboxQueue<M>, LocalSignal>,
 }
 
 impl<M> LocalMailbox<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   /// Creates a new mailbox pair with default settings.
   ///
@@ -56,7 +66,7 @@ where
   ///
   /// A reference to the `QueueMailbox`
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<LegacyQueueDriver<LocalQueue<M>>, LocalSignal> {
+  pub const fn inner(&self) -> &QueueMailbox<LocalMailboxQueue<M>, LocalSignal> {
     &self.inner
   }
 
@@ -69,10 +79,10 @@ where
 impl<M> Mailbox<M> for LocalMailbox<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, LegacyQueueDriver<LocalQueue<M>>, LocalSignal, M>
+    = QueueMailboxRecv<'a, LocalMailboxQueue<M>, LocalSignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -109,7 +119,7 @@ where
 impl<M> LocalMailbox<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   /// Sends a message using the MailboxError-based API.
   pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
@@ -117,7 +127,7 @@ where
   }
 
   /// Returns the receive future when operating with MailboxError semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LegacyQueueDriver<LocalQueue<M>>, LocalSignal, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LocalMailboxQueue<M>, LocalSignal, M> {
     self.inner.recv()
   }
 }
@@ -125,7 +135,7 @@ where
 impl<M> Clone for LocalMailbox<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   fn clone(&self) -> Self {
     Self { inner: self.inner.clone() }

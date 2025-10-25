@@ -1,12 +1,11 @@
 #[cfg(not(feature = "queue-v2"))]
 use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
 #[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig, SyncQueueDriver};
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair,
+  QueueMailboxProducer, ThreadSafe,
 };
-#[cfg(feature = "queue-v2")]
-use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
 use cellex_utils_std_rs::{Element, QueueSize};
 
 #[cfg(not(feature = "queue-v2"))]
@@ -87,9 +86,13 @@ impl MailboxFactory for TokioMailboxFactory {
   where
     M: Element, {
     #[cfg(feature = "queue-v2")]
-    let queue = match options.capacity {
-      | QueueSize::Limitless | QueueSize::Limited(0) => SyncQueueDriver::unbounded(),
-      | QueueSize::Limited(capacity) => SyncQueueDriver::bounded(capacity, OverflowPolicy::Block),
+    let queue = {
+      let capacity_size = match options.capacity {
+        | QueueSize::Limitless | QueueSize::Limited(0) => QueueSize::limitless(),
+        | QueueSize::Limited(capacity) => QueueSize::limited(capacity),
+      };
+      let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
+      build_queue_driver::<M>(config)
     };
     #[cfg(not(feature = "queue-v2"))]
     let queue = LegacyQueueDriver::new(create_tokio_queue::<M>(options.capacity));

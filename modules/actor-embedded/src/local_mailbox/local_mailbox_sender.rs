@@ -1,12 +1,23 @@
 use core::fmt;
 
+#[cfg(not(feature = "queue-v2"))]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
+#[cfg(feature = "queue-v2")]
+use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
-  mailbox::{queue_mailbox::LegacyQueueDriver, MailboxError, QueueMailboxProducer},
+  mailbox::{MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{Element, QueueError};
 
-use super::{local_queue::LocalQueue, local_signal::LocalSignal};
+#[cfg(not(feature = "queue-v2"))]
+use super::local_queue::LocalQueue;
+use super::local_signal::LocalSignal;
+
+#[cfg(feature = "queue-v2")]
+type LocalMailboxQueue<M> = SyncQueueDriver<M>;
+#[cfg(not(feature = "queue-v2"))]
+type LocalMailboxQueue<M> = LegacyQueueDriver<LocalQueue<M>>;
 
 /// Message sender to `LocalMailbox`.
 ///
@@ -14,13 +25,13 @@ use super::{local_queue::LocalQueue, local_signal::LocalSignal};
 pub struct LocalMailboxSender<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailboxProducer<LegacyQueueDriver<LocalQueue<M>>, LocalSignal>,
+  pub(super) inner: QueueMailboxProducer<LocalMailboxQueue<M>, LocalSignal>,
 }
 
 impl<M> LocalMailboxSender<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   /// Sends a message immediately (non-blocking).
   ///
@@ -64,7 +75,7 @@ where
   ///
   /// A reference to the `QueueMailboxProducer`
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<LegacyQueueDriver<LocalQueue<M>>, LocalSignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<LocalMailboxQueue<M>, LocalSignal> {
     &self.inner
   }
 
@@ -77,7 +88,7 @@ where
 impl<M> Clone for LocalMailboxSender<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   fn clone(&self) -> Self {
     Self { inner: self.inner.clone() }

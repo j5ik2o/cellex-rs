@@ -1,18 +1,23 @@
-#[cfg(feature = "queue-v2")]
-use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
 use cellex_utils_core_rs::Element;
 #[cfg(not(feature = "queue-v2"))]
 use cellex_utils_core_rs::MpscQueue;
+#[cfg(feature = "queue-v2")]
+use cellex_utils_core_rs::QueueSize;
 
 #[cfg(not(feature = "queue-v2"))]
 use crate::api::mailbox::queue_mailbox::LegacyQueueDriver;
+#[cfg(feature = "queue-v2")]
+use crate::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig, SyncQueueDriver};
+#[cfg(not(feature = "queue-v2"))]
+use crate::api::test_support::common::TestQueue;
 #[cfg(not(feature = "queue-v2"))]
 use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
 use crate::api::{
   mailbox::{
-    queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+    queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair,
+    QueueMailboxProducer, ThreadSafe,
   },
-  test_support::{common::TestQueue, test_signal::TestSignal},
+  test_support::test_signal::TestSignal,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -65,7 +70,7 @@ impl MailboxFactory for TestMailboxFactory {
     M: Element;
   #[cfg(feature = "queue-v2")]
   type Queue<M>
-    = TestQueue<M>
+    = SyncQueueDriver<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -75,9 +80,13 @@ impl MailboxFactory for TestMailboxFactory {
     M: Element, {
     let capacity = self.resolve_capacity(options);
     #[cfg(feature = "queue-v2")]
-    let queue = match capacity {
-      | Some(0) | None => TestQueue::unbounded(),
-      | Some(limit) => TestQueue::bounded(limit, OverflowPolicy::Block),
+    let queue = {
+      let capacity_size = match capacity {
+        | Some(0) | None => QueueSize::limitless(),
+        | Some(limit) => QueueSize::limited(limit),
+      };
+      let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
+      build_queue_driver::<M>(config)
     };
     #[cfg(not(feature = "queue-v2"))]
     let queue = LegacyQueueDriver::new(MpscQueue::new(SharedBackendHandle::new(capacity)));
