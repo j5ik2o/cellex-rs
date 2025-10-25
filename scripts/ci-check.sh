@@ -22,6 +22,7 @@ usage() {
   std                    : std フィーチャーでのテストを実行します
   doc                    : ドキュメントテストを test-support フィーチャー付きで実行します
   embedded / embassy     : embedded 系 (utils / actor) のチェックとテストを実行します
+  queue                  : queue-v1 フィーチャー構成でのリグレッションテストを実行します
   test                   : ワークスペース全体のテストを実行します
   all                    : 上記すべてを順番に実行します (引数なし時と同じ)
 複数指定で部分実行が可能です (例: scripts/ci-check.sh lint dylint module-wiring-lint)
@@ -474,6 +475,20 @@ run_embedded() {
   done
 }
 
+run_queue_regression() {
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs --no-default-features --features alloc,queue-v1"
+  run_cargo test -p cellex-utils-core-rs --no-default-features --features alloc,queue-v1 || return 1
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1,unwind-supervision"
+  run_cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1,unwind-supervision || return 1
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-std-rs --no-default-features --features queue-v1"
+  run_cargo test -p cellex-utils-std-rs --no-default-features --features queue-v1 || return 1
+
+  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-std-rs --no-default-features --features queue-v1,rt-multi-thread"
+  run_cargo test -p cellex-actor-std-rs --no-default-features --features queue-v1,rt-multi-thread || return 1
+}
+
 run_tests() {
   log_step "cargo +${DEFAULT_TOOLCHAIN} test --workspace --verbose --lib --bins --tests --benches --examples"
   run_cargo test --workspace --verbose --lib --bins --tests --benches --examples || return 1
@@ -484,6 +499,7 @@ run_all() {
   run_dylint || return 1
   run_no_std || return 1
   run_std || return 1
+  run_queue_regression || return 1
   run_doc_tests || return 1
   run_embedded || return 1
   run_tests || return 1
@@ -564,6 +580,10 @@ main() {
         ;;
       embedded|embassy)
         run_embedded || return 1
+        shift
+        ;;
+      queue|queues)
+        run_queue_regression || return 1
         shift
         ;;
       test|tests|workspace)
