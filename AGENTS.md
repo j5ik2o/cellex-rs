@@ -10,7 +10,7 @@
     - 既存の多くの実装を参考にして、一貫性のあるコードを書くこと
     - protoactor-go(@docs/sources/protoactor-go)の実装を参考にすること（Goの実装からRustイディオムに変換）
     - pekko/akkaもよく話題でるの、https://github.com/apache/pekko を参照すること
-- 旧実装は `docs/sources/nexus-actor-rs/` に参照用として退避済み。再設計中は参照のみとし、新コードは Shared 抽象／async モデル案に基づいて構築する
+- 旧実装は `docs/sources/nexus-actor-rs/` に参照用として退避済み。
 - ランタイム本体で `#[cfg(feature = "std")]` による機能分岐を入れないこと（テストコード内での使用は許容）
 - **後方互換性**: 後方互換は不要（破壊的変更を恐れずに最適な設計を追求すること）
 - **リリース状況**: まだ正式リリース前の開発フェーズ。必要であれば破壊的変更を歓迎し、最適な設計を優先すること。
