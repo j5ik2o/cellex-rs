@@ -1,0 +1,34 @@
+name: Claude Code Action
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+  issue_comment:
+    types:
+      - created
+      - edited
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  claude:
+    name: Run Claude Code Action
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke Claude Code Action
+        uses: anthropic/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_model: claude-3-5-sonnet-20241022
+          default_temperature: "0.2"
+          default_max_output_tokens: "4096"
