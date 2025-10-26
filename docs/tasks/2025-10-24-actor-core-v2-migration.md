@@ -484,11 +484,10 @@
 - 各サブモジュール移行後に専用のユニットテスト・結合テストを追加し、メッセージロストや優先度挙動を直接検証する。
 - ベンチマーク結果が規定値を超える場合は直ちにフィーチャーフラグで旧実装へ戻せるようにし、原因切り分けを行う。
 
-### フェーズ6: テスト移行（リスク: 中, SP: 5）
-- [ ] フェーズ1で分類した優先度（クリティカルパス→エッジケース→性能）順にテストを書き換え、各ステージ毎に CI を回して段階的に確認する。
-- [ ] Tokio 系テストを v2 API 対応へ書き換え、`#[tokio::test(flavor = "multi_thread")]` 等の実行形態を再評価する（必要に応じて `worker_threads` を明記）。
-- [ ] Embedded 向けテストの feature gating を見直し、`cargo check -p cellex-actor-core-rs --target thumbv6m-none-eabi --no-default-features --features embedded,queue-v2` と `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi --no-default-features --features embedded,queue-v2` を実行して結果を記録する。
-- [ ] `cargo test -p cellex-actor-core-rs --tests`, `makers ci-check`, `./scripts/ci-check.sh all` を移行段階ごとに実行するスケジュールを定義し、CI ワークフローへの追加（v2 フラグ付きのジョブ）を検討する。
+### フェーズ6: テスト移行（queue-v1 退役準備、リスク: 中, SP: 5）
+- [ ] queue-v1 依存テストを `integration/legacy_queue_v1/` 相当へ集約し、`#[cfg(feature = "queue-v1")]` 付きの最小回帰セットのみに圧縮する。Tokio / Embedded 本線のテストは queue-v2 のみで完結させ、`queue-v1` を切っても CI が通る状態を確認する。
+- [ ] `QueueRwCompat` を利用している主要経路（Tokio priority mailbox、actor scheduler など）を順次 `SyncQueueDriver` ベースへ置き換え、互換レイヤーの利用範囲をテスト専用に絞る。
+- [ ] queue-v1 退役チェックリストを整備し、CI での queue-v1 ジョブを徐々にオプショナル扱いへ移行する準備（`scripts/ci-check.sh` / GitHub Actions 更新、ドキュメント周知）を完了させる。
 
 #### テスト棚卸 (2025-10-25 時点)
 - **クリティカルパス**  
