@@ -22,9 +22,11 @@ usage() {
   std                    : std フィーチャーでのテストを実行します
   doc                    : ドキュメントテストを test-support フィーチャー付きで実行します
   embedded / embassy     : embedded 系 (utils / actor) のチェックとテストを実行します
-  queue                  : queue-v1 フィーチャー構成でのリグレッションテストを実行します
+ queue                  : queue-v1 フィーチャー構成でのリグレッションテストを実行します
   test                   : ワークスペース全体のテストを実行します
   all                    : 上記すべてを順番に実行します (引数なし時と同じ)
+                           ※ queue-v1 リグレッションはデフォルトでスキップされます。実行したい場合は
+                              CI_INCLUDE_QUEUE_V1=1 を環境変数に設定してください。
 複数指定で部分実行が可能です (例: scripts/ci-check.sh lint dylint module-wiring-lint)
 EOF
 }
@@ -502,7 +504,11 @@ run_all() {
   run_dylint || return 1
   run_no_std || return 1
   run_std || return 1
-  run_queue_regression || return 1
+  if [[ "${CI_INCLUDE_QUEUE_V1:-0}" == "1" ]]; then
+    run_queue_regression || return 1
+  else
+    log_step "queue-v1 regression skipped (set CI_INCLUDE_QUEUE_V1=1 to enable)"
+  fi
   run_doc_tests || return 1
   run_embedded || return 1
   run_tests || return 1

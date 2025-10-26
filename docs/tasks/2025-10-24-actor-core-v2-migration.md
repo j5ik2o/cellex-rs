@@ -492,6 +492,12 @@
   - 2025-10-26: `modules/actor-core/src/tests.rs` から `#[cfg(feature = "queue-v1")] mod legacy_queue_v1;` を追加し、`PriorityActorRef` 系の queue-v1 回帰テストをモジュール配下へ移設。`ActorProcessRegistry` 型エイリアスと `Shared` トレイト導入でビルドエラーを解消し、`cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1 legacy_queue_v1` が 4 ケース成功することを確認。
   - 2025-10-26: `./scripts/ci-check.sh all` を実行し、queue-v1/queue-v2 混在構成でも lint / test / クロスチェックを含めてグリーンで完走することを再確認（thumbv6m / thumbv8m ターゲット含む）。
 - [x] `QueueRwCompat` を利用している主要経路（Tokio priority mailbox、actor scheduler など）を順次 `SyncQueueDriver` ベースへ置き換え、互換レイヤーの利用範囲をテスト専用に絞る（2025-10-26 に互換レイヤー自体を撤去済み）。
+- [ ] queue-v1 退役チェックリスト（進捗）
+  - [ ] CI ジョブを環境変数（例: `CI_INCLUDE_QUEUE_V1`) で opt-in できるよう調整し、デフォルトでは queue-v1 リグレッションをスキップする。
+  - [ ] `./scripts/ci-check.sh queue` 経由での手動実行手順をドキュメント化し、退役完了まで週次で実行するスケジュールを決める。
+  - [ ] GitHub Actions ワークフローに queue-v1 ジョブを optional （workflow_dispatch / 手動トリガー）として追加し、定期実行を停止する。
+  - [ ] queue-v1 向けテストセット（`legacy_queue_v1.rs` など）の最終削除条件と担当者を定義し、リリースノート案に破壊的変更として追記する。
+  - [ ] queue-v1 退役判定時に必要なメトリクス／回帰項目（dead letter, metrics sink, cross build）の最終チェック項目を表形式でまとめる。
 - [ ] queue-v1 退役チェックリストを整備し、CI での queue-v1 ジョブを徐々にオプショナル扱いへ移行する準備（`scripts/ci-check.sh` / GitHub Actions 更新、ドキュメント周知）を完了させる。
 
 #### テスト棚卸 (2025-10-25 時点)
