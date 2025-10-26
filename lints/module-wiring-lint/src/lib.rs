@@ -16,6 +16,7 @@ use rustc_hir::{
 use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::ty::Visibility;
 use rustc_span::{symbol::Symbol, Span};
+use std::sync::OnceLock;
 
 dylint_linting::impl_late_lint! {
   pub NO_PARENT_REEXPORT,
@@ -50,12 +51,12 @@ impl NoParentReexport {
       return;
     }
 
-    if module_name.as_str() == "prelude" {
+    let module = LocalModDefId::new_unchecked(item.owner_id.def_id);
+    if allow_prelude_reexports() && (module_name.as_str() == "prelude" || self.is_within_prelude_scope(cx, module)) {
       return;
     }
 
     // `mod foo { ... }` も `mod foo;` も対象とし、末端モジュールのみ判定する
-    let module = LocalModDefId::new_unchecked(item.owner_id.def_id);
     if !self.is_leaf(cx, module) {
       return;
     }
@@ -87,6 +88,20 @@ impl NoParentReexport {
     self.emit_leaf_mod_visibility_violation(cx, item.span, &detail);
   }
 
+  fn is_within_prelude_scope(&self, cx: &LateContext<'_>, mut module: LocalModDefId) -> bool {
+    loop {
+      if is_prelude_module(cx, module.to_def_id()) {
+        return true;
+      }
+      let parent = cx.tcx.parent_module_from_def_id(module.to_local_def_id());
+      if parent == module {
+        break;
+      }
+      module = parent;
+    }
+    false
+  }
+
   fn evaluate_use<'tcx>(&mut self, cx: &LateContext<'tcx>, item: &Item<'tcx>, path: &hir::UsePath<'tcx>, kind: UseKind) {
     if !is_public_use(cx, item) {
       return;
@@ -98,63 +113,31 @@ impl NoParentReexport {
 
     let current_mod = cx.tcx.parent_module_from_def_id(item.owner_id.def_id);
 
-    if is_prelude_module(cx, current_mod.to_def_id()) {
+    if allow_prelude_reexports() && is_prelude_module(cx, current_mod.to_def_id()) {
       return;
     }
 
-    let binding_ident = match kind {
-      | UseKind::Single(ident) => Some(ident.name),
-      | UseKind::Glob => None,
+    match kind {
       | UseKind::ListStem => {
-        return;
+        let mut base_segments: Vec<_> = path.segments.iter().map(|seg| seg.ident.name).collect();
+        let Ok(snippet) = cx.tcx.sess.source_map().span_to_snippet(item.span) else {
+          return;
+        };
+        if base_segments.is_empty() {
+          base_segments = parse_prefix_segments(&snippet);
+        }
+        for entry in self.expand_list_use(cx, item, &base_segments, &snippet) {
+          self.handle_use_segments(cx, item, &entry.segments, entry.binding_ident);
+        }
       },
-    };
-
-    let Some(first_segment) = path.segments.first() else {
-      return;
-    };
-
-    if binding_ident.is_some() && path.segments.len() < 2 {
-      self.emit_violation(cx, item.span, RuleLabel::Principle, "子モジュールを介さない再エクスポートは許可されていません", Some("末端モジュールにシンボルを配置し、親から `pub use child::Type;` として公開してください"));
-      return;
-    }
-
-    if is_special_segment(first_segment.ident.name) {
-      self.emit_violation(cx, item.span, RuleLabel::Principle, "特殊パス（self / super / crate）を経由した再エクスポートは禁止されています", Some("末端モジュールの直属親からのみ再エクスポートしてください"));
-      return;
-    }
-
-    if let (Some(last_segment), Some(binding_name)) = (path.segments.last(), binding_ident) {
-      if binding_name != last_segment.ident.name {
-        self.emit_violation(
-          cx,
-          item.span,
-          RuleLabel::Exception,
-          "`as` を用いた再エクスポートは許可されていません",
-          Some("末端モジュール内で元の名前を公開するか、呼び出し側で名前を付け替えてください"),
-        );
-        return;
-      }
-    }
-
-    let child_name = first_segment.ident.name;
-
-    let Some(child_mod) = self.find_direct_child_module(cx, current_mod, child_name) else {
-      let detail = format!("モジュール `{}` はこのモジュールの直属の子として定義されていません", child_name.as_str());
-      self.emit_violation(cx, item.span, RuleLabel::Principle, &detail, Some("`mod child;` を定義した親モジュール内でのみ `pub use child::Type;` を記述してください"));
-      return;
-    };
-
-    if !self.is_leaf(cx, child_mod) {
-      let detail = format!("モジュール `{}` にさらに子モジュールが存在するため末端モジュールではありません", child_name.as_str());
-      self.emit_violation(
-        cx,
-        item.span,
-        RuleLabel::Exception,
-        &detail,
-        Some("再エクスポートは葉モジュールの直属親でのみ行い、階層が深い場合は子モジュール側で公開してください"),
-      );
-      return;
+      | UseKind::Single(ident) => {
+        let segments: Vec<_> = path.segments.iter().map(|seg| seg.ident.name).collect();
+        self.handle_use_segments(cx, item, &segments, Some(ident.name));
+      },
+      | UseKind::Glob => {
+        let segments: Vec<_> = path.segments.iter().map(|seg| seg.ident.name).collect();
+        self.handle_use_segments(cx, item, &segments, None);
+      },
     }
   }
 
@@ -215,6 +198,159 @@ impl NoParentReexport {
   }
 }
 
+struct ListEntry {
+  segments: Vec<Symbol>,
+  binding_ident: Option<Symbol>,
+}
+
+impl NoParentReexport {
+  fn handle_use_segments<'tcx>(
+    &mut self,
+    cx: &LateContext<'tcx>,
+    item: &Item<'tcx>,
+    segments: &[Symbol],
+    binding_ident: Option<Symbol>,
+  ) {
+    if segments.is_empty() {
+      return;
+    }
+
+    if binding_ident.is_some() && segments.len() < 2 {
+      self.emit_violation(
+        cx,
+        item.span,
+        RuleLabel::Principle,
+        "子モジュールを介さない再エクスポートは許可されていません",
+        Some("末端モジュールにシンボルを配置し、親から `pub use child::Type;` として公開してください"),
+      );
+      return;
+    }
+
+    let first_segment = segments[0];
+    if first_segment.as_str() == "prelude" {
+      if allow_prelude_reexports() {
+        return;
+      }
+      self.emit_violation(
+        cx,
+        item.span,
+        RuleLabel::Principle,
+        "prelude モジュールからの再エクスポートは無効化されています",
+        Some("プレリュードではなく対象モジュールの直属親から公開してください"),
+      );
+      return;
+    }
+    if is_special_segment(first_segment) {
+      self.emit_violation(
+        cx,
+        item.span,
+        RuleLabel::Principle,
+        "特殊パス（self / super / crate）を経由した再エクスポートは禁止されています",
+        Some("末端モジュールの直属親からのみ再エクスポートしてください"),
+      );
+      return;
+    }
+
+    if let (Some(last), Some(binding)) = (segments.last(), binding_ident) {
+      if binding != *last {
+        self.emit_violation(
+          cx,
+          item.span,
+          RuleLabel::Exception,
+          "`as` を用いた再エクスポートは許可されていません",
+          Some("末端モジュール内で元の名前を公開するか、呼び出し側で名前を付け替えてください"),
+        );
+        return;
+      }
+    }
+
+    let current_mod = cx.tcx.parent_module_from_def_id(item.owner_id.def_id);
+    let Some(child_mod) = self.find_direct_child_module(cx, current_mod, first_segment) else {
+      let detail = format!("モジュール `{}` はこのモジュールの直属の子として定義されていません", first_segment.as_str());
+      self.emit_violation(
+        cx,
+        item.span,
+        RuleLabel::Principle,
+        &detail,
+        Some("`mod child;` を定義した親モジュール内でのみ `pub use child::Type;` を記述してください"),
+      );
+      return;
+    };
+
+    if !self.is_leaf(cx, child_mod) {
+      let detail = format!("モジュール `{}` にさらに子モジュールが存在するため末端モジュールではありません", first_segment.as_str());
+      self.emit_violation(
+        cx,
+        item.span,
+        RuleLabel::Exception,
+        &detail,
+        Some("再エクスポートは葉モジュールの直属親でのみ行い、階層が深い場合は子モジュール側で公開してください"),
+      );
+      return;
+    }
+  }
+
+  fn expand_list_use<'tcx>(
+    &mut self,
+    _cx: &LateContext<'tcx>,
+    _item: &Item<'tcx>,
+    base_segments: &[Symbol],
+    snippet: &str,
+  ) -> Vec<ListEntry> {
+    let mut entries = Vec::new();
+    let Some(start) = snippet.find('{') else {
+      return entries;
+    };
+    let Some(end) = snippet.rfind('}') else {
+      return entries;
+    };
+    let inner = &snippet[start + 1..end];
+
+    for raw in inner.split(',') {
+      let mut entry = raw.trim();
+      if entry.is_empty() {
+        continue;
+      }
+
+      // コメント除去（行コメントのみ簡易対応）
+      if let Some(idx) = entry.find("//") {
+        entry = entry[..idx].trim_end();
+      }
+      if entry.is_empty() {
+        continue;
+      }
+
+      let mut alias = None;
+      if let Some(idx) = entry.find(" as ") {
+        let (path_part, alias_part) = entry.split_at(idx);
+        let alias_name = alias_part.trim_start_matches(" as ").trim();
+        if alias_name.is_empty() {
+          continue;
+        }
+        alias = Some(Symbol::intern(alias_name));
+        entry = path_part.trim_end();
+        if entry.is_empty() {
+          continue;
+        }
+      }
+
+      let mut segments = base_segments.to_vec();
+      for part in entry.split("::") {
+        let seg = part.trim();
+        if seg.is_empty() {
+          continue;
+        }
+        segments.push(Symbol::intern(seg));
+      }
+
+      let binding_ident = alias.or_else(|| segments.last().copied());
+      entries.push(ListEntry { segments, binding_ident });
+    }
+
+    entries
+  }
+}
+
 #[derive(Clone, Copy)]
 enum RuleLabel {
   Principle,
@@ -239,7 +375,20 @@ fn is_prelude_module(cx: &LateContext<'_>, def_id: DefId) -> bool {
   path.split("::").last() == Some("prelude")
 }
 
+fn allow_prelude_reexports() -> bool {
+  static ALLOW: OnceLock<bool> = OnceLock::new();
+  *ALLOW.get_or_init(|| {
+    match std::env::var("MODULE_WIRING_ALLOW_PRELUDE") {
+      | Ok(value) => matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"),
+      | Err(_) => false,
+    }
+  })
+}
+
 fn has_allow_comment(cx: &LateContext<'_>, span: Span) -> bool {
+  if !allow_comment_overrides() {
+    return false;
+  }
   const TOKEN: &str = "allow module_wiring::no_parent_reexport";
   let sm = cx.tcx.sess.source_map();
 
@@ -265,6 +414,18 @@ fn has_allow_comment(cx: &LateContext<'_>, span: Span) -> bool {
   }
 
   false
+}
+
+fn allow_comment_overrides() -> bool {
+  static ALLOW: OnceLock<bool> = OnceLock::new();
+  *ALLOW.get_or_init(|| {
+    matches!(
+      std::env::var("MODULE_WIRING_ALLOW_COMMENT")
+        .map(|v| v.trim().to_ascii_lowercase())
+        .as_deref(),
+      Ok("1") | Ok("true") | Ok("yes") | Ok("on")
+    )
+  })
 }
 
 fn comment_present(file: &rustc_span::SourceFile, line_idx: usize, limit: Option<usize>, token: &str) -> bool {
@@ -311,4 +472,27 @@ fn is_public_use(cx: &LateContext<'_>, item: &Item<'_>) -> bool {
   }
 
   matches!(cx.tcx.visibility(item.owner_id.def_id), Visibility::Public | Visibility::Restricted(_))
+}
+
+fn parse_prefix_segments(snippet: &str) -> Vec<Symbol> {
+  let mut segments = Vec::new();
+  if let Some(use_pos) = snippet.find("use") {
+    let after_use = &snippet[use_pos + 3..];
+    let prefix = if let Some(brace_pos) = after_use.find('{') {
+      &after_use[..brace_pos]
+    } else if let Some(semi_pos) = after_use.find(';') {
+      &after_use[..semi_pos]
+    } else {
+      after_use
+    };
+
+    for part in prefix.split("::") {
+      let name = part.trim();
+      if name.is_empty() {
+        continue;
+      }
+      segments.push(Symbol::intern(name));
+    }
+  }
+  segments
 }
