@@ -2,8 +2,11 @@ use alloc::{boxed::Box, vec::Vec};
 use core::{fmt::Debug, mem::MaybeUninit};
 
 use crate::{
-  collections::queue::traits::{QueueBase, QueueReader, QueueWriter},
-  QueueError, QueueSize,
+  collections::queue::{
+    traits::{QueueBase, QueueReader, QueueWriter},
+    QueueSize,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 
 #[cfg(test)]
@@ -213,7 +216,7 @@ impl<T> QueueReader<T> for RingBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// # use cellex_utils_core_rs::{QueueWriter, QueueReader, RingBuffer};
+  /// # use cellex_utils_core_rs::{QueueWriter, collections::queue::traits::QueueReader, RingBuffer};
   /// let mut buffer = RingBuffer::new(10);
   /// buffer.offer_mut(1).unwrap();
   /// buffer.offer_mut(2).unwrap();

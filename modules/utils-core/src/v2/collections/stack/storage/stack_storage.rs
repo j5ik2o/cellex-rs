@@ -1,4 +1,5 @@
 /// Low-level storage abstraction used by stack backends.
+#[allow(dead_code)]
 pub trait StackStorage<T> {
   /// Returns the capacity of the storage.
   fn capacity(&self) -> usize;

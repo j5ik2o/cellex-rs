@@ -1,5 +1,5 @@
 use super::{stack_backend::StackBackend, stack_storage::StackStorage};
-use crate::collections::{stack::StackError, QueueSize};
+use crate::collections::{queue::QueueSize, stack::StackError};
 
 /// Backend implementation that operates directly on [`StackStorage`].
 #[derive(Debug)]

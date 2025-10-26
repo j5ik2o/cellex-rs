@@ -8,7 +8,7 @@ use alloc::{
   vec::Vec,
 };
 
-use cellex_utils_core_rs::DEFAULT_PRIORITY;
+use cellex_utils_core_rs::collections::queue::priority::DEFAULT_PRIORITY;
 use spin::Mutex;
 
 use super::*;

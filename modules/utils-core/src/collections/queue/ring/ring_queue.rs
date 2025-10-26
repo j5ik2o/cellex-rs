@@ -7,8 +7,9 @@ use crate::{
   collections::queue::{
     ring::{ring_backend::RingBackend, ring_handle::RingHandle},
     traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+    QueueSize,
   },
-  QueueError, QueueSize,
+  v2::collections::queue::backend::QueueError,
 };
 
 /// Queue facade that delegates all operations to a [`RingBackend`].

@@ -16,8 +16,7 @@ use std::{
 };
 
 use cellex_utils_core_rs::{
-  collections::queue::QueueError, sync::ArcShared, v2::collections::queue::backend::OverflowPolicy, Element, QueueSize,
-  DEFAULT_PRIORITY,
+  sync::ArcShared, v2::collections::queue::backend::OverflowPolicy, Element, QueueError, QueueSize, DEFAULT_PRIORITY,
 };
 use futures::{
   executor::{block_on, LocalPool},

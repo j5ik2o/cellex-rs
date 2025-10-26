@@ -1,11 +1,14 @@
-use cellex_utils_core_rs::{Element, QueueSize};
+use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 
-use crate::api::{
-  mailbox::{
-    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
-    MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair, QueueMailboxProducer, ThreadSafe,
+use crate::{
+  api::{
+    mailbox::{
+      queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+      MailboxOverflowPolicy, QueueMailboxProducer, ThreadSafe,
+    },
+    test_support::test_signal::TestSignal,
   },
-  test_support::test_signal::TestSignal,
+  shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
 
 #[derive(Clone, Debug, Default)]

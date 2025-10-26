@@ -2,8 +2,9 @@ use alloc::string::String;
 use core::{any::Any, sync::atomic::Ordering};
 
 use cellex_serialization_core_rs::{
-  BindingError, InMemorySerializerRegistry, RegistryError, SerializationRouter, Serializer, SerializerId,
-  TypeBindingRegistry, TypeKey,
+  error::RegistryError,
+  routing::{BindingError, SerializationRouter, TypeBindingRegistry},
+  InMemorySerializerRegistry, Serializer, SerializerId, TypeKey,
 };
 #[cfg(feature = "json")]
 use cellex_serialization_json_rs::{shared_json_serializer, JsonTypeKey, SERDE_JSON_SERIALIZER_ID};
@@ -11,7 +12,7 @@ use cellex_serialization_json_rs::{shared_json_serializer, JsonTypeKey, SERDE_JS
 use cellex_serialization_postcard_rs::{shared_postcard_serializer, PostcardTypeKey, POSTCARD_SERIALIZER_ID};
 #[cfg(feature = "prost")]
 use cellex_serialization_prost_rs::{shared_prost_serializer, ProstTypeKey, PROST_SERIALIZER_ID};
-use cellex_utils_core_rs::ArcShared;
+use cellex_utils_core_rs::sync::ArcShared;
 use portable_atomic::AtomicI32;
 
 use super::extension::{next_extension_id, Extension, ExtensionId};

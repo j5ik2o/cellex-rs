@@ -1,4 +1,4 @@
-use crate::collections::{stack::StackError, QueueSize};
+use crate::collections::{queue::QueueSize, stack::StackError};
 
 /// Backend abstraction for stack operations.
 pub trait StackBackend<T> {

@@ -1,4 +1,4 @@
-use crate::sync::{Shared, SharedBound};
+use crate::sync::shared::{Shared, SharedBound};
 
 /// Trait alias for shared function pointers used in actor-core.
 pub trait SharedFn<Args, Output>: Shared<super::SharedFnTarget<Args, Output>> + SharedBound {}

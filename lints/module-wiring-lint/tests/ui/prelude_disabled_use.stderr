@@ -1,0 +1,13 @@
+warning: 再エクスポートは末端モジュールの直属親以外では禁止です
+  --> $DIR/prelude_disabled_use.rs:9:1
+   |
+LL | pub use prelude::X;
+   | ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: ルール: 原則ルール: 再エクスポート禁止
+   = note: 詳細: prelude モジュールからの再エクスポートは無効化されています
+   = help: プレリュードではなく対象モジュールの直属親から公開してください
+   = note: `#[warn(no_parent_reexport)]` on by default
+
+warning: 1 warning emitted
+

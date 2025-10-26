@@ -1,4 +1,4 @@
-use crate::collections::queue::{queue_error::QueueError, traits::queue_base::QueueBase};
+use crate::{collections::queue::traits::queue_base::QueueBase, v2::collections::queue::backend::QueueError};
 
 /// Trait providing write operations to the queue for mutable references.
 pub trait QueueWriter<E>: QueueBase<E> {

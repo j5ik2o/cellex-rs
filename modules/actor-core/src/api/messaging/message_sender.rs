@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::{collections::queue::QueueError, Element};
+use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
 
 use crate::{
   api::mailbox::{MailboxConcurrency, ThreadSafe},

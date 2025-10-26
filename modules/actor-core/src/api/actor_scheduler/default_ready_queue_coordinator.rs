@@ -11,7 +11,7 @@ use core::task::{Context, Poll};
 
 use spin::Mutex;
 
-use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinator};
+use super::ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator};
 
 /// Internal state for the coordinator
 struct CoordinatorState {

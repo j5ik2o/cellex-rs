@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use crate::SharedBound;
+use crate::sync::shared::SharedBound;
 
 /// Fundamental constraints for elements that can be stored in collections such as queues and
 /// stacks.

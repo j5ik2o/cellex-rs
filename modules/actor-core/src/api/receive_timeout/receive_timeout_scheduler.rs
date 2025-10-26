@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use cellex_utils_core_rs::SendBound;
+use cellex_utils_core_rs::sync::shared::SendBound;
 
 /// Scheduler abstraction for managing actor `ReceiveTimeout`.
 ///

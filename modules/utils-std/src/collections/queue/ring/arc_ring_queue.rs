@@ -2,7 +2,12 @@ use crate::{collections::queue::MutexRingBufferStorage, sync::ArcShared};
 
 type ArcRingStorage<E> = ArcShared<RingStorageBackend<ArcShared<MutexRingBufferStorage<E>>>>;
 use cellex_utils_core_rs::{
-  QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, RingQueue, RingStorageBackend, DEFAULT_CAPACITY,
+  collections::queue::{
+    ring::{RingQueue, RingStorageBackend, DEFAULT_CAPACITY},
+    traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+    QueueSize,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 
 #[cfg(test)]

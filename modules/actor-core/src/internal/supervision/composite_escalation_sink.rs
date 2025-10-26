@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::collections::queue::QueueError;
+use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
 
 use super::{CustomEscalationSink, ParentGuardianSink};
 use crate::{
@@ -9,11 +9,10 @@ use crate::{
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
       FailureInfo,
     },
-    mailbox::MailboxFactory,
     supervision::escalation::RootEscalationSink,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::{EscalationSink, FailureEventHandler},
   },

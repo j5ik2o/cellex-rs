@@ -6,7 +6,7 @@ use core::ops::Deref;
 #[cfg(feature = "alloc")]
 use core::ptr;
 
-use super::{Shared, SharedDyn};
+use super::shared::{Shared, SharedDyn};
 
 /// Shared ownership wrapper backed by `alloc::rc::Rc`.
 ///

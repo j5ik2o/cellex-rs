@@ -1,6 +1,6 @@
 //! Mailbox-specific error types and conversions from queue errors.
 
-use cellex_utils_core_rs::{collections::queue::QueueError, Element};
+use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
 
 use super::mailbox_overflow_policy::MailboxOverflowPolicy;
 

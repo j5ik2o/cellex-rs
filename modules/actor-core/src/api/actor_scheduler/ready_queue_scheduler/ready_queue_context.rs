@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
@@ -15,14 +15,13 @@ use crate::{
       FailureInfo,
     },
     guardian::GuardianStrategy,
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   internal::actor::ActorCell,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },

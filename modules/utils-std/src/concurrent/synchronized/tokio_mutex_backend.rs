@@ -2,9 +2,9 @@
 
 use async_trait::async_trait;
 use cellex_utils_core_rs::{
-  sync::{interrupt::NeverInterruptPolicy, InterruptContextPolicy},
+  concurrent::synchronized::SynchronizedMutexBackend,
+  sync::interrupt::{InterruptContextPolicy, NeverInterruptPolicy},
   v2::sync::SharedError,
-  SynchronizedMutexBackend,
 };
 use tokio::sync::{Mutex, MutexGuard};
 

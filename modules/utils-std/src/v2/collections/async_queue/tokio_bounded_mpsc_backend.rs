@@ -1,11 +1,10 @@
 use std::fmt;
 
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
   sync::ArcShared,
   v2::collections::{
     queue::{
-      backend::{AsyncQueueBackend, OfferOutcome},
+      backend::{AsyncQueueBackend, OfferOutcome, QueueError},
       capabilities::MultiProducer,
       type_keys::MpscKey,
       AsyncQueue,

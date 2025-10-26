@@ -1,4 +1,4 @@
-use crate::collections::QueueSize;
+use crate::collections::queue::QueueSize;
 
 /// Base trait for stack-like collections.
 pub trait StackBase<T> {

@@ -14,6 +14,7 @@ pub use async_priority_backend::AsyncPriorityBackend;
 pub use async_queue_backend::AsyncQueueBackend;
 pub use offer_outcome::OfferOutcome;
 pub use overflow_policy::OverflowPolicy;
+pub use queue_error::QueueError;
 pub use sync_adapter_queue_backend::SyncAdapterQueueBackend;
 pub use sync_priority_backend::SyncPriorityBackend;
 pub use sync_queue_backend::SyncQueueBackend;

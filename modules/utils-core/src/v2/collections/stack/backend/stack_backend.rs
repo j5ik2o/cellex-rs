@@ -1,4 +1,7 @@
-use crate::v2::collections::stack::{PushOutcome, StackError, StackOverflowPolicy, StackStorage};
+use crate::v2::collections::stack::{
+  backend::{PushOutcome, StackError, StackOverflowPolicy},
+  storage::StackStorage,
+};
 
 /// Backend trait responsible for stack operations on top of a storage implementation.
 pub trait StackBackend<T> {

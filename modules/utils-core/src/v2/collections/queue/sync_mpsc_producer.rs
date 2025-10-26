@@ -1,10 +1,9 @@
 use core::marker::PhantomData;
 
 use crate::{
-  collections::queue::QueueError,
   sync::{sync_mutex_like::SyncMutexLike, ArcShared},
   v2::{
-    collections::queue::backend::{OfferOutcome, SyncQueueBackend},
+    collections::queue::backend::{OfferOutcome, QueueError, SyncQueueBackend},
     sync::SharedAccess,
   },
 };

@@ -1,12 +1,16 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, QueueSize};
+use cellex_utils_core_rs::{
+  collections::{queue::QueueSize, Element},
+  v2::collections::queue::backend::QueueError,
+};
 
 use super::{core::MailboxQueueCore, driver::MailboxQueueDriver, recv::QueueMailboxRecv};
-use crate::api::{
-  actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{
-    queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxError, MailboxHandle, MailboxProducer, MailboxSignal,
+use crate::{
+  api::{
+    actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
+    mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxError},
+    metrics::MetricsSinkShared,
   },
-  metrics::MetricsSinkShared,
+  shared::mailbox::{MailboxHandle, MailboxProducer, MailboxSignal},
 };
 
 /// Mailbox backed by a queue and notification signal.

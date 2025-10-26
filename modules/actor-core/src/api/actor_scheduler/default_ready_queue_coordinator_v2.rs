@@ -25,10 +25,13 @@ use alloc::{
 };
 use core::task::{Context, Poll};
 
-use cellex_utils_core_rs::ArcShared;
+use cellex_utils_core_rs::sync::ArcShared;
 use spin::Mutex;
 
-use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
+use super::{
+  ready_queue_coordinator::{InvokeResult, MailboxIndex},
+  ReadyQueueCoordinatorV2,
+};
 
 #[cfg(test)]
 mod tests;

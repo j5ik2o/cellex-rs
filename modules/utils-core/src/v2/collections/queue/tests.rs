@@ -2,7 +2,6 @@ extern crate alloc;
 
 use super::SyncQueue;
 use crate::{
-  collections::queue::QueueError,
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::{
     collections::queue::{
@@ -13,6 +12,7 @@ use crate::{
     },
     sync::SharedError,
   },
+  QueueError,
 };
 
 mod storage_config {
@@ -70,8 +70,8 @@ mod fifo_backend {
 
   use super::QueueConfig;
   use crate::{
-    collections::queue::QueueError,
     v2::collections::queue::backend::{OfferOutcome, OverflowPolicy, SyncQueueBackend},
+    QueueError,
   };
 
   /// Simple FIFO backend used for unit tests.
@@ -176,8 +176,8 @@ mod priority_backend {
 
   use super::QueueConfig;
   use crate::{
-    collections::queue::QueueError,
     v2::collections::queue::backend::{OfferOutcome, OverflowPolicy, SyncPriorityBackend, SyncQueueBackend},
+    QueueError,
   };
 
   /// Priority backend backed by a binary heap.

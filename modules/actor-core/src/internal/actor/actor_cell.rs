@@ -4,7 +4,10 @@ extern crate std;
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, cmp::Reverse, marker::PhantomData};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Shared};
+use cellex_utils_core_rs::{
+  sync::{shared::Shared, ArcShared},
+  v2::collections::queue::backend::QueueError,
+};
 
 use crate::{
   api::{
@@ -13,7 +16,7 @@ use crate::{
     extensions::Extensions,
     failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
-    mailbox::{messages::SystemMessage, Mailbox, MailboxFactory, MailboxHandle, MailboxProducer},
+    mailbox::{messages::SystemMessage, Mailbox},
     metrics::MetricsSinkShared,
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
@@ -24,7 +27,7 @@ use crate::{
     mailbox::PriorityMailboxSpawnerHandle,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxHandle, MailboxProducer},
     messaging::{AnyMessage, MapSystemShared},
   },
 };

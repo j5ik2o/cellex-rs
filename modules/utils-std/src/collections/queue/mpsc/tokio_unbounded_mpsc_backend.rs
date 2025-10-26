@@ -1,6 +1,12 @@
 use std::fmt;
 
-use cellex_utils_core_rs::{Element, MpscBackend, QueueError, QueueSize};
+use cellex_utils_core_rs::{
+  collections::{
+    queue::{mpsc::traits::MpscBackend, QueueSize},
+    Element,
+  },
+  v2::collections::queue::backend::QueueError,
+};
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
 

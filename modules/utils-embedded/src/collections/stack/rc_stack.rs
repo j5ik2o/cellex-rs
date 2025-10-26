@@ -1,10 +1,14 @@
 use core::cell::RefCell;
 
-use cellex_utils_core_rs::{
-  QueueSize, Stack, StackBase, StackBuffer, StackError, StackMut, StackStorage, StackStorageBackend,
+use cellex_utils_core_rs::collections::{
+  queue::QueueSize,
+  stack::{
+    traits::{StackBase, StackMut, StackStorage, StackStorageBackend},
+    Stack, StackBuffer, StackError,
+  },
 };
 
-use crate::sync::RcShared;
+use crate::sync::rc::RcShared;
 
 #[cfg(test)]
 mod tests;

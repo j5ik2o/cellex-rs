@@ -1,6 +1,13 @@
 use core::{future::Future, marker::PhantomData};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element, Shared, SharedBound};
+use cellex_utils_core_rs::{
+  collections::Element,
+  sync::{
+    shared::{Shared, SharedBound},
+    ArcShared,
+  },
+  v2::collections::queue::backend::QueueError,
+};
 use spin::RwLock;
 
 use super::priority_actor_ref::PriorityActorRef;
@@ -8,7 +15,7 @@ use crate::{
   api::{
     actor::ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{messages::SystemMessage, MailboxError, MailboxFactory},
+    mailbox::{messages::SystemMessage, MailboxError},
     messaging::{MessageMetadata, MessageSender, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
@@ -18,7 +25,7 @@ use crate::{
   },
   internal::message::InternalMessageSender,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MessageEnvelope},
   },
 };

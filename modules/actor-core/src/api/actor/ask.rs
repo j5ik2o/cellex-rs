@@ -13,7 +13,7 @@ pub type AskResult<T> = Result<T, AskError>;
 
 use core::future::Future;
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element};
+use cellex_utils_core_rs::{collections::Element, sync::ArcShared, v2::collections::queue::backend::QueueError};
 
 use crate::{
   api::messaging::{MessageSender, MetadataStorageMode},

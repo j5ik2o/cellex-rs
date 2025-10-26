@@ -1,9 +1,8 @@
-mod async_barrier;
-mod count_down_latch;
-mod synchronized;
-mod wait_group;
-
-pub use async_barrier::{AsyncBarrier, TokioAsyncBarrierBackend};
-pub use count_down_latch::{CountDownLatch, TokioCountDownLatchBackend};
-pub use synchronized::{Synchronized, SynchronizedRw, TokioMutexBackend, TokioRwLockBackend};
-pub use wait_group::{TokioWaitGroupBackend, WaitGroup};
+/// Tokio-based async barrier implementation.
+pub mod async_barrier;
+/// Tokio-based countdown latch implementation.
+pub mod count_down_latch;
+/// Tokio-based synchronized type implementations.
+pub mod synchronized;
+/// Tokio-based wait group implementation.
+pub mod wait_group;

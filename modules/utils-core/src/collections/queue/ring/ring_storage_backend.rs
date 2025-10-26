@@ -1,9 +1,10 @@
-use crate::collections::{
-  queue::{
+use crate::{
+  collections::queue::{
     ring::ring_backend::RingBackend,
     traits::{QueueBase, QueueHandle, QueueReader, QueueStorage, QueueWriter},
+    QueueSize,
   },
-  QueueError, QueueSize,
+  v2::collections::queue::backend::QueueError,
 };
 
 /// Backend implementation that directly operates on ring buffer storage handles.

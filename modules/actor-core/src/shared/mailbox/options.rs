@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::QueueSize;
+use cellex_utils_core_rs::collections::queue::QueueSize;
 
 /// Runtime-agnostic construction options for
 /// [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).

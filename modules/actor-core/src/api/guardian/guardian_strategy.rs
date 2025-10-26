@@ -1,7 +1,9 @@
-use crate::api::{
-  actor::{actor_failure::BehaviorFailure, ActorId},
-  mailbox::MailboxFactory,
-  supervision::supervisor::SupervisorDirective,
+use crate::{
+  api::{
+    actor::{actor_failure::BehaviorFailure, ActorId},
+    supervision::supervisor::SupervisorDirective,
+  },
+  shared::mailbox::MailboxFactory,
 };
 
 /// Supervisor strategy. Corresponds to protoactor-go's Strategy.

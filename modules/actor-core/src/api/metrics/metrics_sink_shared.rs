@@ -1,6 +1,9 @@
 use core::fmt;
 
-use cellex_utils_core_rs::sync::{ArcShared, Shared, SharedBound};
+use cellex_utils_core_rs::sync::{
+  shared::{Shared, SharedBound},
+  ArcShared,
+};
 
 use super::metrics_sink::MetricsSink;
 

@@ -1,6 +1,9 @@
 use core::{cell::RefCell, fmt};
 
-use cellex_utils_core_rs::{ArcShared, MpscBuffer, MpscHandle, RingBufferBackend, Shared};
+use cellex_utils_core_rs::{
+  collections::queue::mpsc::{traits::MpscHandle, MpscBuffer, RingBufferBackend},
+  sync::{shared::Shared, ArcShared},
+};
 
 /// Shared handle around the ring-buffer backend used to simulate mailbox queues in tests.
 pub struct SharedBackendHandle<T>(ArcShared<RingBufferBackend<RefCell<MpscBuffer<T>>>>);

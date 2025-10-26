@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
 use crate::{
@@ -13,13 +13,12 @@ use crate::{
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
       FailureInfo,
     },
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },

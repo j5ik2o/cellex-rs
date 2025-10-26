@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 
 use cellex_utils_core_rs::{
+  collections::Element,
   sync::{sync_mutex_like::SyncMutexLike, ArcShared},
-  Element,
 };
 
 use super::{
@@ -14,11 +14,14 @@ use crate::{
   api::{
     actor::behavior::SupervisorStrategyConfig,
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{messages::SystemMessage, MailboxFactory, MailboxOptions},
+    mailbox::messages::SystemMessage,
     messaging::MetadataStorageMode,
   },
   internal::actor::{internal_props_from_adapter, InternalProps},
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
+    messaging::AnyMessage,
+  },
 };
 
 /// Properties that hold configuration for actor spawning.

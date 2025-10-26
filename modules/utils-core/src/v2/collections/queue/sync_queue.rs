@@ -5,14 +5,14 @@ use super::{
   sync_spsc_producer::SyncSpscProducer,
 };
 use crate::{
-  collections::queue::QueueError,
   sync::{
+    shared::Shared,
     sync_mutex_like::{SpinSyncMutex, SyncMutexLike},
-    ArcShared, Shared,
+    ArcShared,
   },
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, SyncPriorityBackend, SyncQueueBackend},
+      backend::{OfferOutcome, QueueError, SyncPriorityBackend, SyncQueueBackend},
       capabilities::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek},
       type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey, TypeKey},
     },

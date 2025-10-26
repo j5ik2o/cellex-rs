@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use super::stack_error::StackError;
-use crate::collections::QueueSize;
+use crate::collections::queue::QueueSize;
 
 /// Owned stack buffer that stores values in LIFO (Last-In-First-Out) order.
 #[derive(Debug, Clone)]

@@ -1,6 +1,6 @@
 use alloc::collections::VecDeque;
 
-use crate::collections::{QueueError, QueueSize};
+use crate::{collections::queue::QueueSize, v2::collections::queue::backend::QueueError};
 
 /// Buffer implementation for multi-producer, single-consumer (MPSC) queues.
 ///
@@ -156,7 +156,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::{MpscBuffer, QueueError};
+  /// use cellex_utils_core_rs::{v2::collections::queue::backend::QueueError, MpscBuffer};
   ///
   /// let mut buffer = MpscBuffer::new(Some(2));
   /// assert!(buffer.offer(1).is_ok());
@@ -193,7 +193,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::{MpscBuffer, QueueError};
+  /// use cellex_utils_core_rs::{v2::collections::queue::backend::QueueError, MpscBuffer};
   ///
   /// let mut buffer = MpscBuffer::new(Some(10));
   /// buffer.offer(42).unwrap();
@@ -266,7 +266,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::{MpscBuffer, QueueError};
+  /// use cellex_utils_core_rs::{v2::collections::queue::backend::QueueError, MpscBuffer};
   ///
   /// let mut buffer = MpscBuffer::new(Some(10));
   /// buffer.offer(1).unwrap();

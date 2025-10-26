@@ -1,6 +1,6 @@
-use crate::{
-  collections::queue::QueueError,
-  v2::collections::queue::{storage::QueueStorage, OfferOutcome, OverflowPolicy},
+use crate::v2::collections::queue::{
+  backend::{OfferOutcome, OverflowPolicy, QueueError},
+  storage::QueueStorage,
 };
 
 /// Backend trait responsible for queue operations on top of a storage implementation.

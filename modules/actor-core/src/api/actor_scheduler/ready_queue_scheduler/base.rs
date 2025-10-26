@@ -2,7 +2,7 @@ use alloc::{boxed::Box, vec::Vec};
 use core::convert::Infallible;
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
 use spin::Mutex;
 
 use super::{
@@ -24,13 +24,12 @@ use crate::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },

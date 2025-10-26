@@ -8,7 +8,7 @@ mod sync_queue_driver;
 pub use core::MailboxQueueCore;
 
 pub use base::QueueMailbox;
-use cellex_utils_core_rs::{Element, QueueSize};
+use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 pub use driver::MailboxQueueDriver;
 pub use poll_outcome::QueuePollOutcome;
 pub use recv::QueueMailboxRecv;

@@ -1,6 +1,7 @@
 //! Core queue storage trait.
 
 /// Low-level storage abstraction used by queue backends.
+#[allow(dead_code)]
 pub trait QueueStorage<T> {
   /// Returns the capacity of the storage.
   fn capacity(&self) -> usize;

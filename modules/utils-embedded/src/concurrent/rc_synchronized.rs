@@ -1,4 +1,6 @@
-use cellex_utils_core_rs::{Synchronized as CoreSynchronized, SynchronizedRw as CoreSynchronizedRw};
+use cellex_utils_core_rs::concurrent::synchronized::{
+  Synchronized as CoreSynchronized, SynchronizedRw as CoreSynchronizedRw,
+};
 
 mod rc_mutex_backend;
 mod rc_rw_lock_backend;

@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
 
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::collections::queue::{
-    backend::{OfferOutcome, OverflowPolicy, VecRingBackend},
-    SharedVecRingQueue, VecRingStorage,
+    backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
+    storage::VecRingStorage,
+    SharedVecRingQueue,
   },
 };
 

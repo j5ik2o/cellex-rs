@@ -5,7 +5,15 @@ mod tests;
 use std::{ops::Deref, sync::Arc};
 
 use cellex_utils_core_rs::{
-  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, Shared, StackBackend, StackHandle,
+  collections::{
+    queue::{
+      mpsc::traits::{MpscBackend, MpscHandle},
+      ring::{RingBackend, RingHandle},
+      traits::{QueueHandle, QueueStorage},
+    },
+    stack::traits::{StackBackend, StackHandle},
+  },
+  sync::shared::Shared,
 };
 
 /// Shared ownership wrapper using `Arc`

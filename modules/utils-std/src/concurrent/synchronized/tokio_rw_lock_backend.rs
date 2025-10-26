@@ -1,7 +1,7 @@
 //! Tokio RwLock backend implementation.
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::SynchronizedRwBackend;
+use cellex_utils_core_rs::concurrent::synchronized::SynchronizedRwBackend;
 use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Backend implementation of read-write lock using Tokio RwLock

@@ -5,10 +5,10 @@ use core::{
   task::{Context, Poll},
 };
 
-use cellex_utils_core_rs::{collections::queue::QueueError, Element};
+use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
 
 use super::{base::QueueMailbox, driver::MailboxQueueDriver};
-use crate::api::mailbox::{MailboxError, MailboxSignal};
+use crate::{api::mailbox::MailboxError, shared::mailbox::MailboxSignal};
 
 /// Future for receiving messages.
 pub struct QueueMailboxRecv<'a, Q, S, M>

@@ -1,17 +1,17 @@
 use alloc::{collections::BTreeMap, format, string::String};
 
-use cellex_utils_core_rs::collections::queue::QueueError;
+use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
 
 use super::{ChildRecord, GuardianStrategy};
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming, SpawnError},
     failure::FailureInfo,
-    mailbox::{messages::SystemMessage, MailboxFactory},
+    mailbox::messages::SystemMessage,
     supervision::supervisor::SupervisorDirective,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
   },
 };

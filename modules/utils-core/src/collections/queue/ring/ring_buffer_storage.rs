@@ -2,8 +2,8 @@
 use core::cell::RefCell;
 
 use crate::{
+  collections::queue::mpsc::MpscBuffer,
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
-  MpscBuffer,
 };
 
 /// Ring buffer-based storage abstraction trait

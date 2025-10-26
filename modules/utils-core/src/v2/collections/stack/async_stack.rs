@@ -5,7 +5,7 @@ use crate::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
-  v2::collections::stack::{backend::AsyncStackBackend, PushOutcome, StackError},
+  v2::collections::stack::backend::{AsyncStackBackend, PushOutcome, StackError},
 };
 
 #[cfg(test)]

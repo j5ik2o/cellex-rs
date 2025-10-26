@@ -29,10 +29,4 @@ pub use adaptive_coordinator::AdaptiveCoordinator;
 pub use base::ActorScheduler;
 pub use default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
 pub use default_ready_queue_coordinator_v2::DefaultReadyQueueCoordinatorV2;
-// Phase 0: Export types from ready_queue_coordinator
-pub use ready_queue_coordinator::{
-  ActorState, InvokeResult, MailboxIndex, MailboxOptions, OverflowStrategy, ReadyQueueCoordinator, ResumeCondition,
-  SignalKey, SuspendReason,
-};
-// Phase 1 Week 3: Export V2 trait
 pub use ready_queue_coordinator_v2::ReadyQueueCoordinatorV2;

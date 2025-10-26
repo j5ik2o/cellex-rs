@@ -4,7 +4,7 @@ mod tests;
 
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use cellex_utils_core_rs::StateCell;
+use cellex_utils_core_rs::sync::StateCell;
 
 /// Shared mutable state cell using `Arc` and `Mutex`
 ///

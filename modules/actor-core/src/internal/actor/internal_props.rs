@@ -1,17 +1,16 @@
 use alloc::boxed::Box;
 
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use crate::{
   api::{
     actor::{actor_context::ActorContext, actor_failure::ActorFailure, ActorHandlerFn},
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::{MailboxFactory, MailboxOptions},
     messaging::MetadataStorageMode,
   },
   internal::actor_context::InternalActorContext,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
     TypedHandlerBridge,
   },

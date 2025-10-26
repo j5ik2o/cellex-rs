@@ -4,9 +4,9 @@ use core::marker::PhantomData;
 use async_trait::async_trait;
 
 use super::{AsyncPriorityBackend, AsyncQueueBackend, OfferOutcome, SyncPriorityBackend, SyncQueueBackend};
-use crate::{
-  collections::queue::QueueError,
-  v2::collections::wait::{WaitHandle, WaitQueue},
+use crate::v2::collections::{
+  queue::backend::QueueError,
+  wait::{WaitHandle, WaitQueue},
 };
 
 /// Adapter that exposes a synchronous queue backend through the async backend trait.

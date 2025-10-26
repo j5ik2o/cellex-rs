@@ -2,11 +2,12 @@ use core::marker::PhantomData;
 
 use crate::{
   sync::{
+    shared::Shared,
     sync_mutex_like::{SpinSyncMutex, SyncMutexLike},
-    ArcShared, Shared,
+    ArcShared,
   },
   v2::{
-    collections::stack::{PushOutcome, StackBackend, StackError},
+    collections::stack::backend::{PushOutcome, StackBackend, StackError},
     sync::SharedAccess,
   },
 };

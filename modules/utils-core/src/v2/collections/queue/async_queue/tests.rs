@@ -7,7 +7,6 @@ use core::{
 
 use super::{AsyncMpscQueue, AsyncQueue, AsyncSpscQueue};
 use crate::{
-  collections::queue::QueueError,
   sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
   v2::{
     collections::queue::{
@@ -16,6 +15,7 @@ use crate::{
     },
     sync::SharedError,
   },
+  QueueError,
 };
 
 fn raw_waker() -> RawWaker {

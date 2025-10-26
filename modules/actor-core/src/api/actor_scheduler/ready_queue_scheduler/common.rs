@@ -1,7 +1,10 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{convert::Infallible, marker::PhantomData};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Shared};
+use cellex_utils_core_rs::{
+  sync::{shared::Shared, ArcShared},
+  v2::collections::queue::backend::QueueError,
+};
 use futures::{
   future::{select_all, LocalBoxFuture},
   FutureExt,
@@ -18,14 +21,14 @@ use crate::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
-    mailbox::{messages::SystemMessage, Mailbox, MailboxFactory, MailboxProducer, MailboxSignal},
+    mailbox::{messages::SystemMessage, Mailbox},
     metrics::{MetricsEvent, MetricsSinkShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxProducer, MailboxSignal},
     messaging::{AnyMessage, MapSystemShared},
     supervision::EscalationSink,
   },

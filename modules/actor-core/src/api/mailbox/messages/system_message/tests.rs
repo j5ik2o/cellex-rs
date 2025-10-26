@@ -1,5 +1,5 @@
 #![allow(clippy::disallowed_types)]
-use cellex_utils_core_rs::DEFAULT_PRIORITY;
+use cellex_utils_core_rs::collections::queue::priority::DEFAULT_PRIORITY;
 
 use super::SystemMessage;
 use crate::api::{

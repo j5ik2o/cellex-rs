@@ -1,21 +1,20 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, time::Duration};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
 use spin::RwLock;
 
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, ChildNaming},
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::{MailboxFactory, MailboxOptions, MailboxProducer},
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::ReceiveTimeoutScheduler,
     supervision::supervisor::Supervisor,
   },
   internal::{actor::InternalProps, actor_context::ChildSpawnSpec, mailbox::PriorityMailboxSpawnerHandle},
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxProducer},
     messaging::{AnyMessage, MapSystemShared},
   },
 };

@@ -1,6 +1,6 @@
 // 各TypeKeyに対応する能力トレイト実装をまとめる。
 use super::{MultiProducer, SingleConsumer, SingleProducer, SupportsPeek};
-use crate::v2::collections::queue::{FifoKey, MpscKey, PriorityKey, SpscKey};
+use crate::v2::collections::queue::type_keys::{FifoKey, MpscKey, PriorityKey, SpscKey};
 
 impl MultiProducer for MpscKey {}
 impl SingleConsumer for MpscKey {}

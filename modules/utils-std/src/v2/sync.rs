@@ -2,7 +2,10 @@
 
 use async_trait::async_trait;
 use cellex_utils_core_rs::{
-  sync::{async_mutex_like::AsyncMutexLike, interrupt::NeverInterruptPolicy, InterruptContextPolicy},
+  sync::{
+    async_mutex_like::AsyncMutexLike,
+    interrupt::{InterruptContextPolicy, NeverInterruptPolicy},
+  },
   v2::sync::SharedError,
 };
 

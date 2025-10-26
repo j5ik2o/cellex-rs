@@ -1,8 +1,8 @@
 use std::thread;
 
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
   v2::collections::queue::{OfferOutcome, OverflowPolicy},
+  QueueError,
 };
 
 use super::*;

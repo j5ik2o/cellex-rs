@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::collections::queue::QueueError;
+use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
 
 /// Result of polling the underlying queue.
 pub enum QueuePollOutcome<M> {

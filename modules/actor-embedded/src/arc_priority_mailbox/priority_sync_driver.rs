@@ -13,8 +13,8 @@ use cellex_actor_core_rs::{
   shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
   v2::collections::queue::backend::{OfferOutcome, OverflowPolicy},
+  QueueError,
 };
 use cellex_utils_embedded_rs::{Element, QueueSize};
 

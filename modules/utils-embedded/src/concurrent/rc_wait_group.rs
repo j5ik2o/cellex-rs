@@ -3,7 +3,7 @@ use alloc::{boxed::Box, rc::Rc};
 use core::cell::RefCell;
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{WaitGroup as CoreWaitGroup, WaitGroupBackend};
+use cellex_utils_core_rs::concurrent::wait_group::{WaitGroup as CoreWaitGroup, WaitGroupBackend};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, signal::Signal};
 
 #[cfg(test)]

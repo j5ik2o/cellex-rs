@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use cellex_utils_core_rs::{MpscBuffer, RingBufferStorage};
+use cellex_utils_core_rs::collections::queue::{mpsc::MpscBuffer, ring::RingBufferStorage};
 
 use crate::sync::ArcShared;
 

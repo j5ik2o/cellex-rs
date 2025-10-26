@@ -1,5 +1,6 @@
 use cellex_utils_core_rs::{
-  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, QueueSize,
+  collections::{queue::QueueSize, Element},
+  v2::collections::queue::backend::{OfferOutcome, QueueError},
 };
 
 use super::QueuePollOutcome;

@@ -1,8 +1,8 @@
 use core::cmp;
 
-use crate::{
-  collections::queue::QueueError,
-  v2::collections::queue::{OfferOutcome, OverflowPolicy, QueueStorage, SyncQueueBackend, VecRingStorage},
+use crate::v2::collections::queue::{
+  backend::{OfferOutcome, OverflowPolicy, QueueError, SyncQueueBackend},
+  storage::{QueueStorage, VecRingStorage},
 };
 
 /// Queue backend backed by a ring buffer storage.

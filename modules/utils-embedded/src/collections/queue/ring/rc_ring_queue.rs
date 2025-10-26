@@ -1,11 +1,15 @@
 use core::cell::RefCell;
 
 use cellex_utils_core_rs::{
-  QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, RingBuffer, RingQueue, RingStorageBackend,
-  DEFAULT_CAPACITY,
+  collections::queue::{
+    ring::{RingBuffer, RingQueue, RingStorageBackend, DEFAULT_CAPACITY},
+    traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+    QueueSize,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 
-use crate::sync::RcShared;
+use crate::sync::rc::RcShared;
 
 #[cfg(test)]
 mod tests;

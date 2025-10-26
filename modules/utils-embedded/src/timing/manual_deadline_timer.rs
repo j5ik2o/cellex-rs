@@ -4,7 +4,7 @@ use core::{
   time::Duration,
 };
 
-use cellex_utils_core_rs::{
+use cellex_utils_core_rs::timing::deadline_timer::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };
 

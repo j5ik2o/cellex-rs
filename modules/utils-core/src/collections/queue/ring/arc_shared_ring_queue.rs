@@ -4,9 +4,10 @@ use crate::{
       ring_handle::RingHandle, ring_storage_backend::RingStorageBackend, RingBuffer, RingQueue, DEFAULT_CAPACITY,
     },
     traits::{QueueBase, QueueHandle, QueueReader, QueueRw, QueueWriter},
+    QueueSize,
   },
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
-  QueueError, QueueSize,
+  v2::collections::queue::backend::QueueError,
 };
 
 #[cfg(test)]

@@ -2,7 +2,15 @@ use alloc::rc::Rc;
 use core::ops::Deref;
 
 use cellex_utils_core_rs::{
-  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, Shared, StackBackend, StackHandle,
+  collections::{
+    queue::{
+      mpsc::traits::{MpscBackend, MpscHandle},
+      ring::{RingBackend, RingHandle},
+      traits::{QueueHandle, QueueStorage},
+    },
+    stack::traits::{StackBackend, StackHandle},
+  },
+  sync::shared::Shared,
 };
 
 /// `Rc`-based shared reference wrapper.

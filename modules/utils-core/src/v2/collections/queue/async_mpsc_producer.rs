@@ -2,12 +2,11 @@ use core::marker::PhantomData;
 
 use super::async_queue::offer_shared;
 use crate::{
-  collections::queue::QueueError,
   sync::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
-  v2::collections::queue::backend::{AsyncQueueBackend, OfferOutcome},
+  v2::collections::queue::backend::{AsyncQueueBackend, OfferOutcome, QueueError},
 };
 
 /// Async producer for queues tagged with

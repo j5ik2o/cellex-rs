@@ -17,7 +17,7 @@
 use alloc::vec::Vec;
 use core::task::{Context, Poll};
 
-use super::{InvokeResult, MailboxIndex};
+use super::ready_queue_coordinator::{InvokeResult, MailboxIndex};
 
 /// V2 trait for ready queue coordination with interior mutability
 ///

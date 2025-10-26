@@ -62,7 +62,7 @@ extern crate alloc;
 use alloc::borrow::ToOwned;
 
 /// Encoding helpers bridging remote envelopes and the serialization layer.
-pub mod codec; // allow module_wiring::no_parent_reexport
+pub mod codec;
 /// Transport-layer envelope utilities.
 pub mod remote_envelope; // allow module_wiring::no_parent_reexport
 

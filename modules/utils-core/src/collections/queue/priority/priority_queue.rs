@@ -2,10 +2,12 @@ use alloc::vec::Vec;
 use core::marker::PhantomData;
 
 use super::priority_message::PriorityMessage;
-use crate::collections::queue::{
-  queue_error::QueueError,
-  queue_size::QueueSize,
-  traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+use crate::{
+  collections::queue::{
+    traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+    QueueSize,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 
 /// Priority queue facade backed by multiple level queues.

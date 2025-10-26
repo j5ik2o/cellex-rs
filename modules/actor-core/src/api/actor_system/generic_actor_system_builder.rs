@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use super::ActorSystemBuilder as ActorSystemBuilderTrait;
 use crate::{

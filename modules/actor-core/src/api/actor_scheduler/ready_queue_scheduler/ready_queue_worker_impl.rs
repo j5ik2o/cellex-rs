@@ -1,13 +1,14 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
 use super::ready_queue_context::ReadyQueueContext;
 use crate::{
-  api::{
-    actor_scheduler::ready_queue_scheduler::ReadyQueueWorker, guardian::GuardianStrategy, mailbox::MailboxFactory,
+  api::{actor_scheduler::ready_queue_scheduler::ReadyQueueWorker, guardian::GuardianStrategy},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
 pub(crate) struct ReadyQueueWorkerImpl<MF, Strat>

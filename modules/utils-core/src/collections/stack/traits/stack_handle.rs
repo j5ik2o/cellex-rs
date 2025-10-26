@@ -1,5 +1,5 @@
 use super::stack_backend::StackBackend;
-use crate::sync::Shared;
+use crate::sync::shared::Shared;
 
 /// Handle that exposes a [`StackBackend`].
 pub trait StackHandle<T>: Shared<Self::Backend> + Clone {

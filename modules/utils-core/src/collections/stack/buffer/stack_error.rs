@@ -1,4 +1,4 @@
-use crate::collections::QueueError;
+use crate::v2::collections::queue::backend::QueueError;
 
 /// Error type specific to stack operations.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,14 +1,20 @@
 //! Shared mailbox abstractions reused across layers.
 
 /// Mailbox factory abstractions for creating mailboxes.
-pub mod factory; // allow module_wiring::no_parent_reexport
+mod factory;
 /// Mailbox handle abstractions for runtime scheduler integration.
-pub mod handle; // allow module_wiring::no_parent_reexport
+mod handle;
 /// Message envelope types for mailbox communication.
-pub mod messages; // allow module_wiring::no_parent_reexport
+pub mod messages;
 /// Mailbox configuration options.
-pub mod options; // allow module_wiring::no_parent_reexport
+mod options;
 /// Mailbox producer abstractions for sending messages.
-pub mod producer; // allow module_wiring::no_parent_reexport
+mod producer;
 /// Mailbox signal abstractions for notification mechanisms.
-pub mod signal; // allow module_wiring::no_parent_reexport
+mod signal;
+
+pub use factory::*;
+pub use handle::*;
+pub use options::*;
+pub use producer::*;
+pub use signal::*;

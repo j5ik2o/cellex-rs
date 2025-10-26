@@ -1,16 +1,14 @@
 use core::marker::PhantomData;
 
 use cellex_utils_core_rs::{
-  sync::{ArcShared, Shared},
-  Element,
+  collections::Element,
+  sync::{shared::Shared, ArcShared},
 };
 
 use crate::{
-  api::{
-    mailbox::{Mailbox, MailboxOptions, MailboxPair, MailboxProducer},
-    metrics::MetricsSinkShared,
-  },
+  api::{mailbox::Mailbox, metrics::MetricsSinkShared},
   internal::mailbox::PriorityMailboxBuilder,
+  shared::mailbox::{MailboxOptions, MailboxPair, MailboxProducer},
 };
 
 /// Shared handle that can spawn priority mailboxes without exposing the underlying factory.

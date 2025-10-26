@@ -1,14 +1,19 @@
 use cellex_utils_core_rs::{
-  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, SharedBound,
+  collections::Element,
+  sync::shared::SharedBound,
+  v2::collections::queue::backend::{OfferOutcome, QueueError},
 };
 
-use crate::api::{
-  actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{
-    queue_mailbox::{MailboxQueueCore, MailboxQueueDriver},
-    MailboxError, MailboxSignal,
+use crate::{
+  api::{
+    actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
+    mailbox::{
+      queue_mailbox::{MailboxQueueCore, MailboxQueueDriver},
+      MailboxError,
+    },
+    metrics::MetricsSinkShared,
   },
-  metrics::MetricsSinkShared,
+  shared::mailbox::MailboxSignal,
 };
 
 /// Sending handle that shares queue ownership with

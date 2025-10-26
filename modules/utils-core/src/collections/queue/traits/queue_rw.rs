@@ -1,4 +1,4 @@
-use crate::collections::queue::{queue_error::QueueError, traits::queue_base::QueueBase};
+use crate::{collections::queue::traits::queue_base::QueueBase, v2::collections::queue::backend::QueueError};
 
 /// Trait providing read/write operations for the queue using shared references.
 pub trait QueueRw<E>: QueueBase<E> {

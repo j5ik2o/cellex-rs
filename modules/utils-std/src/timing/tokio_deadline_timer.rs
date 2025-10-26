@@ -4,7 +4,7 @@ mod tests;
 use core::task::Poll;
 use std::collections::HashMap;
 
-use cellex_utils_core_rs::{
+use cellex_utils_core_rs::timing::deadline_timer::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };
 use tokio_util::time::delay_queue::{DelayQueue as InnerDelayQueue, Key as InnerKey};

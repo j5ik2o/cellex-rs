@@ -69,7 +69,7 @@ extern crate alloc;
 
 use core::time::Duration;
 
-use cellex_utils_core_rs::collections::queue::QueueError;
+use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
 
 use crate::api::mailbox::messages::SystemMessage;
 
@@ -103,7 +103,7 @@ pub type MapSystemFn<M> = dyn Fn(SystemMessage) -> M;
 pub async fn actor_loop<M, MB, T, F>(mailbox: &MB, timer: &T, mut handler: F)
 where
   MB: api::mailbox::Mailbox<M>,
-  T: api::actor_system::Timer,
+  T: api::actor::Timer,
   F: FnMut(M), {
   loop {
     match mailbox.recv().await {

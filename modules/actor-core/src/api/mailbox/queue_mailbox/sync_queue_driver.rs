@@ -1,11 +1,11 @@
 use cellex_utils_core_rs::{
-  collections::queue::{QueueError, QueueError as V2QueueError},
-  sync::{sync_mutex_like::SpinSyncMutex, ArcShared, Shared},
+  collections::{queue::QueueSize, Element},
+  sync::{shared::Shared, sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::collections::queue::{
-    backend::{OfferOutcome, OverflowPolicy, VecRingBackend},
-    MpscQueue, VecRingStorage,
+    backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
+    storage::VecRingStorage,
+    MpscQueue,
   },
-  Element, QueueSize,
 };
 use spin::Mutex;
 
@@ -151,12 +151,12 @@ where
         },
       },
       | Err(error) => match error {
-        | V2QueueError::Full(preserved) => Err(QueueError::Full(Self::reclaim(preserved))),
-        | V2QueueError::Closed(preserved) => Err(QueueError::Closed(Self::reclaim(preserved))),
-        | V2QueueError::AllocError(preserved) => Err(QueueError::AllocError(Self::reclaim(preserved))),
-        | V2QueueError::OfferError(preserved) => Err(QueueError::OfferError(Self::reclaim(preserved))),
-        | V2QueueError::WouldBlock | V2QueueError::Empty => Err(QueueError::OfferError(Self::reclaim(entry))),
-        | V2QueueError::Disconnected => Err(QueueError::Disconnected),
+        | QueueError::Full(preserved) => Err(QueueError::Full(Self::reclaim(preserved))),
+        | QueueError::Closed(preserved) => Err(QueueError::Closed(Self::reclaim(preserved))),
+        | QueueError::AllocError(preserved) => Err(QueueError::AllocError(Self::reclaim(preserved))),
+        | QueueError::OfferError(preserved) => Err(QueueError::OfferError(Self::reclaim(preserved))),
+        | QueueError::WouldBlock | QueueError::Empty => Err(QueueError::OfferError(Self::reclaim(entry))),
+        | QueueError::Disconnected => Err(QueueError::Disconnected),
       },
     }
   }
@@ -164,25 +164,25 @@ where
   fn poll(&self) -> Result<QueuePollOutcome<M>, QueueError<M>> {
     match self.queue.poll() {
       | Ok(entry) => Ok(QueuePollOutcome::Message(Self::reclaim(entry))),
-      | Err(V2QueueError::Empty) => Ok(QueuePollOutcome::Empty),
-      | Err(V2QueueError::WouldBlock) => Ok(QueuePollOutcome::Pending),
-      | Err(V2QueueError::Disconnected) => Ok(QueuePollOutcome::Disconnected),
-      | Err(V2QueueError::Closed(preserved)) => Ok(QueuePollOutcome::Closed(Self::reclaim(preserved))),
-      | Err(V2QueueError::AllocError(preserved)) => Err(QueueError::AllocError(Self::reclaim(preserved))),
-      | Err(V2QueueError::OfferError(preserved)) => Err(QueueError::OfferError(Self::reclaim(preserved))),
-      | Err(V2QueueError::Full(preserved)) => Err(QueueError::Full(Self::reclaim(preserved))),
+      | Err(QueueError::Empty) => Ok(QueuePollOutcome::Empty),
+      | Err(QueueError::WouldBlock) => Ok(QueuePollOutcome::Pending),
+      | Err(QueueError::Disconnected) => Ok(QueuePollOutcome::Disconnected),
+      | Err(QueueError::Closed(preserved)) => Ok(QueuePollOutcome::Closed(Self::reclaim(preserved))),
+      | Err(QueueError::AllocError(preserved)) => Err(QueueError::AllocError(Self::reclaim(preserved))),
+      | Err(QueueError::OfferError(preserved)) => Err(QueueError::OfferError(Self::reclaim(preserved))),
+      | Err(QueueError::Full(preserved)) => Err(QueueError::Full(Self::reclaim(preserved))),
     }
   }
 
   fn close(&self) -> Result<Option<M>, QueueError<M>> {
     match self.queue.close() {
       | Ok(()) => Ok(None),
-      | Err(V2QueueError::Closed(preserved)) => Ok(Some(Self::reclaim(preserved))),
-      | Err(V2QueueError::Disconnected) => Err(QueueError::Disconnected),
-      | Err(V2QueueError::AllocError(preserved)) => Err(QueueError::AllocError(Self::reclaim(preserved))),
-      | Err(V2QueueError::OfferError(preserved)) => Err(QueueError::OfferError(Self::reclaim(preserved))),
-      | Err(V2QueueError::Full(preserved)) => Err(QueueError::Full(Self::reclaim(preserved))),
-      | Err(V2QueueError::WouldBlock) | Err(V2QueueError::Empty) => Ok(None),
+      | Err(QueueError::Closed(preserved)) => Ok(Some(Self::reclaim(preserved))),
+      | Err(QueueError::Disconnected) => Err(QueueError::Disconnected),
+      | Err(QueueError::AllocError(preserved)) => Err(QueueError::AllocError(Self::reclaim(preserved))),
+      | Err(QueueError::OfferError(preserved)) => Err(QueueError::OfferError(Self::reclaim(preserved))),
+      | Err(QueueError::Full(preserved)) => Err(QueueError::Full(Self::reclaim(preserved))),
+      | Err(QueueError::WouldBlock) | Err(QueueError::Empty) => Ok(None),
     }
   }
 

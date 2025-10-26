@@ -5,8 +5,8 @@ extern crate alloc;
 use alloc::rc::Rc;
 use core::{cell::RefCell, fmt};
 
-use crate::collections::{
-  queue::mpsc::{mpsc_backend::RingBufferBackend, traits::MpscHandle, MpscBuffer, MpscQueue},
+use crate::{
+  collections::queue::mpsc::{mpsc_backend::RingBufferBackend, traits::MpscHandle, MpscBuffer, MpscQueue},
   QueueError,
 };
 

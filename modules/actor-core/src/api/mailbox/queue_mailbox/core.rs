@@ -1,12 +1,17 @@
 use cellex_utils_core_rs::{
-  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, Flag, QueueSize,
+  collections::{queue::QueueSize, Element},
+  sync::Flag,
+  v2::collections::queue::backend::{OfferOutcome, QueueError},
 };
 
 use super::{MailboxQueueDriver, QueuePollOutcome};
-use crate::api::{
-  actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::{MailboxError, MailboxSignal},
-  metrics::{MetricsEvent, MetricsSinkShared},
+use crate::{
+  api::{
+    actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
+    mailbox::MailboxError,
+    metrics::{MetricsEvent, MetricsSinkShared},
+  },
+  shared::mailbox::MailboxSignal,
 };
 
 /// Core mailbox state shared between handle and producer implementations.

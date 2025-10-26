@@ -1,9 +1,11 @@
-#![allow(deprecated)]
-
 use std::sync::Mutex;
 
-use cellex_utils_core_rs::{
-  QueueSize, Stack, StackBase, StackBuffer, StackError, StackMut, StackStorage, StackStorageBackend,
+use cellex_utils_core_rs::collections::{
+  queue::QueueSize,
+  stack::{
+    traits::{StackBase, StackMut, StackStorage, StackStorageBackend},
+    Stack, StackBuffer, StackError,
+  },
 };
 
 use crate::sync::ArcShared;

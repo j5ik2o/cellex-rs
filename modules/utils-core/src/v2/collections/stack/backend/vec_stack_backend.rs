@@ -1,6 +1,9 @@
 use core::cmp;
 
-use crate::v2::collections::stack::{PushOutcome, StackBackend, StackError, StackOverflowPolicy, VecStackStorage};
+use crate::v2::collections::stack::{
+  backend::{PushOutcome, StackBackend, StackError, StackOverflowPolicy},
+  storage::VecStackStorage,
+};
 
 /// Stack backend backed by a contiguous growable buffer.
 pub struct VecStackBackend<T> {

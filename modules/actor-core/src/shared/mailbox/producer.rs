@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element};
+use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle, mailbox::MailboxError, metrics::MetricsSinkShared,

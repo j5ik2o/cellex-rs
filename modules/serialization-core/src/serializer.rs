@@ -3,7 +3,7 @@
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-use cellex_utils_core_rs::sync::SharedBound;
+use cellex_utils_core_rs::sync::shared::SharedBound;
 
 use crate::{
   error::{DeserializationError, SerializationError},

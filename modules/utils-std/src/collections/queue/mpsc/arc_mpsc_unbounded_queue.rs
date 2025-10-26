@@ -3,8 +3,15 @@
 use std::{fmt, sync::Arc};
 
 use cellex_utils_core_rs::{
-  Element, MpscBackend, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
-  RingBufferBackend,
+  collections::{
+    queue::{
+      mpsc::{traits::MpscBackend, MpscQueue, RingBufferBackend},
+      traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+      QueueSize,
+    },
+    Element,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 
 use crate::{

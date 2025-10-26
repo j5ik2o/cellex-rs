@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::collections::queue::QueueError as AsyncQueueError;
+use cellex_utils_core_rs::QueueError as AsyncQueueError;
 use cellex_utils_std_rs::v2::collections::make_tokio_mpsc_queue;
 
 #[tokio::test(flavor = "multi_thread")]

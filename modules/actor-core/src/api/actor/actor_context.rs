@@ -2,8 +2,12 @@ use alloc::boxed::Box;
 use core::{future::Future, marker::PhantomData, time::Duration};
 
 use cellex_utils_core_rs::{
-  sync::{ArcShared, SendBound, SharedBound},
-  Element, QueueError, DEFAULT_PRIORITY,
+  collections::{queue::priority::DEFAULT_PRIORITY, Element},
+  sync::{
+    shared::{SendBound, SharedBound},
+    ArcShared,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 use spin::RwLock;
 
@@ -13,16 +17,17 @@ use crate::{
       actor_failure::ActorFailure,
       actor_ref::{ActorRef, PriorityActorRef},
       ask::{ask_with_timeout, create_ask_handles, AskError, AskFuture, AskResult, AskTimeoutFuture},
+      message_metadata_responder::MessageMetadataResponder,
       props::Props,
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
     extensions::{Extension, ExtensionId, Extensions},
-    mailbox::{messages::SystemMessage, MailboxFactory},
+    mailbox::messages::SystemMessage,
     messaging::{MessageMetadata, MessageSender, MetadataStorageMode},
     process::{pid::Pid, process_registry::ProcessRegistry},
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MessageEnvelope},
   },
 };
@@ -33,12 +38,9 @@ mod context_logger;
 pub use context_log_level::ContextLogLevel;
 pub use context_logger::ContextLogger;
 
-pub use crate::api::actor::{
-  message_adapter_ref::MessageAdapterRef, message_metadata_responder::MessageMetadataResponder,
-};
 use crate::{
   api::{
-    actor::{actor_id::ActorId, actor_path::ActorPath},
+    actor::{actor_id::ActorId, actor_path::ActorPath, message_adapter_ref::MessageAdapterRef},
     failure::FailureInfo,
   },
   internal::actor_context::InternalActorContext,

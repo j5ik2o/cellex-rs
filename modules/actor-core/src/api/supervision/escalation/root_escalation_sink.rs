@@ -1,18 +1,15 @@
 use core::{marker::PhantomData, time::Duration};
 
 use crate::{
-  api::{
-    failure::{
-      failure_event_stream::FailureEventListener,
-      failure_telemetry::{
-        default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryObservationConfig, FailureTelemetryShared,
-      },
-      FailureEvent, FailureInfo,
+  api::failure::{
+    failure_event_stream::FailureEventListener,
+    failure_telemetry::{
+      default_failure_telemetry_shared, FailureSnapshot, FailureTelemetryObservationConfig, FailureTelemetryShared,
     },
-    mailbox::MailboxFactory,
+    FailureEvent, FailureInfo,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::AnyMessage,
     supervision::{EscalationSink, FailureEventHandler},
   },

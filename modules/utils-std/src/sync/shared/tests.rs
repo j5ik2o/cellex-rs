@@ -1,6 +1,6 @@
 #![allow(clippy::disallowed_types)]
 
-use cellex_utils_core_rs::QueueBase;
+use cellex_utils_core_rs::collections::queue::traits::QueueBase;
 
 use super::*;
 use crate::collections::queue::MutexRingBufferStorage;

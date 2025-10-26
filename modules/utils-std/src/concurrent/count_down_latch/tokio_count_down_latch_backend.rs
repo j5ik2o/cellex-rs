@@ -7,7 +7,7 @@ use std::sync::{
 };
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::CountDownLatchBackend;
+use cellex_utils_core_rs::concurrent::count_down_latch::CountDownLatchBackend;
 use tokio::sync::Notify;
 
 struct State {

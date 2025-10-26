@@ -2,7 +2,7 @@ use super::{
   traits::{StackBackend, StackBase, StackHandle, StackMut},
   StackError,
 };
-use crate::collections::QueueSize;
+use crate::collections::queue::QueueSize;
 
 #[cfg(test)]
 mod tests;

@@ -1,7 +1,7 @@
 use alloc::rc::Rc;
 use core::cell::{Ref, RefCell, RefMut};
 
-use cellex_utils_core_rs::StateCell;
+use cellex_utils_core_rs::sync::StateCell;
 
 /// `Rc<RefCell<T>>`-based state cell.
 ///

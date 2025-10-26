@@ -5,7 +5,7 @@ use alloc::rc::Rc as Arc;
 use alloc::sync::Arc;
 use core::ptr;
 
-use super::{Shared, SharedDyn};
+use super::shared::{Shared, SharedDyn};
 
 /// Shared wrapper backed by `alloc::sync::Arc`.
 ///

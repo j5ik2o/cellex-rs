@@ -1,8 +1,8 @@
 use core::{convert::Infallible, marker::PhantomData};
 
 use cellex_utils_core_rs::{
-  sync::{ArcShared, Shared},
-  QueueError,
+  sync::{shared::Shared, ArcShared},
+  v2::collections::queue::backend::QueueError,
 };
 
 use super::InternalRootContext;
@@ -13,7 +13,6 @@ use crate::{
     actor_scheduler::{ready_queue_scheduler::ReadyQueueWorker, ActorSchedulerHandle, ActorSchedulerHandleBuilder},
     extensions::Extensions,
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     process::{
       pid::{NodeId, SystemId},
@@ -21,7 +20,10 @@ use crate::{
     },
   },
   internal::actor_system::internal_actor_system_config::InternalGenericActorSystemConfig,
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+  },
 };
 
 type ActorSystemProcessRegistryShared<AR> =

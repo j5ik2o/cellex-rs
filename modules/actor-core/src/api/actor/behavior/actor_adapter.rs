@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use core::mem;
 
-use cellex_utils_core_rs::{sync::ArcShared, Element};
+use cellex_utils_core_rs::{collections::Element, sync::ArcShared};
 
 use super::{Behavior, BehaviorDirective, Signal, SignalFn, SupervisorStrategyConfig, SystemHandlerFn};
 use crate::{

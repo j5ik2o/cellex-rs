@@ -1,8 +1,10 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, Element, SharedBound};
+use cellex_utils_core_rs::{
+  collections::Element, sync::shared::SharedBound, v2::collections::queue::backend::QueueError,
+};
 
 use crate::{
-  api::mailbox::{messages::SystemMessage, MailboxError, MailboxFactory, MailboxProducer},
-  shared::mailbox::messages::PriorityEnvelope,
+  api::mailbox::{messages::SystemMessage, MailboxError},
+  shared::mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxProducer},
 };
 
 /// Minimal handle that delivers envelopes into an actor's mailbox.

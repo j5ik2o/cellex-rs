@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cellex_utils_core_rs::collections::queue::QueueError;
+use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
 use tokio::{pin, time::sleep};
 
 use super::{make_tokio_mpsc_queue, TokioMpscQueue};

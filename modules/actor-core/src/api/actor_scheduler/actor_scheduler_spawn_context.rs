@@ -6,11 +6,10 @@ use spin::RwLock;
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorHandlerFn, ChildNaming},
-    mailbox::{MailboxFactory, MailboxOptions},
     process::{pid::Pid, process_registry::ProcessRegistry},
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions},
     messaging::{AnyMessage, MapSystemShared},
   },
 };

@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use cellex_utils_core_rs::{sync::ArcShared, Element};
+use cellex_utils_core_rs::{collections::Element, sync::ArcShared};
 
 use crate::{
   api::{

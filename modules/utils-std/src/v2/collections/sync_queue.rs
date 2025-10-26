@@ -3,7 +3,10 @@
 use cellex_utils_core_rs::{
   sync::ArcShared,
   v2::collections::queue::{
-    FifoKey, MpscKey, OverflowPolicy, SpscKey, SyncQueue as CoreSyncQueue, VecRingBackend, VecRingStorage,
+    backend::{OverflowPolicy, VecRingBackend},
+    storage::VecRingStorage,
+    type_keys::{FifoKey, MpscKey, SpscKey},
+    SyncQueue as CoreSyncQueue,
   },
 };
 

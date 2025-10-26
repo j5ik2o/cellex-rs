@@ -12,9 +12,10 @@ use crate::{
       mpsc::{MpscBuffer, MpscHandle, MpscQueue, RingBufferBackend},
       traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
     },
-    QueueError, QueueSize,
+    QueueSize,
   },
   sync::Shared,
+  QueueError,
 };
 
 #[derive(Debug, Clone)]

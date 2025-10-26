@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::v2::collections::stack::{PushOutcome, StackError, StackOverflowPolicy};
+use cellex_utils_core_rs::v2::collections::stack::backend::{PushOutcome, StackError, StackOverflowPolicy};
 
 use super::*;
 

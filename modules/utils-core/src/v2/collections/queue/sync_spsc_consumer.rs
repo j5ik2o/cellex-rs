@@ -1,9 +1,11 @@
 use core::marker::PhantomData;
 
 use crate::{
-  collections::queue::QueueError,
   sync::{sync_mutex_like::SyncMutexLike, ArcShared},
-  v2::{collections::queue::backend::SyncQueueBackend, sync::SharedAccess},
+  v2::{
+    collections::queue::backend::{QueueError, SyncQueueBackend},
+    sync::SharedAccess,
+  },
 };
 
 /// Consumer for queues tagged with
