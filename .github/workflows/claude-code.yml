@@ -25,9 +25,6 @@ permissions:
 jobs:
   claude:
     name: Run Claude Code Action
-    if: >-
-      github.event_name == 'pull_request_target' ||
-      github.event.issue.pull_request
     runs-on: ubuntu-latest
     steps:
       - name: Invoke Claude Code Action
