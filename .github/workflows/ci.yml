@@ -6,8 +6,15 @@ on:
     branches: [ main ]
   schedule:
     - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      include_queue_v1:
+        description: 'Run queue-v1 regression suite'
+        required: false
+        default: 'false'
 env:
   CARGO_TERM_COLOR: always
+  CI_INCLUDE_QUEUE_V1: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.include_queue_v1 == 'true' && '1' || '0' }}
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -59,3 +66,15 @@ jobs:
       - uses: arduino/setup-protoc@v3
       - uses: dtolnay/rust-toolchain@stable
       - run: ./scripts/ci-check.sh test
+  queue-v1:
+    name: queue-v1 (optional)
+    runs-on: ubuntu-latest
+    if: ${{ env.CI_INCLUDE_QUEUE_V1 == '1' }}
+    needs: lint
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: run queue-v1 regression
+        env:
+          CI_INCLUDE_QUEUE_V1: '1'
+        run: ./scripts/ci-check.sh queue
