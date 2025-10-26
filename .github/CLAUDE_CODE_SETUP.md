@@ -2,11 +2,31 @@
 
 このリポジトリでは、Claude Code GitHub Actionを使用してPRレビュー、コード改善、自動化タスクを実行できます。
 
-## 前提条件
+## セットアップ手順
+
+### 1. ワークフローファイルの有効化
+
+ワークフローファイルのサンプルが `.github/examples/claude-code.workflow.yml` として提供されています。
+これを有効にするには、以下のコマンドを実行してください:
+
+```bash
+# ワークフローファイルをコピー
+cp .github/examples/claude-code.workflow.yml .github/workflows/claude-code.yml
+
+# コミット&プッシュ
+git add .github/workflows/claude-code.yml
+git commit -m "feat: enable Claude Code GitHub Action workflow"
+git push
+```
+
+**注意**: ワークフローファイルのプッシュには、リポジトリへの `workflows` 権限が必要です。
+権限がない場合は、リポジトリ管理者に依頼してください。
+
+### 2. APIキーの設定
 
 このワークフローを使用するには、以下のシークレットがリポジトリに設定されている必要があります:
 
-### 必須シークレット
+#### 必須シークレット
 
 - `ANTHROPIC_API_KEY`: Anthropic APIキー
   - [Anthropic Console](https://console.anthropic.com/)で取得できます
