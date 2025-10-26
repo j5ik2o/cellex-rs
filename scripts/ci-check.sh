@@ -66,12 +66,30 @@ ensure_target_installed() {
   return 2
 }
 
+ensure_dylint_installed() {
+  if command -v cargo-dylint >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "info: cargo-dylint がインストールされていないため、インストールします..." >&2
+  if cargo install cargo-dylint; then
+    echo "info: cargo-dylint のインストールが完了しました。" >&2
+    return 0
+  fi
+
+  echo "エラー: cargo-dylint のインストールに失敗しました。" >&2
+  echo "手動でインストールする場合: cargo install cargo-dylint" >&2
+  return 1
+}
+
 run_lint() {
   log_step "cargo +${FMT_TOOLCHAIN} fmt -- --check"
   cargo "+${FMT_TOOLCHAIN}" fmt --all -- --check || return 1
 }
 
 run_dylint() {
+  ensure_dylint_installed || return 1
+
   local -a lint_filters
   lint_filters=()
   local -a module_filters
