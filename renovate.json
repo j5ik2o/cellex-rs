@@ -20,6 +20,11 @@
         "devDependencies"
       ],
       "automerge": true
+    },
+    {
+      "matchFileNames": ["mise.toml"],
+      "matchPackageNames": ["node"],
+      "enabled": false
     }
   ],
   "prHourlyLimit": 0,
