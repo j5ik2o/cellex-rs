@@ -49,7 +49,6 @@
 #![deny(clippy::cmp_null)]
 #![allow(unknown_lints)]
 #![allow(cfg_std_forbid)]
-
 //! Utilities for std runtime.
 //!
 //! This module binds the abstractions defined in `cellex_utils_core_rs` to tokio-based

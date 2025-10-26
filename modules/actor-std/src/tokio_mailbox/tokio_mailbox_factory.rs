@@ -1,21 +1,21 @@
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+  MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair, QueueMailboxProducer, ThreadSafe,
 };
-use cellex_utils_std_rs::Element;
+use cellex_utils_std_rs::{Element, QueueSize};
 
-use super::{
-  notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender,
-  tokio_queue::TokioQueue,
-};
+use super::{notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender};
+
+type TokioQueueDriver<M> = SyncQueueDriver<M>;
 
 /// Factory that creates Tokio mailboxes.
 ///
 /// Provides constructors for bounded and unbounded mailboxes.
 /// CAUTION: keep the type name accurate and ensure the implementation matches it.
 #[derive(Clone, Debug, Default)]
-pub struct TokioMailboxRuntime;
+pub struct TokioMailboxFactory;
 
-impl TokioMailboxRuntime {
+impl TokioMailboxFactory {
   /// Creates a mailbox with the specified options
   ///
   /// # Arguments
@@ -57,7 +57,7 @@ impl TokioMailboxRuntime {
   }
 }
 
-impl MailboxFactory for TokioMailboxRuntime {
+impl MailboxFactory for TokioMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = QueueMailbox<Self::Queue<M>, Self::Signal>
@@ -68,7 +68,7 @@ impl MailboxFactory for TokioMailboxRuntime {
   where
     M: Element;
   type Queue<M>
-    = TokioQueue<M>
+    = TokioQueueDriver<M>
   where
     M: Element;
   type Signal = NotifySignal;
@@ -76,7 +76,14 @@ impl MailboxFactory for TokioMailboxRuntime {
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = TokioQueue::with_capacity(options.capacity);
+    let queue = {
+      let capacity_size = match options.capacity {
+        | QueueSize::Limitless | QueueSize::Limited(0) => QueueSize::limitless(),
+        | QueueSize::Limited(capacity) => QueueSize::limited(capacity),
+      };
+      let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
+      build_queue_driver::<M>(config)
+    };
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

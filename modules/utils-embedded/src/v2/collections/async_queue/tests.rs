@@ -64,7 +64,7 @@ fn close_rejects_subsequent_operations() {
   assert_eq!(value, "hello");
 
   let err = pool.run_until(async { queue.poll().await.err().unwrap() });
-  assert_eq!(err, QueueError::Closed);
+  assert_eq!(err, QueueError::Disconnected);
   let err = pool.run_until(async { queue.offer("world").await.err().unwrap() });
-  assert_eq!(err, QueueError::Closed);
+  assert!(matches!(err, QueueError::Closed(value) if value == "world"));
 }

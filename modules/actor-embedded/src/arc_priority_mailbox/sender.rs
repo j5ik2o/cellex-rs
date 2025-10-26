@@ -1,12 +1,17 @@
 use cellex_actor_core_rs::{
-  api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared},
+  api::{
+    mailbox::{MailboxError, QueueMailboxProducer},
+    metrics::MetricsSinkShared,
+  },
   shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_embedded_rs::{Element, QueueError};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::queues::ArcPriorityQueues;
+use super::priority_sync_handle::ArcPrioritySyncQueueDriver;
 use crate::arc_mailbox::ArcSignal;
+
+type ArcPriorityQueueDriver<M, RM> = ArcPrioritySyncQueueDriver<M, RM>;
 
 /// Sending handle associated with [`super::mailbox::ArcPriorityMailbox`].
 #[derive(Clone)]
@@ -14,7 +19,7 @@ pub struct ArcPriorityMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::C
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<ArcPriorityQueues<M, RM>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<ArcPriorityQueueDriver<M, RM>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcPriorityMailboxSender<M, RM>
@@ -57,12 +62,22 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityQueues<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityQueueDriver<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 
   /// Updates the metrics sink associated with the producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.inner.set_metrics_sink(sink);
+  }
+
+  /// Attempts to enqueue using the MailboxError-based API.
+  pub fn try_send_mailbox(&self, envelope: PriorityEnvelope<M>) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.inner.try_send_mailbox(envelope)
+  }
+
+  /// Sends an envelope using the MailboxError-based API.
+  pub fn send_mailbox(&self, envelope: PriorityEnvelope<M>) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.inner.send_mailbox(envelope)
   }
 }

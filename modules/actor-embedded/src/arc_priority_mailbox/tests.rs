@@ -1,8 +1,8 @@
 #![allow(clippy::disallowed_types)]
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxOptions};
-use cellex_utils_core_rs::{QueueError, QueueRw};
+use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxHandle, MailboxOptions};
+use cellex_utils_core_rs::QueueError;
 use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
 use critical_section::{Impl, RawRestoreState};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -21,7 +21,7 @@ static CS_INIT: AtomicBool = AtomicBool::new(false);
 unsafe impl Impl for TestCriticalSection {
   unsafe fn acquire() -> RawRestoreState {
     while CS_LOCK.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {}
-    ()
+    Default::default()
   }
 
   unsafe fn release(_: RawRestoreState) {
@@ -45,9 +45,9 @@ fn priority_mailbox_orders_messages_by_priority() {
   sender.try_send_control_with_priority(99, DEFAULT_PRIORITY + 7).expect("high priority");
   sender.try_send_control_with_priority(20, DEFAULT_PRIORITY + 3).expect("medium priority");
 
-  let first = mailbox.inner().queue().poll().unwrap().unwrap();
-  let second = mailbox.inner().queue().poll().unwrap().unwrap();
-  let third = mailbox.inner().queue().poll().unwrap().unwrap();
+  let first = mailbox.inner().try_dequeue().unwrap().unwrap();
+  let second = mailbox.inner().try_dequeue().unwrap().unwrap();
+  let third = mailbox.inner().try_dequeue().unwrap().unwrap();
 
   assert_eq!(first.into_parts(), (99, DEFAULT_PRIORITY + 7));
   assert_eq!(second.into_parts(), (20, DEFAULT_PRIORITY + 3));
@@ -80,8 +80,8 @@ fn control_queue_preempts_regular_messages() {
   sender.try_send_with_priority(1, DEFAULT_PRIORITY).expect("regular message");
   sender.try_send_control_with_priority(99, DEFAULT_PRIORITY + 5).expect("control message");
 
-  let first = mailbox.inner().queue().poll().unwrap().unwrap();
-  let second = mailbox.inner().queue().poll().unwrap().unwrap();
+  let first = mailbox.inner().try_dequeue().unwrap().unwrap();
+  let second = mailbox.inner().try_dequeue().unwrap().unwrap();
 
   assert_eq!(first.into_parts(), (99, DEFAULT_PRIORITY + 5));
   assert_eq!(second.into_parts(), (1, DEFAULT_PRIORITY));

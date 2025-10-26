@@ -1,9 +1,14 @@
-use cellex_utils_core_rs::{Element, Flag, QueueError, QueueRw, SharedBound};
+use cellex_utils_core_rs::{
+  collections::queue::QueueError, v2::collections::queue::backend::OfferOutcome, Element, SharedBound,
+};
 
 use crate::api::{
   actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
-  mailbox::MailboxSignal,
-  metrics::{MetricsEvent, MetricsSinkShared},
+  mailbox::{
+    queue_mailbox::{MailboxQueueCore, MailboxQueueDriver},
+    MailboxError, MailboxSignal,
+  },
+  metrics::MetricsSinkShared,
 };
 
 /// Sending handle that shares queue ownership with
@@ -17,11 +22,7 @@ use crate::api::{
 /// - `S`: Notification signal implementation type
 #[derive(Clone)]
 pub struct QueueMailboxProducer<Q, S> {
-  pub(crate) queue:          Q,
-  pub(crate) signal:         S,
-  pub(crate) closed:         Flag,
-  pub(crate) metrics_sink:   Option<MetricsSinkShared>,
-  pub(crate) scheduler_hook: Option<ReadyQueueHandle>,
+  pub(crate) core: MailboxQueueCore<Q, S>,
 }
 
 impl<Q, S> core::fmt::Debug for QueueMailboxProducer<Q, S> {
@@ -47,6 +48,28 @@ where
 }
 
 impl<Q, S> QueueMailboxProducer<Q, S> {
+  pub(crate) fn from_core(core: MailboxQueueCore<Q, S>) -> Self {
+    Self { core }
+  }
+
+  /// Attempts to send a message and returns the underlying queue outcome.
+  pub fn try_send_with_outcome<M>(&self, message: M) -> Result<OfferOutcome, MailboxError<M>>
+  where
+    Q: MailboxQueueDriver<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.core.try_send_mailbox(message)
+  }
+
+  /// Attempts to send a message (non-blocking) using the mailbox error model.
+  pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
+  where
+    Q: MailboxQueueDriver<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.try_send_with_outcome(message).map(|_| ())
+  }
+
   /// Attempts to send a message (non-blocking).
   ///
   /// Returns an error immediately if the queue is full.
@@ -62,29 +85,12 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// - `QueueError::Full`: Queue is full
   pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
-    Q: QueueRw<M>,
+    Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
-    if self.closed.get() {
-      return Err(QueueError::Disconnected);
-    }
-
-    match self.queue.offer(message) {
-      | Ok(()) => {
-        self.signal.notify();
-        if let Some(sink) = &self.metrics_sink {
-          sink.with_ref(|sink| sink.record(MetricsEvent::MailboxEnqueued));
-        }
-        if let Some(hook) = &self.scheduler_hook {
-          hook.notify_ready();
-        }
-        Ok(())
-      },
-      | Err(err @ QueueError::Disconnected) | Err(err @ QueueError::Closed(_)) => {
-        self.closed.set(true);
-        Err(err)
-      },
-      | Err(err) => Err(err),
+    match self.try_send_with_outcome(message) {
+      | Ok(_) => Ok(()),
+      | Err(error) => Err(error.into()),
     }
   }
 
@@ -100,19 +106,34 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Returns [`QueueError`] when the queue rejects the message.
   pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
-    Q: QueueRw<M>,
+    Q: MailboxQueueDriver<M>,
     S: MailboxSignal,
     M: Element, {
     self.try_send(message)
   }
 
+  /// Sends a message using the mailbox error model.
+  pub fn send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
+  where
+    Q: MailboxQueueDriver<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.try_send_mailbox(message)
+  }
+
+  /// Returns a reference to the underlying queue.
+  #[must_use]
+  pub fn queue(&self) -> &Q {
+    self.core.queue()
+  }
+
   /// Assigns a metrics sink for enqueue instrumentation.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.metrics_sink = sink;
+    self.core.set_metrics_sink(sink);
   }
 
   /// Installs a scheduler hook for notifying ready queue updates.
   pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
-    self.scheduler_hook = hook;
+    self.core.set_scheduler_hook(hook);
   }
 }

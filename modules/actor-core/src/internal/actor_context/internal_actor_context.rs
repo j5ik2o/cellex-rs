@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, time::Duration};
 
-use cellex_utils_core_rs::{sync::ArcShared, QueueError};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
 use spin::RwLock;
 
 use crate::{
@@ -216,7 +216,7 @@ where
     message: AnyMessage,
     priority: i8,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
-    self.sender.try_send(PriorityEnvelope::new(message, priority))
+    self.sender.try_send_mailbox(PriorityEnvelope::new(message, priority)).map_err(Into::into)
   }
 
   /// Sends a control message to the actor.
@@ -225,7 +225,7 @@ where
     message: AnyMessage,
     priority: i8,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
-    self.sender.try_send(PriorityEnvelope::control(message, priority))
+    self.sender.try_send_mailbox(PriorityEnvelope::control(message, priority)).map_err(Into::into)
   }
 
   /// Sends a prepared priority envelope to the actor.
@@ -233,7 +233,7 @@ where
     &self,
     envelope: PriorityEnvelope<AnyMessage>,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
-    self.sender.try_send(envelope)
+    self.sender.try_send_mailbox(envelope).map_err(Into::into)
   }
 
   #[allow(clippy::missing_const_for_fn)]

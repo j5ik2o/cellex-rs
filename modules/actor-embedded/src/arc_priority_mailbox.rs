@@ -3,7 +3,8 @@ mod tests;
 
 mod factory;
 mod mailbox;
-mod queues;
+mod priority_sync_driver;
+mod priority_sync_handle;
 mod sender;
 
 pub use factory::ArcPriorityMailboxFactory;

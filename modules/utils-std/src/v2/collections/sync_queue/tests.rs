@@ -1,6 +1,9 @@
 use std::thread;
 
-use cellex_utils_core_rs::v2::collections::queue::{OfferOutcome, OverflowPolicy, QueueError};
+use cellex_utils_core_rs::{
+  collections::queue::QueueError,
+  v2::collections::queue::{OfferOutcome, OverflowPolicy},
+};
 
 use super::*;
 
@@ -19,7 +22,7 @@ fn fifo_queue_full_blocking() {
   let queue = make_std_fifo_queue::<u32>(1, OverflowPolicy::Block);
   assert_eq!(queue.offer(10).unwrap(), OfferOutcome::Enqueued);
   let err = queue.offer(20).unwrap_err();
-  assert_eq!(err, QueueError::Full);
+  assert!(matches!(err, QueueError::Full(value) if value == 20));
 }
 
 #[test]

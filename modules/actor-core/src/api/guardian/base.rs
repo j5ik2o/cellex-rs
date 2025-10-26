@@ -1,13 +1,13 @@
 use alloc::{collections::BTreeMap, format, string::String};
 
-use cellex_utils_core_rs::QueueError;
+use cellex_utils_core_rs::collections::queue::QueueError;
 
 use super::{ChildRecord, GuardianStrategy};
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorId, ActorPath, ChildNaming, SpawnError},
     failure::FailureInfo,
-    mailbox::{messages::SystemMessage, MailboxFactory, MailboxProducer},
+    mailbox::{messages::SystemMessage, MailboxFactory},
     supervision::supervisor::SupervisorDirective,
   },
   shared::{
@@ -82,7 +82,7 @@ where
       let map_clone = map_system.clone();
       #[allow(clippy::redundant_closure)]
       let envelope = PriorityEnvelope::from_system(SystemMessage::Watch(watcher_id)).map(move |sys| map_clone(sys));
-      control_ref.sender().try_send(envelope).map_err(SpawnError::from)?;
+      control_ref.try_send_envelope_mailbox(envelope).map_err(|error| SpawnError::from(QueueError::from(error)))?;
     }
 
     Ok((id, path))
@@ -98,7 +98,7 @@ where
         let map_clone = record.map_system.clone();
         #[allow(clippy::redundant_closure)]
         let envelope = PriorityEnvelope::from_system(SystemMessage::Unwatch(watcher_id)).map(move |sys| map_clone(sys));
-        let _ = record.control_ref.sender().try_send(envelope);
+        let _ = record.control_ref.try_send_envelope_mailbox(envelope);
       }
       record.control_ref
     })
@@ -127,7 +127,7 @@ where
       let map_clone = record.map_system.clone();
       #[allow(clippy::redundant_closure)]
       let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| map_clone(sys));
-      record.control_ref.sender().try_send(envelope)
+      record.control_ref.try_send_envelope_mailbox(envelope).map_err(|error| QueueError::from(error))
     } else {
       Ok(())
     }
@@ -188,7 +188,7 @@ where
           let map_clone = record.map_system.clone();
           #[allow(clippy::redundant_closure)]
           let envelope = PriorityEnvelope::from_system(SystemMessage::Stop).map(move |sys| map_clone(sys));
-          record.control_ref.sender().try_send(envelope)?;
+          record.control_ref.try_send_envelope_mailbox(envelope).map_err(|error| QueueError::from(error))?;
           Ok(None)
         } else {
           Ok(Some(failure))
@@ -200,7 +200,7 @@ where
           let map_clone = record.map_system.clone();
           #[allow(clippy::redundant_closure)]
           let envelope = PriorityEnvelope::from_system(SystemMessage::Restart).map(move |sys| map_clone(sys));
-          record.control_ref.sender().try_send(envelope)?;
+          record.control_ref.try_send_envelope_mailbox(envelope).map_err(|error| QueueError::from(error))?;
           self.strategy.after_restart(actor);
           Ok(None)
         } else {

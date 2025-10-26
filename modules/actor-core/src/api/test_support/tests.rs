@@ -15,8 +15,13 @@ fn test_mailbox_factory_delivers_fifo() {
   let mailbox_factory = TestMailboxFactory::with_capacity_per_queue(2);
   let (mailbox, sender) = mailbox_factory.build_default_mailbox::<u32>();
 
+  assert_eq!(mailbox.len_usize::<u32>(), 0);
+  assert_eq!(mailbox.capacity_usize::<u32>(), 2);
+
   sender.try_send(1).unwrap();
   sender.try_send(2).unwrap();
+
+  assert_eq!(mailbox.len_usize::<u32>(), 2);
 
   let mut future = mailbox.recv();
   let waker = noop_waker();

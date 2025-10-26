@@ -2,17 +2,18 @@ use core::fmt;
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv},
-    Mailbox,
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
+    Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
 
 use super::{
-  local_mailbox_factory::LocalMailboxFactory, local_mailbox_sender::LocalMailboxSender, local_queue::LocalQueue,
-  local_signal::LocalSignal,
+  local_mailbox_factory::LocalMailboxFactory, local_mailbox_sender::LocalMailboxSender, local_signal::LocalSignal,
 };
+
+type LocalMailboxQueue<M> = SyncQueueDriver<M>;
 
 /// Asynchronous mailbox for local thread.
 ///
@@ -20,13 +21,13 @@ use super::{
 pub struct LocalMailbox<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailbox<LocalQueue<M>, LocalSignal>,
+  pub(super) inner: QueueMailbox<LocalMailboxQueue<M>, LocalSignal>,
 }
 
 impl<M> LocalMailbox<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   /// Creates a new mailbox pair with default settings.
   ///
@@ -56,7 +57,7 @@ where
   ///
   /// A reference to the `QueueMailbox`
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<LocalQueue<M>, LocalSignal> {
+  pub const fn inner(&self) -> &QueueMailbox<LocalMailboxQueue<M>, LocalSignal> {
     &self.inner
   }
 
@@ -69,10 +70,10 @@ where
 impl<M> Mailbox<M> for LocalMailbox<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, LocalQueue<M>, LocalSignal, M>
+    = QueueMailboxRecv<'a, LocalMailboxQueue<M>, LocalSignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -106,10 +107,26 @@ where
   }
 }
 
+impl<M> LocalMailbox<M>
+where
+  M: Element,
+  LocalMailboxQueue<M>: Clone,
+{
+  /// Sends a message using the MailboxError-based API.
+  pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.try_send_mailbox(message)
+  }
+
+  /// Returns the receive future when operating with MailboxError semantics.
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LocalMailboxQueue<M>, LocalSignal, M> {
+    self.inner.recv()
+  }
+}
+
 impl<M> Clone for LocalMailbox<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   fn clone(&self) -> Self {
     Self { inner: self.inner.clone() }

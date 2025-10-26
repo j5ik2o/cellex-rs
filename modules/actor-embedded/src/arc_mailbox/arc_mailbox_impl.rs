@@ -1,14 +1,18 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
     queue_mailbox::{QueueMailbox, QueueMailboxRecv},
-    Mailbox,
+    Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element, QueueError, QueueSize};
+use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal};
+use super::{
+  factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcSyncQueueDriver,
+};
+
+type ArcMailboxQueue<M, RM> = ArcSyncQueueDriver<M, RM>;
 
 /// Mailbox implementation backed by an `ArcShared` MPSC queue.
 #[derive(Clone)]
@@ -16,7 +20,7 @@ pub struct ArcMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSection
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailbox<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailbox<ArcMailboxQueue<M, RM>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcMailbox<M, RM>
@@ -30,7 +34,7 @@ where
   }
 
   /// Returns the underlying queue mailbox.
-  pub fn inner(&self) -> &QueueMailbox<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailbox<ArcMailboxQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 
@@ -44,10 +48,10 @@ impl<M, RM> Mailbox<M> for ArcMailbox<M, RM>
 where
   M: Element,
   RM: RawMutex,
-  ArcMpscUnboundedQueue<M, RM>: Clone,
+  ArcMailboxQueue<M, RM>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>, M>
+    = QueueMailboxRecv<'a, ArcMailboxQueue<M, RM>, ArcSignal<RM>, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -78,5 +82,21 @@ where
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.inner.set_metrics_sink(sink);
+  }
+}
+
+impl<M, RM> ArcMailbox<M, RM>
+where
+  M: Element,
+  RM: RawMutex,
+{
+  /// Sends a message using the MailboxError-based API.
+  pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.try_send_mailbox(message)
+  }
+
+  /// Returns the receive future when operating with MailboxError semantics.
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, ArcMailboxQueue<M, RM>, ArcSignal<RM>, M> {
+    self.inner.recv()
   }
 }

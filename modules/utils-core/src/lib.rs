@@ -61,15 +61,6 @@
 
 extern crate alloc;
 
-/// Core collections shared across the Cellex runtimes.
-pub mod collections;
-mod concurrent;
-/// Synchronization primitives and shared ownership abstractions.
-pub mod sync;
-mod timing;
-/// Next-generation APIs under development.
-pub mod v2;
-
 pub use collections::{
   Element, MpscBackend, MpscBuffer, MpscHandle, MpscQueue, PriorityMessage, PriorityQueue, QueueBase, QueueError,
   QueueHandle, QueueReader, QueueRw, QueueRwHandle, QueueSize, QueueStorage, QueueWriter, RingBackend, RingBuffer,
@@ -87,3 +78,12 @@ pub use sync::{
 pub use timing::{
   DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, TimerDeadline,
 };
+
+/// Core collections shared across the Cellex runtimes.
+pub mod collections;
+mod concurrent;
+/// Synchronization primitives and shared ownership abstractions.
+pub mod sync;
+mod timing;
+/// Next-generation APIs under development.
+pub mod v2;

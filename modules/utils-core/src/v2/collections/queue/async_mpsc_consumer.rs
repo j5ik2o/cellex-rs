@@ -2,11 +2,12 @@ use core::marker::PhantomData;
 
 use super::async_queue::poll_shared;
 use crate::{
+  collections::queue::QueueError,
   sync::{
     async_mutex_like::{AsyncMutexLike, SpinAsyncMutex},
     ArcShared,
   },
-  v2::collections::queue::backend::{AsyncQueueBackend, QueueError},
+  v2::collections::queue::backend::AsyncQueueBackend,
 };
 
 /// Async consumer for queues tagged with
@@ -29,33 +30,33 @@ where
   }
 
   /// Polls the next element from the queue.
-  pub async fn poll(&self) -> Result<T, QueueError> {
+  pub async fn poll(&self) -> Result<T, QueueError<T>> {
     poll_shared::<T, B, A>(&self.inner).await
   }
 
   /// Signals that no more elements will be produced.
-  pub async fn close(&self) -> Result<(), QueueError> {
+  pub async fn close(&self) -> Result<(), QueueError<T>> {
     let mut guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     guard.close().await
   }
 
   /// Returns the number of stored elements.
   #[must_use]
-  pub async fn len(&self) -> Result<usize, QueueError> {
+  pub async fn len(&self) -> Result<usize, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.len())
   }
 
   /// Returns the queue capacity.
   #[must_use]
-  pub async fn capacity(&self) -> Result<usize, QueueError> {
+  pub async fn capacity(&self) -> Result<usize, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.capacity())
   }
 
   /// Indicates whether the queue is empty.
   #[must_use]
-  pub async fn is_empty(&self) -> Result<bool, QueueError> {
+  pub async fn is_empty(&self) -> Result<bool, QueueError<T>> {
     let guard = <A as AsyncMutexLike<B>>::lock(&*self.inner).await.map_err(QueueError::from)?;
     Ok(guard.is_empty())
   }

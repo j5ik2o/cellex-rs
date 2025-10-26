@@ -1,12 +1,15 @@
 use core::marker::PhantomData;
 
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox},
+  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
 };
-use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element};
+use cellex_utils_embedded_rs::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal};
+use super::{
+  arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcSyncQueueDriver,
+};
 
 /// Factory for constructing [`ArcMailbox`] instances.
 pub struct ArcMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
@@ -72,7 +75,7 @@ where
   where
     M: Element;
   type Queue<M>
-    = ArcMpscUnboundedQueue<M, RM>
+    = ArcSyncQueueDriver<M, RM>
   where
     M: Element;
   type Signal = ArcSignal<RM>;
@@ -80,7 +83,7 @@ where
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = ArcMpscUnboundedQueue::new();
+    let queue = ArcSyncQueueDriver::from_driver(build_queue_driver::<M>(QueueDriverConfig::default()));
     let signal = ArcSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

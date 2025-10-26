@@ -1,15 +1,15 @@
-use cellex_utils_core_rs::{Element, MpscQueue, QueueSize};
+use cellex_utils_core_rs::{Element, QueueSize};
 
 use crate::api::{
   mailbox::{
-    queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+    MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair, QueueMailboxProducer, ThreadSafe,
   },
-  test_support::{common::TestQueue, shared_backend_handle::SharedBackendHandle, test_signal::TestSignal},
+  test_support::test_signal::TestSignal,
 };
 
 #[derive(Clone, Debug, Default)]
-/// Minimal use cellex_actor_core_rs::api::mailbox::MailboxRuntime; used by unit tests to build
-/// queue-backed mailboxes.
+/// Minimal [`MailboxFactory`] implementation used by unit tests to build queue-backed mailboxes.
 pub struct TestMailboxFactory {
   capacity: Option<usize>,
 }
@@ -34,9 +34,9 @@ impl TestMailboxFactory {
   }
 
   const fn resolve_capacity(&self, options: MailboxOptions) -> Option<usize> {
-    match options.capacity {
-      | QueueSize::Limitless => self.capacity,
-      | QueueSize::Limited(value) => Some(value),
+    match options.capacity_limit() {
+      | Some(limit) => Some(limit),
+      | None => self.capacity,
     }
   }
 }
@@ -52,7 +52,7 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = TestQueue<M>
+    = SyncQueueDriver<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -61,7 +61,14 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = MpscQueue::new(SharedBackendHandle::new(capacity));
+    let queue = {
+      let capacity_size = match capacity {
+        | Some(0) | None => QueueSize::limitless(),
+        | Some(limit) => QueueSize::limited(limit),
+      };
+      let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
+      build_queue_driver::<M>(config)
+    };
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

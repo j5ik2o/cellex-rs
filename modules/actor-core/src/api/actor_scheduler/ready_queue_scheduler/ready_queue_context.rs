@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 
-use cellex_utils_core_rs::{sync::ArcShared, QueueError};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
@@ -70,8 +70,7 @@ where
 
   pub(crate) fn dequeue_ready(&self) -> Option<usize> {
     let mut state = self.state.lock();
-    let index = state.queue.pop_front()?;
-    state.queued[index] = false;
+    let index = state.pop_front()?;
     state.mark_running(index);
     Some(index)
   }

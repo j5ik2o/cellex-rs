@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{convert::Infallible, marker::PhantomData};
 
-use cellex_utils_core_rs::{sync::ArcShared, QueueError, Shared};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Shared};
 use futures::{
   future::{select_all, LocalBoxFuture},
   FutureExt,
@@ -383,7 +383,7 @@ where
         #[allow(clippy::redundant_closure)]
         let envelope =
           PriorityEnvelope::from_system(SystemMessage::Escalate(parent_info)).map(move |sys| map_clone(sys));
-        if parent_ref.sender().try_send(envelope).is_ok() {
+        if parent_ref.try_send_envelope_mailbox(envelope).is_ok() {
           return true;
         }
       }

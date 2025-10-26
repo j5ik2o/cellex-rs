@@ -3,6 +3,7 @@ mod factory;
 mod sender;
 mod signal;
 mod signal_wait;
+mod sync_queue_handle;
 
 pub use arc_mailbox_impl::ArcMailbox;
 pub use factory::ArcMailboxFactory;

@@ -6,13 +6,19 @@
 extern crate std;
 
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use core::cell::{Cell, RefCell};
+use core::{
+  cell::{Cell, RefCell},
+  marker::PhantomData,
+};
 use std::{
   collections::VecDeque,
   sync::{Arc, Mutex},
 };
 
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{
+  collections::queue::QueueError, sync::ArcShared, v2::collections::queue::backend::OverflowPolicy, Element, QueueSize,
+  DEFAULT_PRIORITY,
+};
 use futures::{
   executor::{block_on, LocalPool},
   future::{poll_fn, FutureExt},
@@ -30,7 +36,7 @@ use crate::{
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_scheduler::{
       actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
-      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueWorker},
+      ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueHandle, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerSpawnContext,
     },
     extensions::Extensions,
@@ -38,7 +44,8 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      MailboxFactory, MailboxOptions,
+      queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
+      Mailbox, MailboxFactory, MailboxOptions, QueueMailboxProducer, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::{
@@ -46,10 +53,10 @@ use crate::{
       process_registry::ProcessRegistry,
     },
     supervision::supervisor::{NoopSupervisor, Supervisor, SupervisorDirective},
-    test_support::TestMailboxFactory,
+    test_support::{TestMailboxFactory, TestSignal},
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{factory::MailboxPair, handle::MailboxHandle, messages::PriorityEnvelope, producer::MailboxProducer},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
     supervision::FailureEventHandler,
   },
@@ -96,6 +103,150 @@ impl EventRecordingSink {
 impl MetricsSink for EventRecordingSink {
   fn record(&self, event: MetricsEvent) {
     self.events.lock().unwrap().push(event);
+  }
+}
+
+#[derive(Clone, Copy)]
+struct SyncMailboxFactory {
+  capacity: usize,
+  policy:   OverflowPolicy,
+}
+
+impl SyncMailboxFactory {
+  const fn bounded(capacity: usize, policy: OverflowPolicy) -> Self {
+    Self { capacity, policy }
+  }
+
+  fn resolve_capacity(&self, options: MailboxOptions) -> usize {
+    options.capacity_limit().unwrap_or(self.capacity).max(1)
+  }
+}
+
+struct SyncMailbox<M> {
+  inner: QueueMailbox<SyncQueueDriver<M>, TestSignal>,
+}
+
+impl<M> Clone for SyncMailbox<M>
+where
+  M: Element,
+{
+  fn clone(&self) -> Self {
+    Self { inner: self.inner.clone() }
+  }
+}
+
+struct SyncMailboxProducer<M> {
+  inner: QueueMailboxProducer<SyncQueueDriver<M>, TestSignal>,
+  _pd:   PhantomData<M>,
+}
+
+impl<M> Clone for SyncMailboxProducer<M>
+where
+  M: Element,
+{
+  fn clone(&self) -> Self {
+    Self { inner: self.inner.clone(), _pd: PhantomData }
+  }
+}
+
+impl<M> MailboxHandle<M> for SyncMailbox<M>
+where
+  M: Element,
+{
+  type Signal = TestSignal;
+
+  fn signal(&self) -> Self::Signal {
+    self.inner.signal().clone()
+  }
+
+  fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>> {
+    self.inner.try_dequeue()
+  }
+}
+
+impl<M> MailboxProducer<M> for SyncMailboxProducer<M>
+where
+  M: Element,
+{
+  fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
+    self.inner.try_send(message)
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.queue().set_metrics_sink(sink.clone());
+    self.inner.set_metrics_sink(sink);
+  }
+
+  fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
+    self.inner.set_scheduler_hook(hook);
+  }
+}
+
+impl<M> Mailbox<M> for SyncMailbox<M>
+where
+  M: Element,
+{
+  type RecvFuture<'a>
+    = QueueMailboxRecv<'a, SyncQueueDriver<M>, TestSignal, M>
+  where
+    Self: 'a;
+  type SendError = QueueError<M>;
+
+  fn try_send(&self, message: M) -> Result<(), Self::SendError> {
+    self.inner.try_send(message)
+  }
+
+  fn recv(&self) -> Self::RecvFuture<'_> {
+    self.inner.recv()
+  }
+
+  fn len(&self) -> QueueSize {
+    self.inner.len()
+  }
+
+  fn capacity(&self) -> QueueSize {
+    self.inner.capacity()
+  }
+
+  fn close(&self) {
+    self.inner.close();
+  }
+
+  fn is_closed(&self) -> bool {
+    self.inner.is_closed()
+  }
+
+  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    self.inner.queue().set_metrics_sink(sink.clone());
+    self.inner.set_metrics_sink(sink);
+  }
+}
+
+impl MailboxFactory for SyncMailboxFactory {
+  type Concurrency = ThreadSafe;
+  type Mailbox<M>
+    = SyncMailbox<M>
+  where
+    M: Element;
+  type Producer<M>
+    = SyncMailboxProducer<M>
+  where
+    M: Element;
+  type Queue<M>
+    = SyncQueueDriver<M>
+  where
+    M: Element;
+  type Signal = TestSignal;
+
+  fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
+  where
+    M: Element, {
+    let capacity = self.resolve_capacity(options);
+    let queue = SyncQueueDriver::bounded(capacity, self.policy);
+    let signal = TestSignal::default();
+    let mailbox = QueueMailbox::new(queue, signal);
+    let producer = mailbox.producer();
+    (SyncMailbox { inner: mailbox }, SyncMailboxProducer { inner: producer, _pd: PhantomData })
   }
 }
 
@@ -300,6 +451,67 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
     assert!(dequeued >= 1, "expected at least one MailboxDequeued event, got {recorded:?}");
     assert!(enqueued >= dequeued);
   }
+}
+
+#[test]
+fn scheduler_records_drop_oldest_metric() {
+  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
+  let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
+  let events = Arc::new(Mutex::new(Vec::new()));
+  scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
+
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    mailbox_factory,
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(dyn_system),
+    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
+  )
+  .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  actor_ref.try_send_with_priority(dyn_user(1), DEFAULT_PRIORITY).unwrap();
+  actor_ref.try_send_with_priority(dyn_user(2), DEFAULT_PRIORITY).unwrap();
+
+  let recorded = events.lock().unwrap().clone();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxDroppedOldest { count } if *count == 1)),
+    "expected MailboxDroppedOldest event, got {recorded:?}"
+  );
+}
+
+#[test]
+fn scheduler_records_drop_newest_metric() {
+  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropNewest);
+  let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
+  let events = Arc::new(Mutex::new(Vec::new()));
+  scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
+
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    mailbox_factory,
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(dyn_system),
+    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
+  )
+  .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  actor_ref.try_send_with_priority(dyn_user(1), DEFAULT_PRIORITY).unwrap();
+  let Err(err) = actor_ref.try_send_with_priority(dyn_user(2), DEFAULT_PRIORITY) else {
+    panic!("second send should fail when dropping newest");
+  };
+  assert!(matches!(err, QueueError::Full(_)));
+
+  let recorded = events.lock().unwrap().clone();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxDroppedNewest { count } if *count == 1)),
+    "expected MailboxDroppedNewest event, got {recorded:?}"
+  );
 }
 
 #[test]
@@ -608,7 +820,7 @@ fn scheduler_escalation_handler_delivers_to_parent() {
 
   block_on(scheduler.dispatch_next()).unwrap();
 
-  let envelope = parent_mailbox.queue().poll().unwrap().unwrap();
+  let envelope = parent_mailbox.try_dequeue().unwrap().unwrap();
   let (msg, _, channel) = envelope.into_parts_with_channel();
   assert_eq!(channel, PriorityChannel::Control);
   match msg.downcast::<MessageEnvelope<Message>>().expect("expected MessageEnvelope<Message> in parent mailbox") {

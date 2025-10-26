@@ -1,12 +1,37 @@
-use cellex_actor_core_rs::api::mailbox::Mailbox;
+use std::{
+  sync::{Arc, Mutex},
+  vec::Vec,
+};
+
+use cellex_actor_core_rs::api::{
+  mailbox::Mailbox,
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+};
 use cellex_utils_std_rs::QueueError;
 
 use super::*;
 
 type TestResult<T = ()> = Result<T, String>;
 
-async fn run_runtime_with_capacity_enforces_bounds() -> TestResult {
-  let factory = TokioMailboxRuntime;
+#[derive(Clone)]
+struct RecordingSink {
+  events: Arc<Mutex<Vec<MetricsEvent>>>,
+}
+
+impl RecordingSink {
+  fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
+    Self { events }
+  }
+}
+
+impl MetricsSink for RecordingSink {
+  fn record(&self, event: MetricsEvent) {
+    self.events.lock().unwrap().push(event);
+  }
+}
+
+async fn run_factory_with_capacity_enforces_bounds() -> TestResult {
+  let factory = TokioMailboxFactory;
   let (mailbox, sender) = factory.with_capacity::<u32>(2);
 
   sender.try_send(1).map_err(|err| format!("first message accepted: {:?}", err))?;
@@ -24,17 +49,17 @@ async fn run_runtime_with_capacity_enforces_bounds() -> TestResult {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn runtime_with_capacity_enforces_bounds() -> TestResult {
-  run_runtime_with_capacity_enforces_bounds().await
+async fn mailbox_with_capacity_enforces_bounds() -> TestResult {
+  run_factory_with_capacity_enforces_bounds().await
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn runtime_with_capacity_enforces_bounds_multi_thread() -> TestResult {
-  run_runtime_with_capacity_enforces_bounds().await
+async fn mailbox_with_capacity_enforces_bounds_multi_thread_multi_thread() -> TestResult {
+  run_factory_with_capacity_enforces_bounds().await
 }
 
-async fn run_runtime_unbounded_mailbox_accepts_multiple_messages() -> TestResult {
-  let factory = TokioMailboxRuntime;
+async fn run_factory_unbounded_mailbox_accepts_multiple_messages() -> TestResult {
+  let factory = TokioMailboxFactory;
   let (mailbox, sender) = factory.unbounded::<u32>();
 
   for value in 0..32_u32 {
@@ -53,11 +78,34 @@ async fn run_runtime_unbounded_mailbox_accepts_multiple_messages() -> TestResult
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn runtime_unbounded_mailbox_accepts_multiple_messages() -> TestResult {
-  run_runtime_unbounded_mailbox_accepts_multiple_messages().await
+async fn mailbox_unbounded_accepts_multiple_messages() -> TestResult {
+  run_factory_unbounded_mailbox_accepts_multiple_messages().await
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn runtime_unbounded_mailbox_accepts_multiple_messages_multi_thread() -> TestResult {
-  run_runtime_unbounded_mailbox_accepts_multiple_messages().await
+async fn mailbox_unbounded_accepts_multiple_messages_multi_thread() -> TestResult {
+  run_factory_unbounded_mailbox_accepts_multiple_messages().await
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn mailbox_emits_growth_metric() -> TestResult {
+  let factory = TokioMailboxFactory;
+  let (mut mailbox, mut sender) = factory.unbounded::<u32>();
+
+  let events = Arc::new(Mutex::new(Vec::new()));
+  let sink = MetricsSinkShared::new(RecordingSink::new(events.clone()));
+
+  mailbox.set_metrics_sink(Some(sink.clone()));
+  sender.set_metrics_sink(Some(sink.clone()));
+
+  sender.try_send(1u32).map_err(|err| format!("first message should succeed: {err:?}"))?;
+
+  // take out the queue to avoid borrow issues? not needed.
+  let recorded = events.lock().unwrap().clone();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxGrewTo { capacity } if *capacity >= 1)),
+    "expected MailboxGrewTo event, recorded: {recorded:?}"
+  );
+
+  Ok(())
 }

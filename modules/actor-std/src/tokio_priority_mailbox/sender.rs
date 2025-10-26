@@ -1,10 +1,18 @@
 use cellex_actor_core_rs::{
-  api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared},
+  api::{
+    mailbox::{MailboxError, QueueMailboxProducer},
+    metrics::MetricsSinkShared,
+  },
   shared::mailbox::messages::PriorityEnvelope,
 };
 use cellex_utils_std_rs::Element;
 
-use super::{queues::TokioPriorityQueues, NotifySignal, PriorityQueueError};
+use super::{
+  priority_sync_driver::{configure_metrics, PrioritySyncQueueDriver},
+  NotifySignal, PriorityQueueError,
+};
+
+type QueueHandle<M> = PrioritySyncQueueDriver<M>;
 
 /// Message sender handle for priority mailbox
 ///
@@ -13,7 +21,7 @@ use super::{queues::TokioPriorityQueues, NotifySignal, PriorityQueueError};
 pub struct TokioPriorityMailboxSender<M>
 where
   M: Element, {
-  inner: QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal>,
+  inner: QueueMailboxProducer<QueueHandle<M>, NotifySignal>,
 }
 
 impl<M> TokioPriorityMailboxSender<M>
@@ -136,17 +144,28 @@ where
   ///
   /// An immutable reference to the internal producer
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<QueueHandle<M>, NotifySignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailboxProducer<TokioPriorityQueues<M>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(inner: QueueMailboxProducer<QueueHandle<M>, NotifySignal>) -> Self {
     Self { inner }
+  }
+
+  /// Attempts to enqueue using the MailboxError-based API.
+  pub fn try_send_mailbox(&self, envelope: PriorityEnvelope<M>) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.inner.try_send_mailbox(envelope)
+  }
+
+  /// Sends an envelope using the MailboxError-based API.
+  pub fn send_mailbox(&self, envelope: PriorityEnvelope<M>) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.inner.send_mailbox(envelope)
   }
 }

@@ -2,7 +2,7 @@ use cellex_actor_core_rs::{
   api::{
     mailbox::{
       queue_mailbox::{QueueMailbox, QueueMailboxRecv},
-      Mailbox, MailboxOptions,
+      Mailbox, MailboxError, MailboxOptions,
     },
     metrics::MetricsSinkShared,
   },
@@ -11,9 +11,13 @@ use cellex_actor_core_rs::{
 use cellex_utils_std_rs::{Element, QueueSize};
 
 use super::{
-  queues::TokioPriorityQueues, runtime::TokioPriorityMailboxRuntime, sender::TokioPriorityMailboxSender, NotifySignal,
-  PriorityQueueError,
+  factory::TokioPriorityMailboxFactory,
+  priority_sync_driver::{configure_metrics, PrioritySyncQueueDriver},
+  sender::TokioPriorityMailboxSender,
+  NotifySignal, PriorityQueueError,
 };
+
+type QueueHandle<M> = PrioritySyncQueueDriver<M>;
 
 /// Priority mailbox for Tokio runtime
 ///
@@ -22,7 +26,7 @@ use super::{
 pub struct TokioPriorityMailbox<M>
 where
   M: Element, {
-  inner: QueueMailbox<TokioPriorityQueues<M>, NotifySignal>,
+  inner: QueueMailbox<QueueHandle<M>, NotifySignal>,
 }
 
 impl<M> TokioPriorityMailbox<M>
@@ -41,7 +45,7 @@ where
   /// handle
   #[must_use]
   pub fn new(control_capacity_per_level: usize) -> (Self, TokioPriorityMailboxSender<M>) {
-    TokioPriorityMailboxRuntime::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
+    TokioPriorityMailboxFactory::new(control_capacity_per_level).mailbox::<M>(MailboxOptions::default())
   }
 
   /// Returns a reference to the internal `QueueMailbox`
@@ -50,17 +54,18 @@ where
   ///
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<TokioPriorityQueues<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailbox<QueueHandle<M>, NotifySignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailbox<TokioPriorityQueues<M>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(inner: QueueMailbox<QueueHandle<M>, NotifySignal>) -> Self {
     Self { inner }
   }
 }
@@ -70,7 +75,7 @@ where
   M: Element,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, TokioPriorityQueues<M>, NotifySignal, PriorityEnvelope<M>>
+    = QueueMailboxRecv<'a, QueueHandle<M>, NotifySignal, PriorityEnvelope<M>>
   where
     Self: 'a;
   type SendError = PriorityQueueError<M>;
@@ -100,6 +105,22 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
+    configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
+  }
+}
+
+impl<M> TokioPriorityMailbox<M>
+where
+  M: Element,
+{
+  /// Sends a priority envelope using the MailboxError-based API.
+  pub fn try_send_mailbox(&self, envelope: PriorityEnvelope<M>) -> Result<(), MailboxError<PriorityEnvelope<M>>> {
+    self.inner.try_send_mailbox(envelope)
+  }
+
+  /// Returns the receive future using MailboxError semantics.
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, QueueHandle<M>, NotifySignal, PriorityEnvelope<M>> {
+    self.inner.recv()
   }
 }

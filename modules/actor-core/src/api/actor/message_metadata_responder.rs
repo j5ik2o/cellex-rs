@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError, Shared, SharedBound};
+use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element, Shared, SharedBound};
 
 use crate::{
   api::{
@@ -104,7 +104,10 @@ where
           let _ = shared.try_unwrap();
           Err(AskError::SendFailed(QueueError::Disconnected))
         },
-        | Err(QueueError::Disconnected) => Err(AskError::SendFailed(QueueError::Disconnected)),
+        | Err(QueueError::Disconnected)
+        | Err(QueueError::Empty)
+        | Err(QueueError::WouldBlock)
+        | Err(QueueError::AllocError(_)) => Err(AskError::SendFailed(QueueError::Disconnected)),
       }
     },
     | ProcessResolution::Remote => {

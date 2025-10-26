@@ -2,21 +2,24 @@ use cellex_actor_core_rs::api::mailbox::{queue_mailbox::QueueMailbox, MailboxOpt
 use cellex_utils_std_rs::{Element, QueueSize, DEFAULT_CAPACITY, PRIORITY_LEVELS};
 
 use super::{
-  mailbox::TokioPriorityMailbox, queues::TokioPriorityQueues, sender::TokioPriorityMailboxSender, NotifySignal,
+  mailbox::TokioPriorityMailbox, priority_sync_driver::PrioritySyncQueueDriver, sender::TokioPriorityMailboxSender,
+  NotifySignal,
 };
+
+type QueueHandle<M> = PrioritySyncQueueDriver<M>;
 
 /// Factory that creates priority mailboxes
 ///
 /// Configures the capacity of control and regular queues and the number of priority levels,
 /// and creates mailbox instances.
 #[derive(Clone, Debug)]
-pub struct TokioPriorityMailboxRuntime {
+pub struct TokioPriorityMailboxFactory {
   control_capacity_per_level: usize,
   regular_capacity:           usize,
   levels:                     usize,
 }
 
-impl Default for TokioPriorityMailboxRuntime {
+impl Default for TokioPriorityMailboxFactory {
   fn default() -> Self {
     Self {
       control_capacity_per_level: DEFAULT_CAPACITY,
@@ -26,7 +29,7 @@ impl Default for TokioPriorityMailboxRuntime {
   }
 }
 
-impl TokioPriorityMailboxRuntime {
+impl TokioPriorityMailboxFactory {
   /// Creates a new factory instance
   ///
   /// # Arguments
@@ -91,7 +94,7 @@ impl TokioPriorityMailboxRuntime {
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);
     let regular_capacity = self.resolve_regular_capacity(options.capacity);
-    let queue = TokioPriorityQueues::<M>::new(self.levels, control_per_level, regular_capacity);
+    let queue: QueueHandle<M> = PrioritySyncQueueDriver::new(self.levels, control_per_level, regular_capacity);
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

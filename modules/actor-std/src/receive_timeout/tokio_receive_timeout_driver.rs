@@ -6,7 +6,7 @@ use cellex_actor_core_rs::{
 };
 
 use super::tokio_receive_timeout_scheduler_factory::TokioReceiveTimeoutSchedulerFactory;
-use crate::TokioMailboxRuntime;
+use crate::TokioMailboxFactory;
 
 /// Runtime driver that provisions Tokio receive-timeout factories on demand.
 #[derive(Debug, Default, Clone)]
@@ -20,8 +20,8 @@ impl TokioReceiveTimeoutDriver {
   }
 }
 
-impl ReceiveTimeoutSchedulerFactoryProvider<TokioMailboxRuntime> for TokioReceiveTimeoutDriver {
-  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, TokioMailboxRuntime> {
+impl ReceiveTimeoutSchedulerFactoryProvider<TokioMailboxFactory> for TokioReceiveTimeoutDriver {
+  fn build_factory(&self) -> ReceiveTimeoutSchedulerFactoryShared<AnyMessage, TokioMailboxFactory> {
     ReceiveTimeoutSchedulerFactoryShared::new(TokioReceiveTimeoutSchedulerFactory::new())
   }
 }

@@ -1,7 +1,8 @@
 use core::cmp;
 
-use crate::v2::collections::queue::{
-  OfferOutcome, OverflowPolicy, QueueError, QueueStorage, SyncQueueBackend, VecRingStorage,
+use crate::{
+  collections::queue::QueueError,
+  v2::collections::queue::{OfferOutcome, OverflowPolicy, QueueStorage, SyncQueueBackend, VecRingStorage},
 };
 
 /// Queue backend backed by a ring buffer storage.
@@ -18,18 +19,18 @@ impl<T> VecRingBackend<T> {
     Self { storage, policy, closed: false }
   }
 
-  fn ensure_capacity(&mut self, required: usize) -> Result<Option<usize>, QueueError> {
+  fn ensure_capacity(&mut self, required: usize) -> Result<Option<usize>, ()> {
     if required <= self.storage.capacity() {
       return Ok(None);
     }
 
     let current = self.storage.capacity();
     let next = cmp::max(required, cmp::max(1, current.saturating_mul(2)));
-    self.storage.try_grow(next).map_err(|_| QueueError::AllocError)?;
+    self.storage.try_grow(next).map_err(|_| ())?;
     Ok(Some(next))
   }
 
-  fn handle_full_queue(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
+  fn handle_full_queue(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     match self.policy {
       | OverflowPolicy::DropNewest => {
         drop(item);
@@ -40,7 +41,7 @@ impl<T> VecRingBackend<T> {
         self.storage.push_back(item);
         Ok(OfferOutcome::DroppedOldest { count: 1 })
       },
-      | OverflowPolicy::Block => Err(QueueError::Full),
+      | OverflowPolicy::Block => Err(QueueError::Full(item)),
       | OverflowPolicy::Grow => {
         let grown_to = self.handle_grow_policy(item)?;
         Ok(OfferOutcome::GrewTo { capacity: grown_to })
@@ -48,14 +49,18 @@ impl<T> VecRingBackend<T> {
     }
   }
 
-  fn handle_grow_policy(&mut self, item: T) -> Result<usize, QueueError> {
+  fn handle_grow_policy(&mut self, item: T) -> Result<usize, QueueError<T>> {
     let required = self.storage.len().saturating_add(1);
-    if let Some(capacity) = self.ensure_capacity(required)? {
-      self.storage.push_back(item);
-      Ok(capacity)
-    } else {
-      self.storage.push_back(item);
-      Ok(self.storage.capacity())
+    match self.ensure_capacity(required) {
+      | Ok(Some(capacity)) => {
+        self.storage.push_back(item);
+        Ok(capacity)
+      },
+      | Ok(None) => {
+        self.storage.push_back(item);
+        Ok(self.storage.capacity())
+      },
+      | Err(()) => Err(QueueError::AllocError(item)),
     }
   }
 }
@@ -67,9 +72,9 @@ impl<T> SyncQueueBackend<T> for VecRingBackend<T> {
     VecRingBackend::new_with_storage(storage, policy)
   }
 
-  fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError> {
+  fn offer(&mut self, item: T) -> Result<OfferOutcome, QueueError<T>> {
     if self.closed {
-      return Err(QueueError::Closed);
+      return Err(QueueError::Closed(item));
     }
 
     if self.storage.is_full() {
@@ -80,12 +85,12 @@ impl<T> SyncQueueBackend<T> for VecRingBackend<T> {
     Ok(OfferOutcome::Enqueued)
   }
 
-  fn poll(&mut self) -> Result<T, QueueError> {
+  fn poll(&mut self) -> Result<T, QueueError<T>> {
     match self.storage.pop_front() {
       | Some(item) => Ok(item),
       | None => {
         if self.closed {
-          Err(QueueError::Closed)
+          Err(QueueError::Disconnected)
         } else {
           Err(QueueError::Empty)
         }

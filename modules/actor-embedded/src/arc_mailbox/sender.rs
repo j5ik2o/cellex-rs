@@ -1,8 +1,13 @@
-use cellex_actor_core_rs::api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared};
-use cellex_utils_embedded_rs::{collections::queue::mpsc::ArcMpscUnboundedQueue, Element, QueueError};
+use cellex_actor_core_rs::api::{
+  mailbox::{MailboxError, QueueMailboxProducer},
+  metrics::MetricsSinkShared,
+};
+use cellex_utils_embedded_rs::{Element, QueueError};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::signal::ArcSignal;
+use super::{signal::ArcSignal, sync_queue_handle::ArcSyncQueueDriver};
+
+type ArcMailboxQueue<M, RM> = ArcSyncQueueDriver<M, RM>;
 
 /// Sending handle associated with [`super::arc_mailbox_impl::ArcMailbox`].
 #[derive(Clone)]
@@ -10,14 +15,14 @@ pub struct ArcMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalS
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<ArcMailboxQueue<M, RM>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcMailboxSender<M, RM>
 where
   M: Element,
   RM: RawMutex,
-  ArcMpscUnboundedQueue<M, RM>: Clone,
+  ArcMailboxQueue<M, RM>: Clone,
 {
   /// Attempts to enqueue a message without blocking.
   pub fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
@@ -29,8 +34,18 @@ where
     self.inner.send(message)
   }
 
+  /// Attempts to enqueue a message returning `MailboxError`.
+  pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.try_send_mailbox(message)
+  }
+
+  /// Sends a message returning `MailboxError`.
+  pub fn send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.send_mailbox(message)
+  }
+
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<ArcMpscUnboundedQueue<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<ArcMailboxQueue<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 

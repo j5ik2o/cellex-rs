@@ -17,8 +17,8 @@ rt-current-thread = ["tokio/rt"]
 [dependencies]
 async-trait = { workspace = true }
 cellex-actor-core-rs = { path = "../actor-core", default-features = false, features = ["alloc"] }
-cellex-utils-core-rs = { path = "../utils-core" }
-cellex-utils-std-rs = { path = "../utils-std" }
+cellex-utils-core-rs = { path = "../utils-core", default-features = false, features = ["alloc"] }
+cellex-utils-std-rs = { path = "../utils-std", default-features = false }
 futures = { workspace = true }
 spin = { workspace = true }
 tokio = { workspace = true, default-features = false, features = ["macros", "sync", "time", "signal"] }

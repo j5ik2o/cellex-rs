@@ -4,7 +4,6 @@ mod tests;
 mod local_mailbox_factory;
 mod local_mailbox_sender;
 mod local_mailbox_type;
-mod local_queue;
 mod local_signal;
 mod local_signal_wait;
 mod shared;

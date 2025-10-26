@@ -14,7 +14,7 @@ use alloc_cortex_m::CortexMHeap;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use cellex_actor_embedded_rs::ArcMailboxRuntime;
+use cellex_actor_embedded_rs::ArcMailboxFactory;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_utils_embedded_rs::sync::ArcCsStateCell;
 use cellex_utils_embedded_rs::StateCell;
@@ -74,7 +74,7 @@ fn main() -> ! {
   );
   let system_clock_hz = clocks.system_clock.freq().to_Hz();
 
-  let mut system = ActorSystem::new(ArcMailboxRuntime::default());
+  let mut system = ActorSystem::new(ArcMailboxFactory::default());
   let mut root = system.root_context();
 
   let behavior_led = led_pin.clone();

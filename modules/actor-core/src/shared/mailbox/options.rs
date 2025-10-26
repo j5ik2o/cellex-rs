@@ -50,6 +50,29 @@ impl MailboxOptions {
   pub const fn unbounded() -> Self {
     Self { capacity: QueueSize::limitless(), priority_capacity: QueueSize::limitless() }
   }
+
+  /// Returns the configured capacity limit for regular messages.
+  ///
+  /// When the mailbox is unbounded, this returns `None`. Otherwise it
+  /// contains the finite capacity.
+  #[must_use]
+  pub const fn capacity_limit(&self) -> Option<usize> {
+    match self.capacity {
+      | QueueSize::Limitless => None,
+      | QueueSize::Limited(value) => Some(value),
+    }
+  }
+
+  /// Returns the configured capacity limit for priority messages.
+  ///
+  /// When the priority queue is unbounded, this returns `None`.
+  #[must_use]
+  pub const fn priority_capacity_limit(&self) -> Option<usize> {
+    match self.priority_capacity {
+      | QueueSize::Limitless => None,
+      | QueueSize::Limited(value) => Some(value),
+    }
+  }
 }
 
 impl Default for MailboxOptions {

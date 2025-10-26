@@ -1,9 +1,14 @@
 use core::fmt;
 
-use cellex_actor_core_rs::api::{mailbox::QueueMailboxProducer, metrics::MetricsSinkShared};
+use cellex_actor_core_rs::api::{
+  mailbox::{queue_mailbox::SyncQueueDriver, MailboxError, QueueMailboxProducer},
+  metrics::MetricsSinkShared,
+};
 use cellex_utils_embedded_rs::{Element, QueueError};
 
-use super::{local_queue::LocalQueue, local_signal::LocalSignal};
+use super::local_signal::LocalSignal;
+
+type LocalMailboxQueue<M> = SyncQueueDriver<M>;
 
 /// Message sender to `LocalMailbox`.
 ///
@@ -11,13 +16,13 @@ use super::{local_queue::LocalQueue, local_signal::LocalSignal};
 pub struct LocalMailboxSender<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailboxProducer<LocalQueue<M>, LocalSignal>,
+  pub(super) inner: QueueMailboxProducer<LocalMailboxQueue<M>, LocalSignal>,
 }
 
 impl<M> LocalMailboxSender<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   /// Sends a message immediately (non-blocking).
   ///
@@ -45,13 +50,23 @@ where
     self.inner.send(message)
   }
 
+  /// Attempts to enqueue using the MailboxError-based API.
+  pub fn try_send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.try_send_mailbox(message)
+  }
+
+  /// Sends a message using the MailboxError-based API.
+  pub fn send_mailbox(&self, message: M) -> Result<(), MailboxError<M>> {
+    self.inner.send_mailbox(message)
+  }
+
   /// Returns a reference to the internal mailbox producer.
   ///
   /// # Returns
   ///
   /// A reference to the `QueueMailboxProducer`
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<LocalQueue<M>, LocalSignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<LocalMailboxQueue<M>, LocalSignal> {
     &self.inner
   }
 
@@ -64,7 +79,7 @@ where
 impl<M> Clone for LocalMailboxSender<M>
 where
   M: Element,
-  LocalQueue<M>: Clone,
+  LocalMailboxQueue<M>: Clone,
 {
   fn clone(&self) -> Self {
     Self { inner: self.inner.clone() }
