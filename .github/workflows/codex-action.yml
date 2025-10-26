@@ -1,0 +1,31 @@
+name: Codex Action
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+  issue_comment:
+    types:
+      - created
+      - edited
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  codex:
+    name: Run Codex Action
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke Codex Action
+        uses: openai/codex-action@v1
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
