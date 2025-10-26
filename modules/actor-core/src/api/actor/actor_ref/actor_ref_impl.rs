@@ -25,8 +25,6 @@ use crate::{
 
 #[cfg(test)]
 mod tests;
-#[cfg(all(test, feature = "queue-v1"))]
-mod tests_queue_v1;
 
 type ActorProcessRegistry<AR> =
   ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>;

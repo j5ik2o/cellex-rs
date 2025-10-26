@@ -7,15 +7,17 @@ use alloc::vec::Vec;
 use cellex_utils_core_rs::{
   collections::queue::QueueError,
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
-  Element, MpscQueue,
+  Element, MpscQueue, Shared,
 };
 use spin::RwLock;
 
-use super::*;
 use crate::{
   api::{
-    actor::{ActorId, ActorPath},
-    actor_runtime::GenericActorRuntime,
+    actor::{
+      actor_ref::{ActorRef, PriorityActorRef},
+      ActorId, ActorPath,
+    },
+    actor_runtime::{GenericActorRuntime, MailboxOf},
     mailbox::{
       messages::SystemMessage, queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair,
       QueueMailboxProducer, SingleThread,
@@ -24,6 +26,7 @@ use crate::{
     process::{
       dead_letter::{DeadLetterListener, DeadLetterReason},
       pid::SystemId,
+      process_registry::ProcessRegistry,
     },
     test_support::{SharedBackendHandle, TestMailboxFactory, TestSignal},
   },
@@ -32,6 +35,9 @@ use crate::{
     messaging::{AnyMessage, MessageEnvelope},
   },
 };
+
+type ActorProcessRegistry<AR> =
+  ProcessRegistry<PriorityActorRef<AnyMessage, MailboxOf<AR>>, ArcShared<PriorityEnvelope<AnyMessage>>>;
 
 struct RecordingSink {
   events: ArcShared<SpinSyncMutex<Vec<MetricsEvent>>>,

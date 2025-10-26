@@ -485,7 +485,9 @@
 - ベンチマーク結果が規定値を超える場合は直ちにフィーチャーフラグで旧実装へ戻せるようにし、原因切り分けを行う。
 
 ### フェーズ6: テスト移行（queue-v1 退役準備、リスク: 中, SP: 5）
-- [ ] queue-v1 依存テストを `integration/legacy_queue_v1/` 相当へ集約し、`#[cfg(feature = "queue-v1")]` 付きの最小回帰セットのみに圧縮する。Tokio / Embedded 本線のテストは queue-v2 のみで完結させ、`queue-v1` を切っても CI が通る状態を確認する。
+- [x] queue-v1 依存テストを `src/tests/legacy_queue_v1.rs` に集約し、`#[cfg(feature = "queue-v1")]` 付きの最小回帰セットのみに圧縮する。Tokio / Embedded 本線のテストは queue-v2 のみで完結させ、`queue-v1` を切っても CI が通る状態を確認する。
+  - 2025-10-26: `modules/actor-core/src/tests.rs` から `#[cfg(feature = "queue-v1")] mod legacy_queue_v1;` を追加し、`PriorityActorRef` 系の queue-v1 回帰テストをモジュール配下へ移設。`ActorProcessRegistry` 型エイリアスと `Shared` トレイト導入でビルドエラーを解消し、`cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1 legacy_queue_v1` が 4 ケース成功することを確認。
+  - 2025-10-26: `./scripts/ci-check.sh all` を実行し、queue-v1/queue-v2 混在構成でも lint / test / クロスチェックを含めてグリーンで完走することを再確認（thumbv6m / thumbv8m ターゲット含む）。
 - [ ] `QueueRwCompat` を利用している主要経路（Tokio priority mailbox、actor scheduler など）を順次 `SyncQueueDriver` ベースへ置き換え、互換レイヤーの利用範囲をテスト専用に絞る。
 - [ ] queue-v1 退役チェックリストを整備し、CI での queue-v1 ジョブを徐々にオプショナル扱いへ移行する準備（`scripts/ci-check.sh` / GitHub Actions 更新、ドキュメント周知）を完了させる。
 
@@ -495,7 +497,7 @@
   - `modules/actor-std/src/tokio_priority_mailbox/tests.rs` … queue-v1 fallback パス (`#[cfg(all(feature = "queue-v1", not(feature = "queue-v2")))]`) が残存。queue-v2 を既定にするフェーズでは、v2 API での制御レーン優先／ドロップ／メトリクス検証を強化し、queue-v1 分岐を統合テストへ移す計画が必要。
 - **エッジケース**  
   - `modules/actor-core/src/api/actor_scheduler/tests.rs` … `QueueRwCompat` + `LegacyQueueDriver` を直接利用しており、queue-v2 でも互換レイヤー経由。`SyncQueueDriver` 版のテストケースを追加し、スケジューラの ready/not-ready 判定やメトリクス伝播を新 API でカバーする。  
-  - `modules/actor-core/src/api/actor/actor_ref/actor_ref_impl/tests_queue_v1.rs` … queue-v1 fallback 回帰テストとして維持。queue-v2 版は `tests.rs` に実装済みなので、将来的な廃止スケジュールに合わせて最終的に queue-v1 特有のケースを `integration/` 配下へ移動予定。
+  - `modules/actor-core/src/tests/legacy_queue_v1.rs` … queue-v1 fallback 回帰テストを集約。queue-v2 版は `tests.rs` に実装済みなので、将来的な廃止スケジュールに合わせて特有ケースを段階的に `integration/` 配下へ移す計画は維持。
 - **Embedded 系**  
   - `modules/actor-embedded/src/tests.rs` / `arc_priority_mailbox/tests.rs` 等は queue-v2 で実行されるが、`thumbv8m.main-none-eabi` ターゲットのクロスチェックが未実施。フェーズ6で `cargo check -p cellex-actor-core-rs --target thumbv8m.main-none-eabi --no-default-features --features embedded,queue-v2` を走らせ、RP2350 相当の結果を記録する。
 
