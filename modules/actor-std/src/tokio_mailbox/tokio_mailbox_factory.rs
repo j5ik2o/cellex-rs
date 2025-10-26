@@ -1,21 +1,12 @@
-#[cfg(not(feature = "queue-v2"))]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig, SyncQueueDriver};
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair,
-  QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+  MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair, QueueMailboxProducer, ThreadSafe,
 };
 use cellex_utils_std_rs::{Element, QueueSize};
 
-#[cfg(not(feature = "queue-v2"))]
-use super::tokio_queue::{create_tokio_queue, TokioQueue};
 use super::{notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender};
 
-#[cfg(feature = "queue-v2")]
 type TokioQueueDriver<M> = SyncQueueDriver<M>;
-#[cfg(not(feature = "queue-v2"))]
-type TokioQueueDriver<M> = LegacyQueueDriver<TokioQueue<M>>;
 
 /// Factory that creates Tokio mailboxes.
 ///
@@ -85,7 +76,6 @@ impl MailboxFactory for TokioMailboxFactory {
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    #[cfg(feature = "queue-v2")]
     let queue = {
       let capacity_size = match options.capacity {
         | QueueSize::Limitless | QueueSize::Limited(0) => QueueSize::limitless(),
@@ -94,8 +84,6 @@ impl MailboxFactory for TokioMailboxFactory {
       let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
       build_queue_driver::<M>(config)
     };
-    #[cfg(not(feature = "queue-v2"))]
-    let queue = LegacyQueueDriver::new(create_tokio_queue::<M>(options.capacity));
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

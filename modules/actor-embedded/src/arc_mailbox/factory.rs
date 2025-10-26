@@ -1,20 +1,15 @@
 use core::marker::PhantomData;
 
-#[cfg(not(feature = "queue-v2"))]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig};
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox},
+  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
 };
-#[cfg(not(feature = "queue-v2"))]
-use cellex_utils_embedded_rs::collections::queue::mpsc::ArcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-#[cfg(feature = "queue-v2")]
-use super::sync_queue_handle::ArcSyncQueueDriver;
-use super::{arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal};
+use super::{
+  arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcSyncQueueDriver,
+};
 
 /// Factory for constructing [`ArcMailbox`] instances.
 pub struct ArcMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
@@ -79,12 +74,6 @@ where
     = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
   where
     M: Element;
-  #[cfg(not(feature = "queue-v2"))]
-  type Queue<M>
-    = LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>
-  where
-    M: Element;
-  #[cfg(feature = "queue-v2")]
   type Queue<M>
     = ArcSyncQueueDriver<M, RM>
   where
@@ -94,10 +83,7 @@ where
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    #[cfg(feature = "queue-v2")]
     let queue = ArcSyncQueueDriver::from_driver(build_queue_driver::<M>(QueueDriverConfig::default()));
-    #[cfg(not(feature = "queue-v2"))]
-    let queue = LegacyQueueDriver::new(ArcMpscUnboundedQueue::new());
     let signal = ArcSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

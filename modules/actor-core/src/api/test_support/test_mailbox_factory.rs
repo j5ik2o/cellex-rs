@@ -1,21 +1,9 @@
-use cellex_utils_core_rs::Element;
-#[cfg(not(feature = "queue-v2"))]
-use cellex_utils_core_rs::MpscQueue;
-#[cfg(feature = "queue-v2")]
-use cellex_utils_core_rs::QueueSize;
+use cellex_utils_core_rs::{Element, QueueSize};
 
-#[cfg(not(feature = "queue-v2"))]
-use crate::api::mailbox::queue_mailbox::LegacyQueueDriver;
-#[cfg(feature = "queue-v2")]
-use crate::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig, SyncQueueDriver};
-#[cfg(not(feature = "queue-v2"))]
-use crate::api::test_support::common::TestQueue;
-#[cfg(not(feature = "queue-v2"))]
-use crate::api::test_support::shared_backend_handle::SharedBackendHandle;
 use crate::api::{
   mailbox::{
-    queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair,
-    QueueMailboxProducer, ThreadSafe,
+    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+    MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair, QueueMailboxProducer, ThreadSafe,
   },
   test_support::test_signal::TestSignal,
 };
@@ -63,12 +51,6 @@ impl MailboxFactory for TestMailboxFactory {
     = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
   where
     M: Element;
-  #[cfg(not(feature = "queue-v2"))]
-  type Queue<M>
-    = LegacyQueueDriver<TestQueue<M>>
-  where
-    M: Element;
-  #[cfg(feature = "queue-v2")]
   type Queue<M>
     = SyncQueueDriver<M>
   where
@@ -79,7 +61,6 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    #[cfg(feature = "queue-v2")]
     let queue = {
       let capacity_size = match capacity {
         | Some(0) | None => QueueSize::limitless(),
@@ -88,8 +69,6 @@ impl MailboxFactory for TestMailboxFactory {
       let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
       build_queue_driver::<M>(config)
     };
-    #[cfg(not(feature = "queue-v2"))]
-    let queue = LegacyQueueDriver::new(MpscQueue::new(SharedBackendHandle::new(capacity)));
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

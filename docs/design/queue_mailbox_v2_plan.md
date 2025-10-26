@@ -1,4 +1,5 @@
 # QueueMailbox v2 移行設計メモ（2025-10-24 起案）
+> **2025-10-26 更新**: `queue-v1` フィーチャーはコードベースから撤去済みです。本メモ内の `LegacyQueueDriver` や互換層に関する記述はアーカイブとして残しておき、現行実装は `SyncQueueDriver` のみを対象とします。
 
 ## 背景
 - 現行の `QueueMailbox<Q, S>` は v1 `QueueRw` トレイトを前提としており、`QueueError<T>` も旧構成に拘束されている。
@@ -26,7 +27,7 @@
 ## 前提となる成果物
 - `MetricsEvent::{MailboxDroppedOldest, MailboxDroppedNewest, MailboxGrewTo}` が既に導入済み。
 - Tokio 側のメトリクス連携テスト、Scheduler 経由の drop テストが通っている（フェーズ4B）。
-- queue-v1 / queue-v2 両ビルドが CI で確認済み。
+- queue-v1 / queue-v2 両ビルドが CI で確認済み（現在は queue-v1 を撤廃し、queue-v2 のみを運用中）。
 
 ## 影響範囲
 - `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` の API 変更。

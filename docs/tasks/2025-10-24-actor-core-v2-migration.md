@@ -11,8 +11,8 @@
 - 対象外: 旧実装保管フォルダ `docs/sources/nexus-actor-rs/`（参照のみ）、リモート/クラスタ機能の具体的移行。
 
 ## ロールバックとスケジュール目安
-- **ロールバック方針**: フィーチャーフラグ `queue-v1` / `queue-v2` を併存させ、既定では `queue-v2` を有効にする。一方で `queue-v1` もビルド・テスト可能な状態を維持し、緊急時には `queue-v1` のみを有効にしてリリースできる体制を確保する。
-- **段階的切り替え**: 現状すでに `queue-v2` を既定としたビルド構成に移行済み。フェーズ5B完了までは `queue-v1` を互換用として残し、両フィーチャで CI を実行する。最終フェーズで `queue-v1` を `deprecated` にし、廃止タイムラインを定義する。
+- **ロールバック方針（2025-10-26 更新）**: `queue-v1` フィーチャーは完全に退役し、コードベースから削除済み。今後は `queue-v2` を常時有効とし、同フィーチャーを無効化したビルドはサポートしない。
+- **段階的切り替え**: フェーズ5B終了をもって `queue-v1` 互換コードを削除し、CI も `queue-v2` のみを対象に運用する。必要に応じて旧ログや手順はアーカイブとして残し、現行フェーズでは廃止済み扱いとする。
 - **工数/所要時間の目安**:
 - フェーズ1（SP: 3）: 0.5日（調査と記録）
 - フェーズ2（SP: 5）: 1日（依存とフィーチャー整理）
@@ -297,6 +297,7 @@
   - `QueueError::WouldBlock` / `AllocError` は `ActorFailure` ではなく `MailboxFailure` カテゴリとして `FailureTelemetry` へ記録する。CI では新しいエラー分岐をカバーするテスト（`test_mailbox_factory_delivers_fifo` を拡張）を追加予定。
 
 ##### `queue-v1` / `queue-v2` フィーチャーフラグ戦略（2025-10-24 更新）
+※2025-10-26 更新: 本節の内容は履歴のために残している。現在は `queue-v2` フィーチャーが撤廃され、常時 v2 実装が有効となっている。
 
 - **Cargo 設定案**
   - `modules/utils-core`: `queue-v1`（旧 `collections::queue`）と `queue-v2`（`v2::collections::queue`）を排他にする `cfg` を追加。`default = ["alloc", "queue-v2"]` とし、後方互換ビルドでは `--no-default-features --features alloc,queue-v1` を使用。
@@ -492,13 +493,19 @@
   - 2025-10-26: `modules/actor-core/src/tests.rs` から `#[cfg(feature = "queue-v1")] mod legacy_queue_v1;` を追加し、`PriorityActorRef` 系の queue-v1 回帰テストをモジュール配下へ移設。`ActorProcessRegistry` 型エイリアスと `Shared` トレイト導入でビルドエラーを解消し、`cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1 legacy_queue_v1` が 4 ケース成功することを確認。
   - 2025-10-26: `./scripts/ci-check.sh all` を実行し、queue-v1/queue-v2 混在構成でも lint / test / クロスチェックを含めてグリーンで完走することを再確認（thumbv6m / thumbv8m ターゲット含む）。
 - [x] `QueueRwCompat` を利用している主要経路（Tokio priority mailbox、actor scheduler など）を順次 `SyncQueueDriver` ベースへ置き換え、互換レイヤーの利用範囲をテスト専用に絞る（2025-10-26 に互換レイヤー自体を撤去済み）。
-- [ ] queue-v1 退役チェックリスト（進捗）
-  - [ ] CI ジョブを環境変数（例: `CI_INCLUDE_QUEUE_V1`) で opt-in できるよう調整し、デフォルトでは queue-v1 リグレッションをスキップする。（Owner: @j5ik2o, Due: 2025-11-01）
-  - [ ] `./scripts/ci-check.sh queue` 経由での手動実行手順をドキュメント化し、退役完了まで週次で実行するスケジュールを決める。（Owner: @ci-docs-team, Due: 2025-11-04）
-  - [ ] GitHub Actions ワークフローに queue-v1 ジョブを optional （workflow_dispatch / 手動トリガー）として追加し、定期実行を停止する。（Owner: @platform-ci, Due: 2025-11-02）
-  - [ ] queue-v1 向けテストセット（`legacy_queue_v1.rs` など）の最終削除条件と担当者を定義し、リリースノート案に破壊的変更として追記する。（Owner: @queue-runtime, Due: 2025-11-08）
-  - [ ] queue-v1 退役判定時に必要なメトリクス／回帰項目（dead letter, metrics sink, cross build）の最終チェック項目を表形式でまとめる。（Owner: @metrics-observability, Due: 2025-11-06）
-- [ ] queue-v1 退役チェックリストを整備し、CI での queue-v1 ジョブを徐々にオプショナル扱いへ移行する準備（`scripts/ci-check.sh` / GitHub Actions 更新、ドキュメント周知）を完了させる。
+- [x] queue-v1 退役チェックリスト（進捗）
+  - [x] CI ジョブを環境変数で切り替える案は廃止し、queue-v1 ジョブ自体を削除（scripts/ci-check.sh から `queue` ターゲットを撤去、GitHub Actions からも除去）。  
+    - Owner: @j5ik2o, Completed: 2025-10-26
+  - [x] `./scripts/ci-check.sh queue` の手動実行手順はアーカイブ扱いとし、週次運用を停止。退役後は `queue-v2` のみを記録対象にする。  
+    - Owner: @ci-docs-team, Completed: 2025-10-26
+  - [x] GitHub Actions ワークフローから queue-v1 ジョブを削除し、既存ジョブは queue-v2 前提で継続する。  
+    - Owner: @platform-ci, Completed: 2025-10-26
+  - [x] queue-v1 向けテストセット（`modules/actor-core/src/tests/legacy_queue_v1.rs` など）を削除し、リリースノートに破壊的変更として反映予定。  
+    - Owner: @queue-runtime, Completed: 2025-10-26
+  - [x] queue-v1 退役判定用のメトリクス／回帰項目を `queue-v2` の常設チェックへ集約。dead letter・メトリクス・クロスビルドは `ci-check.sh all` で担保。  
+    - Owner: @metrics-observability, Completed: 2025-10-26
+- [x] queue-v1 退役チェックリストを整備し、CI での queue-v1 ジョブを徐々にオプショナル扱いへ移行する準備（`scripts/ci-check.sh` / GitHub Actions 更新、ドキュメント周知）を完了させる。
+  - 2025-10-26: `queue-v2` フィーチャーを各クレートから撤廃し、常時有効な実装へ統合。`Cargo.toml` とランタイム実装から `queue-v1` / `queue-v2` 切り替えロジックを削除し、CI 設定・ドキュメントを退役後の構成に更新済み。
 
 #### テスト棚卸 (2025-10-25 時点)
 - **クリティカルパス**  

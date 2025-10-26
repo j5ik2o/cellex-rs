@@ -1,23 +1,15 @@
-#[cfg(not(feature = "queue-v2"))]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::MailboxQueueDriver;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
-  mailbox::{MailboxError, QueueMailboxProducer},
+  mailbox::{
+    queue_mailbox::{MailboxQueueDriver, SyncQueueDriver},
+    MailboxError, QueueMailboxProducer,
+  },
   metrics::MetricsSinkShared,
 };
 use cellex_utils_std_rs::{Element, QueueError};
 
 use super::notify_signal::NotifySignal;
-#[cfg(not(feature = "queue-v2"))]
-use super::tokio_queue::{self, TokioQueue};
 
-#[cfg(feature = "queue-v2")]
 type TokioQueueDriver<M> = SyncQueueDriver<M>;
-#[cfg(not(feature = "queue-v2"))]
-type TokioQueueDriver<M> = LegacyQueueDriver<TokioQueue<M>>;
 
 /// Sender handle for Tokio mailbox
 ///
@@ -83,9 +75,6 @@ where
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    #[cfg(not(feature = "queue-v2"))]
-    tokio_queue::configure_metrics(self.inner.queue(), sink.clone());
-    #[cfg(feature = "queue-v2")]
     self.inner.queue().set_metrics_sink(sink.clone());
     self.inner.set_metrics_sink(sink);
   }

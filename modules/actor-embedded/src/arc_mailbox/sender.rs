@@ -1,22 +1,13 @@
-#[cfg(not(feature = "queue-v2"))]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
 use cellex_actor_core_rs::api::{
   mailbox::{MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
-#[cfg(not(feature = "queue-v2"))]
-use cellex_utils_embedded_rs::collections::queue::mpsc::ArcMpscUnboundedQueue;
 use cellex_utils_embedded_rs::{Element, QueueError};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::signal::ArcSignal;
-#[cfg(feature = "queue-v2")]
-use super::sync_queue_handle::ArcSyncQueueDriver;
+use super::{signal::ArcSignal, sync_queue_handle::ArcSyncQueueDriver};
 
-#[cfg(feature = "queue-v2")]
 type ArcMailboxQueue<M, RM> = ArcSyncQueueDriver<M, RM>;
-#[cfg(not(feature = "queue-v2"))]
-type ArcMailboxQueue<M, RM> = LegacyQueueDriver<ArcMpscUnboundedQueue<M, RM>>;
 
 /// Sending handle associated with [`super::arc_mailbox_impl::ArcMailbox`].
 #[derive(Clone)]

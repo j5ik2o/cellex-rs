@@ -1,23 +1,14 @@
 use core::fmt;
 
-#[cfg(not(feature = "queue-v2"))]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::SyncQueueDriver;
 use cellex_actor_core_rs::api::{
-  mailbox::{MailboxError, QueueMailboxProducer},
+  mailbox::{queue_mailbox::SyncQueueDriver, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_embedded_rs::{Element, QueueError};
 
-#[cfg(not(feature = "queue-v2"))]
-use super::local_queue::LocalQueue;
 use super::local_signal::LocalSignal;
 
-#[cfg(feature = "queue-v2")]
 type LocalMailboxQueue<M> = SyncQueueDriver<M>;
-#[cfg(not(feature = "queue-v2"))]
-type LocalMailboxQueue<M> = LegacyQueueDriver<LocalQueue<M>>;
 
 /// Message sender to `LocalMailbox`.
 ///

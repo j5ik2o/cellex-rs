@@ -1,5 +1,3 @@
-#![cfg(feature = "queue-v2")]
-
 extern crate alloc;
 
 use alloc::vec::Vec;
@@ -116,7 +114,6 @@ fn queue_offer_error<T: Element>(message: T) -> QueueError<T> {
   QueueError::OfferError(message)
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn sync_queue_drop_newest_returns_queue_full_with_policy() {
   let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest);
@@ -135,7 +132,6 @@ fn sync_queue_drop_newest_returns_queue_full_with_policy() {
   }
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn sync_queue_drop_oldest_keeps_mailbox_usable() {
   let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
@@ -149,7 +145,6 @@ fn sync_queue_drop_oldest_keeps_mailbox_usable() {
   assert_eq!(received, Some(2u32));
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn sync_queue_overflow_policy_propagates_through_queue_error_path() {
   let driver = SyncQueueDriver::bounded(1, OverflowPolicy::Block);
@@ -166,7 +161,6 @@ fn sync_queue_overflow_policy_propagates_through_queue_error_path() {
   assert_eq!(preserved, 2u32);
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn queue_mailbox_reports_drop_oldest_policy_on_queue_error() {
   let driver = ErrorDriver::new(Some(MailboxOverflowPolicy::DropOldest), queue_full::<u32>);
@@ -185,7 +179,6 @@ fn queue_mailbox_reports_drop_oldest_policy_on_queue_error() {
   assert!(!mailbox.core.closed().get(), "drop oldest must not close the mailbox");
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn queue_mailbox_backpressure_maps_to_mailbox_error() {
   let driver = ErrorDriver::new(None, queue_would_block::<u32>);
@@ -197,7 +190,6 @@ fn queue_mailbox_backpressure_maps_to_mailbox_error() {
   assert!(!mailbox.core.closed().get(), "backpressure must keep mailbox open");
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn queue_mailbox_resource_exhausted_maps_to_mailbox_error() {
   let driver = ErrorDriver::new(None, queue_alloc_error::<u32>);
@@ -213,7 +205,6 @@ fn queue_mailbox_resource_exhausted_maps_to_mailbox_error() {
   assert!(!mailbox.core.closed().get(), "resource exhaustion must leave the mailbox open");
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn queue_mailbox_internal_error_preserves_message() {
   let driver = ErrorDriver::new(None, queue_offer_error::<u32>);
@@ -229,7 +220,6 @@ fn queue_mailbox_internal_error_preserves_message() {
   assert!(!mailbox.core.closed().get(), "internal errors are recoverable");
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn producer_reports_dropped_oldest_outcome() {
   let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
@@ -246,7 +236,6 @@ fn producer_reports_dropped_oldest_outcome() {
   }
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn producer_reports_enqueued_outcome() {
   let driver = SyncQueueDriver::bounded(2, OverflowPolicy::Block);
@@ -259,7 +248,6 @@ fn producer_reports_enqueued_outcome() {
   assert!(matches!(outcome, OfferOutcome::Enqueued));
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn receiver_pending_until_message_arrives() {
   let signal = TestSignal::default();
@@ -280,7 +268,6 @@ fn receiver_pending_until_message_arrives() {
   }
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn producer_records_drop_oldest_metric() {
   let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
@@ -301,7 +288,6 @@ fn producer_records_drop_oldest_metric() {
   );
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn producer_records_drop_newest_metric_and_error() {
   let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest);
@@ -330,7 +316,6 @@ fn producer_records_drop_newest_metric_and_error() {
   );
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn producer_records_grow_metric() {
   let driver = SyncQueueDriver::bounded(1, OverflowPolicy::Grow);

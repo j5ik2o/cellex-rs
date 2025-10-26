@@ -1,6 +1,5 @@
 //! Overflow policy abstractions shared by mailbox errors.
 
-#[cfg(feature = "queue-v2")]
 use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
 
 /// Policies describing how a mailbox reacts when it reaches capacity.
@@ -16,7 +15,6 @@ pub enum MailboxOverflowPolicy {
   Block,
 }
 
-#[cfg(feature = "queue-v2")]
 impl From<OverflowPolicy> for MailboxOverflowPolicy {
   fn from(policy: OverflowPolicy) -> Self {
     match policy {

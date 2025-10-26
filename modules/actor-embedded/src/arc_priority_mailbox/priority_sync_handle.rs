@@ -1,5 +1,3 @@
-#![cfg(not(feature = "queue-v1"))]
-
 use core::{
   marker::PhantomData,
   ops::{Deref, DerefMut},

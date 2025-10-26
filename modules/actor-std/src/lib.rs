@@ -65,6 +65,9 @@ mod timer;
 mod tokio_mailbox;
 mod tokio_priority_mailbox;
 
+#[cfg(test)]
+mod tests;
+
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
 pub use cellex_utils_std_rs::{
   sync::{ArcShared, ArcStateCell},
@@ -89,10 +92,6 @@ pub mod prelude {
     TokioSystemHandle, TokioTimer,
   };
 }
-
-#[cfg(test)]
-mod tests;
-
 /// Default actor runtime preset for Tokio environments.
 pub type TokioActorRuntime = GenericActorRuntime<TokioMailboxFactory>;
 

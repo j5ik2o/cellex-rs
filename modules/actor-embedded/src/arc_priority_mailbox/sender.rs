@@ -1,5 +1,3 @@
-#[cfg(feature = "queue-v1")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
 use cellex_actor_core_rs::{
   api::{
     mailbox::{MailboxError, QueueMailboxProducer},
@@ -10,15 +8,9 @@ use cellex_actor_core_rs::{
 use cellex_utils_embedded_rs::{Element, QueueError};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-#[cfg(not(feature = "queue-v1"))]
 use super::priority_sync_handle::ArcPrioritySyncQueueDriver;
-#[cfg(feature = "queue-v1")]
-use super::queues::ArcPriorityQueues;
 use crate::arc_mailbox::ArcSignal;
 
-#[cfg(feature = "queue-v1")]
-type ArcPriorityQueueDriver<M, RM> = LegacyQueueDriver<ArcPriorityQueues<M, RM>>;
-#[cfg(not(feature = "queue-v1"))]
 type ArcPriorityQueueDriver<M, RM> = ArcPrioritySyncQueueDriver<M, RM>;
 
 /// Sending handle associated with [`super::mailbox::ArcPriorityMailbox`].

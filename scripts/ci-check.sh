@@ -22,11 +22,8 @@ usage() {
   std                    : std フィーチャーでのテストを実行します
   doc                    : ドキュメントテストを test-support フィーチャー付きで実行します
   embedded / embassy     : embedded 系 (utils / actor) のチェックとテストを実行します
- queue                  : queue-v1 フィーチャー構成でのリグレッションテストを実行します
   test                   : ワークスペース全体のテストを実行します
   all                    : 上記すべてを順番に実行します (引数なし時と同じ)
-                           ※ queue-v1 リグレッションはデフォルトでスキップされます。実行したい場合は
-                              CI_INCLUDE_QUEUE_V1=1 を環境変数に設定してください。
 複数指定で部分実行が可能です (例: scripts/ci-check.sh lint dylint module-wiring-lint)
 EOF
 }
@@ -472,26 +469,12 @@ run_embedded() {
     log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --target ${target} --no-default-features --features alloc"
     run_cargo check -p cellex-actor-core-rs --target "${target}" --no-default-features --features alloc || return 1
 
-    log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --target ${target} --no-default-features --features alloc,queue-v2"
-    run_cargo check -p cellex-actor-core-rs --target "${target}" --no-default-features --features alloc,queue-v2 || return 1
+    log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-core-rs --target ${target} --no-default-features --features alloc"
+    run_cargo check -p cellex-actor-core-rs --target "${target}" --no-default-features --features alloc || return 1
 
     log_step "cargo +${DEFAULT_TOOLCHAIN} check -p cellex-actor-embedded-rs --target ${target} --no-default-features --features alloc,embedded_rc"
     run_cargo check -p cellex-actor-embedded-rs --target "${target}" --no-default-features --features alloc,embedded_rc || return 1
   done
-}
-
-run_queue_regression() {
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-core-rs --no-default-features --features alloc,queue-v1"
-  run_cargo test -p cellex-utils-core-rs --no-default-features --features alloc,queue-v1 || return 1
-
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1,unwind-supervision"
-  run_cargo test -p cellex-actor-core-rs --no-default-features --features alloc,queue-v1,unwind-supervision || return 1
-
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-utils-std-rs --no-default-features --features queue-v1"
-  run_cargo test -p cellex-utils-std-rs --no-default-features --features queue-v1 || return 1
-
-  log_step "cargo +${DEFAULT_TOOLCHAIN} test -p cellex-actor-std-rs --no-default-features --features queue-v1,rt-multi-thread"
-  run_cargo test -p cellex-actor-std-rs --no-default-features --features queue-v1,rt-multi-thread || return 1
 }
 
 run_tests() {
@@ -504,11 +487,6 @@ run_all() {
   run_dylint || return 1
   run_no_std || return 1
   run_std || return 1
-  if [[ "${CI_INCLUDE_QUEUE_V1:-0}" == "1" ]]; then
-    run_queue_regression || return 1
-  else
-    log_step "queue-v1 regression skipped (set CI_INCLUDE_QUEUE_V1=1 to enable)"
-  fi
   run_doc_tests || return 1
   run_embedded || return 1
   run_tests || return 1
@@ -589,10 +567,6 @@ main() {
         ;;
       embedded|embassy)
         run_embedded || return 1
-        shift
-        ;;
-      queue|queues)
-        run_queue_regression || return 1
         shift
         ;;
       test|tests|workspace)

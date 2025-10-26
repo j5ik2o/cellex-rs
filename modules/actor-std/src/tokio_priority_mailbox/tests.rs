@@ -1,36 +1,20 @@
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{MailboxQueueDriver, QueuePollOutcome};
-use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxOptions};
-#[cfg(all(feature = "queue-v1", not(feature = "queue-v2")))]
-use cellex_utils_std_rs::QueueRw;
+use cellex_actor_core_rs::api::mailbox::{
+  queue_mailbox::{MailboxQueueDriver, QueuePollOutcome},
+  Mailbox, MailboxOptions,
+};
 use cellex_utils_std_rs::{Element, QueueError, QueueSize, DEFAULT_PRIORITY};
 
 use super::*;
 
 type TestResult<T = ()> = Result<T, String>;
 
-#[cfg(feature = "queue-v2")]
 use std::{
   sync::{Arc, Mutex},
   vec::Vec,
 };
 
-#[cfg(feature = "queue-v2")]
 use cellex_actor_core_rs::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared};
 
-#[cfg(all(feature = "queue-v1", not(feature = "queue-v2")))]
-fn dequeue_expected<M>(mailbox: &TokioPriorityMailbox<M>) -> Result<PriorityEnvelope<M>, String>
-where
-  M: Element, {
-  mailbox
-    .inner()
-    .queue()
-    .poll()
-    .map_err(|err| format!("poll queue: {:?}", err))?
-    .ok_or_else(|| "queue empty".to_string())
-}
-
-#[cfg(feature = "queue-v2")]
 fn dequeue_expected<M>(mailbox: &TokioPriorityMailbox<M>) -> Result<PriorityEnvelope<M>, String>
 where
   M: Element, {
@@ -42,20 +26,17 @@ where
   }
 }
 
-#[cfg(feature = "queue-v2")]
 #[derive(Clone)]
 struct RecordingSink {
   events: Arc<Mutex<Vec<MetricsEvent>>>,
 }
 
-#[cfg(feature = "queue-v2")]
 impl RecordingSink {
   fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
     Self { events }
   }
 }
 
-#[cfg(feature = "queue-v2")]
 impl MetricsSink for RecordingSink {
   fn record(&self, event: MetricsEvent) {
     self.events.lock().unwrap().push(event);
@@ -135,7 +116,6 @@ fn priority_mailbox_capacity_split() -> TestResult {
   Ok(())
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn priority_mailbox_emits_growth_metric() -> TestResult {
   let factory = TokioPriorityMailboxFactory::new(4).with_regular_capacity(0);

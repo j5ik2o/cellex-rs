@@ -1,32 +1,29 @@
-#[cfg(feature = "queue-v2")]
 use std::{
   sync::{Arc, Mutex},
   vec::Vec,
 };
 
-use cellex_actor_core_rs::api::mailbox::Mailbox;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared};
+use cellex_actor_core_rs::api::{
+  mailbox::Mailbox,
+  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+};
 use cellex_utils_std_rs::QueueError;
 
 use super::*;
 
 type TestResult<T = ()> = Result<T, String>;
 
-#[cfg(feature = "queue-v2")]
 #[derive(Clone)]
 struct RecordingSink {
   events: Arc<Mutex<Vec<MetricsEvent>>>,
 }
 
-#[cfg(feature = "queue-v2")]
 impl RecordingSink {
   fn new(events: Arc<Mutex<Vec<MetricsEvent>>>) -> Self {
     Self { events }
   }
 }
 
-#[cfg(feature = "queue-v2")]
 impl MetricsSink for RecordingSink {
   fn record(&self, event: MetricsEvent) {
     self.events.lock().unwrap().push(event);
@@ -90,7 +87,6 @@ async fn mailbox_unbounded_accepts_multiple_messages_multi_thread() -> TestResul
   run_factory_unbounded_mailbox_accepts_multiple_messages().await
 }
 
-#[cfg(feature = "queue-v2")]
 #[tokio::test(flavor = "current_thread")]
 async fn mailbox_emits_growth_metric() -> TestResult {
   let factory = TokioMailboxFactory;

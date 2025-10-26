@@ -1,20 +1,15 @@
 use core::marker::PhantomData;
 
-#[cfg(not(feature = "queue-v2"))]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
-#[cfg(feature = "queue-v2")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig, SyncQueueDriver};
 #[cfg(feature = "embedded_rc")]
 use cellex_actor_core_rs::api::mailbox::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::QueueMailbox, MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer,
+  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer,
 };
 use cellex_utils_embedded_rs::Element;
 
-#[cfg(not(feature = "queue-v2"))]
-use super::local_queue::LocalQueue;
 use super::{local_mailbox_sender::LocalMailboxSender, local_mailbox_type::LocalMailbox, local_signal::LocalSignal};
 
 /// Factory that creates local mailboxes.
@@ -79,12 +74,6 @@ impl MailboxFactory for LocalMailboxFactory {
     = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
   where
     M: Element;
-  #[cfg(not(feature = "queue-v2"))]
-  type Queue<M>
-    = LegacyQueueDriver<LocalQueue<M>>
-  where
-    M: Element;
-  #[cfg(feature = "queue-v2")]
   type Queue<M>
     = SyncQueueDriver<M>
   where
@@ -94,10 +83,7 @@ impl MailboxFactory for LocalMailboxFactory {
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    #[cfg(feature = "queue-v2")]
     let queue = build_queue_driver::<M>(QueueDriverConfig::default());
-    #[cfg(not(feature = "queue-v2"))]
-    let queue = LegacyQueueDriver::new(LocalQueue::new());
     let signal = LocalSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

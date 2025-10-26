@@ -1,5 +1,3 @@
-#[cfg(feature = "queue-v1")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
 use cellex_actor_core_rs::{
   api::{
     mailbox::{MailboxError, QueueMailboxProducer},
@@ -9,15 +7,11 @@ use cellex_actor_core_rs::{
 };
 use cellex_utils_std_rs::Element;
 
-#[cfg(feature = "queue-v2")]
-use super::queues::PrioritySyncQueueDriver;
-#[cfg(feature = "queue-v1")]
-use super::queues::TokioPriorityQueues;
-use super::{queues, NotifySignal, PriorityQueueError};
+use super::{
+  priority_sync_driver::{configure_metrics, PrioritySyncQueueDriver},
+  NotifySignal, PriorityQueueError,
+};
 
-#[cfg(feature = "queue-v1")]
-type QueueHandle<M> = LegacyQueueDriver<TokioPriorityQueues<M>>;
-#[cfg(feature = "queue-v2")]
 type QueueHandle<M> = PrioritySyncQueueDriver<M>;
 
 /// Message sender handle for priority mailbox
@@ -156,7 +150,7 @@ where
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    queues::configure_metrics(self.inner.queue(), sink.clone());
+    configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 

@@ -15,9 +15,10 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-#[cfg(feature = "queue-v2")]
-use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element, QueueSize, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{
+  collections::queue::QueueError, sync::ArcShared, v2::collections::queue::backend::OverflowPolicy, Element, QueueSize,
+  DEFAULT_PRIORITY,
+};
 use futures::{
   executor::{block_on, LocalPool},
   future::{poll_fn, FutureExt},
@@ -26,8 +27,6 @@ use futures::{
 use spin::RwLock;
 
 use super::{ready_queue_scheduler::ReadyQueueScheduler, *};
-#[cfg(feature = "queue-v2")]
-use crate::api::mailbox::queue_mailbox::{MailboxQueueDriver, SyncQueueDriver};
 use crate::{
   api::{
     actor::{
@@ -45,7 +44,7 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{QueueMailbox, QueueMailboxRecv},
+      queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
       Mailbox, MailboxFactory, MailboxOptions, QueueMailboxProducer, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
@@ -107,14 +106,12 @@ impl MetricsSink for EventRecordingSink {
   }
 }
 
-#[cfg(feature = "queue-v2")]
 #[derive(Clone, Copy)]
 struct SyncMailboxFactory {
   capacity: usize,
   policy:   OverflowPolicy,
 }
 
-#[cfg(feature = "queue-v2")]
 impl SyncMailboxFactory {
   const fn bounded(capacity: usize, policy: OverflowPolicy) -> Self {
     Self { capacity, policy }
@@ -125,12 +122,10 @@ impl SyncMailboxFactory {
   }
 }
 
-#[cfg(feature = "queue-v2")]
 struct SyncMailbox<M> {
   inner: QueueMailbox<SyncQueueDriver<M>, TestSignal>,
 }
 
-#[cfg(feature = "queue-v2")]
 impl<M> Clone for SyncMailbox<M>
 where
   M: Element,
@@ -140,13 +135,11 @@ where
   }
 }
 
-#[cfg(feature = "queue-v2")]
 struct SyncMailboxProducer<M> {
   inner: QueueMailboxProducer<SyncQueueDriver<M>, TestSignal>,
   _pd:   PhantomData<M>,
 }
 
-#[cfg(feature = "queue-v2")]
 impl<M> Clone for SyncMailboxProducer<M>
 where
   M: Element,
@@ -156,7 +149,6 @@ where
   }
 }
 
-#[cfg(feature = "queue-v2")]
 impl<M> MailboxHandle<M> for SyncMailbox<M>
 where
   M: Element,
@@ -172,7 +164,6 @@ where
   }
 }
 
-#[cfg(feature = "queue-v2")]
 impl<M> MailboxProducer<M> for SyncMailboxProducer<M>
 where
   M: Element,
@@ -191,7 +182,6 @@ where
   }
 }
 
-#[cfg(feature = "queue-v2")]
 impl<M> Mailbox<M> for SyncMailbox<M>
 where
   M: Element,
@@ -232,7 +222,6 @@ where
   }
 }
 
-#[cfg(feature = "queue-v2")]
 impl MailboxFactory for SyncMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
@@ -464,7 +453,6 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
   }
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn scheduler_records_drop_oldest_metric() {
   let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
@@ -494,7 +482,6 @@ fn scheduler_records_drop_oldest_metric() {
   );
 }
 
-#[cfg(feature = "queue-v2")]
 #[test]
 fn scheduler_records_drop_newest_metric() {
   let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropNewest);

@@ -1,5 +1,3 @@
-#![cfg(feature = "queue-v2")]
-
 extern crate alloc;
 
 use alloc::vec::Vec;

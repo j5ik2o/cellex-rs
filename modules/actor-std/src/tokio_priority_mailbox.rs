@@ -3,9 +3,7 @@ mod tests;
 
 mod factory;
 mod mailbox;
-#[cfg(feature = "queue-v2")]
 mod priority_sync_driver;
-mod queues;
 mod sender;
 
 use cellex_actor_core_rs::shared::mailbox::messages::PriorityEnvelope;

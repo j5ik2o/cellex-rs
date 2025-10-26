@@ -1,5 +1,3 @@
-#[cfg(feature = "queue-v1")]
-use cellex_actor_core_rs::api::mailbox::queue_mailbox::LegacyQueueDriver;
 use cellex_actor_core_rs::{
   api::{
     mailbox::{
@@ -12,20 +10,13 @@ use cellex_actor_core_rs::{
 };
 use cellex_utils_std_rs::{Element, QueueSize};
 
-#[cfg(feature = "queue-v2")]
-use super::queues::PrioritySyncQueueDriver;
-#[cfg(feature = "queue-v1")]
-use super::queues::TokioPriorityQueues;
 use super::{
   factory::TokioPriorityMailboxFactory,
-  queues::{self, configure_metrics},
+  priority_sync_driver::{configure_metrics, PrioritySyncQueueDriver},
   sender::TokioPriorityMailboxSender,
   NotifySignal, PriorityQueueError,
 };
 
-#[cfg(feature = "queue-v1")]
-type QueueHandle<M> = LegacyQueueDriver<TokioPriorityQueues<M>>;
-#[cfg(feature = "queue-v2")]
 type QueueHandle<M> = PrioritySyncQueueDriver<M>;
 
 /// Priority mailbox for Tokio runtime
@@ -114,7 +105,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    queues::configure_metrics(self.inner.queue(), sink.clone());
+    configure_metrics(self.inner.queue(), sink.clone());
     self.inner.set_metrics_sink(sink);
   }
 }

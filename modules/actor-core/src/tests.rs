@@ -9,9 +9,6 @@ use crate::{
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
-#[cfg(feature = "queue-v1")]
-mod legacy_queue_v1;
-
 /// Ensures `PriorityEnvelope::from_system` marks the envelope as a control message.
 #[test]
 fn priority_envelope_from_system_sets_control_channel() {

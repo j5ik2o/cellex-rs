@@ -49,7 +49,6 @@
 #![deny(clippy::cmp_null)]
 #![allow(unknown_lints)]
 #![allow(cfg_std_forbid)]
-
 //! Utilities for std runtime.
 //!
 //! This module binds the abstractions defined in `cellex_utils_core_rs` to tokio-based
@@ -107,6 +106,3 @@ pub mod prelude {
     timing::TokioDeadlineTimer,
   };
 }
-
-#[cfg(all(feature = "queue-v1", feature = "queue-v2"))]
-compile_error!("queue-v1 と queue-v2 を同時には有効化できません");
