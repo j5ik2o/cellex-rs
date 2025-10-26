@@ -29,6 +29,3 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_model: claude-3-5-sonnet-20241022
-          default_temperature: "0.2"
-          default_max_output_tokens: "4096"
