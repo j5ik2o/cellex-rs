@@ -27,6 +27,10 @@ jobs:
     name: Run Claude Code Action
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Invoke Claude Code Action
         uses: anthropics/claude-code-action@v1
         with:
