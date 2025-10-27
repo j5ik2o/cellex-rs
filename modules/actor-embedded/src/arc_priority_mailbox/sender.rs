@@ -8,7 +8,7 @@ use cellex_actor_core_rs::{
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::priority_sync_handle::ArcPriorityMailboxQueue;
+use super::priority_mailbox_queue_handle::ArcPriorityMailboxQueue;
 use crate::arc_mailbox::ArcSignal;
 
 type ArcPriorityMailboxQueueHandle<M, RM> = ArcPriorityMailboxQueue<M, RM>;

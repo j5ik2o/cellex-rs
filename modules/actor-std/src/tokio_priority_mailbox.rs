@@ -3,7 +3,7 @@ mod tests;
 
 mod factory;
 mod mailbox;
-mod priority_sync_driver;
+mod priority_mailbox_queue;
 mod sender;
 
 use cellex_actor_core_rs::shared::mailbox::messages::PriorityEnvelope;
@@ -13,6 +13,7 @@ type PriorityQueueError<M> = Box<QueueError<PriorityEnvelope<M>>>;
 
 pub use factory::TokioPriorityMailboxFactory;
 pub use mailbox::TokioPriorityMailbox;
+pub use priority_mailbox_queue::PriorityMailboxQueue;
 pub use sender::TokioPriorityMailboxSender;
 
 use crate::tokio_mailbox::NotifySignal;

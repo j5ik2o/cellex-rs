@@ -12,7 +12,7 @@ use cellex_utils_core_rs::collections::{
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcMailboxQueue,
+  factory::ArcMailboxFactory, mailbox_queue_handle::ArcMailboxQueue, sender::ArcMailboxSender, signal::ArcSignal,
 };
 
 type ArcMailboxQueueHandle<M, RM> = ArcMailboxQueue<M, RM>;

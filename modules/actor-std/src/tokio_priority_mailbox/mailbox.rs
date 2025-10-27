@@ -12,7 +12,7 @@ use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 
 use super::{
   factory::TokioPriorityMailboxFactory,
-  priority_sync_driver::{configure_metrics, PriorityMailboxQueue},
+  priority_mailbox_queue::{configure_metrics, PriorityMailboxQueue},
   sender::TokioPriorityMailboxSender,
   NotifySignal, PriorityQueueError,
 };

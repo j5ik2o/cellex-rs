@@ -11,7 +11,7 @@ use cellex_utils_core_rs::collections::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcMailboxQueue,
+  arc_mailbox_impl::ArcMailbox, mailbox_queue_handle::ArcMailboxQueue, sender::ArcMailboxSender, signal::ArcSignal,
 };
 
 /// Factory for constructing [`ArcMailbox`] instances.

@@ -5,7 +5,7 @@ use cellex_utils_core_rs::collections::{
 };
 
 use super::{
-  mailbox::TokioPriorityMailbox, priority_sync_driver::PriorityMailboxQueue, sender::TokioPriorityMailboxSender,
+  mailbox::TokioPriorityMailbox, priority_mailbox_queue::PriorityMailboxQueue, sender::TokioPriorityMailboxSender,
   NotifySignal,
 };
 

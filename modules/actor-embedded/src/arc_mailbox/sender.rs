@@ -5,7 +5,7 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{signal::ArcSignal, sync_queue_handle::ArcMailboxQueue};
+use super::{mailbox_queue_handle::ArcMailboxQueue, signal::ArcSignal};
 
 type ArcMailboxQueueHandle<M, RM> = ArcMailboxQueue<M, RM>;
 

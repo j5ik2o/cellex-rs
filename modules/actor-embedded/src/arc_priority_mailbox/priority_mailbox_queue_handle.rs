@@ -21,7 +21,7 @@ use cellex_utils_core_rs::collections::{
   Element,
 };
 
-use super::priority_sync_driver::PriorityMailboxQueue;
+use super::priority_mailbox_queue::PriorityMailboxQueue;
 
 /// Wrapper that associates a `PriorityMailboxQueue` with the raw mutex parameter used by
 /// embedded mailbox signals.

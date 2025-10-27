@@ -11,8 +11,8 @@ const DEFAULT_CAPACITY: usize = 32;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  mailbox::ArcPriorityMailbox, priority_sync_driver::PriorityMailboxQueue,
-  priority_sync_handle::ArcPriorityMailboxQueue, sender::ArcPriorityMailboxSender,
+  mailbox::ArcPriorityMailbox, priority_mailbox_queue::PriorityMailboxQueue,
+  priority_mailbox_queue_handle::ArcPriorityMailboxQueue, sender::ArcPriorityMailboxSender,
 };
 use crate::arc_mailbox::ArcSignal;
 
@@ -75,11 +75,8 @@ where
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);
     let regular_capacity = self.resolve_regular_capacity(options.capacity);
-    let queue: QueueHandle<M, RM> = ArcPriorityMailboxQueue::from_driver(PriorityMailboxQueue::new(
-      self.levels,
-      control_per_level,
-      regular_capacity,
-    ));
+    let queue: QueueHandle<M, RM> =
+      ArcPriorityMailboxQueue::from_driver(PriorityMailboxQueue::new(self.levels, control_per_level, regular_capacity));
     let signal = ArcSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

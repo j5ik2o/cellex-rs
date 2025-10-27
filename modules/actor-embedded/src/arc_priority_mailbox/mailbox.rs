@@ -15,7 +15,8 @@ use cellex_utils_core_rs::collections::{
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  factory::ArcPriorityMailboxFactory, priority_sync_handle::ArcPriorityMailboxQueue, sender::ArcPriorityMailboxSender,
+  factory::ArcPriorityMailboxFactory, priority_mailbox_queue_handle::ArcPriorityMailboxQueue,
+  sender::ArcPriorityMailboxSender,
 };
 use crate::arc_mailbox::ArcSignal;
 
