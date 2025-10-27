@@ -29,6 +29,4 @@ pub use adaptive_coordinator::AdaptiveCoordinator;
 pub use base::ActorScheduler;
 pub use default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
 pub use default_ready_queue_coordinator_v2::DefaultReadyQueueCoordinatorV2;
-#[allow(no_parent_reexport)]
-pub use ready_queue_coordinator::{ActorState, InvokeResult, ResumeCondition, SuspendReason};
 pub use ready_queue_coordinator_v2::ReadyQueueCoordinatorV2;

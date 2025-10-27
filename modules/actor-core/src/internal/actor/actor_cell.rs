@@ -12,7 +12,7 @@ use cellex_utils_core_rs::{
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
-    actor_scheduler::{ready_queue_scheduler::ReadyQueueHandle, ActorState},
+    actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
     extensions::Extensions,
     failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
@@ -52,9 +52,6 @@ where
   handler: Box<ActorHandlerFn<AnyMessage, MF>>,
   _strategy: PhantomData<Strat>,
   stopped: bool,
-  // TODO(Phase 2B): Move suspend state to MessageInvoker
-  // See: docs/adr/2025-10-22-phase0-suspend-resume-responsibility.md
-  state: ActorState,
   receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   receive_timeout_scheduler_opt: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
@@ -97,7 +94,6 @@ where
       handler,
       _strategy: PhantomData,
       stopped: false,
-      state: ActorState::Running,
       receive_timeout_scheduler_factory_shared_opt: None,
       receive_timeout_scheduler_opt: None,
       extensions,
@@ -259,25 +255,6 @@ where
       if let Some(next_failure) = guardian.escalate_failure(failure)? {
         escalations.push(next_failure);
       }
-      return Ok(());
-    }
-
-    // Handle Suspend/Resume system messages (update state before processing)
-    match envelope.system_message() {
-      | Some(SystemMessage::Suspend) => {
-        self.state = ActorState::Suspended;
-        // Continue to process the message (don't early return)
-        // This allows user-defined system handlers to be notified
-      },
-      | Some(SystemMessage::Resume) => {
-        self.state = ActorState::Running;
-        // Continue to process the message
-      },
-      | _ => {},
-    }
-
-    // Skip user messages while suspended (system messages are always processed)
-    if self.state == ActorState::Suspended && envelope.system_message().is_none() {
       return Ok(());
     }
 
