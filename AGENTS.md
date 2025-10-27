@@ -33,7 +33,6 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - ランタイム本体で `#[cfg(feature = "std")]` による機能分岐を入れないこと（テストコード内での使用は許容）
 - **後方互換性**: 後方互換は不要（破壊的変更を恐れずに最適な設計を追求すること）
 - **リリース状況**: まだ正式リリース前の開発フェーズ。必要であれば破壊的変更を歓迎し、最適な設計を優先すること。
-- CLAUDE.md, GEMINI.mdも参照すること。
 - serena mcpを有効活用すること
 - 当該ディレクトリ以外を読まないこと
 - mod.rs禁止。2018モジュールを使え
