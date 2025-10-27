@@ -10,7 +10,7 @@ use crate::{
   api::{
     actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
     mailbox::{
-      queue_mailbox::{MailboxQueueBackend, MailboxQueueCore},
+      queue_mailbox::{QueueMailboxCore, QueueMailboxQueue},
       MailboxError,
     },
     metrics::MetricsSinkShared,
@@ -29,7 +29,7 @@ use crate::{
 /// - `S`: Notification signal implementation type
 #[derive(Clone)]
 pub struct QueueMailboxProducer<Q, S> {
-  pub(crate) core: MailboxQueueCore<Q, S>,
+  pub(crate) core: QueueMailboxCore<Q, S>,
 }
 
 impl<Q, S> core::fmt::Debug for QueueMailboxProducer<Q, S> {
@@ -55,77 +55,8 @@ where
 }
 
 impl<Q, S> QueueMailboxProducer<Q, S> {
-  pub(crate) fn from_core(core: MailboxQueueCore<Q, S>) -> Self {
+  pub(crate) fn from_core(core: QueueMailboxCore<Q, S>) -> Self {
     Self { core }
-  }
-
-  /// Attempts to send a message and returns the underlying queue outcome.
-  pub fn try_send_with_outcome<M>(&self, message: M) -> Result<OfferOutcome, MailboxError<M>>
-  where
-    Q: MailboxQueueBackend<M>,
-    S: MailboxSignal,
-    M: Element, {
-    self.core.try_send_mailbox(message)
-  }
-
-  /// Attempts to send a message (non-blocking) using the mailbox error model.
-  pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
-  where
-    Q: MailboxQueueBackend<M>,
-    S: MailboxSignal,
-    M: Element, {
-    self.try_send_with_outcome(message).map(|_| ())
-  }
-
-  /// Attempts to send a message (non-blocking).
-  ///
-  /// Returns an error immediately if the queue is full.
-  ///
-  /// # Arguments
-  /// - `message`: Message to send
-  ///
-  /// # Returns
-  /// `Ok(())` on success, `Err(QueueError)` on failure
-  ///
-  /// # Errors
-  /// - `QueueError::Disconnected`: Mailbox is closed
-  /// - `QueueError::Full`: Queue is full
-  pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
-  where
-    Q: MailboxQueueBackend<M>,
-    S: MailboxSignal,
-    M: Element, {
-    match self.try_send_with_outcome(message) {
-      | Ok(_) => Ok(()),
-      | Err(error) => Err(error.into()),
-    }
-  }
-
-  /// Sends a message using the mailbox queue.
-  ///
-  /// # Arguments
-  /// - `message`: Message to send
-  ///
-  /// # Returns
-  /// `Ok(())` on success, `Err(QueueError)` on failure
-  ///
-  /// # Errors
-  /// Returns [`QueueError`] when the queue rejects the message.
-  pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
-  where
-    Q: MailboxQueueBackend<M>,
-    S: MailboxSignal,
-    M: Element, {
-    self.try_send(message)
-  }
-
-  /// Sends a message using the mailbox error model.
-  pub fn send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
-  where
-    Q: MailboxQueueBackend<M>,
-    S: MailboxSignal,
-    M: Element, {
-    self.try_send_mailbox(message)
   }
 
   /// Returns a reference to the underlying queue.
@@ -142,5 +73,57 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Installs a scheduler hook for notifying ready queue updates.
   pub fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
     self.core.set_scheduler_hook(hook);
+  }
+}
+
+impl<Q, S> QueueMailboxProducer<Q, S> {
+  /// Attempts to send a message and returns the underlying queue outcome.
+  pub fn try_send_with_outcome<M>(&self, message: M) -> Result<OfferOutcome, MailboxError<M>>
+  where
+    Q: QueueMailboxQueue<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.core.try_send_mailbox(message)
+  }
+
+  /// Attempts to send a message (non-blocking) using the mailbox error model.
+  pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
+  where
+    Q: QueueMailboxQueue<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.try_send_with_outcome(message).map(|_| ())
+  }
+
+  /// Attempts to send a message (non-blocking).
+  ///
+  /// Returns an error immediately if the queue is full.
+  pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
+  where
+    Q: QueueMailboxQueue<M>,
+    S: MailboxSignal,
+    M: Element, {
+    match self.try_send_with_outcome(message) {
+      | Ok(_) => Ok(()),
+      | Err(error) => Err(error.into()),
+    }
+  }
+
+  /// Sends a message using the mailbox queue.
+  pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
+  where
+    Q: QueueMailboxQueue<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.try_send(message)
+  }
+
+  /// Sends a message using the mailbox error model.
+  pub fn send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
+  where
+    Q: QueueMailboxQueue<M>,
+    S: MailboxSignal,
+    M: Element, {
+    self.try_send_mailbox(message)
   }
 }

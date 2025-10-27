@@ -148,7 +148,7 @@ fn sync_queue_drop_oldest_keeps_mailbox_usable() {
   mailbox.try_send_mailbox(1u32).expect("first enqueue succeeds");
   mailbox.try_send_mailbox(2u32).expect("drop oldest behaves as success");
 
-  let received = mailbox.core.try_dequeue_mailbox::<u32>().expect("dequeue result");
+  let received = mailbox.core.try_dequeue_mailbox().expect("dequeue result");
   assert_eq!(received, Some(2u32));
 }
 

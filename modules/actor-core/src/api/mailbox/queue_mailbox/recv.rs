@@ -7,13 +7,13 @@ use core::{
 
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
-use super::{backend::MailboxQueueBackend, base::QueueMailbox};
+use super::{base::QueueMailbox, queue::QueueMailboxQueue};
 use crate::{api::mailbox::MailboxError, shared::mailbox::MailboxSignal};
 
 /// Future for receiving messages.
 pub struct QueueMailboxRecv<'a, Q, S, M>
 where
-  Q: MailboxQueueBackend<M>,
+  Q: QueueMailboxQueue<M>,
   S: MailboxSignal,
   M: Element, {
   pub(super) mailbox: &'a QueueMailbox<Q, S>,
@@ -23,7 +23,7 @@ where
 
 impl<'a, Q, S, M> QueueMailboxRecv<'a, Q, S, M>
 where
-  Q: MailboxQueueBackend<M>,
+  Q: QueueMailboxQueue<M>,
   S: MailboxSignal,
   M: Element,
 {
@@ -34,7 +34,7 @@ where
 
 impl<'a, Q, S, M> Future for QueueMailboxRecv<'a, Q, S, M>
 where
-  Q: MailboxQueueBackend<M>,
+  Q: QueueMailboxQueue<M>,
   S: MailboxSignal,
   M: Element,
 {
@@ -91,7 +91,7 @@ enum QueueMailboxRecvOutcome<M> {
 
 impl<'a, Q, S, M> QueueMailboxRecv<'a, Q, S, M>
 where
-  Q: MailboxQueueBackend<M>,
+  Q: QueueMailboxQueue<M>,
   S: MailboxSignal,
   M: Element,
 {

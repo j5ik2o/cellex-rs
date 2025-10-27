@@ -2,15 +2,17 @@ mod backend;
 mod base;
 mod core;
 mod poll_outcome;
+mod queue;
 mod recv;
 mod sync_queue_driver;
 
-pub use core::MailboxQueueCore;
+pub use core::QueueMailboxCore;
 
 pub use backend::MailboxQueueBackend;
 pub use base::QueueMailbox;
 use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 pub use poll_outcome::QueuePollOutcome;
+pub(crate) use queue::QueueMailboxQueue;
 pub use recv::QueueMailboxRecv;
 pub use sync_queue_driver::SyncMailboxQueue;
 
