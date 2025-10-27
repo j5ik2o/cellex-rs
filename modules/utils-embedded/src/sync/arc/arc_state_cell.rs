@@ -2,14 +2,7 @@
 
 use alloc::sync::Arc;
 
-use cellex_utils_core_rs::{
-  collections::queue::{
-    mpsc::MpscBuffer,
-    ring::{RingBuffer, RingBufferStorage},
-    traits::QueueStorage,
-  },
-  sync::StateCell,
-};
+use cellex_utils_core_rs::sync::StateCell;
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex},
   mutex::{Mutex, MutexGuard},
@@ -153,35 +146,5 @@ where
 
   fn borrow_mut(&self) -> Self::RefMut<'_> {
     self.lock()
-  }
-}
-
-impl<T, RM> RingBufferStorage<T> for ArcStateCell<MpscBuffer<T>, RM>
-where
-  RM: RawMutex,
-{
-  fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
-    let guard = self.borrow();
-    f(&guard)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
-    let mut guard = self.borrow_mut();
-    f(&mut guard)
-  }
-}
-
-impl<E, RM> QueueStorage<E> for ArcStateCell<RingBuffer<E>, RM>
-where
-  RM: RawMutex,
-{
-  fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
-    let guard = self.lock();
-    f(&guard)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
-    let mut guard = self.lock();
-    f(&mut guard)
   }
 }

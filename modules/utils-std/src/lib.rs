@@ -56,8 +56,6 @@
 //! timers. The structure is primarily based on re-exports to avoid circular dependencies with the
 //! core layer, and `TokioDeadlineTimer` is also provided from here.
 
-/// Collection data structures tailored for std environments.
-pub mod collections;
 /// Concurrency primitives backed by Tokio synchronization types.
 pub mod concurrent;
 /// Shared ownership and state cell implementations for std environments.

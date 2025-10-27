@@ -1,14 +1,10 @@
 //! no_std-friendly queue primitives shared between runtimes.
+//!
+//! v1 queue implementations have been removed. Use v2 implementations instead.
+//! This module only retains QueueSize and priority constants/traits for backward compatibility.
 
-mod queue_size;
-/// Queue trait definitions shared across all backends.
-pub mod traits;
-
-/// Multi-producer/single-consumer queue abstractions.
-pub mod mpsc;
 /// Priority-ordered queue abstractions.
 pub mod priority;
-/// Ring-buffer-based queue implementations and utilities.
-pub mod ring;
+mod queue_size;
 
 pub use queue_size::QueueSize;

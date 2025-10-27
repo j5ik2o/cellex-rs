@@ -4,17 +4,7 @@ mod tests;
 
 use std::{ops::Deref, sync::Arc};
 
-use cellex_utils_core_rs::{
-  collections::{
-    queue::{
-      mpsc::traits::{MpscBackend, MpscHandle},
-      ring::{RingBackend, RingHandle},
-      traits::{QueueHandle, QueueStorage},
-    },
-    stack::traits::{StackBackend, StackHandle},
-  },
-  sync::shared::Shared,
-};
+use cellex_utils_core_rs::sync::shared::Shared;
 
 /// Shared ownership wrapper using `Arc`
 ///
@@ -90,49 +80,5 @@ impl<T: ?Sized> Shared<T> for ArcShared<T> {
 impl<T: ?Sized> Clone for ArcShared<T> {
   fn clone(&self) -> Self {
     Self(self.0.clone())
-  }
-}
-
-impl<T, E> QueueHandle<E> for ArcShared<T>
-where
-  T: QueueStorage<E>,
-{
-  type Storage = T;
-
-  fn storage(&self) -> &Self::Storage {
-    &self.0
-  }
-}
-
-impl<T, B> MpscHandle<T> for ArcShared<B>
-where
-  B: MpscBackend<T> + ?Sized,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<E, B> RingHandle<E> for ArcShared<B>
-where
-  B: RingBackend<E> + ?Sized,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<T, B> StackHandle<T> for ArcShared<B>
-where
-  B: StackBackend<T> + ?Sized,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
   }
 }

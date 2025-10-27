@@ -6,17 +6,7 @@ mod tests;
 use alloc::sync::Arc;
 
 pub use arc_state_cell::{ArcCsStateCell, ArcLocalStateCell, ArcStateCell};
-use cellex_utils_core_rs::{
-  collections::{
-    queue::{
-      mpsc::traits::{MpscBackend, MpscHandle},
-      ring::{RingBackend, RingHandle},
-      traits::{QueueHandle, QueueStorage},
-    },
-    stack::traits::{StackBackend, StackHandle},
-  },
-  sync::shared::Shared,
-};
+use cellex_utils_core_rs::sync::shared::Shared;
 
 /// `Arc`-based shared reference type for embedded environments.
 ///
@@ -116,49 +106,5 @@ impl<T: ?Sized> Shared<T> for ArcShared<T> {
   where
     T: Sized, {
     Arc::try_unwrap(self.0).map_err(ArcShared)
-  }
-}
-
-impl<T, E> QueueHandle<E> for ArcShared<T>
-where
-  T: QueueStorage<E>,
-{
-  type Storage = T;
-
-  fn storage(&self) -> &Self::Storage {
-    &self.0
-  }
-}
-
-impl<T, B> MpscHandle<T> for ArcShared<B>
-where
-  B: MpscBackend<T>,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<E, B> RingHandle<E> for ArcShared<B>
-where
-  B: RingBackend<E> + ?Sized,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<T, B> StackHandle<T> for ArcShared<B>
-where
-  B: StackBackend<T> + ?Sized,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
   }
 }

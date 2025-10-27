@@ -93,8 +93,6 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
-/// Collection utilities for embedded targets.
-pub mod collections;
 /// Concurrency primitives specialized for embedded runtimes.
 pub mod concurrent;
 /// Synchronization and shared-state helpers for embedded systems.

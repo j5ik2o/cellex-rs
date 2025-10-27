@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::{api::mailbox::queue_mailbox::QueueMailbox, shared::mailbox::MailboxOptions};
 use cellex_utils_core_rs::collections::{
-  queue::{priority::PRIORITY_LEVELS, ring::DEFAULT_CAPACITY, QueueSize},
+  queue::{priority::PRIORITY_LEVELS, QueueSize},
   Element,
 };
 
@@ -10,6 +10,9 @@ use super::{
 };
 
 type QueueHandle<M> = PrioritySyncQueueDriver<M>;
+
+/// Default capacity for mailbox queues
+const DEFAULT_CAPACITY: usize = 32;
 
 /// Factory that creates priority mailboxes
 ///

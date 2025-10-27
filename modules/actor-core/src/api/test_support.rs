@@ -2,7 +2,6 @@
 //!
 //! Re-exports helpers that simplify constructing mailbox factories and signals in unit tests.
 mod common;
-mod shared_backend_handle;
 mod test_mailbox_factory;
 mod test_signal;
 mod test_signal_state;
@@ -11,7 +10,6 @@ mod test_signal_wait;
 mod tests;
 
 pub use common::TestQueue;
-pub use shared_backend_handle::SharedBackendHandle;
 pub use test_mailbox_factory::TestMailboxFactory;
 pub use test_signal::TestSignal;
 pub use test_signal_state::TestSignalState;

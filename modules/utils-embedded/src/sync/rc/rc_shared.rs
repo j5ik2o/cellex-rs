@@ -1,17 +1,7 @@
 use alloc::rc::Rc;
 use core::ops::Deref;
 
-use cellex_utils_core_rs::{
-  collections::{
-    queue::{
-      mpsc::traits::{MpscBackend, MpscHandle},
-      ring::{RingBackend, RingHandle},
-      traits::{QueueHandle, QueueStorage},
-    },
-    stack::traits::{StackBackend, StackHandle},
-  },
-  sync::shared::Shared,
-};
+use cellex_utils_core_rs::sync::shared::Shared;
 
 /// `Rc`-based shared reference wrapper.
 ///
@@ -63,49 +53,5 @@ impl<T> Shared<T> for RcShared<T> {
   where
     T: Sized, {
     Rc::try_unwrap(self.0).map_err(RcShared)
-  }
-}
-
-impl<T, E> QueueHandle<E> for RcShared<T>
-where
-  T: QueueStorage<E>,
-{
-  type Storage = T;
-
-  fn storage(&self) -> &Self::Storage {
-    &self.0
-  }
-}
-
-impl<T, B> MpscHandle<T> for RcShared<B>
-where
-  B: MpscBackend<T>,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<E, B> RingHandle<E> for RcShared<B>
-where
-  B: RingBackend<E>,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<T, B> StackHandle<T> for RcShared<B>
-where
-  B: StackBackend<T>,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
   }
 }
