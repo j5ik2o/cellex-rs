@@ -1,7 +1,7 @@
 #[cfg(feature = "unwind-supervision")]
 extern crate std;
 
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::{boxed::Box, collections::VecDeque, vec, vec::Vec};
 use core::{cell::RefCell, cmp::Reverse, marker::PhantomData};
 
 use cellex_utils_core_rs::{
@@ -9,6 +9,7 @@ use cellex_utils_core_rs::{
   sync::{shared::Shared, ArcShared},
 };
 
+use super::actor_cell_state::ActorCellState;
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
@@ -52,6 +53,8 @@ where
   handler: Box<ActorHandlerFn<AnyMessage, MF>>,
   _strategy: PhantomData<Strat>,
   stopped: bool,
+  state: ActorCellState,
+  pending_user_envelopes: VecDeque<PriorityEnvelope<AnyMessage>>,
   receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   receive_timeout_scheduler_opt: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
@@ -94,6 +97,8 @@ where
       handler,
       _strategy: PhantomData,
       stopped: false,
+      state: ActorCellState::Running,
+      pending_user_envelopes: VecDeque::new(),
       receive_timeout_scheduler_factory_shared_opt: None,
       receive_timeout_scheduler_opt: None,
       extensions,
@@ -145,6 +150,8 @@ where
     }
 
     self.stopped = true;
+    self.state = ActorCellState::Stopped;
+    self.pending_user_envelopes.clear();
     if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
       cell.borrow_mut().cancel();
     }
@@ -161,14 +168,39 @@ where
   }
 
   pub(crate) fn has_pending_messages(&self) -> bool {
-    !self.mailbox.is_empty()
+    !self.mailbox.is_empty() || !self.pending_user_envelopes.is_empty()
+  }
+
+  const fn is_suspended(&self) -> bool {
+    matches!(self.state, ActorCellState::Suspended)
+  }
+
+  fn transition_to_suspended(&mut self) {
+    if !self.is_suspended() {
+      self.state = ActorCellState::Suspended;
+    }
+  }
+
+  fn transition_to_running(&mut self) {
+    if self.is_suspended() {
+      self.state = ActorCellState::Running;
+    }
   }
 
   fn collect_envelopes(
     &mut self,
   ) -> Result<Vec<PriorityEnvelope<AnyMessage>>, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut drained = Vec::new();
+
+    if !self.is_suspended() && !self.pending_user_envelopes.is_empty() {
+      drained.extend(self.pending_user_envelopes.drain(..));
+    }
+
     while let Some(envelope) = MailboxConsumer::try_dequeue(&self.mailbox)? {
+      if self.is_suspended() && envelope.system_message().is_none() {
+        self.pending_user_envelopes.push_back(envelope);
+        continue;
+      }
       drained.push(envelope);
     }
     if drained.len() > 1 {
@@ -186,6 +218,10 @@ where
   ) -> Result<usize, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut processed = 0;
     for envelope in envelopes.into_iter() {
+      if self.is_suspended() && envelope.system_message().is_none() {
+        self.pending_user_envelopes.push_back(envelope);
+        continue;
+      }
       self.dispatch_envelope(envelope, guardian, new_children, escalations)?;
       processed += 1;
     }
@@ -256,6 +292,12 @@ where
         escalations.push(next_failure);
       }
       return Ok(());
+    }
+
+    match envelope.system_message() {
+      | Some(SystemMessage::Suspend) => self.transition_to_suspended(),
+      | Some(SystemMessage::Resume) => self.transition_to_running(),
+      | _ => {},
     }
 
     let influences_receive_timeout = envelope.system_message().is_none();

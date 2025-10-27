@@ -7,7 +7,7 @@
 | --- | --- | --- | --- | --- |
 | 基本メッセージ投入/受信 | Enqueue → Signal → Dequeue の基本動線。`QueueMailboxCore` が `offer`/`poll` を仲介。 | ✅ | `modules/actor-core/src/api/mailbox/queue_mailbox/core.rs` | ✅ |
 | System / User メッセージ優先度 | `PriorityEnvelope` による優先度付け。専用キュー・予約枠は未導入。 | ⚠️ | 優先順位は `modules/actor-core/src/api/mailbox/messages/system_message.rs`。System 専用バッファは未実装。 | ✅ (systemMailbox) |
-| Suspend / Resume 制御 | Suspend でユーザーメッセージ配送停止、Resume で再開。 | ❌ | `SystemMessage::Suspend/Resume` は存在するが、`QueueMailbox` / `ActorCell` に停止処理なし。参照: `modules/actor-core/src/api/actor/tests.rs:717-757`。 | ✅ (`SuspendMailbox`) |
+| Suspend / Resume 制御 | Suspend でユーザーメッセージ配送停止、Resume で再開。 | ✅ | `ActorCell` が Suspend 状態を保持し、ユーザーメッセージを保留。参照: `modules/actor-core/src/api/actor/tests.rs:710-768`。 | ✅ (`SuspendMailbox`) |
 | オーバーフロー処理 | `DropNewest` / `DropOldest` / `Grow` / `Block` の挙動。 | ⚠️ | `modules/utils-core/src/collections/queue/backend/vec_ring_backend.rs`。`Block` が実際には `QueueError::Full` を返すのみ。 | ✅ (`Drop`, `Block`) |
 | メトリクス連携 | メールボックス単位のメトリクス記録。 | ✅ | `QueueMailboxCore::record_event`（`modules/actor-core/src/api/mailbox/queue_mailbox/core.rs`）。 | ⚠️（最小限） |
 | ReadyQueue 連携 | メールボックスからスケジューラ再登録を行うフック。 | ✅ | `QueueMailboxCore::notify_ready`、`set_scheduler_hook`。 | ✅ (`dispatcher.Schedule`) |

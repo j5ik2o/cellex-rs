@@ -26,7 +26,7 @@
 | Suspend/Resume | `SystemMessage::Suspend/Resume` は列挙されているが、`QueueMailbox` / `ActorCell` が処理を停止しない。 | Suspend 後もユーザーメッセージが処理され、制御不能。 |
 | 状態管理 | サスペンド状態を保持する構造が存在しない。 | 停止/再開状態の追跡やメトリクス記録が不可能。 |
 | ReadyQueue連携 | Suspend 中も ReadyQueue に再登録され続ける。 | 無駄なスケジューリングとフェアネス低下。 |
-| テスト | `test_typed_actor_stateful_behavior_with_system_message` などが「Suspend は actor を止めない」と誤った期待を持っている。 | リグレッション検知ができない。 |
+| テスト | `test_typed_actor_stateful_behavior_with_suspend_resume` などを Suspend ブロック仕様に合わせて更新する必要がある。 | リグレッション検知ができない。 |
 
 ---
 

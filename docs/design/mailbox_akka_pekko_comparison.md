@@ -8,10 +8,9 @@
 
 ## エグゼクティブサマリー
 
-cellex-rs のメールボックス実装は、**Akka/Pekko および protoactor-go の基本機能の大部分を実装済み**です。しかし、🔴 **Suspend/Resume 機能が型定義のみで実装が欠落**しており、これは**重大なギャップ**です。基本的なメッセージング、優先度制御、オーバーフロー処理、DeadLetter は完全に実装されています。
+cellex-rs のメールボックス実装は、**Akka/Pekko および protoactor-go の基本機能を実装済み**です。2025-10-27 に ActorCell レベルで Suspend/Resume が追加され、ユーザーメッセージの停止と Resume 後の再開が動作確認できました。基本的なメッセージング、優先度制御、オーバーフロー処理、DeadLetter は完全に実装されています。
 
 **欠けている主要機能**:
-- 🔴 **Suspend/Resume**（型定義のみ、機能未実装）- 詳細: `suspend_resume_status.md`
 - **Stashing**（メッセージの一時保留・再配置）
 - **ControlAwareMailbox**（制御メッセージの自動優先化）- ただし SystemMessage の優先度で部分的に実現
 
@@ -21,7 +20,7 @@ cellex-rs のメールボックス実装は、**Akka/Pekko および protoactor-
 - Middleware チェイン（Phase 2B）
 - Observability Hub（Phase 3）
 
-**総合評価**: ⭐⭐⭐☆☆ (3.5/5.0) - Suspend/Resume と Stashing 追加で 5.0 に到達
+**総合評価**: ⭐⭐⭐⭐☆ (4.0/5.0) - Stashing 等の拡張で 5.0 に到達
 
 ---
 
@@ -365,7 +364,7 @@ impl<M: ControlMessage> PriorityEnvelope<M> {
 | **Throughput 制限** | ✅ | ✅ | ⚠️ | ✅ | トレイト定義済み、実装確認中 |
 | **ControlAware** | ✅ | ❌ | ⚠️ | ⚠️ | SystemMessage で部分的に実現 |
 | **Mailbox Middleware** | ❌ | ✅ | ❌ | ✅ | Phase 2B で実装予定 |
-| **Suspend/Resume** | ✅ | ✅ | ❌ | ✅ | **型定義のみ、機能未実装** 🔴 |
+| **Suspend/Resume** | ✅ | ✅ | ✅ | ✅ | ActorCell がユーザーメッセージ停止/再開を制御 |
 
 ### 4.3 メトリクスと監視
 
@@ -422,12 +421,10 @@ impl<M: ControlMessage> PriorityEnvelope<M> {
 
 ### 5.3 cellex-rs の弱み（改善が必要）
 
-1. **Suspend/Resume の実装欠落** 🔴
-   - 型定義のみで、メールボックスレベルの機能が未実装
-   - バックプレッシャ制御、レート制限、初期化待機ができない
-   - 旧実装（nexus-actor-rs）には完全実装があった
-   - **Phase 0 で最優先実装すべき**
-   - 詳細: `suspend_resume_status.md`
+1. **Suspend/Resume の周辺機能が未整備** ⚠️
+   - メトリクス収集やバックプレッシャ連携が未実装
+   - Resume 通知のメトリクス、サスペンション統計が未整備
+   - 旧実装（nexus-actor-rs）の `MailboxSuspensionMetrics` を参考に拡張余地あり
 
 2. **Stashing の欠落** 🔴
    - Akka/Pekko の重要パターンが使えない
@@ -636,13 +633,13 @@ pub struct StashBuffer<M> {
 
 > **質問**: メールボックス機能が protoactor-go, Akka/Pekko と同等レベルか？
 >
-> **回答**: ⚠️ **部分的に同等ですが、重大なギャップがあります。**
+> **回答**: ✅ **基本機能は同等水準に達しています。**
 
 **カバー状況**:
 - ✅ **基本メッセージング**: 完全同等（Bounded/Unbounded、Priority、DeadLetter）
-- 🔴 **Suspend/Resume**: **型定義のみで機能未実装**（詳細: `suspend_resume_status.md`）
-- ⚠️ **スケジューリング**: ほぼ同等（Throughput 実装確認が必要）
-- ⚠️ **拡張機能**: Stashing の欠落も大きなギャップ
+- ✅ **Suspend/Resume**: ActorCell がユーザーメッセージの停止/再開を制御
+- ⚠️ **スケジューリング**: Throughput 実装の完全性確認が必要
+- ⚠️ **拡張機能**: Stashing は未対応で大きなギャップ
 - ✅ **メトリクス**: リファクタリング後に Akka/Pekko を超える可能性
 
 **cellex-rs の優位点**:
@@ -651,21 +648,21 @@ pub struct StashBuffer<M> {
 - 詳細なオーバーフロー戦略（DropOldest など独自機能）
 
 **cellex-rs の課題**:
-- 🔴 **Suspend/Resume の実装が欠落**（Phase 0 で最優先実装すべき）
+- ⚠️ **Suspend/Resume のメトリクス・バックプレッシャ連携**（拡張余地）
 - 🔴 **Stashing の欠落**（Phase 2B〜3 で実装すべき）
 - ⚠️ Throughput 実装の完全性確認
 - ⚠️ ControlAwareMailbox の自動化
 
 ### 8.2 総合評価
 
-| 比較対象 | cellex-rs 現状 | Suspend/Resume 実装後 | Stashing 実装後 |
-|---------|---------------|---------------------|----------------|
-| **Akka/Pekko** | ⭐⭐⭐☆☆ (3.5/5.0) | ⭐⭐⭐⭐☆ (4.0/5.0) | ⭐⭐⭐⭐⭐ (5.0/5.0) |
-| **protoactor-go** | ⭐⭐⭐⭐☆ (4.0/5.0) | ⭐⭐⭐⭐⭐ (5.0/5.0) | ⭐⭐⭐⭐⭐ (5.0/5.0) |
+| 比較対象 | cellex-rs 現状 | Stashing 実装後 |
+|---------|---------------|----------------|
+| **Akka/Pekko** | ⭐⭐⭐⭐☆ (4.0/5.0) | ⭐⭐⭐⭐⭐ (5.0/5.0) |
+| **protoactor-go** | ⭐⭐⭐⭐⭐ (5.0/5.0) | ⭐⭐⭐⭐⭐ (5.0/5.0) |
 
 **現状の課題**:
-- 🔴 Suspend/Resume の実装欠落により評価が下がっている
-- Stashing も欠落しているが、Suspend/Resume が最優先
+- Stashing が未対応
+- Suspend/Resume メトリクスなどの拡張余地
 
 **完全実装後**:
 - Akka/Pekko: ⭐⭐⭐⭐⭐ (5.0/5.0) - 完全同等
@@ -673,25 +670,19 @@ pub struct StashBuffer<M> {
 
 ### 8.3 最終推奨事項
 
-1. **🔴 Suspend/Resume を Phase 0 で実装**（最優先・必須）
-   - ActorCell に `suspended: AtomicBool` を追加
-   - `dispatch_envelope` で特殊処理
-   - テストケース 10 件追加
-   - 詳細: `suspend_resume_status.md`
-
-2. **🔴 Stashing を Phase 2B〜3 で実装**（必須）
+1. **🔴 Stashing を Phase 2B〜3 で実装**（必須）
    - `Stashable` トレイトと `StashBuffer` の実装
    - ActorContext への統合
 
-3. **🟡 Throughput 実装を Phase 1 で確認・完成**（推奨）
+2. **🟡 Throughput 実装を Phase 1 で確認・完成**（推奨）
    - `throughput_hint()` の実装確認
    - MessageInvoker での yield ロジック確認
 
-4. **🟡 リファクタリングプランに Suspend/Resume と Stashing セクションを追加**（推奨）
-   - Phase 0 の MUST タスクに Suspend/Resume を追加
+3. **🟡 リファクタリングプランで Suspend/Resume 拡張 (メトリクス) を明記**（推奨）
+   - Phase 2 以降で `MailboxSuspensionMetrics` 相当を検討
    - Phase 2B に Stashing セクションを追加
 
-5. **🟢 本レポートを `actor_scheduler_refactor.md` と統合**（推奨）
+4. **🟢 本レポートを `actor_scheduler_refactor.md` と統合**（推奨）
 
 ---
 

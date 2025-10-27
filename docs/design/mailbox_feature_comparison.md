@@ -8,11 +8,11 @@
 
 ## エグゼクティブサマリー
 
-cellex-rs のメールボックス実装は、参照実装（protoactor-go、nexus-actor-rs）の**主要機能の大部分を実装済み**です。しかし、🔴 **Suspend/Resume 機能が型定義のみで実装が欠落**しており、これは**重大なギャップ**です。一部の高度な機能（ミドルウェアチェイン、スループット制御）も**部分的実装または未実装**ですが、`actor_scheduler_refactor.md` のリファクタリングプランで**これらの機能が考慮されている**ことを確認しました。
+cellex-rs のメールボックス実装は、参照実装（protoactor-go、nexus-actor-rs）の**主要機能を実装済み**です。2025-10-27 時点で ActorCell レベルの Suspend/Resume 制御が導入され、ユーザーメッセージの停止と Resume 後の再開が確認できました。一部の高度な機能（ミドルウェアチェイン、スループット制御、サスペンション統計）は**部分的実装または未実装**ですが、`actor_scheduler_refactor.md` のリファクタリングプランで**これらの機能が考慮されている**ことを確認しました。
 
-**結論**: ⚠️ 基本機能は実装済みだが、**Suspend/Resume の実装が最優先課題**。リファクタリングプランで不足機能の追加が計画済み。
+**結論**: ✅ 基本機能は実装済み（Suspend/Resume 含む）。リファクタリングプランで不足機能の追加とメトリクス拡充が計画済み。
 
-**詳細**: Suspend/Resume 実装ギャップの分析は `suspend_resume_status.md` を参照。
+**詳細**: Suspend/Resume 実装の背景と今後の改善項目は `mailbox_suspend_resume_plan.md` を参照。
 
 ---
 
@@ -93,7 +93,7 @@ pub struct MailboxSuspensionMetrics {
 | **QueueMailbox** | ✅ 完全実装 | `QueueMailbox<Q, S>` | ジェネリックなキュー・シグナル抽象 |
 | **MailboxProducer** | ✅ 完全実装 | `QueueMailboxProducer` | protoactor-go の `PostUserMessage` 相当 |
 | **MailboxConsumer** | ✅ 完全実装 | `MailboxConsumer` trait | nexus-actor-rs の `MessageInvoker` 相当 |
-| **Suspend/Resume** | ❌ **未実装** | `SystemMessage::Suspend/Resume` | **型定義のみ、機能実装なし** ⚠️ |
+| **Suspend/Resume** | ✅ 実装済み | `ActorCell`, `SystemMessage::Suspend/Resume` | ユーザーメッセージの停止/再開を `ActorCell` で制御 |
 | **メトリクスシンク** | ✅ 完全実装 | `set_metrics_sink()` | nexus-actor-rs より簡潔 |
 | **スケジューラフック** | ✅ 完全実装 | `set_scheduler_hook()` | ReadyQueue 連携 |
 | **非同期受信** | ✅ 完全実装 | `recv()` → `Future<Output = Result<M, QueueError>>` | async/await 対応 |
@@ -215,8 +215,8 @@ for {
 | **スケジューリング** | ✅ | ✅ | ✅ | ✅ |
 | Dispatcher 連携 | ✅ | ✅ | ✅ | ✅ |
 | スループット制限 | ✅ | ✅ | ⚠️ | ✅ |
-| **状態管理** | ✅ | ✅ | ⚠️ | ✅ |
-| Suspend/Resume | ✅ | ✅ | ❌ | ✅ |
+| **状態管理** | ✅ | ✅ | ✅ | ✅ |
+| Suspend/Resume | ✅ | ✅ | ✅ | ✅ |
 | idle/running 制御 | ✅ | ✅ | ✅ | ✅ |
 | **拡張機能** | ⚠️ | ✅ | ⚠️ | ✅ |
 | Middleware | ✅ | ✅ | ❌ | ✅ |
@@ -315,9 +315,9 @@ Phase 2B で実装予定だが、具体的なユースケースを明示すべ�
 
 ### 6.1 主要な発見
 
-1. **cellex-rs の基本メールボックス機能は参照実装とほぼ同等レベル**
+1. **cellex-rs の基本メールボックス機能は参照実装と同等レベル**
    - User/System 分離、優先度制御、Dispatcher 連携は完全実装
-   - ⚠️ **Suspend/Resume は型定義のみで機能実装なし**（詳細: `suspend_resume_status.md`）
+   - ✅ Suspend/Resume が ActorCell レベルで実装され、ユーザーメッセージの停止と再開が確認済み
    - ジェネリックな抽象化により、参照実装より柔軟な設計
 
 2. **リファクタリングプランは不足機能を適切にカバー**
@@ -332,9 +332,9 @@ Phase 2B で実装予定だが、具体的なユースケースを明示すべ�
 
 ### 6.2 総合評価
 
-**現状実装**: ⭐⭐⭐☆☆ (3.5/5.0)
-- 基本機能の大部分は実装済みだが、**Suspend/Resume が未実装**（🔴 CRITICAL）
-- 拡張機能（Middleware、統計）も不足
+**現状実装**: ⭐⭐⭐⭐☆ (4.0/5.0)
+- 基本機能（Suspend/Resume を含む）は実装済み
+- 拡張機能（Middleware、統計）は引き続き課題
 
 **リファクタリング後**: ⭐⭐⭐⭐⭐ (5.0/5.0 想定)
 - Middleware と Observability Hub の追加で参照実装を超える可能性
@@ -343,10 +343,10 @@ Phase 2B で実装予定だが、具体的なユースケースを明示すべ�
 
 > **質問**: 参照実装と同等のメールボックス機能が現状の実装に盛り込まれているか？
 >
-> **回答**: ⚠️ **部分的に実装済みですが、重大なギャップがあります。**
+> **回答**: ✅ **はい、基本機能は同等水準です。**
 >
 > - 基本メッセージング、優先度制御、Dispatcher 連携は**完全実装**
-> - 🔴 **Suspend/Resume は型定義のみで、機能実装が欠落**（詳細: `suspend_resume_status.md`）
+> - Suspend/Resume が ActorCell レベルで動作（詳細: `mailbox_suspend_resume_plan.md`）
 > - Middleware、スループット制限などの拡張機能は**部分的実装**
 >
 > **質問**: このリファクタリングプランでも同等の機能が想定されているか？

@@ -60,7 +60,7 @@
 ## テスト観点
 
 - 単体テスト: `ActorCell::dispatch_envelope` に対する Suspend/Resume の基本ケース（システムメッセージ優先、二重 Suspend/Resume の冪等性、Suspend 中の Stop/Escalate 取り扱い）。
-- 統合テスト: ReadyQueueCoordinator を含む suspend サイクル、bounded mailbox での overflow、複数アクター同時 Suspend の再開順序。既存テスト `test_typed_actor_stateful_behavior_with_system_message` の期待値更新も必須。
+- 統合テスト: ReadyQueueCoordinator を含む suspend サイクル、bounded mailbox での overflow、複数アクター同時 Suspend の再開順序。既存テスト `test_typed_actor_stateful_behavior_with_suspend_resume` が Suspend ブロック仕様をカバーすることを確認する。
 - ベンチ: suspend check 追加によるホットパス劣化が 5% 以内であることを `cargo bench actor_cell::dispatch` 系で確認する計画を明記する。
 
 ---
