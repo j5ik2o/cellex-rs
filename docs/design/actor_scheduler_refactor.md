@@ -3,13 +3,28 @@
 ## 1. 背景
 - 現行の `ActorScheduler` / `ReadyQueueScheduler` は multi-worker ready queue、Guardian 連携、エスカレーション配信、メトリクス・テレメトリ、receive timeout などの高度な機能を単一コンポーネントに抱え込んでいる。
 - 旧 `dispatcher` 実装（`docs/sources/nexus-actor-rs/modules/actor-std/src/actor/dispatch/`）は Dispatcher / Mailbox / Invoker / Throttler へ責務を分割し SRP を徹底しており、protoactor-go を含む参照実装も同様の境界を持つ。
-- Shared 抽象と async モデルへ移行する再設計の中で、ReadyQueueScheduler を facade とした責務再編を行い、再利用・テスト容易性を高めたい。
+- ReadyQueueScheduler を facade とした責務再編を行い、再利用・テスト容易性を高めたい。
 - 本ドキュメントは以下のドキュメント（旧: `actor_scheduler_mailbox_facade.md`, `D22-mailbox-readyqueue-facade.md`）を統合し、設計観点とロードマップを一貫させた最新版である。
 
 ## 2. 現状整理
 1. `ReadyQueueScheduler` が Ready queue 管理、ワーカ駆動、Guardian 戦略、エスカレーション配信、Failure Telemetry、Metrics Sink、receive timeout 共有を併せ持ち、外向けファサードと内部オーケストレーションを兼任している。
 2. `ActorCell` には mailbox 直接操作、メッセージ処理ループ、子アクター生成、サスペンド判定、Failure 通知といった Invoker 相当の責務が集中している。
 3. `Mailbox` は `ActorCell` 経由でのみ所有されており、enqueue/notify と ReadyQueue 再登録、enqueue メトリクス記録に特化している。
+
+### 2.1 実装ステータス（2025-10-27 時点）
+- ✅ **完了済み**
+  - `ReadyQueueCoordinator` トレイトおよび `DefaultReadyQueueCoordinator` / `DefaultReadyQueueCoordinatorV2`
+  - `LockFreeCoordinator` / `LockFreeCoordinatorV2` / `AdaptiveCoordinator` の実装と統合テスト
+  - `InvokeResult` / `SuspendReason` / `ResumeCondition` / `MailboxIndex` / `ActorState` などの API 定義
+  - `MailboxOptions`（通常／優先キュー容量の設定）と `SyncMailboxQueue` による `MailboxOverflowPolicy` 変換
+- 🚧 **進行中**
+  - `WorkerExecutor` のランタイム別実装（Tokio/Embassy/テストランタイムの共通化）
+  - `MessageInvoker` 抽出と middleware・バックプレッシャ統合
+  - `MailboxRegistry` の世代管理・所有権モデルの整理
+- ⏳ **未着手 / 計画中**
+  - Coordinator v1 → v2 への統一と切り替えフラグ
+  - no_std ターゲットにおける静的バッファ／プールアロケータ対応
+  - 並行ベンチマーク（2/4/8/16 スレッド）と `perf` 計測の自動化
 
 | レイヤ | 主な型 | 現行責務 |
 | --- | --- | --- |
@@ -36,7 +51,8 @@
 ## 4. 目標アーキテクチャ
 
 ### 4.1 コンポーネント構成
-1. **Mailbox Core**: QueueMailbox を中心に enqueue・シグナル通知・ReadyQueueHook 連携を担う純粋なデータ構造。`MailboxOptions` で容量・`OverflowStrategy`・システムメッセージ用予約枠を設定し、バックプレッシャ閾値や middleware hook をオプション化する。
+1. **Mailbox Core**: QueueMailbox を中心に enqueue・シグナル通知・ReadyQueueHook 連携を担う純粋なデータ構造。`MailboxOptions` で通常/優先メッセージの容量を指定し、オーバーフロー動作は `MailboxOverflowPolicy` を介してキュー実装（`SyncMailboxQueue` など）から取得する。バックプレッシャ閾値や middleware hook は将来的な拡張項目として整理する。
+- 現行コードでは `QueueMailbox<Q, S>` が `Mailbox` と `MailboxConsumer` の両トレイトを実装し、スケジューラやランタイムは `MailboxConsumer` 経由でシグナル複製 (`signal()`) やノンブロッキング `try_dequeue()` を利用する。
 2. **Scheduler Frontend**: ReadyQueueScheduler を外部 API の窓口としつつ、内部をサブコンポーネントへ分割。
    - `ReadyQueueCoordinator`: `drain_ready_cycle` / `poll_wait_signal` による ready queue 走査とワーカ調停を担当。
    - `WorkerExecutor`: ランタイム依存のタスク生成・ワーカ駆動・再スケジュール要求を扱う。
@@ -98,7 +114,7 @@ Suspend 状態の mail box 着信や異常時のガーディアン連携など�
 以下は Phase 1〜2 で導入する主要トレイトのドラフトであり、実装検討時に調整する。
 
 ```rust
-use core::num::NonZeroUsize;
+use cellex_utils_core_rs::collections::queue::QueueSize;
 use core::task::{Context, Poll};
 use core::time::Duration;
 use smallvec::SmallVec;
@@ -157,19 +173,19 @@ pub enum ResumeCondition {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SignalKey(pub u64);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OverflowStrategy {
-    DropOldest,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MailboxOverflowPolicy {
     DropNewest,
-    BlockProducer,
-    Reject,
-    DeadLetter,
+    DropOldest,
+    Grow,
+    Block,
 }
 
+// QueueSize は cellex_utils_core_rs::collections::queue から提供される抽象。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MailboxOptions {
-    pub capacity: NonZeroUsize,
-    pub overflow: OverflowStrategy,
-    pub reserve_for_system: usize,
+    pub capacity: QueueSize,
+    pub priority_capacity: QueueSize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -186,13 +202,12 @@ pub trait MiddlewareChain {
     fn after_invoke(&mut self, ctx: &InvokeContext, result: &InvokeResult);
 }
 ```
-
 #### 4.4.1 参考実装スケッチ
 - `DefaultReadyQueueCoordinator`: `spin::Mutex<CoordinatorState>` を用いたシリアル実装。内部状態は `VecDeque<MailboxIndex>` と `BTreeSet<MailboxIndex>` で管理し、重複登録はセットで判定する。シグナル状態は Mutex 化したフラグで表現し、`poll_wait_signal` 内で Ready/Pending を切り替える。`no_std` を前提とし、MPMC チャネルや `DashSet`／`SegQueue` など `std` 依存コンポーネントには頼らない。将来的には `RingQueue` バックエンドを導入しつつ lock-free バリアントとの並存戦略を検討する。
 - `ActorCellInvoker`: Suspend 状態を先に評価し、Middleware の `before_invoke` で `ControlFlow::Break` が返った場合は処理を保留する。`process_messages_batch` の結果が `Err` の際は `InvokeResult::Failed { retry_after }` を返し、連続失敗回数とガーディアン方針からバックオフ時間を算出する。処理ループは `throughput_hint` を参照し、指定件数に達したら自発的に `InvokeResult::Yielded` を返すことで公平性を担保する。
 - `CompositeMiddleware`: 先入れ先出しで `before_invoke` を呼び、`after_invoke` は逆順で実行してリソース開放順序を制御する。テレメトリやロギングはここで集約する。
 - 優先度制御は QueueMailbox 側で完結させる。System メッセージは `system_queue`、通常メッセージは `user_queue` に分離し、`dequeue_batch` 時に system → user の順で取り出す。Invoker から見たメッセージ列は既に優先度順となり、追加の分岐を要しない。
-- Mailbox は `MailboxOptions` を通じて容量・溢れ戦略・throughput 上限を設定する。`reserve_for_system` によりシステムメッセージ枠を確保し、`OverflowStrategy` で DropOldest/BlockProducer などを選択する。`throughput_hint` が指定されていれば Invoker が既定値を上書きし、Coordinator/Executor と整合する。enqueue 成功/失敗は Observability Hub にフックし、オーバーフロー理由をメトリクスへ送出する。
+- Mailbox は `MailboxOptions` を通じて通常メッセージと優先メッセージの容量を決定する。オーバーフロー時の振る舞いは `SyncMailboxQueue` などのバックエンドが `OverflowPolicy` として公開し、`QueueMailboxCore` が `MailboxOverflowPolicy` へ変換してメトリクスやエラーハンドリングへ伝播する。enqueue 成功/失敗はメトリクスシンクへ転送され、Dropped/Grew イベントはバックエンドが直接記録する。
 
 ```rust
 impl QueueMailbox {
@@ -222,6 +237,15 @@ impl QueueMailbox {
 - 致命的な mailbox 異常（enqueue 失敗など）は `ReadyQueueCoordinator` へ `InvokeResult::Failed` を返した後に `MailboxRegistry` へ通知し、再割当てやデッドレターへの転送を行う。これらの経路は Phase 2B で具体化する。
 - Guardian 連携は非同期チャネルで行う。`ActorCellInvoker` が失敗を検出した際に `FailureNotification` を `guardian_tx.try_send` し、Guardian スレッドが `SupervisionDirective` を決定のうえ `WorkerExecutor` へ `SupervisionCommand` を返す。Invoker は Guardian の応答を待たずに `InvokeResult` を返し、スーパービジョンとスケジューリングを疎結合に保つ。
 - Guardian は Akka にならい、`max_restarts` と `within` を設定して再起動ストームを抑止する。`InvokeResult::Failed { retry_after: Some(duration) }` を返すことで Executor が再キュー前に指数バックオフを適用できるようにし、しきい値超過時は `SupervisionDirective::Stop` へ移行する。
+
+#### 4.4.3 ReadyQueueCoordinator v1 / v2 の位置づけ
+| バージョン | 代表的な実装 | 主な違い | 移行方針 |
+| --- | --- | --- | --- |
+| v1 | `DefaultReadyQueueCoordinator`, `LockFreeCoordinator`, `AdaptiveCoordinator` | `Vec<MailboxIndex>` ベースの drain バッファ、既存 API 互換 | Phase 1 で保守。ホストランタイムはデフォルトで v1 を継続利用。 |
+| v2 | `DefaultReadyQueueCoordinatorV2`, `LockFreeCoordinatorV2` | `SmallVec` や追加メトリクス計測、再登録ロジックの細分化 | Phase 1 の後半でトグルフラグを追加し、Phase 2A でデフォルト切り替えを検討。性能評価（セクション 5.2）の基準を満たした段階で v1 を段階的に廃止する。 |
+
+- v2 では `drain_ready_cycle` のシグネチャが `&mut SmallVec<[MailboxIndex; 64]>` を前提としており、低アロケーションのホットパスを重視している。一方、現行公開 API は `Vec<MailboxIndex>` を返す実装が多い。移行期間中はアダプタを介して両API を共存させ、呼び出し元の差分を段階的に吸収する。
+- Feature フラグ `ready-queue-coordinator-v2`（仮称）を導入し、CI で v1/v2 両構成をテストする。Phase 2A の DoD に「v2 構成でのスループット回帰無し」を追加する。
 
 ### 4.5 ActorCell の最終像と役割
 - ActorCell 自体はアクター状態管理・監視登録・子アクター生成 API の提供に専念し、メッセージ実行ループは `MessageInvoker` へ移譲する。
@@ -258,16 +282,16 @@ stateDiagram-v2
 Coordinator と Executor は上記ライフサイクルを共有し、Stopping 中は新規 enqueue を拒否して既存メッセージのみ処理する。Draining で ready queue とワーカからの inflight を空にした後、Stopped でリソースを Registry が解放する。
 
 ```rust
-pub struct WorkerExecutor<R: ReadyQueueCoordinator, H: RuntimeHandle> {
+pub struct WorkerExecutor<R: ReadyQueueCoordinator, S: RuntimeShared> {
     coordinator: ArcShared<R>,
-    runtime: H,
+    runtime: S,
     worker_batch: usize,
 }
 
-impl<R, H> WorkerExecutor<R, H>
+impl<R, S> WorkerExecutor<R, S>
 where
     R: ReadyQueueCoordinator + 'static,
-    H: RuntimeHandle + Clone + 'static,
+    S: RuntimeShared + Clone + 'static,
 {
     pub fn start_workers(&self, num_workers: usize) {
         for worker_id in 0..num_workers {
@@ -300,8 +324,8 @@ where
 - Coordinator 実装は内部ロックと `SmallVec` を併用し、`drain_ready_cycle` で割り当てを伴わずに候補を抽出する。Runtime 固有の `invoke` は `MailboxIndex` を受け取り、`MessageInvoker` を生成して実行する。
 - `wait_for_signal` は `Pin<Box<dyn Future<Output = ()> + Send>>` を返し、Tokio・Embassy いずれでも `await` 可能な形式に統一する。同期ランタイム向けには `block_on` ラッパを提供する。
 - `handle_invoke_result` は `InvokeResult` に応じて `register_ready`／`unregister` を内部的に呼び出す薄いヘルパーで、Executor 側の分岐を最小化する。
-- `RuntimeHandle` トレイトは `spawn`／`invoke` を提供し、Tokio 版は `tokio::spawn`・`ActorCellInvoker` を、Embassy 版は `Spawner::spawn`・`executor::run` を薄くラップする。Phase 1 ではホスト用実装のみ提供し、Phase 3 で no_std 向け派生を追加する。
-- `RuntimeHandle::wait_with` は `poll_wait_signal` を Future に変換する薄いアダプタであり、Tokio では `poll_fn`、Embassy では `Executor::run` 上での await に写像する。
+- `RuntimeShared` トレイトは `spawn`／`invoke` を提供し、Tokio 版は `tokio::spawn`・`ActorCellInvoker` を、Embassy 版は `Spawner::spawn`・`executor::run` を薄くラップする。Phase 1 ではホスト用実装のみ提供し、Phase 3 で no_std 向け派生を追加する。
+- `RuntimeShared::wait_with` は `poll_wait_signal` を Future に変換する薄いアダプタであり、Tokio では `poll_fn`、Embassy では `Executor::run` 上での await に写像する。
 - ワーカ数の動的調整は Phase 4 の検討課題とし、Phase 1–3 は固定ワーカ数＋`throughput_hint`／`worker_batch` 調整で性能評価を行う。
 - Coordinator/Executor/Mailbox は throughput を共有設定とみなし、Akka の dispatcher-throughput に相当する値を `ActorSystemConfig` や `Props` から渡せるようにする。フェアネス検証用の統合テストで 1/32/300 件など複数の設定を網羅する。
 - Receive timeout はハッシュドホイールタイマ（デフォルト）または最小ヒープタイマを Coordinator 配下のサブモジュールとして実装し、timeout 到達時は system メッセージとして再投入する。これにより async タスクを大量生成せずにタイムアウトを管理できる。
@@ -319,15 +343,19 @@ pub trait MailboxRegistry: Send + Sync {
 
 pub fn spawn_actor<R: MailboxRegistry>(registry: &mut R, props: Props) -> Result<MailboxIndex, SpawnError> {
     let actor_cell = Arc::new(ActorCell::new(props));
-    let mailbox = Arc::new(QueueMailbox::default());
+    let queue = SyncMailboxQueue::unbounded();
+    let signal = create_mailbox_signal(); // 実際のシグナル実装に置き換える
+    let mailbox = Arc::new(QueueMailbox::new(queue, signal));
     let idx = registry.register_mailbox(actor_cell.clone(), mailbox.clone());
     actor_cell.set_mailbox_index(idx);
     Ok(idx)
 }
 ```
+- `create_mailbox_signal()` は実運用時に選択される `MailboxSignal` 実装（例: 既存コードの `ReadyQueueHandle` を `ReadyQueueShared` へ改称する想定の通知参照共有型や、テスト用の `TestSignal`）を生成するヘルパーを想定したプレースホルダ。
 - `MessageInvoker` は `MailboxRegistry` を参照し、`MailboxIndex` から必要なリソースを解決する。Invoker 初期化時に `registry.get_mailbox(idx)` と `registry.get_actor_cell(idx)` を取得しキャッシュすることで、ホットパスでのロック回数を抑える。
 - アクター停止時は Registry が `ActorCell::terminate()` → `unregister_mailbox()` → `ReadyQueueCoordinator::unregister()` を順番に呼び、スーパービジョンの指示に基づき再起動する場合は `spawn_actor` を再実行する。
 - Index 再利用による誤アクセスを防ぐため `MailboxIndex` はスロット番号と世代番号を保持する。
+- 所有権と共有参照の関係を図示するため、`docs/design/artifacts/actor_scheduler_ownership.puml` を追加予定とし、`ActorCell` / `QueueMailbox` / `MailboxRegistry` / `ReadyQueueCoordinator` / `WorkerExecutor` 間の参照を視覚化する。
 
 ```rust
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -338,23 +366,23 @@ pub struct MailboxIndex {
 ```
 
 Registry は内部に世代カウンタ付きテーブルを持ち、`unregister_mailbox` 時に世代を進めることで古いハンドルからの use-after-free を防止する。
-- `MailboxHandle` / `ActorCellHandle` の `Shared` 型は以下の通り。std 環境では `ArcShared`、no_std では `RcShared` を用いる。
+- `MailboxConsumer` 実装や `ActorCell` の共有参照は、std 環境では `ArcShared`、no_std 環境では `RcShared` を利用する想定とする。トレイトオブジェクト化が必要な場合は `SharedDyn` を経由して扱う。
 
 ```rust
 #[cfg(feature = "std")]
-type MailboxHandle<T> = ArcShared<T>;
+type MailboxConsumerShared<T> = ArcShared<T>;
 
 #[cfg(not(feature = "std"))]
-type MailboxHandle<T> = RcShared<T>;
+type MailboxConsumerShared<T> = RcShared<T>;
 
 #[cfg(feature = "std")]
-type RegistryHandle = ArcShared<dyn MailboxRegistry>;
+type RegistryShared = ArcShared<dyn MailboxRegistry>;
 
 #[cfg(not(feature = "std"))]
-type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
+type RegistryShared = SharedDyn<dyn MailboxRegistry>;
 ```
 
-- `SharedDyn` は `MailboxRegistry` をトレイトオブジェクトとして共有する際に利用し、ランタイム間で統一したハンドル表現を提供する。
+- `SharedDyn` は `MailboxRegistry` をトレイトオブジェクトとして共有する際に利用し、ランタイム間で統一した共有参照表現を提供する。
 
 ### 4.9 命名方針と参照実装との整合
 - protoactor-go / Akka / Erlang に倣い、責務語彙を「調整 (Coordinator)」「実行 (Executor)」「呼び出し (Invoker)」へ揃えた。`Driver` という語はハードウェア抽象を指すことが多く、本設計の責務（キュー調整・ワーカ調停）と齟齬があるため採用しない。
@@ -397,7 +425,7 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 
 ### 5.1 フェーズ完了条件（Definition of Done）
 - **Phase 0**: 責務マッピング図（PlantUML）と依存グラフがリポジトリに追加され、ベースラインベンチマーク結果（`baseline_before_refactor.md`）が共有されている。Suspend/Resume 責務に関する ADR 草案がレビュー中である。
-- **Phase 1**: `ReadyQueueCoordinator` 実装が既存テスト＋新規単体テスト（正常系 8 / 異常系 7 / 境界値 5 の計 20 ケース以上、ライン＋ブランチカバレッジ 100%）を通過し、レイテンシ劣化 < 5%、スループット維持 ≥ 95%、メモリオーバーヘッド < 10% をベンチマークで確認。既存の `ReadyQueueState` テストは `queue_state/tests.rs` として移植し、`VecDeque + BTreeSet` による重複排除とシグナル制御が期待どおり動作することを保証する。将来の lock-free バリアント（例: `RingQueue` バックエンド）と比較できるように、feature flag ベースの実装切り替え雛形を用意する。統合テスト 5 シナリオ（単一アクター、100 アクター並列 10k メッセージ、1000 アクタースパイク、Suspend/Resume 連続、異常終了→再起動）を網羅し、各シナリオが 30 秒以内に完了することを確認する。また `ActorSystem` トレイト実装が `ready_queue_worker()` を通じて新 Coordinator/Executor を配線できることを検証する。
+- **Phase 1**: `ReadyQueueCoordinator` 実装が既存テスト＋新規単体テスト（正常系 8 / 異常系 7 / 境界値 5 の計 20 ケース以上、ライン＋ブランチカバレッジ 100%）を通過し、レイテンシ劣化 < 5%、スループット維持 ≥ 95%、メモリオーバーヘッド < 10% をベンチマークで確認。既存の `ReadyQueueState` テストは `queue_state/tests.rs` として移植し、`VecDeque + BTreeSet` による重複排除とシグナル制御が期待どおり動作することを保証する。将来の lock-free バリアント（例: `RingQueue` バックエンド）と比較できるように、feature flag ベースの実装切り替え雛形を用意する。統合テスト 5 シナリオ（単一アクター、100 アクター並列 10k メッセージ、1000 アクタースパイク、Suspend/Resume 連続、異常終了→再起動）を網羅し、各シナリオが 30 秒以内に完了することを確認する。また `ActorSystem` トレイト実装が `ready_queue_worker()` を通じて新 Coordinator/Executor を配線できることを検証する。さらに `scripts/bench_concurrency.rs` による 2/4/8/16 スレッド並行ベンチマークを追加し、ロック待ち時間（`perf stat` 計測）を含めて Phase 0 比 +10% 以内であることを証明する。
 - **Phase 2A**: WorkerExecutor 抽象導入後も 10,000 メッセージ/秒 × 100 アクター統合テストが安定動作し、Tokio/Embassy/テスト向けの最小実装が揃う。ランタイム別統合テスト 15 ケース、レイテンシ劣化は Phase 1 比で追加 3% 以内。
 - **Phase 2B**: MessageInvoker 実装が Suspend/Resume・middleware・バックプレッシャを内包し、Guardian 連携の回帰テストを通過。`ActorCell` 公開 API からメッセージ実行関連メソッドが削減され、ミドルウェア関連テスト 7 ケース・Guardian テスト 5 ケース・バックプレッシャ テスト 5 ケースを含む 25 ケース以上の単体テストが追加されている。
 - **Phase 3**: Mailbox Registry と Observability Hub が導入され、enqueue/dequeue 両方向のメトリクスが Metrics Sink へ送出される。no_std ターゲット（`thumbv6m-none-eabi`, `thumbv8m.main-none-eabi`）で `cargo check` が通過し、必要に応じて QEMU + Embassy executor を用いた軽量統合テスト（3 アクター × 100 メッセージ）が成功する。Observability Hub の統合テスト 10 ケースを追加し、メトリクス送出がロックフリーであることをベンチマークで確認する。
@@ -422,7 +450,7 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 #### 測定手順
 1. `feature/new-scheduler` を切り替えながら、同一ベンチマークを 3 回繰り返して中央値を採用。
 2. `valgrind --tool=massif` と `jemalloc` 統計を用い、メモリオーバーヘッド（ヒープ増加率 < 10%）を検証。
-3. `scripts/bench_concurrency.rs` を追加し、現行の `spin::Mutex + VecDeque` 構成と検証用バックエンド（例: `RingQueue` や `SparseSet` ベース）の `register_ready` を 10 スレッドで比較。差分結果を `benchmarks/concurrency_comparison.md` に記録し、ベースラインとして維持する。
+3. `scripts/bench_concurrency.rs` を追加し、現行の `spin::Mutex + VecDeque` 構成と検証用バックエンド（例: `RingQueue` や `SparseSet` ベース）の `register_ready` を 2/4/8/16 スレッド構成で比較する。各シナリオでレイテンシ・スループット・ロック待ち時間（`perf stat -e cycles,stalled-cycles-frontend,stalled-cycles-backend`）を取得し、結果を `benchmarks/concurrency_comparison.md` に記録してベースラインとして維持する。
 
 #### ベンチマーク自動化
 - `.github/workflows/benchmarks.yml` で夜間ジョブを実行し、結果を Artifact として保存する。閾値（5% 劣化）を超えた場合は Slack に通知し、失敗したジョブは `benchmark-results` を添付する。
@@ -438,6 +466,9 @@ type RegistryHandle = SharedDyn<dyn MailboxRegistry>;
 - 命名は Phase 1 時点で `Dispatcher` など最終的な呼称を仮決定し、以降のフェーズでは同名称で統一。Phase 4 で最終判断とドキュメント反映を行う。
 - `ReadyQueueCoordinator`・`WorkerExecutor`・`MessageInvoker` は `alloc` ベースで実装し、`std` 依存機能（`Arc`, `Mutex` など）は `Shared` 抽象を経由させる。no_std 対応のスモールテストを Phase 3 で追加する。
 - ワーカ数は Phase 1-3 で固定値（設定ファイルまたは `ActorSystemConfig`）とし、Phase 4 で `AdaptiveDispatcher` による動的調整アルゴリズム（キュー長と待機時間を指標に増減）を評価する。設計検討時は `stateDiagram` でワーカライフサイクル（Spawned/Running/Draining/Stopped）を整理する。
+- no_std 環境では `QueueMailbox` のバッファ確保に静的リングバッファ（`heapless::Vec`）またはプールアロケータを利用し、`VecDeque` に依存しないバックエンド（候補: `RingQueue`）を Phase 2A で検証する。アロケータの差し替えは feature flag `embedded-alloc` で切り替え、デフォルトは `VecRingStorage` を維持する。
+- `#[cfg(target_has_atomic = "ptr")]` が偽となるターゲット向けには `AtomicFlag` を `CriticalSection` ベースに差し替え、`ArcShared` ではなく `RcShared` / `StaticRefShared` を利用する。Embedded CI（thumbv6m / thumbv8m）で `cargo check` および `cargo test --target thumbv6m-none-eabi --features embedded-alloc` を Phase 3 の DoD に含める。
+- no_std 向けの割り込みコンテキストでも安全に動作するよう、`MailboxSignal` 実装に `critical_section::with` を追加し、スピンロックではなく軽量な `SpinSyncMutex` または `cs::Mutex` に委譲する。これにより RP2040/Embassy 実装でのデッドロックリスクを低減する。
 
 ### 5.3 2025-10-22 ベンチマーク速報
 `DefaultReadyQueueCoordinator`（構成: `spin::Mutex + VecDeque + BTreeSet`）に対して Criterion で取得した現時点の測定値は以下のとおり。ベンチマークコードは `modules/actor-core/benches/ready_queue_coordinator.rs` に配置している。
@@ -537,17 +568,17 @@ Suspend/Resume は Invoker 内で状態を評価し、`InvokeResult::Suspended` 
 
 ## 10. 実装詳細 FAQ（抜粋）
 
-**Q1. `MailboxIndex` から実際の Mailbox をどう取得する？**  
+**Q1. `MailboxIndex` から実際の Mailbox をどう取得する？**
 `MailboxRegistry` が `register_mailbox` 時にインデックスを払い出し、`get_mailbox(idx)` で `Arc<QueueMailbox>` を返す。`MessageInvoker` は初期化時に Registry から Mailbox/ActorCell を取得しキャッシュするため、ホットパスでのロックは最小限。詳細はセクション 4.8 を参照。
 
-**Q2. ReadyQueueCoordinator と WorkerExecutor はどちらがメインループを持つ？**  
+**Q2. ReadyQueueCoordinator と WorkerExecutor はどちらがメインループを持つ？**
 WorkerExecutor が Coordinator を所有し、ワーカタスクを spawn して `poll_wait_signal` → `drain_ready_cycle` → `invoke` → `handle_invoke_result` のループを回す。Coordinator は QueueState への排他制御とシグナル管理を担当し、呼び出しはすべてメソッド経由で行う（セクション 4.7）。
 
-**Q3. 並行アクセスの排他制御はどこで行う？**  
+**Q3. 並行アクセスの排他制御はどこで行う？**
 `ReadyQueueCoordinator` 内部に `Mutex<QueueState>`（実装では `spin::Mutex`）を保持し、`register_ready`／`drain_ready_cycle` でロックを取得する。重複登録検知は `BTreeSet` による判定で実現し、Phase 1 ではロック粒度とセット更新コストをベンチマークで監視する（潜在的な改善案として `RingQueue` バックエンドやビットマップベースのステートを検討する）。
 
-**Q4. ベンチマークの比較対象と運用方法は？**  
+**Q4. ベンチマークの比較対象と運用方法は？**
 ベースラインは Phase 0 の現行実装。Phase 1 以降は `--features new-scheduler` を付与して同一ベンチマークを実行し、`scripts/compare_benchmarks.py` で差分を算出。5% 超の劣化は自動的に Slack 通知され、メモリ統計は `MALLOC_CONF=stats_print:true` で取得する（セクション 5.2）。
 
-**Q5. Suspend/Resume はどう伝播する？**  
+**Q5. Suspend/Resume はどう伝播する？**
 ActorCell が自身の状態を更新し、Invoker は `InvokeResult::Suspended` を返すことで Coordinator が ready queue から除外。Resume 時は ActorCell が Registry を介して `register_ready` を呼び、未処理メッセージがあればシグナルを再送する。詳細フローは Phase 2B の `scheduler_sequences.puml` に図示予定（セクション 7）。
