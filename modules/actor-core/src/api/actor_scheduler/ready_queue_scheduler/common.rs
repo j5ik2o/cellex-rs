@@ -1,5 +1,8 @@
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{convert::Infallible, marker::PhantomData};
+use core::{
+  convert::{Infallible, TryFrom},
+  marker::PhantomData,
+};
 
 use cellex_utils_core_rs::{
   collections::queue::backend::QueueError,
@@ -13,7 +16,10 @@ use futures::{
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorId, ActorPath, SpawnError},
-    actor_scheduler::ActorSchedulerSpawnContext,
+    actor_scheduler::{
+      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator},
+      ActorSchedulerSpawnContext,
+    },
     extensions::Extensions,
     failure::{
       failure_event_stream::FailureEventListener,
@@ -26,7 +32,11 @@ use crate::{
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
-  internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
+  internal::{
+    actor::{ActorCell, ActorInvokeOutcome},
+    mailbox::PriorityMailboxSpawnerHandle,
+    supervision::CompositeEscalationSink,
+  },
   shared::{
     mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxProducer, MailboxSignal},
     messaging::{AnyMessage, MapSystemShared},
@@ -48,6 +58,7 @@ where
   suspension_clock: SuspensionClockShared,
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
+  ready_coordinator: Option<Box<dyn ReadyQueueCoordinator>>,
 }
 
 #[allow(dead_code)]
@@ -76,6 +87,7 @@ where
       suspension_clock: SuspensionClockShared::null(),
       extensions,
       _strategy: PhantomData,
+      ready_coordinator: None,
     }
   }
 }
@@ -229,6 +241,10 @@ where
     self.drain_ready_cycle()
   }
 
+  pub fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    self.ready_coordinator = coordinator;
+  }
+
   #[allow(clippy::needless_pass_by_value)]
   pub fn set_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
@@ -334,7 +350,8 @@ where
     let mut processed_any = false;
     for idx in 0..len {
       let cell = &mut self.actors[idx];
-      let processed = cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+      let (processed, outcome) = cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+      self.handle_invoke_outcome(idx, processed, outcome);
       if processed > 0 {
         self.record_messages_dequeued(processed);
         processed_any = true;
@@ -349,8 +366,9 @@ where
     }
 
     let mut new_children = Vec::new();
-    let processed_count =
+    let (processed_count, outcome) =
       self.actors[index].wait_and_process(&mut self.guardian, &mut new_children, &mut self.escalations).await?;
+    self.handle_invoke_outcome(index, processed_count, outcome);
     if processed_count > 0 {
       self.record_messages_dequeued(processed_count);
     }
@@ -364,13 +382,46 @@ where
     }
 
     let mut new_children = Vec::new();
-    let processed_count =
+    let (processed_count, outcome) =
       self.actors[index].process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+    self.handle_invoke_outcome(index, processed_count, outcome);
     if processed_count > 0 {
       self.record_messages_dequeued(processed_count);
     }
 
     Ok(self.finish_cycle(new_children, processed_count > 0))
+  }
+
+  fn handle_invoke_outcome(&mut self, index: usize, processed: usize, outcome: ActorInvokeOutcome) {
+    let Some(result) = self.compose_invoke_result(index, processed, outcome) else {
+      return;
+    };
+    if let Some(coordinator) = self.ready_coordinator.as_mut() {
+      let slot = u32::try_from(index).unwrap_or(u32::MAX);
+      let mailbox_index = MailboxIndex::new(slot, 0);
+      coordinator.handle_invoke_result(mailbox_index, result);
+    }
+  }
+
+  fn compose_invoke_result(
+    &mut self,
+    index: usize,
+    processed: usize,
+    outcome: ActorInvokeOutcome,
+  ) -> Option<InvokeResult> {
+    if let Some(result) = outcome.into_result() {
+      return Some(result);
+    }
+    if processed == 0 {
+      return None;
+    }
+    let result = if self.actors.get(index).map(|cell| cell.is_stopped()).unwrap_or(false) {
+      InvokeResult::Stopped
+    } else {
+      let ready_hint = self.actors.get(index).map(|cell| cell.has_pending_messages()).unwrap_or(false);
+      InvokeResult::Completed { ready_hint }
+    };
+    Some(result)
   }
 
   fn finish_cycle(&mut self, new_children: Vec<ActorCell<MF, Strat>>, processed_any: bool) -> bool {

@@ -16,7 +16,10 @@ use super::{
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
+    actor_scheduler::{
+      ready_queue_coordinator::ReadyQueueCoordinator, ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler,
+      ActorSchedulerSpawnContext,
+    },
     extensions::Extensions,
     failure::{
       failure_event_stream::FailureEventListener,
@@ -128,6 +131,12 @@ where
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     let mut ctx = self.context.lock();
     ctx.set_metrics_sink(sink);
+  }
+
+  /// Sets the ReadyQueueCoordinator that receives invoke outcomes.
+  pub fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    let mut ctx = self.context.lock();
+    ctx.set_ready_queue_coordinator(coordinator);
   }
 
   /// Configures the suspension clock used to measure suspend durations.

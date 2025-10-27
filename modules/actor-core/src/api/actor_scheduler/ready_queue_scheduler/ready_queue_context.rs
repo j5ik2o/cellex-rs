@@ -8,7 +8,7 @@ use super::{common::ReadyQueueSchedulerCore, ready_queue_state::ReadyQueueState}
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::ActorSchedulerSpawnContext,
+    actor_scheduler::{ready_queue_coordinator::ReadyQueueCoordinator, ActorSchedulerSpawnContext},
     failure::{
       failure_event_stream::FailureEventListener,
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
@@ -128,6 +128,10 @@ where
 
   pub(crate) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.core.set_metrics_sink(sink)
+  }
+
+  pub(crate) fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    self.core.set_ready_queue_coordinator(coordinator);
   }
 
   pub(crate) fn set_parent_guardian(

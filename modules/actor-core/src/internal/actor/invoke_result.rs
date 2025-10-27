@@ -1,4 +1,4 @@
-use crate::api::actor_scheduler::InvokeResult;
+use crate::api::actor_scheduler::ready_queue_coordinator::InvokeResult;
 
 /// Builder used by `ActorCell` to communicate scheduling outcomes.
 #[derive(Default)]
@@ -12,6 +12,7 @@ impl ActorInvokeOutcome {
     Self { result: None }
   }
 
+  #[allow(dead_code)]
   pub fn set(&mut self, result: InvokeResult) {
     self.result = Some(result);
   }

@@ -11,7 +11,7 @@ mod default_ready_queue_coordinator;
 /// V2 default implementation with &self (Phase 1 Week 4)
 mod default_ready_queue_coordinator_v2;
 /// Prototype implementation of ReadyQueueCoordinator (Phase 0)
-mod ready_queue_coordinator;
+pub mod ready_queue_coordinator;
 /// V2 trait with &self methods (Phase 1 Week 3)
 mod ready_queue_coordinator_v2;
 /// Ready queue scheduling primitives and traits.

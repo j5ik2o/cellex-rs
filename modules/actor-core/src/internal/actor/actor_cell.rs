@@ -9,8 +9,7 @@ use cellex_utils_core_rs::{
   sync::{shared::Shared, ArcShared},
 };
 
-use super::actor_cell_state::ActorCellState;
-use super::invoke_result::ActorInvokeOutcome;
+use super::{actor_cell_state::ActorCellState, invoke_result::ActorInvokeOutcome};
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
@@ -313,7 +312,7 @@ where
         self.pending_user_envelopes.push_back(envelope);
         continue;
       }
-      self.dispatch_envelope(envelope, guardian, new_children, escalations)?;
+      self.dispatch_envelope(envelope, guardian, new_children, escalations, &mut outcome)?;
       processed += 1;
     }
     Ok((processed, outcome))
@@ -340,13 +339,13 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<usize, QueueError<PriorityEnvelope<AnyMessage>>> {
+  ) -> Result<(usize, ActorInvokeOutcome), QueueError<PriorityEnvelope<AnyMessage>>> {
     if self.stopped {
-      return Ok(0);
+      return Ok((0, ActorInvokeOutcome::new()));
     }
     let first: PriorityEnvelope<AnyMessage> = match self.mailbox.recv().await {
       | Ok(message) => message,
-      | Err(QueueError::Disconnected) => return Ok(0),
+      | Err(QueueError::Disconnected) => return Ok((0, ActorInvokeOutcome::new())),
       | Err(err) => return Err(err),
     };
     let mut envelopes = vec![first];
@@ -371,6 +370,7 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
+    outcome: &mut ActorInvokeOutcome,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     if self.stopped {
       return Ok(());
@@ -403,9 +403,15 @@ where
       }));
 
       return match result {
-        | Ok(handler_result) => {
-          self.apply_handler_result(handler_result, pending_specs, should_stop, guardian, new_children, escalations)
-        },
+        | Ok(handler_result) => self.apply_handler_result(
+          handler_result,
+          pending_specs,
+          should_stop,
+          guardian,
+          new_children,
+          escalations,
+          outcome,
+        ),
         | Err(payload) => {
           let failure = ActorFailure::from_panic_payload(payload.as_ref());
           if let Some(info) = guardian.notify_failure(self.actor_id, failure)? {
@@ -420,7 +426,15 @@ where
     {
       let handler_result = self.invoke_handler(message, priority, influences_receive_timeout, &mut pending_specs);
 
-      self.apply_handler_result(handler_result, pending_specs, should_stop, guardian, new_children, escalations)
+      self.apply_handler_result(
+        handler_result,
+        pending_specs,
+        should_stop,
+        guardian,
+        new_children,
+        escalations,
+        outcome,
+      )
     }
   }
 
@@ -464,7 +478,9 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
+    outcome: &mut ActorInvokeOutcome,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
+    let _ = outcome;
     match handler_result {
       | Ok(()) => {
         for spec in pending_specs.into_iter() {
