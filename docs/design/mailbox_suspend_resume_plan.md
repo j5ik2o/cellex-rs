@@ -83,11 +83,11 @@ pub struct ActorCell<MF, Strat> {
    - SystemMessage::Resume → `transition_to_running()` を呼び出し、保留分を順次再投入。
 
 4. `ReadyQueueCoordinator`  
-   - 現行 Phase 0 では既存挙動を維持。Suspend/Resume に伴う再登録判定は将来の `InvokeResult::Suspended` 統合で対応。
+   - `InvokeResult::Suspended` を受けて ReadyQueue から対象を除外し、`ResumeCondition`（After / ExternalSignal / WhenCapacityAvailable）に応じて `ReadyQueueHandle` を通じて再登録する。
 
 ### 4.3 メトリクス
 
-- `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、Suspend/Resume 回数と最新／累積の Duration（計測可能な環境のみ）を記録。  
+- `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、Suspend/Resume 回数と最新／累積の Duration（計測可能な環境のみ）を記録。ReadyQueueScheduler テストでモッククロック／クロック無しの双方を検証。  
 - no_std 環境では `SuspensionClockShared::null()` を用いたフォールバックで回数のみを記録。
 
 ---
@@ -106,13 +106,12 @@ pub struct ActorCell<MF, Strat> {
    - `collect_envelopes` が保留キューとの drain を担当。  
    - Resume 後に保留分が処理されることを保証。
 
-4. **メトリクス & イベント（進行中）**  
-   - `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、Suspend/Resume 回数と（可能な場合は）Duration を記録。  
-   - no_std 環境向けに `SuspensionClockShared` の null 実装を提供し、期間計測が存在しなくても動作する構造を整備。
+4. **メトリクス & イベント（完了 2025-10-27 / 2025-10-27 再確認）**  
+   - `MetricsEvent::MailboxSuspended` / `MailboxResumed` が Suspend/Resume 回数と Duration を記録し、モッククロックおよび `SuspensionClockShared::null()` の両ケースをテストで検証済み。  
+   - no_std 環境向けフォールバックは `SuspensionClockShared::null()` で提供し、Duration フィールドは `None` となる。
 
-5. **テスト追加（完了 / 継続）**  
-   - Suspend ブロックと Resume 後の再開を確認するテストを整備済み。  
-   - 並行 Suspend/Resume、バックプレッシャなどの追加ケースを継続検討。
+5. **テスト追加（完了 2025-10-27 / 2025-10-27 拡張）**  
+   - Suspend ブロックと Resume 後の再開に加え、複数アクター並列 Suspend/Resume・外部シグナル・バックプレッシャ条件を網羅する ReadyQueueScheduler テストを追加。
 
 6. **ドキュメント更新（継続）**  
    - 本ドキュメント、`mailbox_expected_features.md` などを最新構成へ更新。  
@@ -126,16 +125,16 @@ pub struct ActorCell<MF, Strat> {
 | --- | --- | --- | --- |
 | P0 | `ActorCellState` / 保留キュー導入 | ✅ | 実装済み（2025-10-27）。 |
 | P0 | Suspend/Resume のテスト整備 | ✅ | `test_suspend_accumulates_messages_until_resume` など更新。 |
-| P1 | メトリクスイベント追加とテレメトリ調整 | ✅ | イベント発火を実装済み。Suspend 期間計測は今後対応。 |
-| P1 | ReadyQueueCoordinator 連携の強化 | ✅ | Resume 時に ReadyQueueHandle を通じて再通知。InvokeResult 統合は将来対応。 |
-| P1 | ドキュメント更新 | ✅ | 本ドキュメント含め主要資料を更新。 |
+| P1 | メトリクスイベント追加とテレメトリ調整 | ✅ | Suspend/Resume Duration を含むメトリクスを実装し、クロック有・無のテストを追加。 |
+| P1 | ReadyQueueCoordinator 連携の強化 | ✅ | `InvokeResult::Suspended` の本経路を整備し、After / ExternalSignal / WhenCapacityAvailable の再登録を確認。 |
+| P1 | ドキュメント更新 | ✅ | 本ドキュメントおよび `mailbox_expected_features.md` を更新。 |
 
 ---
 
 ## 7. リスクと検討事項
 
 - Suspend 中にメッセージが大量に蓄積される場合のバックプレッシャ制御。  
-- ReadyQueueCoordinator 側で Suspend された index を適切に除外できているか。  
+- ReadyQueueCoordinator 側で Suspend された index を適切に除外できているか（テストでは確認済みだが継続監視）。  
 - Embedded/no_std 環境での `Instant` 利用（必要に応じて抽象化）。  
 - `MailboxProducer` が Suspend 状態を認識し、Backpressure エラーを返すかどうかの仕様整理。
 
@@ -145,5 +144,5 @@ pub struct ActorCell<MF, Strat> {
 
 - Suspend/Resume が仕様どおり動作し、`docs/design/suspend_resume_status.md` のギャップが解消されていること。  
 - 新設テストが成功し、既存テストに回帰がないこと。  
-- メトリクスで Suspend/Resume のイベントが観測できること。  
+- メトリクスで Suspend/Resume のイベントが観測できること（`metrics_capture_suspend_resume_durations_with_clock` など）。  
 - `docs/design/mailbox_expected_features.md` の Suspend/Resume 行が ✅ へ更新されていること。

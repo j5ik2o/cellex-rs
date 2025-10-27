@@ -224,7 +224,11 @@ where
       if self.suspend_started_at.is_none() {
         self.suspend_started_at = self.suspension_clock.now();
       }
-      self.record_metrics_event(MetricsEvent::MailboxSuspended { suspend_count: self.suspend_count });
+      self.record_metrics_event(MetricsEvent::MailboxSuspended {
+        suspend_count:  self.suspend_count,
+        last_duration:  self.last_suspend_duration(),
+        total_duration: self.total_suspend_duration(),
+      });
     }
   }
 
@@ -265,6 +269,10 @@ where
     } else {
       Some(Self::duration_from_nanos(self.total_suspend_nanos))
     }
+  }
+
+  fn last_suspend_duration(&self) -> Option<Duration> {
+    self.last_suspend_nanos.map(Duration::from_nanos)
   }
 
   fn duration_from_nanos(nanos: u128) -> Duration {

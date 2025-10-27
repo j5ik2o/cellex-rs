@@ -1,0 +1,5 @@
+- [x] `modules/actor-core` のメトリクス経路を拡張し、`SuspensionClockShared` から取得した期間を `MetricsEvent::MailboxSuspended` / `MailboxResumed` に追加する。no_clock 時は回数のみ記録する（単体テスト含む）。
+- [x] `ReadyQueueSchedulerCore` と `ReadyQueueCoordinator` の `InvokeResult::Suspended` 連携を実装し、Suspend 中の Mailbox を ReadyQueue から外して適切な Resume 条件で再登録できるようにする（関連ユニット/統合テストを追加）。
+- [x] 複数アクター並列やバックプレッシャ解除、`ResumeCondition::ExternalSignal` を含む統合テストを追加し、Suspend/Resume フローがプランどおりに動作することを検証する。
+- [x] 主要ドキュメント（`docs/design/mailbox_suspend_resume_plan.md` など）を更新し、メトリクスと ReadyQueue 連携の最終仕様・テストカバレッジを反映させる。
+- [x] `cargo test -p cellex-actor-core-rs` および `./scripts/ci-check.sh all` を実行して回帰がないことを確認する。

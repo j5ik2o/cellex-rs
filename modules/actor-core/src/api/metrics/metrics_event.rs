@@ -29,7 +29,11 @@ pub enum MetricsEvent {
   /// An actor mailbox entered a suspended state.
   MailboxSuspended {
     /// Total number of observed suspend events for the mailbox.
-    suspend_count: u64,
+    suspend_count:  u64,
+    /// Duration of the most recent completed suspension, if available.
+    last_duration:  Option<core::time::Duration>,
+    /// Cumulative suspension duration, if available.
+    total_duration: Option<core::time::Duration>,
   },
   /// An actor mailbox resumed message processing.
   MailboxResumed {
