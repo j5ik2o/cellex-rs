@@ -1,14 +1,14 @@
 use core::fmt;
 
 use cellex_actor_core_rs::api::{
-  mailbox::{queue_mailbox::SyncMailboxQueue, MailboxError, QueueMailboxProducer},
+  mailbox::{queue_mailbox::UserMailboxQueue, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
 use super::local_signal::LocalSignal;
 
-type LocalMailboxQueue<M> = SyncMailboxQueue<M>;
+type LocalMailboxQueue<M> = UserMailboxQueue<M>;
 
 /// Message sender to `LocalMailbox`.
 ///

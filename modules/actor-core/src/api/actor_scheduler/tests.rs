@@ -52,7 +52,7 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue, SystemMailboxQueue},
+      queue_mailbox::{QueueMailbox, SystemMailbox, SystemMailboxProducer, SystemMailboxQueue, UserMailboxQueue},
       Mailbox, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
@@ -115,12 +115,12 @@ impl MetricsSink for EventRecordingSink {
 }
 
 #[derive(Clone, Copy)]
-struct SyncMailboxFactory {
+struct SystemMailboxFactory {
   capacity: usize,
   policy:   OverflowPolicy,
 }
 
-impl SyncMailboxFactory {
+impl SystemMailboxFactory {
   const fn bounded(capacity: usize, policy: OverflowPolicy) -> Self {
     Self { capacity, policy }
   }
@@ -130,10 +130,10 @@ impl SyncMailboxFactory {
   }
 }
 
-type SchedulerMailbox<M> = SyncMailbox<M, TestSignal>;
-type SchedulerMailboxProducer<M> = SyncMailboxProducer<M, TestSignal>;
+type SchedulerMailbox<M> = SystemMailbox<M, TestSignal>;
+type SchedulerMailboxProducer<M> = SystemMailboxProducer<M, TestSignal>;
 
-impl MailboxFactory for SyncMailboxFactory {
+impl MailboxFactory for SystemMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
     = SchedulerMailbox<M>
@@ -153,7 +153,7 @@ impl MailboxFactory for SyncMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let base = SyncMailboxQueue::bounded(capacity, self.policy);
+    let base = UserMailboxQueue::bounded(capacity, self.policy);
     let queue = SystemMailboxQueue::new(base, None);
     let signal = TestSignal::default();
     let mailbox: SchedulerMailbox<M> = QueueMailbox::new(queue, signal);
@@ -397,7 +397,7 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 
 #[test]
 fn scheduler_records_drop_oldest_metric() {
-  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
+  let mailbox_factory = SystemMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
   let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
   let events = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
@@ -408,7 +408,7 @@ fn scheduler_records_drop_oldest_metric() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
-    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
+    handler_from_message::<SystemMailboxFactory, _>(|_, _| {}),
   )
   .unwrap();
 
@@ -426,7 +426,7 @@ fn scheduler_records_drop_oldest_metric() {
 
 #[test]
 fn scheduler_records_drop_newest_metric() {
-  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropNewest);
+  let mailbox_factory = SystemMailboxFactory::bounded(1, OverflowPolicy::DropNewest);
   let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
   let events = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
@@ -437,7 +437,7 @@ fn scheduler_records_drop_newest_metric() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
-    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
+    handler_from_message::<SystemMailboxFactory, _>(|_, _| {}),
   )
   .unwrap();
 

@@ -16,7 +16,7 @@
   - `ReadyQueueCoordinator` トレイトおよび `DefaultReadyQueueCoordinator` / `DefaultReadyQueueCoordinatorV2`
   - `LockFreeCoordinator` / `LockFreeCoordinatorV2` / `AdaptiveCoordinator` の実装と統合テスト
   - `InvokeResult` / `SuspendReason` / `ResumeCondition` / `MailboxIndex` / `ActorState` などの API 定義
-  - `MailboxOptions`（通常／優先キュー容量の設定）と `SyncMailboxQueue` による `MailboxOverflowPolicy` 変換
+  - `MailboxOptions`（通常／優先キュー容量の設定）と `UserMailboxQueue` による `MailboxOverflowPolicy` 変換
 - 🚧 **進行中**
   - `WorkerExecutor` のランタイム別実装（Tokio/Embassy/テストランタイムの共通化）
   - `MessageInvoker` 抽出と middleware・バックプレッシャ統合
@@ -51,7 +51,7 @@
 ## 4. 目標アーキテクチャ
 
 ### 4.1 コンポーネント構成
-1. **Mailbox Core**: QueueMailbox を中心に enqueue・シグナル通知・ReadyQueueHook 連携を担う純粋なデータ構造。`MailboxOptions` で通常/優先メッセージの容量を指定し、オーバーフロー動作は `MailboxOverflowPolicy` を介してキュー実装（`SyncMailboxQueue` など）から取得する。バックプレッシャ閾値や middleware hook は将来的な拡張項目として整理する。
+1. **Mailbox Core**: QueueMailbox を中心に enqueue・シグナル通知・ReadyQueueHook 連携を担う純粋なデータ構造。`MailboxOptions` で通常/優先メッセージの容量を指定し、オーバーフロー動作は `MailboxOverflowPolicy` を介してキュー実装（`UserMailboxQueue` など）から取得する。バックプレッシャ閾値や middleware hook は将来的な拡張項目として整理する。
 - 現行コードでは `QueueMailbox<Q, S>` が `Mailbox` と `MailboxConsumer` の両トレイトを実装し、スケジューラやランタイムは `MailboxConsumer` 経由でシグナル複製 (`signal()`) やノンブロッキング `try_dequeue()` を利用する。
 2. **Scheduler Frontend**: ReadyQueueScheduler を外部 API の窓口としつつ、内部をサブコンポーネントへ分割。
    - `ReadyQueueCoordinator`: `drain_ready_cycle` / `poll_wait_signal` による ready queue 走査とワーカ調停を担当。
@@ -207,7 +207,7 @@ pub trait MiddlewareChain {
 - `ActorCellInvoker`: Suspend 状態を先に評価し、Middleware の `before_invoke` で `ControlFlow::Break` が返った場合は処理を保留する。`process_messages_batch` の結果が `Err` の際は `InvokeResult::Failed { retry_after }` を返し、連続失敗回数とガーディアン方針からバックオフ時間を算出する。処理ループは `throughput_hint` を参照し、指定件数に達したら自発的に `InvokeResult::Yielded` を返すことで公平性を担保する。
 - `CompositeMiddleware`: 先入れ先出しで `before_invoke` を呼び、`after_invoke` は逆順で実行してリソース開放順序を制御する。テレメトリやロギングはここで集約する。
 - 優先度制御は QueueMailbox 側で完結させる。System メッセージは `system_queue`、通常メッセージは `user_queue` に分離し、`dequeue_batch` 時に system → user の順で取り出す。Invoker から見たメッセージ列は既に優先度順となり、追加の分岐を要しない。
-- Mailbox は `MailboxOptions` を通じて通常メッセージと優先メッセージの容量を決定する。オーバーフロー時の振る舞いは `SyncMailboxQueue` などのバックエンドが `OverflowPolicy` として公開し、`QueueMailboxCore` が `MailboxOverflowPolicy` へ変換してメトリクスやエラーハンドリングへ伝播する。enqueue 成功/失敗はメトリクスシンクへ転送され、Dropped/Grew イベントはバックエンドが直接記録する。
+- Mailbox は `MailboxOptions` を通じて通常メッセージと優先メッセージの容量を決定する。オーバーフロー時の振る舞いは `UserMailboxQueue` などのバックエンドが `OverflowPolicy` として公開し、`QueueMailboxCore` が `MailboxOverflowPolicy` へ変換してメトリクスやエラーハンドリングへ伝播する。enqueue 成功/失敗はメトリクスシンクへ転送され、Dropped/Grew イベントはバックエンドが直接記録する。
 
 ```rust
 impl QueueMailbox {
@@ -343,7 +343,7 @@ pub trait MailboxRegistry: Send + Sync {
 
 pub fn spawn_actor<R: MailboxRegistry>(registry: &mut R, props: Props) -> Result<MailboxIndex, SpawnError> {
     let actor_cell = Arc::new(ActorCell::new(props));
-    let queue = SyncMailboxQueue::unbounded();
+    let queue = UserMailboxQueue::unbounded();
     let signal = create_mailbox_signal(); // 実際のシグナル実装に置き換える
     let mailbox = Arc::new(QueueMailbox::new(queue, signal));
     let idx = registry.register_mailbox(actor_cell.clone(), mailbox.clone());

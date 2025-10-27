@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
+    queue_mailbox::{build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
     QueueMailboxProducer,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
@@ -88,7 +88,7 @@ impl MailboxFactory for TokioMailboxFactory {
       };
       let config =
         MailboxQueueConfig::new(capacity_size, cellex_actor_core_rs::api::mailbox::MailboxOverflowPolicy::Block);
-      let base = build_mailbox_queue::<M>(config);
+      let base = build_user_mailbox_queue::<M>(config);
       SystemMailboxQueue::new(base, options.priority_capacity_limit())
     };
     let signal = NotifySignal::default();

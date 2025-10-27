@@ -6,7 +6,7 @@ use crate::{
   api::{
     mailbox::{
       messages::SystemMessage,
-      queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
+      queue_mailbox::{build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
       MailboxOverflowPolicy, QueueMailboxProducer, ThreadSafe,
     },
     test_support::test_signal::TestSignal,
@@ -76,7 +76,7 @@ impl MailboxFactory for TestMailboxFactory {
         | Some(limit) => QueueSize::limited(limit),
       };
       let config = MailboxQueueConfig::new(capacity_size, MailboxOverflowPolicy::Block);
-      let base = build_mailbox_queue::<M>(config);
+      let base = build_user_mailbox_queue::<M>(config);
       let system_capacity = if TypeId::of::<M>() == TypeId::of::<PriorityEnvelope<AnyMessage>>()
         || TypeId::of::<M>() == TypeId::of::<PriorityEnvelope<SystemMessage>>()
       {

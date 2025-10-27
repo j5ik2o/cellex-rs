@@ -2,7 +2,7 @@ use core::fmt;
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SyncMailboxQueue},
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv, UserMailboxQueue},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
@@ -16,7 +16,7 @@ use super::{
   local_mailbox_factory::LocalMailboxFactory, local_mailbox_sender::LocalMailboxSender, local_signal::LocalSignal,
 };
 
-type LocalMailboxQueue<M> = SyncMailboxQueue<M>;
+type LocalMailboxQueue<M> = UserMailboxQueue<M>;
 
 /// Asynchronous mailbox for local thread.
 ///

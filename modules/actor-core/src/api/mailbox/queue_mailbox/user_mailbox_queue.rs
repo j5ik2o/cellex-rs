@@ -31,15 +31,16 @@ enum CapacityModel {
   Unbounded,
 }
 
-/// Queue wrapper that owns a v2 `SyncQueue` and exposes the legacy mailbox interface.
-pub struct SyncMailboxQueue<M> {
+/// Queue driver dedicated to user messages. It wraps the v2 `SyncQueue` backend
+/// and exposes the legacy mailbox interface used by `QueueMailbox`.
+pub struct UserMailboxQueue<M> {
   queue:          Queue<M>,
   capacity_model: CapacityModel,
   policy:         OverflowPolicy,
   metrics_sink:   MetricsBinding,
 }
 
-impl<M> Clone for SyncMailboxQueue<M> {
+impl<M> Clone for UserMailboxQueue<M> {
   fn clone(&self) -> Self {
     let shared = self.queue.shared().clone();
     Self {
@@ -51,7 +52,7 @@ impl<M> Clone for SyncMailboxQueue<M> {
   }
 }
 
-impl<M> SyncMailboxQueue<M> {
+impl<M> UserMailboxQueue<M> {
   /// Creates an unbounded driver that grows the underlying storage as needed.
   pub fn unbounded() -> Self {
     let storage = VecRingStorage::with_capacity(0);
@@ -104,7 +105,7 @@ impl<M> SyncMailboxQueue<M> {
   }
 }
 
-impl<M> MailboxQueueBackend<M> for SyncMailboxQueue<M>
+impl<M> MailboxQueueBackend<M> for UserMailboxQueue<M>
 where
   M: Element,
 {

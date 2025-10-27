@@ -17,7 +17,7 @@
 | Stashing / 再投入制御 | 条件付きでメッセージを保留・再投入。 | ❌ | 現行コードに該当機能なし。 | ✅ (Stash) |
 
 ## メモ
-- System レーンは汎用 `SyncMailboxQueue` を `SystemMailboxQueue` でラップして実現しているため、専用キューの導入済み状態を維持しつつ後方互換は考慮していない。
+- System レーンは汎用 `UserMailboxQueue` を `SystemMailboxQueue` でラップして実現しているため、専用キューの導入済み状態を維持しつつ後方互換は考慮していない。
 - System 予約枠は `MailboxOptions::priority_capacity` で調整可能。`None` を指定すると旧来どおり優先レーンなしで動作する。
 - Suspend / Resume の詳細分析は `docs/design/suspend_resume_status.md` を参照。ReadyQueue 統合の最新仕様は `openspec/specs/mailbox-suspend-resume/spec.md` に移管済み。
 - 2025-10-27 時点で `metrics_capture_suspend_resume_durations_with_clock` / `metrics_omit_duration_when_clock_absent` / `multi_actor_suspend_resume_independent` / `backpressure_resumes_pending_messages` といった ReadyQueueScheduler テストで Suspend/Resume の計測および再投入動作を回帰確認済み。

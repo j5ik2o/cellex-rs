@@ -4,8 +4,8 @@ mod core;
 mod poll_outcome;
 mod queue;
 mod recv;
-mod sync_mailbox_queue;
 mod system_mailbox_queue;
+mod user_mailbox_queue;
 
 pub use core::QueueMailboxCore;
 
@@ -15,8 +15,8 @@ use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 pub use poll_outcome::QueuePollOutcome;
 pub(crate) use queue::MailboxQueue;
 pub use recv::QueueMailboxRecv;
-pub use sync_mailbox_queue::SyncMailboxQueue;
 pub use system_mailbox_queue::SystemMailboxQueue;
+pub use user_mailbox_queue::UserMailboxQueue;
 
 #[cfg(test)]
 mod tests;
@@ -26,14 +26,23 @@ use crate::{
   shared::mailbox::MailboxSignal,
 };
 
-/// Convenience alias for the standard mailbox backed by [`SyncMailboxQueue`].
-pub type SyncMailbox<M, S> = QueueMailbox<SystemMailboxQueue<M>, S>;
+/// Mailbox alias backed by the [`UserMailboxQueue`] driver for user messages only.
+pub type UserMailbox<M, S> = QueueMailbox<UserMailboxQueue<M>, S>;
 
-/// Producer alias associated with [`SyncMailbox`].
-pub type SyncMailboxProducer<M, S> = QueueMailboxProducer<SystemMailboxQueue<M>, S>;
+/// Producer alias associated with [`UserMailbox`].
+pub type UserMailboxProducer<M, S> = QueueMailboxProducer<UserMailboxQueue<M>, S>;
 
-/// Receive future alias associated with [`SyncMailbox`].
-pub type SyncMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, SystemMailboxQueue<M>, S, M>;
+/// Receive future alias associated with [`UserMailbox`].
+pub type UserMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, UserMailboxQueue<M>, S, M>;
+
+/// Mailbox alias that includes the system-reservation layer.
+pub type SystemMailbox<M, S> = QueueMailbox<SystemMailboxQueue<M>, S>;
+
+/// Producer alias associated with [`SystemMailbox`].
+pub type SystemMailboxProducer<M, S> = QueueMailboxProducer<SystemMailboxQueue<M>, S>;
+
+/// Receive future alias associated with [`SystemMailbox`].
+pub type SystemMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, SystemMailboxQueue<M>, S, M>;
 
 /// Configuration for constructing a mailbox queue.
 #[derive(Clone, Copy, Debug)]
@@ -52,16 +61,16 @@ impl MailboxQueueConfig {
   }
 }
 
-/// Builds a mailbox/producer pair backed by [`SyncMailboxQueue`] using the supplied signal and
+/// Builds a mailbox/producer pair backed by [`SystemMailboxQueue`] using the supplied signal and
 /// configuration.
-pub fn build_sync_mailbox_pair<M, S>(
+pub fn build_system_mailbox_pair<M, S>(
   signal: S,
   config: MailboxQueueConfig,
-) -> (SyncMailbox<M, S>, SyncMailboxProducer<M, S>)
+) -> (SystemMailbox<M, S>, SystemMailboxProducer<M, S>)
 where
   M: Element,
   S: MailboxSignal + Clone, {
-  let base = build_mailbox_queue::<M>(config);
+  let base = build_user_mailbox_queue::<M>(config);
   let queue = SystemMailboxQueue::new(base, Some(crate::shared::mailbox::DEFAULT_SYSTEM_RESERVATION));
   let mailbox = QueueMailbox::new(queue, signal);
   let producer = mailbox.producer();
@@ -75,8 +84,8 @@ impl Default for MailboxQueueConfig {
   }
 }
 
-/// Builds a mailbox queue according to the supplied configuration.
-pub fn build_mailbox_queue<M>(config: MailboxQueueConfig) -> SyncMailboxQueue<M>
+/// Builds a user mailbox queue according to the supplied configuration.
+pub fn build_user_mailbox_queue<M>(config: MailboxQueueConfig) -> UserMailboxQueue<M>
 where
   M: Element, {
   use cellex_utils_core_rs::collections::queue::backend::OverflowPolicy;
@@ -89,7 +98,7 @@ where
   };
 
   match config.capacity {
-    | QueueSize::Limitless => SyncMailboxQueue::unbounded(),
-    | QueueSize::Limited(limit) => SyncMailboxQueue::bounded(limit.max(1), policy),
+    | QueueSize::Limitless => UserMailboxQueue::unbounded(),
+    | QueueSize::Limited(limit) => UserMailboxQueue::bounded(limit.max(1), policy),
   }
 }

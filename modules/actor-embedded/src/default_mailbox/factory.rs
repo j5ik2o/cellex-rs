@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
+    queue_mailbox::{build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
     QueueMailboxProducer, ThreadSafe,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
@@ -84,7 +84,7 @@ where
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let base = build_mailbox_queue::<M>(MailboxQueueConfig::default());
+    let base = build_user_mailbox_queue::<M>(MailboxQueueConfig::default());
     let queue = SystemMailboxQueue::new(base, options.priority_capacity_limit());
     let signal = DefaultSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);

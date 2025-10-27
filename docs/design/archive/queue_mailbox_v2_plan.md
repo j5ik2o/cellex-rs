@@ -1,5 +1,5 @@
 # QueueMailbox v2 移行設計メモ（2025-10-24 起案）
-> **2025-10-26 更新**: `queue-v1` フィーチャーはコードベースから撤去済みです。本メモ内の `LegacyQueueDriver` や互換層に関する記述はアーカイブとして残しておき、現行実装は `SyncMailboxQueue`（旧 `SyncQueueDriver`）のみを対象とします。
+> **2025-10-26 更新**: `queue-v1` フィーチャーはコードベースから撤去済みです。本メモ内の `LegacyQueueDriver` や互換層に関する記述はアーカイブとして残しておき、現行実装は `UserMailboxQueue`（旧 `SyncQueueDriver`）のみを対象とします。
 
 ## 背景
 - 現行の `QueueMailbox<Q, S>` は v1 `QueueRw` トレイトを前提としており、`QueueError<T>` も旧構成に拘束されている。
@@ -62,13 +62,13 @@
 
   - `PollOutcome<M>` は `SyncQueue` 直結時に `MpscQueue::poll` が返す `QueueError::Empty` / `QueueError::WouldBlock` を `PollOutcome::Empty` / `PollOutcome::Pending` へマップする薄いラッパ。
   - 互換層 (`LegacyQueueDriver`) では `QueueRwCompat` を抱え、`offer` が `Ok(())` を返した場合は `OfferOutcome::Enqueued` を生成する。
-- v2 直結層 (`SyncMailboxQueue`) では `SyncQueue<EntryShared<M>, VecRingBackend<_>>` を保持し、`offer` の戻り値や `poll` の `QueueError` をそのまま Mailbox レイヤに伝搬する。
-- actor-core では `SyncMailboxQueue` をラップした `SyncMailbox` / `SyncMailboxProducer` のエイリアスを公開し、既定のメールボックス実装を順次こちらへ移行する。
+- v2 直結層 (`UserMailboxQueue`) では `SyncQueue<EntryShared<M>, VecRingBackend<_>>` を保持し、`offer` の戻り値や `poll` の `QueueError` をそのまま Mailbox レイヤに伝搬する。
+- actor-core では `UserMailboxQueue` をラップした `SyncMailbox` / `SyncMailboxProducer` のエイリアスを公開し、既定のメールボックス実装を順次こちらへ移行する。
 
 - `MailboxQueueCore<Q, S>` の型パラメータ `Q` は上記ドライバを実装する型に差し替える。これにより `len` / `capacity` / `try_send` / `try_dequeue` / `close` はドライバ経由で `OfferOutcome` / `PollOutcome` を受け取り、メトリクスとスケジューラ通知を処理できる。
 
 - メトリクスフックの扱い:
-- `MailboxQueueCore::set_metrics_sink` はキューラッパへ委譲し、各実装が `QueueRwCompat::set_metrics_sink` または `SyncMailboxQueue` 内部の `ArcShared<SpinSyncMutex<Option<MetricsSinkShared>>>` を更新する。
+- `MailboxQueueCore::set_metrics_sink` はキューラッパへ委譲し、各実装が `QueueRwCompat::set_metrics_sink` または `UserMailboxQueue` 内部の `ArcShared<SpinSyncMutex<Option<MetricsSinkShared>>>` を更新する。
   - `OfferOutcome::{DroppedOldest,DroppedNewest,GrewTo}` はドライバ側でメトリクスイベントへ変換し、`MailboxQueueCore` は `MailboxEnqueued` のみを記録する構造に簡素化できる。
 
 - `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` はジェネリクス境界を `Q: MailboxQueueBackend<M>` へ更新し、旧 `QueueRw` 境界を段階的に撤廃する。
@@ -114,8 +114,8 @@
 ## 2025-10-25 追加メモ: queue-v1 / queue-v2 併存時のドライバ構成
 
 - `queue-v1` ビルド: `MailboxQueueCore` へ渡す `Q` は `LegacyQueueDriver<M>`。
-- `queue-v2` ビルド（既定）: 標準は `SyncMailboxQueue<EntryShared<M>>`。Tokio/priority 互換ルートは当面 `LegacyQueueDriver` を利用しつつ、逐次 `SyncMailboxQueue` へ移行する。
-- `LegacyQueueDriver` と `SyncMailboxQueue` はどちらも `Clone + Send + Sync` 条件を満たす必要がある。
+- `queue-v2` ビルド（既定）: 標準は `UserMailboxQueue<EntryShared<M>>`。Tokio/priority 互換ルートは当面 `LegacyQueueDriver` を利用しつつ、逐次 `UserMailboxQueue` へ移行する。
+- `LegacyQueueDriver` と `UserMailboxQueue` はどちらも `Clone + Send + Sync` 条件を満たす必要がある。
 
 - テスト指針:
   - ドライバごとの差異を吸収する共通テストセットを `mailbox/queue_mailbox/tests.rs`（新設予定）へ集約し、`#[cfg(feature = "queue-v2")]` で双方のドライバを検証する。

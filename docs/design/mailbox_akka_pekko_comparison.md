@@ -98,7 +98,7 @@ pub struct QueueMailbox<Q, S> {
   - `QueueSize::Limited(n)`: bounded（容量制限）
   - `QueueSize::Limitless`: unbounded（無制限）
 - **柔軟なキュー実装**:
-  - `SyncMailboxQueue`: 同期版
+  - `UserMailboxQueue`: 同期版
   - 任意の `MailboxQueue<M>` trait 実装を差し替え可能
 
 **Akka/Pekko との比較**:

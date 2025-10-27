@@ -14,7 +14,7 @@ use cellex_utils_core_rs::{
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
 };
 
-use super::{MailboxQueueBackend, QueuePollOutcome, SyncMailboxQueue};
+use super::{MailboxQueueBackend, QueuePollOutcome, UserMailboxQueue};
 use crate::{
   api::{
     mailbox::{messages::SystemMessage, MailboxOverflowPolicy},
@@ -27,7 +27,7 @@ use crate::{
 pub struct SystemMailboxQueue<M>
 where
   M: Element, {
-  base:   SyncMailboxQueue<M>,
+  base:   UserMailboxQueue<M>,
   system: Option<SystemLane<M>>,
 }
 
@@ -61,8 +61,8 @@ impl<M> SystemMailboxQueue<M>
 where
   M: Element,
 {
-  /// Wraps a [`SyncMailboxQueue`] with an optional reservation lane for system messages.
-  pub fn new(base: SyncMailboxQueue<M>, reservation: Option<usize>) -> Self {
+  /// Wraps a [`UserMailboxQueue`] with an optional reservation lane for system messages.
+  pub fn new(base: UserMailboxQueue<M>, reservation: Option<usize>) -> Self {
     #[cfg(debug_assertions)]
     {
       use core::any::{type_name, TypeId};
@@ -117,8 +117,8 @@ where
     }
   }
 
-  /// Returns the underlying [`SyncMailboxQueue`] without altering its state.
-  pub fn into_inner(self) -> SyncMailboxQueue<M> {
+  /// Returns the underlying [`UserMailboxQueue`] without altering its state.
+  pub fn into_inner(self) -> UserMailboxQueue<M> {
     self.base
   }
 }

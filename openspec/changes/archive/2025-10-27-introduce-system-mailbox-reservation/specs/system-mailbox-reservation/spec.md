@@ -1,9 +1,8 @@
-# Capability: System Mailbox Reservation
+# system-mailbox-reservation Specification
 
-Introduce reserved capacity so that System messages are never starved by user traffic.
-
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change introduce-system-mailbox-reservation. Update Purpose after archive.
+## Requirements
 ### Requirement: Ensure system messages bypass user capacity limits
 - The mailbox SHALL provide reserved capacity for system messages such that enqueuing a `SystemMessage` never fails while user slots are full, unless the reserved capacity is also exhausted.
 - The reserved capacity SHALL be configurable via `MailboxOptions`, with a sensible default (e.g., at least 1 slot).
@@ -53,3 +52,4 @@ Given a ReadyQueueScheduler with actors whose user queues are saturated
 When a SystemMessage::Suspend is sent
 Then the test asserts the system message is processed without delay and logs contain the expected metrics
 ```
+

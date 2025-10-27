@@ -9,7 +9,7 @@
 | 項目 | 最終結果 |
 | --- | --- |
 | コレクション API | `cellex_utils_core_rs::collections::queue` v2 系に統一済み。旧 `QueueRw` / `ArcMpsc*` はコードベースから撤去。 |
-| Mailbox 実装 | `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` が `SyncMailboxQueue`（優先度付きは `PriorityMailboxQueue`）を直接保持。互換アダプタ不要。 |
+| Mailbox 実装 | `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` が `UserMailboxQueue`（優先度付きは `PriorityMailboxQueue`）を直接保持。互換アダプタ不要。 |
 | フィーチャーフラグ | `queue-v1` / `queue-v2` フラグは削除済み。現行ビルドは常に v2 を利用。 |
 | Embedded ランタイム | `DefaultMailbox` / `DefaultPriorityMailbox` から `ArcMailboxQueue*` ラッパを廃止し、RawMutex の差し替えは `DefaultSignal<RM>` に集約。 |
 | Std ランタイム | Tokio/priority mailboxes は `PriorityMailboxQueue` を直接保持し、`QueueRwCompat` 等の互換層は存在しない。 |
@@ -21,7 +21,7 @@
    - `QueueMailboxCore` をメッセージ型ジェネリクス毎に `QueueMailboxQueue<M>` トレイトへ委譲する構造に再構成。境界を impl ブロック単位で分離し、`len()` / `capacity()` / `try_send_mailbox()` 呼び出し時のターボフィッシュ指定を解消。
 
 2. **ラッパ型の整理**  
-   - Embedded 向け `ArcMailboxQueue` / `ArcPriorityMailboxQueue` を削除し、`SyncMailboxQueue` / `PriorityMailboxQueue` を直接保持。RawMutex パラメータは `ArcSignal<RM>` に限定し、Mailbox/Sender ファクトリのジェネリクス制約を縮小。
+   - Embedded 向け `ArcMailboxQueue` / `ArcPriorityMailboxQueue` を削除し、`UserMailboxQueue` / `PriorityMailboxQueue` を直接保持。RawMutex パラメータは `ArcSignal<RM>` に限定し、Mailbox/Sender ファクトリのジェネリクス制約を縮小。
 
 3. **優先度付きメールボックスの統一**  
    - `modules/actor-std/src/tokio_priority_mailbox/priority_mailbox_queue.rs` の命名と API を正式採用。Embedded/Tokio の両実装が同一の `PriorityMailboxQueue` を利用し、メトリクスやドロップポリシーの挙動を共有。
@@ -30,31 +30,31 @@
    - `MailboxError` への変換を `QueueMailboxCore` に集約。`OfferOutcome::{DroppedOldest,GrewTo}` や `QueueError::{Full,Closed,Disconnected,AllocError}` のハンドリングを v2 仕様に合わせて網羅。メトリクス通知 (`MailboxDroppedOldest` / `MailboxGrewTo` 等) を標準化。
 
 5. **テスト整備**  
-   - 既存ユニットテストを v2 前提に書き直し、`QueueRw` 依存ケースを削除。`QueueMailbox` 経由の FIFO/ドロップ/優先度挙動を `SyncMailboxQueue` ベースで再検証。Embedded/Tokio いずれも現在の CI タスクで網羅済み。
+   - 既存ユニットテストを v2 前提に書き直し、`QueueRw` 依存ケースを削除。`QueueMailbox` 経由の FIFO/ドロップ/優先度挙動を `UserMailboxQueue` ベースで再検証。Embedded/Tokio いずれも現在の CI タスクで網羅済み。
 
 ## 3. アーキテクチャ スナップショット
 
 ```
 QueueMailbox<Q, S>
   └─ QueueMailboxCore<Q, S>
-       ├─ Q: QueueMailboxQueue<M>  // SyncMailboxQueue<M> / PriorityMailboxQueue<M>
+       ├─ Q: QueueMailboxQueue<M>  // UserMailboxQueue<M> / PriorityMailboxQueue<M>
        ├─ S: MailboxSignal         // NotifySignal / ArcSignal<RM> / TestSignal
        ├─ metrics_sink: Option<MetricsSinkShared>
        └─ scheduler_hook: Option<ReadyQueueHandle>
 
 PriorityMailboxQueue<M>
-  ├─ control_lanes: Vec<SyncMailboxQueue<PriorityEnvelope<M>>>
-  └─ regular_lane:  SyncMailboxQueue<PriorityEnvelope<M>>
+  ├─ control_lanes: Vec<UserMailboxQueue<PriorityEnvelope<M>>>
+  └─ regular_lane:  UserMailboxQueue<PriorityEnvelope<M>>
 
 DefaultMailbox / DefaultPriorityMailbox
-  ├─ QueueMailbox<SyncMailboxQueue<_>, DefaultSignal<RM>>
+  ├─ QueueMailbox<UserMailboxQueue<_>, DefaultSignal<RM>>
   └─ QueueMailbox<PriorityMailboxQueue<_>, DefaultSignal<RM>>
 
 Tokio Mailbox 系
-  └─ QueueMailbox<SyncMailboxQueue<_>, NotifySignal>
+  └─ QueueMailbox<UserMailboxQueue<_>, NotifySignal>
 
 TestMailboxFactory
-  └─ QueueMailbox<SyncMailboxQueue<_>, TestSignal>
+  └─ QueueMailbox<UserMailboxQueue<_>, TestSignal>
 ```
 
 ## 4. 実施ログ概要
