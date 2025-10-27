@@ -5,10 +5,10 @@ use crate::{
     mailbox::{queue_mailbox::MailboxQueueBackend, MailboxConcurrency},
     messaging::MetadataStorageMode,
   },
-  shared::mailbox::{handle::MailboxHandle, options::MailboxOptions, producer::MailboxProducer, signal::MailboxSignal},
+  shared::mailbox::{options::MailboxOptions, producer::MailboxProducer, signal::MailboxSignal, MailboxConsumer},
 };
 
-/// Pair of mailbox handle and producer.
+/// Pair of mailbox consumer and producer.
 pub type MailboxPair<Mailbox, Producer> = (Mailbox, Producer);
 
 /// Factory trait for creating mailboxes.
@@ -27,8 +27,8 @@ pub trait MailboxFactory {
   where
     M: Element;
 
-  /// Mailbox handle returned to the scheduler.
-  type Mailbox<M>: MailboxHandle<M, Signal = Self::Signal> + Clone
+  /// Mailbox consumer returned to the scheduler.
+  type Mailbox<M>: MailboxConsumer<M, Signal = Self::Signal> + Clone
   where
     M: Element;
 

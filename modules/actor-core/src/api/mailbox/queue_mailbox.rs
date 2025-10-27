@@ -4,7 +4,7 @@ mod core;
 mod poll_outcome;
 mod queue;
 mod recv;
-mod sync_queue_driver;
+mod sync_mailbox_queue;
 
 pub use core::QueueMailboxCore;
 
@@ -14,7 +14,7 @@ use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 pub use poll_outcome::QueuePollOutcome;
 pub(crate) use queue::MailboxQueue;
 pub use recv::QueueMailboxRecv;
-pub use sync_queue_driver::SyncMailboxQueue;
+pub use sync_mailbox_queue::SyncMailboxQueue;
 
 #[cfg(test)]
 mod tests;

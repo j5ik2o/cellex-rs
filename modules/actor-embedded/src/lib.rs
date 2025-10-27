@@ -71,7 +71,9 @@ mod timer;
 #[cfg(feature = "embedded_arc")]
 pub use default_mailbox::{DefaultMailbox, DefaultMailboxFactory, DefaultMailboxSender};
 #[cfg(feature = "embedded_arc")]
-pub use default_priority_mailbox::{DefaultPriorityMailbox, DefaultPriorityMailboxFactory, DefaultPriorityMailboxSender};
+pub use default_priority_mailbox::{
+  DefaultPriorityMailbox, DefaultPriorityMailboxFactory, DefaultPriorityMailboxSender,
+};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
 

@@ -1,7 +1,7 @@
 use cellex_utils_core_rs::collections::Element;
 
 use crate::shared::mailbox::{
-  messages::PriorityEnvelope, MailboxFactory, MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer,
+  messages::PriorityEnvelope, MailboxConsumer, MailboxFactory, MailboxOptions, MailboxPair, MailboxProducer,
   MailboxSignal,
 };
 
@@ -14,8 +14,8 @@ where
   M: Element, {
   /// Signal type used by the mailbox.
   type Signal: MailboxSignal;
-  /// Mailbox handle that stores priority envelopes.
-  type Mailbox: MailboxHandle<PriorityEnvelope<M>, Signal = Self::Signal> + Clone;
+  /// Mailbox consumer that stores priority envelopes.
+  type Mailbox: MailboxConsumer<PriorityEnvelope<M>, Signal = Self::Signal> + Clone;
   /// Producer type that enqueues messages into the mailbox.
   type Producer: MailboxProducer<PriorityEnvelope<M>> + Clone;
 

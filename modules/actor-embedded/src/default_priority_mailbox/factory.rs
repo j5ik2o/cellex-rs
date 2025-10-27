@@ -67,7 +67,10 @@ where
   }
 
   /// Builds a mailbox using the provided options.
-  pub fn mailbox<M>(&self, options: MailboxOptions) -> (DefaultPriorityMailbox<M, RM>, DefaultPriorityMailboxSender<M, RM>)
+  pub fn mailbox<M>(
+    &self,
+    options: MailboxOptions,
+  ) -> (DefaultPriorityMailbox<M, RM>, DefaultPriorityMailboxSender<M, RM>)
   where
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);

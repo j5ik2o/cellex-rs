@@ -15,7 +15,8 @@ use cellex_utils_core_rs::collections::{
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  factory::DefaultPriorityMailboxFactory, priority_mailbox_queue::PriorityMailboxQueue, sender::DefaultPriorityMailboxSender,
+  factory::DefaultPriorityMailboxFactory, priority_mailbox_queue::PriorityMailboxQueue,
+  sender::DefaultPriorityMailboxSender,
 };
 use crate::default_mailbox::DefaultSignal;
 

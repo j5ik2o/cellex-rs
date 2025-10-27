@@ -10,7 +10,7 @@ use crate::{
   api::{
     actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
     mailbox::{
-      queue_mailbox::{QueueMailboxCore, MailboxQueue},
+      queue_mailbox::{MailboxQueue, QueueMailboxCore},
       MailboxError,
     },
     metrics::MetricsSinkShared,

@@ -3,7 +3,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use cellex_actor_core_rs::{
   api::mailbox::Mailbox,
-  shared::mailbox::{MailboxHandle, MailboxOptions},
+  shared::mailbox::{MailboxConsumer, MailboxOptions},
 };
 use cellex_utils_core_rs::collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY, QueueSize};
 use critical_section::{Impl, RawRestoreState};

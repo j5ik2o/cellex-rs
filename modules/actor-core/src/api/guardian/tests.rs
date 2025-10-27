@@ -24,7 +24,7 @@ use crate::{
     test_support::TestMailboxFactory,
   },
   shared::{
-    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxHandle},
+    mailbox::{messages::PriorityEnvelope, MailboxConsumer, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };

@@ -5,8 +5,8 @@ use crate::{
   shared::mailbox::signal::MailboxSignal,
 };
 
-/// Shared interface exposed by mailbox handles that can be managed by the runtime scheduler.
-pub trait MailboxHandle<M>: Mailbox<M> + Clone
+/// Shared interface exposed by mailbox consumers that can be managed by the runtime scheduler.
+pub trait MailboxConsumer<M>: Mailbox<M> + Clone
 where
   M: Element, {
   /// Associated signal type used to block until new messages arrive.

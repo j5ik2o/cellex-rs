@@ -27,7 +27,7 @@ use crate::{
     mailbox::PriorityMailboxSpawnerHandle,
   },
   shared::{
-    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxHandle, MailboxProducer},
+    mailbox::{messages::PriorityEnvelope, MailboxConsumer, MailboxFactory, MailboxProducer},
     messaging::{AnyMessage, MapSystemShared},
   },
 };
@@ -168,7 +168,7 @@ where
     &mut self,
   ) -> Result<Vec<PriorityEnvelope<AnyMessage>>, QueueError<PriorityEnvelope<AnyMessage>>> {
     let mut drained = Vec::new();
-    while let Some(envelope) = MailboxHandle::try_dequeue(&self.mailbox)? {
+    while let Some(envelope) = MailboxConsumer::try_dequeue(&self.mailbox)? {
       drained.push(envelope);
     }
     if drained.len() > 1 {
@@ -231,7 +231,7 @@ where
   }
 
   pub(crate) fn signal_clone(&self) -> MF::Signal {
-    MailboxHandle::signal(&self.mailbox)
+    MailboxConsumer::signal(&self.mailbox)
   }
 
   pub(crate) const fn is_stopped(&self) -> bool {

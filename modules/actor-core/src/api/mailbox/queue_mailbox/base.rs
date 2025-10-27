@@ -10,7 +10,7 @@ use crate::{
     mailbox::{queue_mailbox_producer::QueueMailboxProducer, Mailbox, MailboxError},
     metrics::MetricsSinkShared,
   },
-  shared::mailbox::{MailboxHandle, MailboxProducer, MailboxSignal},
+  shared::mailbox::{MailboxConsumer, MailboxProducer, MailboxSignal},
 };
 
 /// Mailbox backed by a queue and notification signal.
@@ -107,7 +107,7 @@ impl<Q, S> core::fmt::Debug for QueueMailbox<Q, S> {
   }
 }
 
-impl<M, Q, S> MailboxHandle<M> for QueueMailbox<Q, S>
+impl<M, Q, S> MailboxConsumer<M> for QueueMailbox<Q, S>
 where
   Q: MailboxQueue<M> + Clone,
   S: MailboxSignal,
