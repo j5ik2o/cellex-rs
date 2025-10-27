@@ -1245,4 +1245,165 @@ mod metrics_injection {
 
     assert_eq!(*recorded.lock().unwrap(), Some(runtime_ptr));
   }
+
+  /// Test that Suspend blocks user messages while allowing system messages
+  #[test]
+  fn test_suspend_blocks_user_messages() {
+    let mailbox_factory = TestMailboxFactory::unbounded();
+    let actor_runtime = GenericActorRuntime::new(mailbox_factory);
+    let mut system: GenericActorSystem<u32, _, AlwaysRestart> =
+      GenericActorSystem::new_with_actor_runtime(actor_runtime, GenericActorSystemConfig::default());
+
+    let count = Rc::new(RefCell::new(0u32));
+    let count_clone = count.clone();
+
+    let props = Props::with_behavior(move || {
+      let count_handler = count_clone.clone();
+      Behavior::stateless(move |_ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
+        *count_handler.borrow_mut() += msg;
+        Ok(())
+      })
+    });
+
+    let mut root = system.root_context();
+    let actor_ref = root.spawn(props).expect("spawn actor");
+
+    // Process user message before suspend
+    actor_ref.tell(10).expect("tell 10");
+    block_on(root.dispatch_next()).expect("dispatch before suspend");
+    assert_eq!(*count.borrow(), 10, "User message processed before suspend");
+
+    // Send Suspend system message
+    actor_ref.send_system(SystemMessage::Suspend).expect("send suspend");
+    block_on(root.dispatch_next()).expect("dispatch suspend");
+
+    // Send user messages after suspend (should be blocked)
+    actor_ref.tell(5).expect("tell 5");
+    block_on(root.dispatch_next()).expect("dispatch blocked user message");
+
+    actor_ref.tell(3).expect("tell 3");
+    block_on(root.dispatch_next()).expect("dispatch another blocked message");
+
+    // Verify user messages were NOT processed while suspended
+    assert_eq!(*count.borrow(), 10, "User messages blocked while suspended");
+  }
+
+  /// Test that Resume re-enables user message processing
+  #[test]
+  fn test_suspend_resume_cycle() {
+    let mailbox_factory = TestMailboxFactory::unbounded();
+    let actor_runtime = GenericActorRuntime::new(mailbox_factory);
+    let mut system: GenericActorSystem<u32, _, AlwaysRestart> =
+      GenericActorSystem::new_with_actor_runtime(actor_runtime, GenericActorSystemConfig::default());
+
+    let count = Rc::new(RefCell::new(0u32));
+    let suspend_count = Rc::new(RefCell::new(0u32));
+    let resume_count = Rc::new(RefCell::new(0u32));
+
+    let suspend_clone = suspend_count.clone();
+    let resume_clone = resume_count.clone();
+    let system_handler = move |_ctx: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
+      | SystemMessage::Suspend => *suspend_clone.borrow_mut() += 1,
+      | SystemMessage::Resume => *resume_clone.borrow_mut() += 1,
+      | _ => {},
+    };
+
+    let count_clone = count.clone();
+    let props = Props::with_behavior_and_system(
+      move || {
+        let count_handler = count_clone.clone();
+        Behavior::stateless(move |_ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
+          *count_handler.borrow_mut() += msg;
+          Ok(())
+        })
+      },
+      Some(system_handler),
+    );
+
+    let mut root = system.root_context();
+    let actor_ref = root.spawn(props).expect("spawn actor");
+
+    // Process user message before suspend
+    actor_ref.tell(10).expect("tell 10");
+    block_on(root.dispatch_next()).expect("dispatch before suspend");
+    assert_eq!(*count.borrow(), 10, "User message processed before suspend");
+
+    // Suspend
+    actor_ref.send_system(SystemMessage::Suspend).expect("send suspend");
+    block_on(root.dispatch_next()).expect("dispatch suspend");
+    assert_eq!(*suspend_count.borrow(), 1, "Suspend system handler called");
+
+    // User message blocked while suspended
+    actor_ref.tell(5).expect("tell 5 while suspended");
+    block_on(root.dispatch_next()).expect("dispatch blocked message");
+    assert_eq!(*count.borrow(), 10, "User message blocked while suspended");
+
+    // Resume
+    actor_ref.send_system(SystemMessage::Resume).expect("send resume");
+    block_on(root.dispatch_next()).expect("dispatch resume");
+    assert_eq!(*resume_count.borrow(), 1, "Resume system handler called");
+
+    // User message processed after resume
+    actor_ref.tell(7).expect("tell 7 after resume");
+    block_on(root.dispatch_next()).expect("dispatch after resume");
+    assert_eq!(*count.borrow(), 17, "User message processed after resume");
+
+    // Another user message to confirm continued operation
+    actor_ref.tell(3).expect("tell 3");
+    block_on(root.dispatch_next()).expect("dispatch another message");
+    assert_eq!(*count.borrow(), 20, "Continued user message processing");
+  }
+
+  /// Test that system messages are processed even while suspended
+  #[test]
+  fn test_system_messages_during_suspend() {
+    let mailbox_factory = TestMailboxFactory::unbounded();
+    let actor_runtime = GenericActorRuntime::new(mailbox_factory);
+    let mut system: GenericActorSystem<u32, _, AlwaysRestart> =
+      GenericActorSystem::new_with_actor_runtime(actor_runtime, GenericActorSystemConfig::default());
+
+    let user_count = Rc::new(RefCell::new(0u32));
+    let system_event_count = Rc::new(RefCell::new(0u32));
+
+    let event_clone = system_event_count.clone();
+    let system_handler = move |_ctx: &mut ActorContext<'_, '_, u32, _>, sys_msg: SystemMessage| match sys_msg {
+      | SystemMessage::Suspend | SystemMessage::Resume => *event_clone.borrow_mut() += 1,
+      | _ => {},
+    };
+
+    let user_clone = user_count.clone();
+    let props = Props::with_behavior_and_system(
+      move || {
+        let count_handler = user_clone.clone();
+        Behavior::stateless(move |_ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
+          *count_handler.borrow_mut() += msg;
+          Ok(())
+        })
+      },
+      Some(system_handler),
+    );
+
+    let mut root = system.root_context();
+    let actor_ref = root.spawn(props).expect("spawn actor");
+
+    // Suspend
+    actor_ref.send_system(SystemMessage::Suspend).expect("send suspend");
+    block_on(root.dispatch_next()).expect("dispatch suspend");
+    assert_eq!(*system_event_count.borrow(), 1, "Suspend processed");
+
+    // User message blocked
+    actor_ref.tell(10).expect("tell 10 while suspended");
+    block_on(root.dispatch_next()).expect("dispatch blocked user message");
+    assert_eq!(*user_count.borrow(), 0, "User message blocked");
+
+    // System message processed even while suspended
+    actor_ref.send_system(SystemMessage::Resume).expect("send resume while suspended");
+    block_on(root.dispatch_next()).expect("dispatch resume");
+    assert_eq!(*system_event_count.borrow(), 2, "System message processed while suspended");
+
+    // User message now processed after resume
+    actor_ref.tell(5).expect("tell 5 after resume");
+    block_on(root.dispatch_next()).expect("dispatch after resume");
+    assert_eq!(*user_count.borrow(), 5, "User message processed after resume");
+  }
 }

@@ -29,6 +29,7 @@ mod suspend_reason;
 mod tests;
 
 // Re-exports
+pub use actor_state::ActorState;
 pub use invoke_result::InvokeResult;
 pub use mailbox_index::MailboxIndex;
 pub use overflow_strategy::OverflowStrategy;
