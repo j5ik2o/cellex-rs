@@ -14,21 +14,20 @@ use cellex_utils_core_rs::{
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
 };
 
-use super::{MailboxQueueBackend, QueuePollOutcome, UserMailboxQueue};
+use super::{MailboxQueueBackend, QueuePollOutcome, SystemMailboxLane};
 use crate::{
   api::{
-    mailbox::{messages::SystemMessage, MailboxOverflowPolicy},
+    mailbox::messages::SystemMessage,
     metrics::{MetricsEvent, MetricsSinkShared},
   },
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
 
-/// Mailbox queue wrapper that reserves capacity for system messages.
+/// Queue that owns the reservation lane dedicated to system messages.
 pub struct SystemMailboxQueue<M>
 where
   M: Element, {
-  base:   UserMailboxQueue<M>,
-  system: Option<SystemLane<M>>,
+  lane: Option<SystemLane<M>>,
 }
 
 struct SystemLane<M>
@@ -53,7 +52,7 @@ where
   M: Element,
 {
   fn clone(&self) -> Self {
-    Self { base: self.base.clone(), system: self.system.clone() }
+    Self { lane: self.lane.clone() }
   }
 }
 
@@ -61,8 +60,8 @@ impl<M> SystemMailboxQueue<M>
 where
   M: Element,
 {
-  /// Wraps a [`UserMailboxQueue`] with an optional reservation lane for system messages.
-  pub fn new(base: UserMailboxQueue<M>, reservation: Option<usize>) -> Self {
+  /// Creates a new system mailbox queue with the specified reservation size.
+  pub fn new(reservation: Option<usize>) -> Self {
     #[cfg(debug_assertions)]
     {
       use core::any::{type_name, TypeId};
@@ -78,7 +77,7 @@ where
       }
     }
 
-    let system = reservation.and_then(|capacity| {
+    let lane = reservation.and_then(|capacity| {
       if capacity == 0 {
         None
       } else {
@@ -89,19 +88,22 @@ where
         })
       }
     });
-    Self { base, system }
+
+    Self { lane }
   }
 
-  fn reservation_len(&self) -> usize {
-    self.system.as_ref().map(|lane| lane.queue.lock().len()).unwrap_or(0)
+  fn with_lane<R>(&self, mut f: impl FnMut(&SystemLane<M>) -> R) -> Option<R> {
+    self.lane.as_ref().map(|lane| f(lane))
   }
 
-  fn record_event(&self, event: MetricsEvent) {
-    if let Some(lane) = &self.system {
-      let sink = lane.metrics_sink.lock().clone();
-      if let Some(sink) = sink {
-        sink.with_ref(|sink| sink.record(event));
-      }
+  fn reserve_len(lane: &SystemLane<M>) -> usize {
+    lane.queue.lock().len()
+  }
+
+  fn record_event(lane: &SystemLane<M>, event: MetricsEvent) {
+    let sink = lane.metrics_sink.lock().clone();
+    if let Some(sink) = sink {
+      sink.with_ref(|sink| sink.record(event));
     }
   }
 
@@ -116,10 +118,14 @@ where
       false
     }
   }
+}
 
-  /// Returns the underlying [`UserMailboxQueue`] without altering its state.
-  pub fn into_inner(self) -> UserMailboxQueue<M> {
-    self.base
+impl<M> SystemMailboxLane<M> for SystemMailboxQueue<M>
+where
+  M: Element,
+{
+  fn accepts(&self, message: &M) -> bool {
+    Self::is_system_message(message) && self.lane.is_some()
   }
 }
 
@@ -128,77 +134,59 @@ where
   M: Element,
 {
   fn len(&self) -> QueueSize {
-    let base_len = self.base.len();
-    if base_len.is_limitless() {
-      return base_len;
-    }
-    let system_len = self.reservation_len();
-    QueueSize::limited(base_len.to_usize().saturating_add(system_len))
+    self.with_lane(|lane| QueueSize::limited(Self::reserve_len(lane))).unwrap_or_else(|| QueueSize::limited(0))
   }
 
   fn capacity(&self) -> QueueSize {
-    let base_capacity = self.base.capacity();
-    if base_capacity.is_limitless() {
-      return base_capacity;
-    }
-    let reservation = self.system.as_ref().map(|lane| lane.capacity).unwrap_or(0);
-    QueueSize::limited(base_capacity.to_usize().saturating_add(reservation))
-  }
-
-  fn overflow_policy(&self) -> Option<MailboxOverflowPolicy> {
-    self.base.overflow_policy()
+    self.with_lane(|lane| QueueSize::limited(lane.capacity)).unwrap_or_else(|| QueueSize::limited(0))
   }
 
   fn offer(&self, message: M) -> Result<OfferOutcome, QueueError<M>> {
-    if let Some(lane) = &self.system {
-      if Self::is_system_message(&message) {
+    match &self.lane {
+      | Some(lane) => {
         let mut guard = lane.queue.lock();
         if guard.len() < lane.capacity {
           guard.push_back(message);
           let remaining = lane.capacity.saturating_sub(guard.len());
           drop(guard);
-          self.record_event(MetricsEvent::MailboxSystemReservedUsed { remaining });
-          return Ok(OfferOutcome::Enqueued);
+          Self::record_event(lane, MetricsEvent::MailboxSystemReservedUsed { remaining });
+          Ok(OfferOutcome::Enqueued)
+        } else {
+          drop(guard);
+          Self::record_event(lane, MetricsEvent::MailboxSystemReservationExhausted);
+          Err(QueueError::Full(message))
         }
-        drop(guard);
-        self.record_event(MetricsEvent::MailboxSystemReservationExhausted);
-        return Err(QueueError::Full(message));
-      }
+      },
+      | None => Err(QueueError::Full(message)),
     }
-
-    self.base.offer(message)
   }
 
   fn poll(&self) -> Result<QueuePollOutcome<M>, QueueError<M>> {
-    if let Some(lane) = &self.system {
-      let mut guard = lane.queue.lock();
-      if let Some(message) = guard.pop_front() {
-        return Ok(QueuePollOutcome::Message(message));
-      }
+    match &self.lane {
+      | Some(lane) => {
+        let mut guard = lane.queue.lock();
+        if let Some(message) = guard.pop_front() {
+          Ok(QueuePollOutcome::Message(message))
+        } else {
+          Ok(QueuePollOutcome::Empty)
+        }
+      },
+      | None => Ok(QueuePollOutcome::Empty),
     }
-    self.base.poll()
   }
 
   fn close(&self) -> Result<Option<M>, QueueError<M>> {
-    let mut preserved = None;
-    if let Some(lane) = &self.system {
-      let mut guard = lane.queue.lock();
-      if let Some(message) = guard.pop_front() {
-        preserved = Some(message);
-      }
+    match &self.lane {
+      | Some(lane) => {
+        let mut guard = lane.queue.lock();
+        Ok(guard.pop_front())
+      },
+      | None => Ok(None),
     }
-
-    match self.base.close()? {
-      | Some(message) if preserved.is_none() => preserved = Some(message),
-      | _ => {},
-    }
-
-    Ok(preserved)
   }
 
   fn set_metrics_sink(&self, sink: Option<MetricsSinkShared>) {
-    self.base.set_metrics_sink(sink.clone());
-    if let Some(lane) = &self.system {
+    if let Some(lane) = &self.lane {
       let mut guard = lane.metrics_sink.lock();
       *guard = sink;
     }

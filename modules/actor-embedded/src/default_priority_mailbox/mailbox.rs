@@ -26,7 +26,7 @@ pub struct DefaultPriorityMailbox<M, RM = embassy_sync::blocking_mutex::raw::Cri
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailbox<PriorityMailboxQueue<M>, DefaultSignal<RM>>,
+  pub(crate) inner: QueueMailbox<(), PriorityMailboxQueue<M>, DefaultSignal<RM>>,
 }
 
 impl<M, RM> DefaultPriorityMailbox<M, RM>
@@ -40,13 +40,13 @@ where
   }
 
   /// Returns the underlying queue mailbox.
-  pub fn inner(&self) -> &QueueMailbox<PriorityMailboxQueue<M>, DefaultSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailbox<(), PriorityMailboxQueue<M>, DefaultSignal<RM>> {
     &self.inner
   }
 
   /// Updates the metrics sink associated with the mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<PriorityEnvelope<M>>(sink);
   }
 }
 
@@ -56,7 +56,7 @@ where
   RM: RawMutex,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, PriorityMailboxQueue<M>, DefaultSignal<RM>, PriorityEnvelope<M>>
+    = QueueMailboxRecv<'a, (), PriorityMailboxQueue<M>, DefaultSignal<RM>, PriorityEnvelope<M>>
   where
     Self: 'a;
   type SendError = QueueError<PriorityEnvelope<M>>;
@@ -86,7 +86,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<PriorityEnvelope<M>>(sink);
   }
 }
 
@@ -101,7 +101,9 @@ where
   }
 
   /// Returns the receive future when operating with MailboxError semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, PriorityMailboxQueue<M>, DefaultSignal<RM>, PriorityEnvelope<M>> {
+  pub fn recv_mailbox(
+    &self,
+  ) -> QueueMailboxRecv<'_, (), PriorityMailboxQueue<M>, DefaultSignal<RM>, PriorityEnvelope<M>> {
     self.inner.recv()
   }
 }

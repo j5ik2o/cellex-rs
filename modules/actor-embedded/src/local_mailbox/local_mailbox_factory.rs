@@ -70,11 +70,11 @@ impl MailboxFactory for LocalMailboxFactory {
   #[cfg(not(feature = "embedded_rc"))]
   type Concurrency = ThreadSafe;
   type Mailbox<M>
-    = QueueMailbox<Self::Queue<M>, Self::Signal>
+    = QueueMailbox<(), Self::Queue<M>, Self::Signal>
   where
     M: Element;
   type Producer<M>
-    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+    = QueueMailboxProducer<(), Self::Queue<M>, Self::Signal>
   where
     M: Element;
   type Queue<M>

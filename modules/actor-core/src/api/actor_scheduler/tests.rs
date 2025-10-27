@@ -52,7 +52,7 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{QueueMailbox, SystemMailbox, SystemMailboxProducer, SystemMailboxQueue, UserMailboxQueue},
+      queue_mailbox::{DefaultMailbox, DefaultMailboxProducer, QueueMailbox, SystemMailboxQueue, UserMailboxQueue},
       Mailbox, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
@@ -130,8 +130,8 @@ impl SystemMailboxFactory {
   }
 }
 
-type SchedulerMailbox<M> = SystemMailbox<M, TestSignal>;
-type SchedulerMailboxProducer<M> = SystemMailboxProducer<M, TestSignal>;
+type SchedulerMailbox<M> = DefaultMailbox<M, TestSignal>;
+type SchedulerMailboxProducer<M> = DefaultMailboxProducer<M, TestSignal>;
 
 impl MailboxFactory for SystemMailboxFactory {
   type Concurrency = ThreadSafe;
@@ -153,10 +153,10 @@ impl MailboxFactory for SystemMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let base = UserMailboxQueue::bounded(capacity, self.policy);
-    let queue = SystemMailboxQueue::new(base, None);
+    let user_queue = UserMailboxQueue::bounded(capacity, self.policy);
+    let system_queue = SystemMailboxQueue::new(None);
     let signal = TestSignal::default();
-    let mailbox: SchedulerMailbox<M> = QueueMailbox::new(queue, signal);
+    let mailbox: SchedulerMailbox<M> = QueueMailbox::with_system_queue(system_queue, user_queue, signal);
     let producer: SchedulerMailboxProducer<M> = mailbox.producer();
     (mailbox, producer)
   }

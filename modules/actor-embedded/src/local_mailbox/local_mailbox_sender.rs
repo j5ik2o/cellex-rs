@@ -16,7 +16,7 @@ type LocalMailboxQueue<M> = UserMailboxQueue<M>;
 pub struct LocalMailboxSender<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailboxProducer<LocalMailboxQueue<M>, LocalSignal>,
+  pub(super) inner: QueueMailboxProducer<(), LocalMailboxQueue<M>, LocalSignal>,
 }
 
 impl<M> LocalMailboxSender<M>
@@ -66,13 +66,13 @@ where
   ///
   /// A reference to the `QueueMailboxProducer`
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<LocalMailboxQueue<M>, LocalSignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<(), LocalMailboxQueue<M>, LocalSignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }
 

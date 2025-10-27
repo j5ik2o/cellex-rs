@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SystemMailboxQueue},
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SystemMailboxQueue, UserMailboxQueue},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
@@ -19,7 +19,7 @@ pub struct DefaultMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSec
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailbox<SystemMailboxQueue<M>, DefaultSignal<RM>>,
+  pub(crate) inner: QueueMailbox<SystemMailboxQueue<M>, UserMailboxQueue<M>, DefaultSignal<RM>>,
 }
 
 impl<M, RM> DefaultMailbox<M, RM>
@@ -33,13 +33,13 @@ where
   }
 
   /// Returns the underlying queue mailbox.
-  pub fn inner(&self) -> &QueueMailbox<SystemMailboxQueue<M>, DefaultSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailbox<SystemMailboxQueue<M>, UserMailboxQueue<M>, DefaultSignal<RM>> {
     &self.inner
   }
 
   /// Updates the metrics sink associated with the mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    <QueueMailbox<SystemMailboxQueue<M>, DefaultSignal<RM>> as Mailbox<M>>::set_metrics_sink(&mut self.inner, sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }
 
@@ -49,7 +49,7 @@ where
   RM: RawMutex,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, SystemMailboxQueue<M>, DefaultSignal<RM>, M>
+    = QueueMailboxRecv<'a, SystemMailboxQueue<M>, UserMailboxQueue<M>, DefaultSignal<RM>, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -79,7 +79,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    <QueueMailbox<SystemMailboxQueue<M>, DefaultSignal<RM>> as Mailbox<M>>::set_metrics_sink(&mut self.inner, sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }
 
@@ -94,7 +94,7 @@ where
   }
 
   /// Returns the receive future when operating with MailboxError semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, SystemMailboxQueue<M>, DefaultSignal<RM>, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, SystemMailboxQueue<M>, UserMailboxQueue<M>, DefaultSignal<RM>, M> {
     self.inner.recv()
   }
 }

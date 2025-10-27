@@ -19,7 +19,10 @@ use cellex_utils_core_rs::{
 };
 use futures::task::noop_waker_ref;
 
-use super::{MailboxQueueBackend, QueueMailbox, QueuePollOutcome, SystemMailboxQueue, UserMailboxQueue};
+use super::{
+  DefaultMailbox, MailboxQueueBackend, QueueMailbox, QueuePollOutcome, SystemMailboxQueue, UserMailboxQueue,
+  UserOnlyMailbox,
+};
 use crate::{
   api::{
     mailbox::{messages::SystemMessage, Mailbox, MailboxError, MailboxOverflowPolicy},
@@ -128,7 +131,7 @@ fn queue_offer_error<T: Element>(message: T) -> QueueError<T> {
 fn user_queue_drop_newest_returns_queue_full_with_policy() {
   let driver = UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
 
   mailbox.try_send_mailbox(1u32).expect("first message enqueued");
   let err = mailbox.try_send_mailbox(2u32).expect_err("second message should fail");
@@ -146,7 +149,7 @@ fn user_queue_drop_newest_returns_queue_full_with_policy() {
 fn user_queue_drop_oldest_keeps_mailbox_usable() {
   let driver = UserMailboxQueue::bounded(1, OverflowPolicy::DropOldest);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
 
   mailbox.try_send_mailbox(1u32).expect("first enqueue succeeds");
   mailbox.try_send_mailbox(2u32).expect("drop oldest behaves as success");
@@ -159,7 +162,7 @@ fn user_queue_drop_oldest_keeps_mailbox_usable() {
 fn user_queue_overflow_policy_propagates_through_queue_error_path() {
   let driver = UserMailboxQueue::bounded(1, OverflowPolicy::Block);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
 
   mailbox.try_send_mailbox(1u32).expect("first enqueue succeeds");
 
@@ -175,7 +178,7 @@ fn user_queue_overflow_policy_propagates_through_queue_error_path() {
 fn queue_mailbox_reports_drop_oldest_policy_on_queue_error() {
   let driver = ErrorDriver::new(Some(MailboxOverflowPolicy::DropOldest), queue_full::<u32>);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: QueueMailbox<(), ErrorDriver<u32>, TestSignal> = QueueMailbox::new(driver, signal);
 
   let error = mailbox.try_send_mailbox(1u32).expect_err("expected queue full error");
 
@@ -193,7 +196,7 @@ fn queue_mailbox_reports_drop_oldest_policy_on_queue_error() {
 fn queue_mailbox_backpressure_maps_to_mailbox_error() {
   let driver = ErrorDriver::new(None, queue_would_block::<u32>);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: QueueMailbox<(), ErrorDriver<u32>, TestSignal> = QueueMailbox::new(driver, signal);
 
   let error = mailbox.try_send_mailbox(7u32).expect_err("expected backpressure error");
   assert!(matches!(error, MailboxError::Backpressure));
@@ -204,7 +207,7 @@ fn queue_mailbox_backpressure_maps_to_mailbox_error() {
 fn queue_mailbox_resource_exhausted_maps_to_mailbox_error() {
   let driver = ErrorDriver::new(None, queue_alloc_error::<u32>);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: QueueMailbox<(), ErrorDriver<u32>, TestSignal> = QueueMailbox::new(driver, signal);
 
   let error = mailbox.try_send_mailbox(9u32).expect_err("expected resource exhaustion error");
 
@@ -219,7 +222,7 @@ fn queue_mailbox_resource_exhausted_maps_to_mailbox_error() {
 fn queue_mailbox_internal_error_preserves_message() {
   let driver = ErrorDriver::new(None, queue_offer_error::<u32>);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: QueueMailbox<(), ErrorDriver<u32>, TestSignal> = QueueMailbox::new(driver, signal);
 
   let error = mailbox.try_send_mailbox(11u32).expect_err("expected internal error");
 
@@ -234,7 +237,7 @@ fn queue_mailbox_internal_error_preserves_message() {
 fn producer_reports_dropped_oldest_outcome() {
   let driver = UserMailboxQueue::bounded(1, OverflowPolicy::DropOldest);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
   let producer = mailbox.producer();
 
   producer.try_send_with_outcome(1u32).expect("first enqueue succeeds");
@@ -248,10 +251,11 @@ fn producer_reports_dropped_oldest_outcome() {
 
 #[test]
 fn system_reservation_allows_control_enqueue_when_user_capacity_full() {
-  let base = UserMailboxQueue::bounded(1, OverflowPolicy::Block);
-  let queue = SystemMailboxQueue::new(base, Some(1));
+  let user_queue = UserMailboxQueue::bounded(1, OverflowPolicy::Block);
+  let queue = SystemMailboxQueue::new(Some(1));
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(queue, signal);
+  let mailbox: DefaultMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::with_system_queue(queue, user_queue, signal);
   let producer = mailbox.producer();
 
   // Fill regular capacity
@@ -277,12 +281,13 @@ fn system_reservation_allows_control_enqueue_when_user_capacity_full() {
 
 #[test]
 fn system_reservation_reports_exhaustion() {
-  let base = UserMailboxQueue::bounded(1, OverflowPolicy::Block);
-  let queue = SystemMailboxQueue::new(base, Some(1));
+  let user_queue = UserMailboxQueue::bounded(1, OverflowPolicy::Block);
+  let queue = SystemMailboxQueue::new(Some(1));
   let signal = TestSignal::default();
-  let mut mailbox = QueueMailbox::new(queue, signal);
+  let mut mailbox: DefaultMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::with_system_queue(queue, user_queue, signal);
   let (sink, events) = make_metrics_sink();
-  crate::api::mailbox::Mailbox::<PriorityEnvelope<AnyMessage>>::set_metrics_sink(&mut mailbox, Some(sink.clone()));
+  mailbox.set_metrics_sink::<PriorityEnvelope<AnyMessage>>(Some(sink.clone()));
   let producer = mailbox.producer();
 
   producer
@@ -311,7 +316,7 @@ fn system_reservation_reports_exhaustion() {
 fn producer_reports_enqueued_outcome() {
   let driver = UserMailboxQueue::bounded(2, OverflowPolicy::Block);
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(driver, signal);
+  let mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
   let producer = mailbox.producer();
 
   let outcome = producer.try_send_with_outcome(42u32).expect("enqueue succeeds");
@@ -322,7 +327,8 @@ fn producer_reports_enqueued_outcome() {
 #[test]
 fn receiver_pending_until_message_arrives() {
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(UserMailboxQueue::bounded(1, OverflowPolicy::Block), signal);
+  let mailbox: UserOnlyMailbox<u32, TestSignal> =
+    QueueMailbox::new(UserMailboxQueue::bounded(1, OverflowPolicy::Block), signal);
   let mut recv_future = mailbox.recv();
 
   let waker = noop_waker_ref();
@@ -343,7 +349,7 @@ fn receiver_pending_until_message_arrives() {
 fn producer_records_drop_oldest_metric() {
   let driver = UserMailboxQueue::bounded(1, OverflowPolicy::DropOldest);
   let signal = TestSignal::default();
-  let mut mailbox = QueueMailbox::new(driver, signal);
+  let mut mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
   let (sink, events) = make_metrics_sink();
   Mailbox::set_metrics_sink(&mut mailbox, Some(sink.clone()));
   let mut producer = mailbox.producer();
@@ -363,7 +369,7 @@ fn producer_records_drop_oldest_metric() {
 fn producer_records_drop_newest_metric_and_error() {
   let driver = UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
   let signal = TestSignal::default();
-  let mut mailbox = QueueMailbox::new(driver, signal);
+  let mut mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
   let (sink, events) = make_metrics_sink();
   Mailbox::set_metrics_sink(&mut mailbox, Some(sink.clone()));
   let mut producer = mailbox.producer();
@@ -391,7 +397,7 @@ fn producer_records_drop_newest_metric_and_error() {
 fn producer_records_grow_metric() {
   let driver = UserMailboxQueue::bounded(1, OverflowPolicy::Grow);
   let signal = TestSignal::default();
-  let mut mailbox = QueueMailbox::new(driver, signal);
+  let mut mailbox: UserOnlyMailbox<u32, TestSignal> = QueueMailbox::new(driver, signal);
   let (sink, events) = make_metrics_sink();
   Mailbox::set_metrics_sink(&mut mailbox, Some(sink.clone()));
   let mut producer = mailbox.producer();

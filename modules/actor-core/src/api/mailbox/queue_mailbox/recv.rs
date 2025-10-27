@@ -7,34 +7,37 @@ use core::{
 
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
-use super::{base::QueueMailbox, queue::MailboxQueue};
+use super::{base::QueueMailbox, queue::MailboxQueue, SystemMailboxLane};
 use crate::{api::mailbox::MailboxError, shared::mailbox::MailboxSignal};
 
 /// Future for receiving messages.
-pub struct QueueMailboxRecv<'a, Q, S, M>
+pub struct QueueMailboxRecv<'a, SQ, UQ, S, M>
 where
-  Q: MailboxQueue<M>,
+  SQ: SystemMailboxLane<M>,
+  UQ: MailboxQueue<M>,
   S: MailboxSignal,
   M: Element, {
-  pub(super) mailbox: &'a QueueMailbox<Q, S>,
+  pub(super) mailbox: &'a QueueMailbox<SQ, UQ, S>,
   pub(super) wait:    Option<S::WaitFuture<'a>>,
   pub(super) marker:  PhantomData<M>,
 }
 
-impl<'a, Q, S, M> QueueMailboxRecv<'a, Q, S, M>
+impl<'a, SQ, UQ, S, M> QueueMailboxRecv<'a, SQ, UQ, S, M>
 where
-  Q: MailboxQueue<M>,
+  SQ: SystemMailboxLane<M>,
+  UQ: MailboxQueue<M>,
   S: MailboxSignal,
   M: Element,
 {
-  pub(super) const fn new(mailbox: &'a QueueMailbox<Q, S>) -> Self {
+  pub(super) const fn new(mailbox: &'a QueueMailbox<SQ, UQ, S>) -> Self {
     Self { mailbox, wait: None, marker: PhantomData }
   }
 }
 
-impl<'a, Q, S, M> Future for QueueMailboxRecv<'a, Q, S, M>
+impl<'a, SQ, UQ, S, M> Future for QueueMailboxRecv<'a, SQ, UQ, S, M>
 where
-  Q: MailboxQueue<M>,
+  SQ: SystemMailboxLane<M>,
+  UQ: MailboxQueue<M>,
   S: MailboxSignal,
   M: Element,
 {
@@ -89,9 +92,10 @@ enum QueueMailboxRecvOutcome<M> {
   Disconnected,
 }
 
-impl<'a, Q, S, M> QueueMailboxRecv<'a, Q, S, M>
+impl<'a, SQ, UQ, S, M> QueueMailboxRecv<'a, SQ, UQ, S, M>
 where
-  Q: MailboxQueue<M>,
+  SQ: SystemMailboxLane<M>,
+  UQ: MailboxQueue<M>,
   S: MailboxSignal,
   M: Element,
 {

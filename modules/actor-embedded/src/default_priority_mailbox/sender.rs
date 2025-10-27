@@ -17,7 +17,7 @@ pub struct DefaultPriorityMailboxSender<M, RM = embassy_sync::blocking_mutex::ra
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<PriorityMailboxQueue<M>, DefaultSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<(), PriorityMailboxQueue<M>, DefaultSignal<RM>>,
 }
 
 impl<M, RM> DefaultPriorityMailboxSender<M, RM>
@@ -60,13 +60,13 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<PriorityMailboxQueue<M>, DefaultSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<(), PriorityMailboxQueue<M>, DefaultSignal<RM>> {
     &self.inner
   }
 
   /// Updates the metrics sink associated with the producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<PriorityEnvelope<M>>(sink);
   }
 
   /// Attempts to enqueue using the MailboxError-based API.

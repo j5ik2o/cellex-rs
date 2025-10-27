@@ -21,7 +21,7 @@ type QueueHandle<M> = PriorityMailboxQueue<M>;
 pub struct TokioPriorityMailboxSender<M>
 where
   M: Element, {
-  inner: QueueMailboxProducer<QueueHandle<M>, NotifySignal>,
+  inner: QueueMailboxProducer<(), QueueHandle<M>, NotifySignal>,
 }
 
 impl<M> TokioPriorityMailboxSender<M>
@@ -144,18 +144,18 @@ where
   ///
   /// An immutable reference to the internal producer
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<QueueHandle<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<(), QueueHandle<M>, NotifySignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    configure_metrics(self.inner.queue(), sink.clone());
-    self.inner.set_metrics_sink(sink);
+    configure_metrics(self.inner.user_queue(), sink.clone());
+    self.inner.set_metrics_sink::<PriorityEnvelope<M>>(sink);
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailboxProducer<QueueHandle<M>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(inner: QueueMailboxProducer<(), QueueHandle<M>, NotifySignal>) -> Self {
     Self { inner }
   }
 

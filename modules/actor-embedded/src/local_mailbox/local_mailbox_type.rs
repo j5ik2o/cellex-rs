@@ -24,7 +24,7 @@ type LocalMailboxQueue<M> = UserMailboxQueue<M>;
 pub struct LocalMailbox<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailbox<LocalMailboxQueue<M>, LocalSignal>,
+  pub(super) inner: QueueMailbox<(), LocalMailboxQueue<M>, LocalSignal>,
 }
 
 impl<M> LocalMailbox<M>
@@ -60,13 +60,13 @@ where
   ///
   /// A reference to the `QueueMailbox`
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<LocalMailboxQueue<M>, LocalSignal> {
+  pub const fn inner(&self) -> &QueueMailbox<(), LocalMailboxQueue<M>, LocalSignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }
 
@@ -76,7 +76,7 @@ where
   LocalMailboxQueue<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, LocalMailboxQueue<M>, LocalSignal, M>
+    = QueueMailboxRecv<'a, (), LocalMailboxQueue<M>, LocalSignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -106,7 +106,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }
 
@@ -121,7 +121,7 @@ where
   }
 
   /// Returns the receive future when operating with MailboxError semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, LocalMailboxQueue<M>, LocalSignal, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, (), LocalMailboxQueue<M>, LocalSignal, M> {
     self.inner.recv()
   }
 }

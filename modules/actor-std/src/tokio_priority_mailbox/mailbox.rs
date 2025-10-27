@@ -26,7 +26,7 @@ type QueueHandle<M> = PriorityMailboxQueue<M>;
 pub struct TokioPriorityMailbox<M>
 where
   M: Element, {
-  inner: QueueMailbox<QueueHandle<M>, NotifySignal>,
+  inner: QueueMailbox<(), QueueHandle<M>, NotifySignal>,
 }
 
 impl<M> TokioPriorityMailbox<M>
@@ -54,18 +54,18 @@ where
   ///
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<QueueHandle<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailbox<(), QueueHandle<M>, NotifySignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying mailbox.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    configure_metrics(self.inner.queue(), sink.clone());
-    self.inner.set_metrics_sink(sink);
+    configure_metrics(self.inner.user_queue(), sink.clone());
+    self.inner.set_metrics_sink::<PriorityEnvelope<M>>(sink);
   }
 
   /// Creates a new instance from inner components (internal constructor)
-  pub(super) fn from_inner(inner: QueueMailbox<QueueHandle<M>, NotifySignal>) -> Self {
+  pub(super) fn from_inner(inner: QueueMailbox<(), QueueHandle<M>, NotifySignal>) -> Self {
     Self { inner }
   }
 }
@@ -75,7 +75,7 @@ where
   M: Element,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, QueueHandle<M>, NotifySignal, PriorityEnvelope<M>>
+    = QueueMailboxRecv<'a, (), QueueHandle<M>, NotifySignal, PriorityEnvelope<M>>
   where
     Self: 'a;
   type SendError = PriorityQueueError<M>;
@@ -105,8 +105,8 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    configure_metrics(self.inner.queue(), sink.clone());
-    self.inner.set_metrics_sink(sink);
+    configure_metrics(self.inner.user_queue(), sink.clone());
+    self.inner.set_metrics_sink::<PriorityEnvelope<M>>(sink);
   }
 }
 
@@ -120,7 +120,7 @@ where
   }
 
   /// Returns the receive future using MailboxError semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, QueueHandle<M>, NotifySignal, PriorityEnvelope<M>> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, (), QueueHandle<M>, NotifySignal, PriorityEnvelope<M>> {
     self.inner.recv()
   }
 }

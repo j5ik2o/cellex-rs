@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
+    queue_mailbox::{build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue, UserMailboxQueue},
     QueueMailboxProducer,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
@@ -10,8 +10,8 @@ use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 use super::{notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender};
 
 type TokioQueueDriver<M> = SystemMailboxQueue<M>;
-type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, NotifySignal>;
-type TokioMailboxProducer<M> = QueueMailboxProducer<SystemMailboxQueue<M>, NotifySignal>;
+type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, UserMailboxQueue<M>, NotifySignal>;
+type TokioMailboxProducer<M> = QueueMailboxProducer<SystemMailboxQueue<M>, UserMailboxQueue<M>, NotifySignal>;
 
 /// Factory that creates Tokio mailboxes.
 ///
@@ -81,18 +81,19 @@ impl MailboxFactory for TokioMailboxFactory {
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = {
+    let (system_queue, user_queue) = {
       let capacity_size = match options.capacity {
         | QueueSize::Limitless | QueueSize::Limited(0) => QueueSize::limitless(),
         | QueueSize::Limited(capacity) => QueueSize::limited(capacity),
       };
       let config =
         MailboxQueueConfig::new(capacity_size, cellex_actor_core_rs::api::mailbox::MailboxOverflowPolicy::Block);
-      let base = build_user_mailbox_queue::<M>(config);
-      SystemMailboxQueue::new(base, options.priority_capacity_limit())
+      let user_queue = build_user_mailbox_queue::<M>(config);
+      let system_queue = SystemMailboxQueue::new(options.priority_capacity_limit());
+      (system_queue, user_queue)
     };
     let signal = NotifySignal::default();
-    let mailbox = QueueMailbox::new(queue, signal);
+    let mailbox = QueueMailbox::with_system_queue(system_queue, user_queue, signal);
     let sender = mailbox.producer();
     (mailbox, sender)
   }

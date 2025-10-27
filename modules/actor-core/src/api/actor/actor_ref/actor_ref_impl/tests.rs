@@ -15,7 +15,7 @@ use crate::{
     actor_runtime::GenericActorRuntime,
     mailbox::{
       messages::SystemMessage,
-      queue_mailbox::{QueueMailbox, SystemMailbox, SystemMailboxQueue, UserMailboxQueue},
+      queue_mailbox::{DefaultMailbox, QueueMailbox, SystemMailboxQueue, UserMailboxQueue},
     },
     process::{
       dead_letter::{DeadLetterListener, DeadLetterReason},
@@ -33,9 +33,10 @@ use crate::{
 fn actor_ref_routes_drop_newest_to_dead_letter() {
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
-  let queue = SystemMailboxQueue::new(UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest), None);
-  let mailbox: SystemMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
-    QueueMailbox::new(queue, TestSignal::default());
+  let user_queue = UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
+  let system_queue = SystemMailboxQueue::new(None);
+  let mailbox: DefaultMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::with_system_queue(system_queue, user_queue, TestSignal::default());
   let priority_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(mailbox.producer());
 
   let registry: ArcShared<ActorProcessRegistry<TestRuntime>> =
@@ -79,9 +80,10 @@ fn actor_ref_routes_drop_newest_to_dead_letter() {
 fn actor_ref_tell_with_priority_rejects_and_routes_dead_letter() {
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
-  let queue = SystemMailboxQueue::new(UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest), None);
-  let mailbox: SystemMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
-    QueueMailbox::new(queue, TestSignal::default());
+  let user_queue = UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
+  let system_queue = SystemMailboxQueue::new(None);
+  let mailbox: DefaultMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::with_system_queue(system_queue, user_queue, TestSignal::default());
   let priority_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(mailbox.producer());
 
   let registry: ArcShared<ActorProcessRegistry<TestRuntime>> =
@@ -125,9 +127,10 @@ fn actor_ref_tell_with_priority_rejects_and_routes_dead_letter() {
 fn actor_ref_send_system_routes_dead_letter_on_overflow() {
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
-  let queue = SystemMailboxQueue::new(UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest), None);
-  let mailbox: SystemMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
-    QueueMailbox::new(queue, TestSignal::default());
+  let user_queue = UserMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
+  let system_queue = SystemMailboxQueue::new(None);
+  let mailbox: DefaultMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::with_system_queue(system_queue, user_queue, TestSignal::default());
   let priority_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(mailbox.producer());
 
   let registry: ArcShared<ActorProcessRegistry<TestRuntime>> =

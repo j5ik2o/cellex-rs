@@ -4,6 +4,7 @@ mod core;
 mod poll_outcome;
 mod queue;
 mod recv;
+mod system_mailbox_lane;
 mod system_mailbox_queue;
 mod user_mailbox_queue;
 
@@ -15,6 +16,7 @@ use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 pub use poll_outcome::QueuePollOutcome;
 pub(crate) use queue::MailboxQueue;
 pub use recv::QueueMailboxRecv;
+pub use system_mailbox_lane::SystemMailboxLane;
 pub use system_mailbox_queue::SystemMailboxQueue;
 pub use user_mailbox_queue::UserMailboxQueue;
 
@@ -26,23 +28,24 @@ use crate::{
   shared::mailbox::MailboxSignal,
 };
 
-/// Mailbox alias backed by the [`UserMailboxQueue`] driver for user messages only.
-pub type UserMailbox<M, S> = QueueMailbox<UserMailboxQueue<M>, S>;
+/// Mailbox alias for a queue that omits the system lane and relies solely on [`UserMailboxQueue`].
+pub type UserOnlyMailbox<M, S> = QueueMailbox<(), UserMailboxQueue<M>, S>;
 
-/// Producer alias associated with [`UserMailbox`].
-pub type UserMailboxProducer<M, S> = QueueMailboxProducer<UserMailboxQueue<M>, S>;
+/// Producer alias associated with [`UserOnlyMailbox`].
+pub type UserOnlyMailboxProducer<M, S> = QueueMailboxProducer<(), UserMailboxQueue<M>, S>;
 
-/// Receive future alias associated with [`UserMailbox`].
-pub type UserMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, UserMailboxQueue<M>, S, M>;
+/// Receive future alias associated with [`UserOnlyMailbox`].
+pub type UserOnlyMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, (), UserMailboxQueue<M>, S, M>;
 
-/// Mailbox alias that includes the system-reservation layer.
-pub type SystemMailbox<M, S> = QueueMailbox<SystemMailboxQueue<M>, S>;
+/// Mailbox alias that composes a [`SystemMailboxQueue`] reservation lane with a
+/// [`UserMailboxQueue`].
+pub type DefaultMailbox<M, S> = QueueMailbox<SystemMailboxQueue<M>, UserMailboxQueue<M>, S>;
 
-/// Producer alias associated with [`SystemMailbox`].
-pub type SystemMailboxProducer<M, S> = QueueMailboxProducer<SystemMailboxQueue<M>, S>;
+/// Producer alias associated with [`DefaultMailbox`].
+pub type DefaultMailboxProducer<M, S> = QueueMailboxProducer<SystemMailboxQueue<M>, UserMailboxQueue<M>, S>;
 
-/// Receive future alias associated with [`SystemMailbox`].
-pub type SystemMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, SystemMailboxQueue<M>, S, M>;
+/// Receive future alias associated with [`DefaultMailbox`].
+pub type DefaultMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, SystemMailboxQueue<M>, UserMailboxQueue<M>, S, M>;
 
 /// Configuration for constructing a mailbox queue.
 #[derive(Clone, Copy, Debug)]
@@ -61,18 +64,18 @@ impl MailboxQueueConfig {
   }
 }
 
-/// Builds a mailbox/producer pair backed by [`SystemMailboxQueue`] using the supplied signal and
-/// configuration.
-pub fn build_system_mailbox_pair<M, S>(
+/// Builds a mailbox/producer pair that wires together both system and user queues using the
+/// supplied signal.
+pub fn build_default_mailbox_pair<M, S>(
   signal: S,
   config: MailboxQueueConfig,
-) -> (SystemMailbox<M, S>, SystemMailboxProducer<M, S>)
+) -> (DefaultMailbox<M, S>, DefaultMailboxProducer<M, S>)
 where
   M: Element,
   S: MailboxSignal + Clone, {
-  let base = build_user_mailbox_queue::<M>(config);
-  let queue = SystemMailboxQueue::new(base, Some(crate::shared::mailbox::DEFAULT_SYSTEM_RESERVATION));
-  let mailbox = QueueMailbox::new(queue, signal);
+  let user_queue = build_user_mailbox_queue::<M>(config);
+  let system_queue = SystemMailboxQueue::new(Some(crate::shared::mailbox::DEFAULT_SYSTEM_RESERVATION));
+  let mailbox = QueueMailbox::with_system_queue(system_queue, user_queue, signal);
   let producer = mailbox.producer();
   (mailbox, producer)
 }

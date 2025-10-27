@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SystemMailboxQueue},
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SystemMailboxQueue, UserMailboxQueue},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
@@ -15,7 +15,7 @@ use super::{
 };
 
 type TokioQueueDriver<M> = SystemMailboxQueue<M>;
-type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, NotifySignal>;
+type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, UserMailboxQueue<M>, NotifySignal>;
 
 /// Mailbox implementation for Tokio runtime
 ///
@@ -80,7 +80,7 @@ where
   TokioQueueDriver<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, TokioQueueDriver<M>, NotifySignal, M>
+    = QueueMailboxRecv<'a, TokioQueueDriver<M>, UserMailboxQueue<M>, NotifySignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -110,7 +110,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    <QueueMailbox<SystemMailboxQueue<M>, NotifySignal> as Mailbox<M>>::set_metrics_sink(&mut self.inner, sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }
 
@@ -125,7 +125,7 @@ where
   }
 
   /// Returns the receive future when working with MailboxError-based semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, TokioQueueDriver<M>, NotifySignal, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, TokioQueueDriver<M>, UserMailboxQueue<M>, NotifySignal, M> {
     self.inner.recv()
   }
 }
