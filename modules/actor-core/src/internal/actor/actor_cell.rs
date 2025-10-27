@@ -55,6 +55,7 @@ where
   stopped: bool,
   state: ActorCellState,
   pending_user_envelopes: VecDeque<PriorityEnvelope<AnyMessage>>,
+  scheduler_hook: Option<ReadyQueueHandle>,
   metrics_sink: Option<MetricsSinkShared>,
   receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   receive_timeout_scheduler_opt: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
@@ -100,6 +101,7 @@ where
       stopped: false,
       state: ActorCellState::Running,
       pending_user_envelopes: VecDeque::new(),
+      scheduler_hook: None,
       metrics_sink: None,
       receive_timeout_scheduler_factory_shared_opt: None,
       receive_timeout_scheduler_opt: None,
@@ -130,6 +132,7 @@ where
     MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
     MF::Signal: Clone,
     MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
+    self.scheduler_hook = hook.clone();
     Mailbox::set_scheduler_hook(&mut self.mailbox, hook.clone());
     MailboxProducer::set_scheduler_hook(&mut self.sender, hook);
   }
@@ -157,6 +160,7 @@ where
     self.stopped = true;
     self.state = ActorCellState::Stopped;
     self.pending_user_envelopes.clear();
+    self.scheduler_hook = None;
     if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
       cell.borrow_mut().cancel();
     }
@@ -191,6 +195,11 @@ where
     if self.is_suspended() {
       self.state = ActorCellState::Running;
       self.record_metrics_event(MetricsEvent::MailboxResumed);
+      if !self.pending_user_envelopes.is_empty() {
+        if let Some(hook) = &self.scheduler_hook {
+          hook.with_ref(|hook| hook.notify_ready());
+        }
+      }
     }
   }
 

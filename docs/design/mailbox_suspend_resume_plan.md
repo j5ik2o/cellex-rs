@@ -121,7 +121,7 @@ pub struct ActorCell<MF, Strat> {
 | P0 | `ActorCellState` / 保留キュー導入 | ✅ | 実装済み（2025-10-27）。 |
 | P0 | Suspend/Resume のテスト整備 | ✅ | `test_suspend_accumulates_messages_until_resume` など更新。 |
 | P1 | メトリクスイベント追加とテレメトリ調整 | ✅ | イベント発火を実装済み。Suspend 期間計測は今後対応。 |
-| P1 | ReadyQueueCoordinator 連携の強化 | ⏳ | `InvokeResult::Suspended` を用いた再登録制御。 |
+| P1 | ReadyQueueCoordinator 連携の強化 | ✅ | Resume 時に ReadyQueueHandle を通じて再通知。InvokeResult 統合は将来対応。 |
 | P1 | ドキュメント更新 | ✅ | 本ドキュメント含め主要資料を更新。 |
 
 ---
