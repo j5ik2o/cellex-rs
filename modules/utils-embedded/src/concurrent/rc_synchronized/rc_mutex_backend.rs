@@ -4,8 +4,10 @@ use alloc::{boxed::Box, rc::Rc};
 use async_trait::async_trait;
 use cellex_utils_core_rs::{
   concurrent::synchronized::SynchronizedMutexBackend,
-  sync::interrupt::{InterruptContextPolicy, NeverInterruptPolicy},
-  v2::sync::SharedError,
+  sync::{
+    interrupt::{InterruptContextPolicy, NeverInterruptPolicy},
+    SharedError,
+  },
 };
 use embassy_sync::{
   blocking_mutex::raw::NoopRawMutex,

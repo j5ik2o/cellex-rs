@@ -69,5 +69,3 @@ pub mod concurrent;
 pub mod sync;
 /// Timing utilities for deadline management.
 pub mod timing;
-/// Next-generation APIs under development.
-pub mod v2;

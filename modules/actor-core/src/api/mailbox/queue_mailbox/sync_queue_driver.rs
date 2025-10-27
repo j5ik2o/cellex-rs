@@ -1,11 +1,13 @@
 use cellex_utils_core_rs::{
-  collections::{queue::QueueSize, Element},
-  sync::{shared::Shared, sync_mutex_like::SpinSyncMutex, ArcShared},
-  v2::collections::queue::{
-    backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
-    storage::VecRingStorage,
-    MpscQueue,
+  collections::{
+    queue::{
+      backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
+      storage::VecRingStorage,
+      MpscQueue, QueueSize,
+    },
+    Element,
   },
+  sync::{shared::Shared, sync_mutex_like::SpinSyncMutex, ArcShared},
 };
 use spin::Mutex;
 

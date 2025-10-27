@@ -1,9 +1,8 @@
 use core::marker::PhantomData;
 
 use cellex_utils_core_rs::{
-  collections::queue::priority::DEFAULT_PRIORITY,
+  collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY},
   sync::{shared::SharedBound, ArcShared},
-  v2::collections::queue::backend::QueueError,
 };
 
 use crate::{

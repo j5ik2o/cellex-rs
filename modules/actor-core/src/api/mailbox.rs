@@ -2,7 +2,7 @@
 
 use core::future::Future;
 
-use cellex_utils_core_rs::{collections::queue::QueueSize, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::collections::queue::{backend::QueueError, QueueSize};
 
 use crate::api::metrics::MetricsSinkShared;
 

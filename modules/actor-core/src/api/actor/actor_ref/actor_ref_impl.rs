@@ -1,12 +1,11 @@
 use core::{future::Future, marker::PhantomData};
 
 use cellex_utils_core_rs::{
-  collections::Element,
+  collections::{queue::backend::QueueError, Element},
   sync::{
     shared::{Shared, SharedBound},
     ArcShared,
   },
-  v2::collections::queue::backend::QueueError,
 };
 use spin::RwLock;
 

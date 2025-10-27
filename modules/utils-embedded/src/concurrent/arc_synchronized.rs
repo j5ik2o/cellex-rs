@@ -12,8 +12,10 @@ pub use arc_rw_lock_backend::{ArcCsSynchronizedRw, ArcLocalSynchronizedRw, ArcRw
 use async_trait::async_trait;
 use cellex_utils_core_rs::{
   concurrent::synchronized::{Synchronized as CoreSynchronized, SynchronizedMutexBackend},
-  sync::interrupt::{CriticalSectionInterruptPolicy, InterruptContextPolicy, NeverInterruptPolicy},
-  v2::sync::SharedError,
+  sync::{
+    interrupt::{CriticalSectionInterruptPolicy, InterruptContextPolicy, NeverInterruptPolicy},
+    SharedError,
+  },
 };
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},

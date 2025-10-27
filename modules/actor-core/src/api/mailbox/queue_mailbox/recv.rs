@@ -5,7 +5,7 @@ use core::{
   task::{Context, Poll},
 };
 
-use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
 use super::{base::QueueMailbox, driver::MailboxQueueDriver};
 use crate::{api::mailbox::MailboxError, shared::mailbox::MailboxSignal};

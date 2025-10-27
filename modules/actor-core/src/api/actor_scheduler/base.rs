@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 
 use super::ready_queue_scheduler::ReadyQueueWorker;
 use crate::{

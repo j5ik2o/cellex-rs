@@ -1,7 +1,9 @@
 use cellex_utils_core_rs::{
-  collections::Element,
+  collections::{
+    queue::backend::{OfferOutcome, QueueError},
+    Element,
+  },
   sync::shared::SharedBound,
-  v2::collections::queue::backend::{OfferOutcome, QueueError},
 };
 
 use crate::{

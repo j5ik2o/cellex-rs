@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, time::Duration};
 
-use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 use spin::RwLock;
 
 use crate::{

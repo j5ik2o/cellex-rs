@@ -9,9 +9,8 @@ use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
 use cellex_utils_core_rs::{
-  collections::queue::priority::DEFAULT_PRIORITY,
+  collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY},
   sync::{shared::Shared, ArcShared},
-  v2::collections::queue::backend::QueueError,
 };
 use futures::executor::block_on;
 use spin::RwLock;

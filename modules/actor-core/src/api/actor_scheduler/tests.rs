@@ -17,11 +17,14 @@ use std::{
 
 use cellex_utils_core_rs::{
   collections::{
-    queue::{priority::DEFAULT_PRIORITY, QueueSize},
+    queue::{
+      backend::{OverflowPolicy, QueueError},
+      priority::DEFAULT_PRIORITY,
+      QueueSize,
+    },
     Element,
   },
   sync::ArcShared,
-  v2::collections::queue::backend::{OverflowPolicy, QueueError},
 };
 use futures::{
   executor::{block_on, LocalPool},

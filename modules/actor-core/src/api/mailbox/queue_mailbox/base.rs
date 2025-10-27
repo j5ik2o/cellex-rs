@@ -1,6 +1,6 @@
-use cellex_utils_core_rs::{
-  collections::{queue::QueueSize, Element},
-  v2::collections::queue::backend::QueueError,
+use cellex_utils_core_rs::collections::{
+  queue::{backend::QueueError, QueueSize},
+  Element,
 };
 
 use super::{core::MailboxQueueCore, driver::MailboxQueueDriver, recv::QueueMailboxRecv};

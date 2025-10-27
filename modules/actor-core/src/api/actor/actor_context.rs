@@ -2,12 +2,14 @@ use alloc::boxed::Box;
 use core::{future::Future, marker::PhantomData, time::Duration};
 
 use cellex_utils_core_rs::{
-  collections::{queue::priority::DEFAULT_PRIORITY, Element},
+  collections::{
+    queue::{backend::QueueError, priority::DEFAULT_PRIORITY},
+    Element,
+  },
   sync::{
     shared::{SendBound, SharedBound},
     ArcShared,
   },
-  v2::collections::queue::backend::QueueError,
 };
 use spin::RwLock;
 

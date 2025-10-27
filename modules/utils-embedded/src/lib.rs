@@ -93,12 +93,12 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
+/// Collection utilities for embedded environments.
+#[cfg(feature = "embassy")]
+pub mod collections;
 /// Concurrency primitives specialized for embedded runtimes.
 pub mod concurrent;
 /// Synchronization and shared-state helpers for embedded systems.
 pub mod sync;
 /// Timer helpers for embedded environments.
 pub mod timing;
-/// v2 abstractions for embedded targets.
-#[cfg(feature = "embassy")]
-pub mod v2;

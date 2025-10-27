@@ -13,6 +13,8 @@ pub mod interrupt;
 mod rc_shared;
 /// Shared ownership utilities.
 pub mod shared;
+mod shared_access;
+mod shared_error;
 mod state;
 mod static_ref_shared;
 /// Synchronous mutex abstractions shared across runtimes.
@@ -22,5 +24,7 @@ pub use arc_shared::ArcShared;
 pub use flag::Flag;
 #[cfg(feature = "alloc")]
 pub use rc_shared::RcShared;
+pub use shared_access::SharedAccess;
+pub use shared_error::SharedError;
 pub use state::StateCell;
 pub use static_ref_shared::StaticRefShared;

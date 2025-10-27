@@ -2,8 +2,8 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use core::{convert::Infallible, marker::PhantomData};
 
 use cellex_utils_core_rs::{
+  collections::queue::backend::QueueError,
   sync::{shared::Shared, ArcShared},
-  v2::collections::queue::backend::QueueError,
 };
 use futures::{
   future::{select_all, LocalBoxFuture},

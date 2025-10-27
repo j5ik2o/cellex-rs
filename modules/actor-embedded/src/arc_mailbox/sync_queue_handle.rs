@@ -10,9 +10,12 @@ use cellex_actor_core_rs::api::{
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_core_rs::{
-  collections::{queue::QueueSize, Element},
-  v2::collections::queue::backend::{OfferOutcome, QueueError},
+use cellex_utils_core_rs::collections::{
+  queue::{
+    backend::{OfferOutcome, QueueError},
+    QueueSize,
+  },
+  Element,
 };
 
 pub struct ArcSyncQueueDriver<M, RM>

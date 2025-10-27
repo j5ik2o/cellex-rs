@@ -5,12 +5,9 @@ use cellex_actor_core_rs::{
   },
   shared::mailbox::MailboxOptions,
 };
-use cellex_utils_core_rs::{
-  collections::{
-    queue::{priority::DEFAULT_PRIORITY, QueueSize},
-    Element,
-  },
-  v2::collections::queue::backend::QueueError,
+use cellex_utils_core_rs::collections::{
+  queue::{backend::QueueError, priority::DEFAULT_PRIORITY, QueueSize},
+  Element,
 };
 
 use super::*;

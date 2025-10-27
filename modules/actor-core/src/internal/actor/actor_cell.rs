@@ -5,8 +5,8 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use core::{cell::RefCell, cmp::Reverse, marker::PhantomData};
 
 use cellex_utils_core_rs::{
+  collections::queue::backend::QueueError,
   sync::{shared::Shared, ArcShared},
-  v2::collections::queue::backend::QueueError,
 };
 
 use crate::{

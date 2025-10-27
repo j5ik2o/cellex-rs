@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 
 use cellex_utils_core_rs::{
+  collections::queue::backend::QueueError,
   sync::{shared::Shared, ArcShared},
-  v2::collections::queue::backend::QueueError,
 };
 use spin::RwLock;
 

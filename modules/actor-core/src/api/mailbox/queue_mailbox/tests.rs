@@ -8,9 +8,14 @@ use core::{
 };
 
 use cellex_utils_core_rs::{
-  collections::{queue::QueueSize, Element},
+  collections::{
+    queue::{
+      backend::{OfferOutcome, OverflowPolicy, QueueError},
+      QueueSize,
+    },
+    Element,
+  },
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
-  v2::collections::queue::backend::{OfferOutcome, OverflowPolicy, QueueError},
 };
 use futures::task::noop_waker_ref;
 

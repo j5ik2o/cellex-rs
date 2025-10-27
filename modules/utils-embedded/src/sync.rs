@@ -19,6 +19,11 @@
 /// `Arc`-based shared state implementations.
 #[cfg(feature = "arc")]
 pub mod arc;
+#[cfg(feature = "embassy")]
+mod embassy_support;
 /// `Rc`-based shared state implementations.
 #[cfg(feature = "rc")]
 pub mod rc;
+
+#[cfg(feature = "embassy")]
+pub use embassy_support::{EmbassyAsyncMutex, EmbassyAsyncMutexGuard};

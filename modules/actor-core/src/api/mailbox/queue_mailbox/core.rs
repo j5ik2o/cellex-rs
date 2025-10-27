@@ -1,7 +1,12 @@
 use cellex_utils_core_rs::{
-  collections::{queue::QueueSize, Element},
+  collections::{
+    queue::{
+      backend::{OfferOutcome, QueueError},
+      QueueSize,
+    },
+    Element,
+  },
   sync::Flag,
-  v2::collections::queue::backend::{OfferOutcome, QueueError},
 };
 
 use super::{MailboxQueueDriver, QueuePollOutcome};

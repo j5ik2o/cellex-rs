@@ -4,7 +4,7 @@ use cellex_actor_core_rs::api::{
   mailbox::{queue_mailbox::SyncQueueDriver, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
-use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
 use super::local_signal::LocalSignal;
 

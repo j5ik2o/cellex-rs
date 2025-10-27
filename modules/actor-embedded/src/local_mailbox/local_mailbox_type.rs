@@ -7,9 +7,9 @@ use cellex_actor_core_rs::api::{
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_core_rs::{
-  collections::{queue::QueueSize, Element},
-  v2::collections::queue::backend::QueueError,
+use cellex_utils_core_rs::collections::{
+  queue::{backend::QueueError, QueueSize},
+  Element,
 };
 
 use super::{

@@ -9,7 +9,10 @@ use cellex_actor_core_rs::{
   },
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
-use cellex_utils_core_rs::{collections::Element, sync::ArcShared, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::{
+  collections::{queue::backend::QueueError, Element},
+  sync::ArcShared,
+};
 use futures::future::select_all;
 use tokio::{
   signal,

@@ -1,5 +1,6 @@
 use cellex_utils_core_rs::{
-  collections::Element, sync::shared::SharedBound, v2::collections::queue::backend::QueueError,
+  collections::{queue::backend::QueueError, Element},
+  sync::shared::SharedBound,
 };
 
 use crate::{

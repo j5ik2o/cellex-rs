@@ -1,12 +1,12 @@
 use alloc::vec::Vec;
 
 use cellex_utils_core_rs::{
-  sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
-  v2::collections::queue::{
+  collections::queue::{
     backend::{OfferOutcome, OverflowPolicy, QueueError, VecRingBackend},
     storage::VecRingStorage,
     SharedVecRingQueue,
   },
+  sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
 };
 
 pub(crate) struct ReadyQueueState {

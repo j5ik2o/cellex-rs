@@ -5,10 +5,7 @@ use cellex_actor_core_rs::{
   api::mailbox::Mailbox,
   shared::mailbox::{MailboxHandle, MailboxOptions},
 };
-use cellex_utils_core_rs::{
-  collections::queue::{priority::DEFAULT_PRIORITY, QueueSize},
-  v2::collections::queue::backend::QueueError,
-};
+use cellex_utils_core_rs::collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY, QueueSize};
 use critical_section::{Impl, RawRestoreState};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 

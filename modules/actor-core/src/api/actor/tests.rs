@@ -23,7 +23,7 @@ use std::{
   sync::{Arc as StdArc, Mutex},
 };
 
-use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 #[cfg(feature = "json")]
 use {
   crate::api::extensions::{serializer_extension_id, SerializerRegistryExtension},

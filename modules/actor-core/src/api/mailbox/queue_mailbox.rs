@@ -50,7 +50,7 @@ impl Default for QueueDriverConfig {
 pub fn build_queue_driver<M>(config: QueueDriverConfig) -> DefaultQueueDriver<M>
 where
   M: Element, {
-  use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
+  use cellex_utils_core_rs::collections::queue::backend::OverflowPolicy;
 
   let policy = match config.overflow_policy {
     | MailboxOverflowPolicy::DropNewest => OverflowPolicy::DropNewest,

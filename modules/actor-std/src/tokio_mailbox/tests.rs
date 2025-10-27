@@ -7,7 +7,7 @@ use cellex_actor_core_rs::api::{
   mailbox::Mailbox,
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
 };
-use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
+use cellex_utils_core_rs::collections::queue::backend::QueueError;
 
 use super::*;
 

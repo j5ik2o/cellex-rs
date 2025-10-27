@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 
-use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 

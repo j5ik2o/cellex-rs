@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::v2::collections::queue::backend::QueueError;
+use cellex_utils_core_rs::collections::queue::backend::QueueError;
 
 use crate::{
   api::failure::FailureInfo,

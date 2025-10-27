@@ -13,9 +13,12 @@ use cellex_actor_core_rs::{
   },
   shared::mailbox::messages::PriorityEnvelope,
 };
-use cellex_utils_core_rs::{
-  collections::{queue::QueueSize, Element},
-  v2::collections::queue::backend::{OfferOutcome, QueueError},
+use cellex_utils_core_rs::collections::{
+  queue::{
+    backend::{OfferOutcome, QueueError},
+    QueueSize,
+  },
+  Element,
 };
 
 use super::priority_sync_driver::PrioritySyncQueueDriver;
