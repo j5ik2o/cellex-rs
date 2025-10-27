@@ -7,7 +7,10 @@ use cellex_actor_core_rs::api::{
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
+use cellex_utils_core_rs::{
+  collections::{queue::QueueSize, Element},
+  v2::collections::queue::backend::QueueError,
+};
 
 use super::{
   local_mailbox_factory::LocalMailboxFactory, local_mailbox_sender::LocalMailboxSender, local_signal::LocalSignal,

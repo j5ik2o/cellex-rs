@@ -9,7 +9,7 @@ use cellex_actor_core_rs::{
   },
   shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
 };
-use cellex_utils_core_rs::{sync::ArcShared, Element, QueueError};
+use cellex_utils_core_rs::{collections::Element, sync::ArcShared, v2::collections::queue::backend::QueueError};
 use futures::future::select_all;
 use tokio::{
   signal,
@@ -41,7 +41,7 @@ where
   #[must_use]
   pub fn start_local<AR>(runner: GenericActorSystemRunner<U, AR>) -> Self
   where
-    U: cellex_utils_std_rs::Element + 'static,
+    U: Element + 'static,
     AR: ActorRuntime + 'static,
     MailboxQueueOf<AR, PriorityEnvelope<AnyMessage>>: Clone,
     MailboxSignalOf<AR>: Clone, {

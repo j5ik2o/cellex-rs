@@ -2,13 +2,13 @@ use cellex_actor_core_rs::{
   api::{
     mailbox::{
       queue_mailbox::{QueueMailbox, QueueMailboxRecv},
-      Mailbox, MailboxError, MailboxOptions,
+      Mailbox, MailboxError,
     },
     metrics::MetricsSinkShared,
   },
-  shared::mailbox::messages::PriorityEnvelope,
+  shared::mailbox::{messages::PriorityEnvelope, MailboxOptions},
 };
-use cellex_utils_std_rs::{Element, QueueSize};
+use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 
 use super::{
   factory::TokioPriorityMailboxFactory,

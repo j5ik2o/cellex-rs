@@ -8,17 +8,20 @@ use core::{
 };
 
 use cellex_utils_core_rs::{
+  collections::{queue::QueueSize, Element},
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
-  v2::collections::queue::backend::{OfferOutcome, OverflowPolicy},
-  Element, QueueError, QueueSize,
+  v2::collections::queue::backend::{OfferOutcome, OverflowPolicy, QueueError},
 };
 use futures::task::noop_waker_ref;
 
 use super::{MailboxQueueDriver, QueueMailbox, QueuePollOutcome};
-use crate::api::{
-  mailbox::{queue_mailbox::SyncQueueDriver, Mailbox, MailboxError, MailboxOverflowPolicy, MailboxProducer},
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-  test_support::TestSignal,
+use crate::{
+  api::{
+    mailbox::{queue_mailbox::SyncQueueDriver, Mailbox, MailboxError, MailboxOverflowPolicy},
+    metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
+    test_support::TestSignal,
+  },
+  shared::mailbox::MailboxProducer,
 };
 
 struct ErrorDriver<M> {

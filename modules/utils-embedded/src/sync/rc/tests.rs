@@ -3,7 +3,7 @@ extern crate alloc;
 
 use alloc::rc::Rc;
 
-use cellex_utils_core_rs::{Shared, StateCell};
+use cellex_utils_core_rs::sync::{shared::Shared, StateCell};
 
 use super::*;
 

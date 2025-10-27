@@ -1,5 +1,5 @@
 #![allow(clippy::disallowed_types)]
-use cellex_utils_core_rs::{QueueBase, QueueReader, QueueWriter};
+use cellex_utils_core_rs::collections::queue::traits::{QueueBase, QueueReader, QueueWriter};
 
 use super::*;
 

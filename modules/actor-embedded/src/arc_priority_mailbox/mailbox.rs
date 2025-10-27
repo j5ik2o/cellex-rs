@@ -2,13 +2,16 @@ use cellex_actor_core_rs::{
   api::{
     mailbox::{
       queue_mailbox::{QueueMailbox, QueueMailboxRecv},
-      Mailbox, MailboxError, MailboxOptions,
+      Mailbox, MailboxError,
     },
     metrics::MetricsSinkShared,
   },
-  shared::mailbox::messages::PriorityEnvelope,
+  shared::mailbox::{messages::PriorityEnvelope, MailboxOptions},
 };
-use cellex_utils_embedded_rs::{Element, QueueError, QueueSize};
+use cellex_utils_core_rs::{
+  collections::{queue::QueueSize, Element},
+  v2::collections::queue::backend::QueueError,
+};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{

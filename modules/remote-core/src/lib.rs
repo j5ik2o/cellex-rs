@@ -63,13 +63,13 @@ use alloc::borrow::ToOwned;
 
 /// Encoding helpers bridging remote envelopes and the serialization layer.
 pub mod codec;
-/// Transport-layer envelope utilities.
-pub mod remote_envelope; // allow module_wiring::no_parent_reexport
+mod remote_envelope;
 
 use cellex_actor_core_rs::api::failure::{
   failure_event_stream::{FailureEventListener, FailureEventStream},
   FailureEvent, FailureInfo, FailureMetadata,
 };
+pub use remote_envelope::RemoteEnvelope;
 
 #[cfg(test)]
 mod tests;

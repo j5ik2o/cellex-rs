@@ -5,7 +5,7 @@ use cellex_actor_core_rs::{
   },
   shared::mailbox::messages::PriorityEnvelope,
 };
-use cellex_utils_std_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use super::{
   priority_sync_driver::{configure_metrics, PrioritySyncQueueDriver},

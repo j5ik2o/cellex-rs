@@ -16,18 +16,17 @@ use cellex_actor_core_rs::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },
 };
-use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::{sync::ArcShared, v2::collections::queue::backend::QueueError};
 use embassy_futures::yield_now;
 
 /// Embassy scheduler wrapper.
@@ -115,10 +114,7 @@ where
 
   fn on_escalation(
     &mut self,
-    handler: Box<
-      dyn FnMut(&FailureInfo) -> Result<(), cellex_utils_embedded_rs::QueueError<PriorityEnvelope<AnyMessage>>>
-        + 'static,
-    >,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static>,
   ) {
     ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
@@ -131,11 +127,11 @@ where
     self.inner.actor_count()
   }
 
-  fn drain_ready(&mut self) -> Result<bool, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<AnyMessage>>> {
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.drain_ready()
   }
 
-  async fn dispatch_next(&mut self) -> Result<(), cellex_utils_embedded_rs::QueueError<PriorityEnvelope<AnyMessage>>> {
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await?;
     yield_now().await;
     Ok(())

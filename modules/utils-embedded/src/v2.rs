@@ -4,7 +4,6 @@
 #[doc = "Collection utilities for v2 Embassy integrations."]
 pub mod collections;
 
-mod sync;
-
 #[cfg(feature = "embassy")]
-pub use sync::{EmbassyAsyncMutex, EmbassyAsyncMutexGuard};
+/// Synchronization primitives for v2 Embassy integrations.
+pub mod sync;

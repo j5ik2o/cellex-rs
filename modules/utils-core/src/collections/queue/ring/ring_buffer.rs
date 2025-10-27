@@ -57,7 +57,7 @@ impl<T> RingBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// # use cellex_utils_core_rs::RingBuffer;
+  /// # use cellex_utils_core_rs::collections::queue::ring::RingBuffer;
   /// let buffer = RingBuffer::<i32>::new(10);
   /// ```
   #[must_use]
@@ -76,7 +76,7 @@ impl<T> RingBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// # use cellex_utils_core_rs::RingBuffer;
+  /// # use cellex_utils_core_rs::collections::queue::ring::RingBuffer;
   /// let buffer = RingBuffer::<i32>::new(10).with_dynamic(false);
   /// ```
   #[must_use]
@@ -183,7 +183,7 @@ impl<T> QueueWriter<T> for RingBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// # use cellex_utils_core_rs::{QueueWriter, RingBuffer};
+  /// # use cellex_utils_core_rs::collections::queue::{ring::RingBuffer, traits::QueueWriter};
   /// let mut buffer = RingBuffer::new(2).with_dynamic(false);
   /// buffer.offer_mut(1).unwrap();
   /// buffer.offer_mut(2).unwrap();
@@ -216,7 +216,7 @@ impl<T> QueueReader<T> for RingBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// # use cellex_utils_core_rs::{QueueWriter, collections::queue::traits::QueueReader, RingBuffer};
+  /// # use cellex_utils_core_rs::collections::queue::{ring::RingBuffer, traits::{QueueReader, QueueWriter}};
   /// let mut buffer = RingBuffer::new(10);
   /// buffer.offer_mut(1).unwrap();
   /// buffer.offer_mut(2).unwrap();
@@ -254,7 +254,7 @@ impl<T> Default for RingBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// # use cellex_utils_core_rs::RingBuffer;
+  /// # use cellex_utils_core_rs::collections::queue::ring::RingBuffer;
   /// let buffer = RingBuffer::<i32>::default();
   /// ```
   fn default() -> Self {

@@ -2,12 +2,19 @@
 mod tests;
 
 use cellex_utils_core_rs::{
-  Element, MpscBuffer, MpscQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter,
-  RingBufferBackend,
+  collections::{
+    queue::{
+      mpsc::{MpscBuffer, MpscQueue, RingBufferBackend},
+      traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+      QueueSize,
+    },
+    Element,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
 
-use crate::sync::{ArcShared, ArcStateCell};
+use crate::sync::arc::{ArcShared, ArcStateCell};
 
 /// `Arc`-based unbounded MPSC queue with configurable mutex backend
 ///

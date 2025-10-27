@@ -1,5 +1,8 @@
-use cellex_actor_core_rs::api::mailbox::{queue_mailbox::QueueMailbox, MailboxOptions};
-use cellex_utils_std_rs::{Element, QueueSize, DEFAULT_CAPACITY, PRIORITY_LEVELS};
+use cellex_actor_core_rs::{api::mailbox::queue_mailbox::QueueMailbox, shared::mailbox::MailboxOptions};
+use cellex_utils_core_rs::collections::{
+  queue::{priority::PRIORITY_LEVELS, ring::DEFAULT_CAPACITY, QueueSize},
+  Element,
+};
 
 use super::{
   mailbox::TokioPriorityMailbox, priority_sync_driver::PrioritySyncQueueDriver, sender::TokioPriorityMailboxSender,

@@ -29,10 +29,13 @@ use cellex_actor_core_rs::{
   },
   shared::supervision::EscalationSink,
 };
-use cellex_actor_std_rs::FailureEventHub;
+use cellex_actor_std_rs::failure_event_hub::FailureEventHub;
 use cellex_remote_core_rs::RemoteFailureNotifier;
 use cellex_serialization_core_rs::{
-  impl_type_key, InMemorySerializerRegistry, SerializationRouter, SerializedMessage, TypeBindingRegistry, TypeKey,
+  impl_type_key,
+  message::SerializedMessage,
+  routing::{SerializationRouter, TypeBindingRegistry},
+  InMemorySerializerRegistry, TypeKey,
 };
 use cellex_serialization_json_rs::{shared_json_serializer, SerdeJsonSerializer, SERDE_JSON_SERIALIZER_ID};
 use serde::{Deserialize, Serialize};

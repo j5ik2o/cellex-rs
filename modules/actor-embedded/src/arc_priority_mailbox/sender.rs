@@ -5,7 +5,7 @@ use cellex_actor_core_rs::{
   },
   shared::mailbox::messages::PriorityEnvelope,
 };
-use cellex_utils_embedded_rs::{Element, QueueError};
+use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::priority_sync_handle::ArcPrioritySyncQueueDriver;

@@ -1,7 +1,11 @@
 use std::cell::RefCell;
 
 use cellex_utils_core_rs::{
-  collections::queue::ring::ArcSharedRingQueue, sync::RcShared, QueueRw, RingBuffer, RingQueue, RingStorageBackend,
+  collections::queue::{
+    ring::{ArcSharedRingQueue, RingBuffer, RingQueue, RingStorageBackend},
+    traits::QueueRw,
+  },
+  sync::RcShared,
 };
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 

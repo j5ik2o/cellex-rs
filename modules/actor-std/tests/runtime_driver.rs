@@ -6,7 +6,9 @@ use cellex_actor_core_rs::api::{
   actor_system::{GenericActorSystem, GenericActorSystemConfig},
   failure::failure_event_stream::FailureEventStream,
 };
-use cellex_actor_std_rs::{tokio_actor_runtime, FailureEventHub, TokioActorRuntime, TokioSystemHandle};
+use cellex_actor_std_rs::{
+  failure_event_hub::FailureEventHub, tokio_actor_runtime, TokioActorRuntime, TokioSystemHandle,
+};
 
 async fn run_tokio_actor_system_processes_messages(worker_count: NonZeroUsize) {
   let failure_hub = FailureEventHub::new();

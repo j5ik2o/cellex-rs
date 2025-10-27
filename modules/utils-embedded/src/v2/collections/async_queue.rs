@@ -5,11 +5,10 @@ use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use async_trait::async_trait;
 use cellex_utils_core_rs::{
-  collections::queue::QueueError,
   sync::ArcShared,
   v2::collections::{
     queue::{
-      backend::{AsyncQueueBackend, OfferOutcome},
+      backend::{AsyncQueueBackend, OfferOutcome, QueueError},
       capabilities::MultiProducer,
       type_keys::MpscKey,
       AsyncQueue,
@@ -22,7 +21,7 @@ use embassy_sync::{
   channel::{Channel, TryReceiveError, TrySendError},
 };
 
-use crate::v2::EmbassyAsyncMutex;
+use crate::v2::sync::EmbassyAsyncMutex;
 
 #[cfg(all(feature = "embassy", test, not(target_os = "none")))]
 mod tests;

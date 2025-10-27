@@ -23,7 +23,7 @@ use std::{
   sync::{Arc as StdArc, Mutex},
 };
 
-use cellex_utils_core_rs::{Element, QueueError};
+use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
 #[cfg(feature = "json")]
 use {
   crate::api::extensions::{serializer_extension_id, SerializerRegistryExtension},
@@ -39,10 +39,11 @@ use super::{
 use crate::{
   api::{
     actor::{
-      actor_context::{ActorContext, MessageAdapterRef},
+      actor_context::ActorContext,
       actor_ref::ActorRef,
       ask::{ask_with_timeout, AskError},
       behavior::{Behavior, Behaviors},
+      message_adapter_ref::MessageAdapterRef,
       props::Props,
       signal::Signal,
       ActorId,
@@ -50,13 +51,13 @@ use crate::{
     actor_runtime::{ActorRuntime, GenericActorRuntime, MailboxQueueOf, MailboxSignalOf},
     actor_system::{GenericActorSystem, GenericActorSystemConfig},
     extensions::{next_extension_id, Extension, ExtensionId},
-    mailbox::{messages::SystemMessage, MailboxFactory},
+    mailbox::messages::SystemMessage,
     messaging::{MessageMetadata, MessageSender},
     test_support::TestMailboxFactory,
   },
   internal::message::InternalMessageSender,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
@@ -1100,12 +1101,11 @@ mod metrics_injection {
       actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
       actor_system::{GenericActorSystem, GenericActorSystemConfig},
       failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-      mailbox::MailboxFactory,
       metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
       supervision::supervisor::Supervisor,
       test_support::TestMailboxFactory,
     },
-    shared::{messaging::AnyMessage, supervision::FailureEventHandler},
+    shared::{mailbox::MailboxFactory, messaging::AnyMessage, supervision::FailureEventHandler},
   };
 
   #[derive(Clone)]

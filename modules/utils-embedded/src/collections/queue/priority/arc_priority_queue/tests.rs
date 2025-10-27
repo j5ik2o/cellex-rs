@@ -1,5 +1,5 @@
 #![allow(clippy::disallowed_types)]
-use cellex_utils_core_rs::{QueueBase, QueueRw};
+use cellex_utils_core_rs::collections::queue::traits::{QueueBase, QueueRw};
 
 use super::*;
 use crate::tests::init_arc_critical_section;

@@ -1,12 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
 use cellex_utils_core_rs::{
-  sync::{sync_mutex_like::SpinSyncMutex, ArcShared, Shared},
+  collections::stack::{
+    traits::{StackHandle, StackStorage, StackStorageBackend},
+    Stack as LegacyStack, StackBuffer,
+  },
+  sync::{shared::Shared, sync_mutex_like::SpinSyncMutex, ArcShared},
   v2::collections::stack::{
     backend::{StackOverflowPolicy, VecStackBackend},
-    SharedVecStack, VecStackStorage,
+    storage::VecStackStorage,
+    SharedVecStack,
   },
-  Stack as LegacyStack, StackBuffer, StackHandle, StackStorage, StackStorageBackend,
 };
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 

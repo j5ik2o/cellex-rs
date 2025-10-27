@@ -1,6 +1,6 @@
 use core::{future::Ready, time::Duration};
 
-use cellex_actor_core_rs::api::actor_system::Timer;
+use cellex_actor_core_rs::api::actor::Timer;
 
 #[cfg(test)]
 mod tests;

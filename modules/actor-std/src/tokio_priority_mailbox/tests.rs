@@ -1,8 +1,17 @@
-use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{MailboxQueueDriver, QueuePollOutcome},
-  Mailbox, MailboxOptions,
+use cellex_actor_core_rs::{
+  api::mailbox::{
+    queue_mailbox::{MailboxQueueDriver, QueuePollOutcome},
+    Mailbox,
+  },
+  shared::mailbox::MailboxOptions,
 };
-use cellex_utils_std_rs::{Element, QueueError, QueueSize, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{
+  collections::{
+    queue::{priority::DEFAULT_PRIORITY, QueueSize},
+    Element,
+  },
+  v2::collections::queue::backend::QueueError,
+};
 
 use super::*;
 

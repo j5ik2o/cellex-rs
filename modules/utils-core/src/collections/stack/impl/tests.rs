@@ -11,7 +11,7 @@ use crate::{
     buffer::StackBuffer,
     traits::{StackHandle, StackStorage, StackStorageBackend},
   },
-  sync::Shared,
+  sync::shared::Shared,
 };
 
 struct RcStorageHandle<T>(Rc<RefCell<StackBuffer<T>>>);

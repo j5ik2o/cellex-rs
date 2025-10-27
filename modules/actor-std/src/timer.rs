@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use cellex_actor_core_rs::api::actor_system::Timer;
+use cellex_actor_core_rs::api::actor::Timer;
 use tokio::time::Sleep;
 
 /// Tokio-backed timer implementation.

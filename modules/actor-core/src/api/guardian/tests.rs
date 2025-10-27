@@ -19,15 +19,12 @@ use crate::{
       actor_ref::PriorityActorRef,
       ActorId, ActorPath, ChildNaming, SpawnError,
     },
-    mailbox::{
-      messages::{PriorityChannel, SystemMessage},
-      MailboxFactory,
-    },
+    mailbox::messages::{PriorityChannel, SystemMessage},
     supervision::supervisor::SupervisorDirective,
     test_support::TestMailboxFactory,
   },
   shared::{
-    mailbox::{handle::MailboxHandle, messages::PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxHandle},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };

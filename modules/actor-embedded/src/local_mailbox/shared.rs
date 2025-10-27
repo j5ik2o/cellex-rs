@@ -1,10 +1,10 @@
 use core::task::Waker;
 
+use cellex_utils_core_rs::sync::StateCell;
 #[cfg(not(feature = "embedded_rc"))]
-use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+use cellex_utils_embedded_rs::sync::arc::ArcLocalStateCell;
 #[cfg(feature = "embedded_rc")]
-use cellex_utils_embedded_rs::sync::RcStateCell;
-use cellex_utils_embedded_rs::StateCell;
+use cellex_utils_embedded_rs::sync::rc::RcStateCell;
 
 #[cfg(feature = "embedded_rc")]
 pub(super) type SignalCell = RcStateCell<SignalState>;

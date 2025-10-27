@@ -7,15 +7,13 @@ use core::cell::RefCell;
 
 use super::{PriorityMessage, PriorityQueue};
 use crate::{
-  collections::{
-    queue::{
-      mpsc::{MpscBuffer, MpscHandle, MpscQueue, RingBufferBackend},
-      traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
-    },
+  collections::queue::{
+    mpsc::{traits::MpscHandle, MpscBuffer, MpscQueue, RingBufferBackend},
+    traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
     QueueSize,
   },
-  sync::Shared,
-  QueueError,
+  sync::shared::Shared,
+  v2::collections::queue::backend::QueueError,
 };
 
 #[derive(Debug, Clone)]

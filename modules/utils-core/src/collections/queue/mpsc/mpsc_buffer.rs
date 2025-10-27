@@ -16,7 +16,7 @@ use crate::{collections::queue::QueueSize, v2::collections::queue::backend::Queu
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_core_rs::MpscBuffer;
+/// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
 ///
 /// let mut buffer = MpscBuffer::new(Some(10));
 /// assert!(buffer.offer(42).is_ok());
@@ -43,7 +43,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::MpscBuffer;
+  /// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
   ///
   /// // Bounded buffer with capacity 10
   /// let bounded = MpscBuffer::<i32>::new(Some(10));
@@ -66,7 +66,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::MpscBuffer;
+  /// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
   ///
   /// let mut buffer = MpscBuffer::new(Some(10));
   /// buffer.offer(1).unwrap();
@@ -87,7 +87,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::MpscBuffer;
+  /// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
   ///
   /// let bounded = MpscBuffer::<i32>::new(Some(10));
   /// assert_eq!(bounded.capacity().to_usize(), 10);
@@ -114,7 +114,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::MpscBuffer;
+  /// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
   ///
   /// let mut buffer = MpscBuffer::new(Some(10));
   /// buffer.offer(1).unwrap();
@@ -156,7 +156,9 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::{v2::collections::queue::backend::QueueError, MpscBuffer};
+  /// use cellex_utils_core_rs::{
+  ///   collections::queue::mpsc::MpscBuffer, v2::collections::queue::backend::QueueError,
+  /// };
   ///
   /// let mut buffer = MpscBuffer::new(Some(2));
   /// assert!(buffer.offer(1).is_ok());
@@ -193,7 +195,9 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::{v2::collections::queue::backend::QueueError, MpscBuffer};
+  /// use cellex_utils_core_rs::{
+  ///   collections::queue::mpsc::MpscBuffer, v2::collections::queue::backend::QueueError,
+  /// };
   ///
   /// let mut buffer = MpscBuffer::new(Some(10));
   /// buffer.offer(42).unwrap();
@@ -222,7 +226,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::MpscBuffer;
+  /// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
   ///
   /// let mut buffer = MpscBuffer::new(Some(10));
   /// buffer.offer(1).unwrap();
@@ -246,7 +250,7 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::MpscBuffer;
+  /// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
   ///
   /// let mut buffer = MpscBuffer::<i32>::new(Some(10));
   /// assert!(!buffer.is_closed());
@@ -266,7 +270,9 @@ impl<T> MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::{v2::collections::queue::backend::QueueError, MpscBuffer};
+  /// use cellex_utils_core_rs::{
+  ///   collections::queue::mpsc::MpscBuffer, v2::collections::queue::backend::QueueError,
+  /// };
   ///
   /// let mut buffer = MpscBuffer::new(Some(10));
   /// buffer.offer(1).unwrap();
@@ -293,7 +299,7 @@ impl<T> Default for MpscBuffer<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::MpscBuffer;
+  /// use cellex_utils_core_rs::collections::queue::mpsc::MpscBuffer;
   ///
   /// let buffer: MpscBuffer<i32> = Default::default();
   /// assert!(buffer.capacity().is_limitless());

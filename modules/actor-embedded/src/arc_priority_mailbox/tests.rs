@@ -1,9 +1,14 @@
 #![allow(clippy::disallowed_types)]
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use cellex_actor_core_rs::api::mailbox::{Mailbox, MailboxHandle, MailboxOptions};
-use cellex_utils_core_rs::QueueError;
-use cellex_utils_embedded_rs::{QueueSize, DEFAULT_PRIORITY};
+use cellex_actor_core_rs::{
+  api::mailbox::Mailbox,
+  shared::mailbox::{MailboxHandle, MailboxOptions},
+};
+use cellex_utils_core_rs::{
+  collections::queue::{priority::DEFAULT_PRIORITY, QueueSize},
+  v2::collections::queue::backend::QueueError,
+};
 use critical_section::{Impl, RawRestoreState};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 

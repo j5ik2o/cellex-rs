@@ -7,7 +7,15 @@ use alloc::sync::Arc;
 
 pub use arc_state_cell::{ArcCsStateCell, ArcLocalStateCell, ArcStateCell};
 use cellex_utils_core_rs::{
-  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, Shared, StackBackend, StackHandle,
+  collections::{
+    queue::{
+      mpsc::traits::{MpscBackend, MpscHandle},
+      ring::{RingBackend, RingHandle},
+      traits::{QueueHandle, QueueStorage},
+    },
+    stack::traits::{StackBackend, StackHandle},
+  },
+  sync::shared::Shared,
 };
 
 /// `Arc`-based shared reference type for embedded environments.
@@ -19,7 +27,7 @@ use cellex_utils_core_rs::{
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::sync::ArcShared;
+/// use cellex_utils_embedded_rs::sync::arc::ArcShared;
 ///
 /// let shared = ArcShared::new(42);
 /// let clone = shared.clone();
@@ -43,7 +51,7 @@ where
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcShared;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcShared;
   ///
   /// let shared = ArcShared::new(42);
   /// assert_eq!(*shared, 42);
@@ -63,7 +71,7 @@ impl<T: ?Sized> ArcShared<T> {
   /// ```
   /// use alloc::sync::Arc;
   ///
-  /// use cellex_utils_embedded_rs::sync::ArcShared;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcShared;
   ///
   /// let arc = Arc::new(42);
   /// let shared = ArcShared::from_arc(arc);
@@ -78,7 +86,7 @@ impl<T: ?Sized> ArcShared<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcShared;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcShared;
   ///
   /// let shared = ArcShared::new(42);
   /// let arc = shared.into_arc();

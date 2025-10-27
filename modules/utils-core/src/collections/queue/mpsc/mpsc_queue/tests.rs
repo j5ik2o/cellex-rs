@@ -7,7 +7,7 @@ use core::{cell::RefCell, fmt};
 
 use crate::{
   collections::queue::mpsc::{mpsc_backend::RingBufferBackend, traits::MpscHandle, MpscBuffer, MpscQueue},
-  QueueError,
+  v2::collections::queue::backend::QueueError,
 };
 
 struct RcBackendHandle<T>(Rc<RingBufferBackend<RefCell<MpscBuffer<T>>>>);
@@ -40,7 +40,7 @@ impl<T> core::ops::Deref for RcBackendHandle<T> {
   }
 }
 
-impl<T> crate::sync::Shared<RingBufferBackend<RefCell<MpscBuffer<T>>>> for RcBackendHandle<T> {}
+impl<T> crate::sync::shared::Shared<RingBufferBackend<RefCell<MpscBuffer<T>>>> for RcBackendHandle<T> {}
 
 impl<T> MpscHandle<T> for RcBackendHandle<T> {
   type Backend = RingBufferBackend<RefCell<MpscBuffer<T>>>;

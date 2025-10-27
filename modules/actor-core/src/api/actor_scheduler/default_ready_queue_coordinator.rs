@@ -14,6 +14,7 @@ use spin::Mutex;
 use super::ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator};
 
 /// Internal state for the coordinator
+#[allow(dead_code)]
 struct CoordinatorState {
   queue:          VecDeque<MailboxIndex>,
   queued:         BTreeSet<MailboxIndex>,
@@ -30,6 +31,7 @@ struct CoordinatorState {
 /// - Use DashSet for lock-free duplicate detection
 /// - Use MPSC channel for signal notification
 /// - Minimize critical section duration
+#[allow(dead_code)]
 pub struct DefaultReadyQueueCoordinator {
   state:      Mutex<CoordinatorState>,
   throughput: usize,

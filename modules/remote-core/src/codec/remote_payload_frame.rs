@@ -1,5 +1,5 @@
 use cellex_actor_core_rs::api::mailbox::messages::SystemMessage;
-use cellex_serialization_core_rs::SerializedMessage;
+use cellex_serialization_core_rs::message::SerializedMessage;
 
 /// Payload variants for remote transport.
 #[derive(Debug, Clone, PartialEq, Eq)]

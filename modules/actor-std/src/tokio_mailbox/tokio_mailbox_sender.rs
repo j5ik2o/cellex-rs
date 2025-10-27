@@ -5,7 +5,7 @@ use cellex_actor_core_rs::api::{
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_std_rs::{Element, QueueError};
+use cellex_utils_core_rs::{collections::Element, v2::collections::queue::backend::QueueError};
 
 use super::notify_signal::NotifySignal;
 

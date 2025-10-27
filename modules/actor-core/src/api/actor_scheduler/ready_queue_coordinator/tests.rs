@@ -4,7 +4,9 @@ use alloc::{string::ToString, vec::Vec};
 use core::time::Duration;
 
 use super::*;
-use crate::api::actor_scheduler::default_ready_queue_coordinator::DefaultReadyQueueCoordinator;
+use crate::{
+  api::actor_scheduler::default_ready_queue_coordinator::DefaultReadyQueueCoordinator, shared::mailbox::MailboxOptions,
+};
 
 #[test]
 fn test_register_ready_basic() {
@@ -192,8 +194,11 @@ fn test_invoke_result_variants() {
 
 #[test]
 fn test_mailbox_options_default() {
+  use cellex_utils_core_rs::collections::queue::QueueSize;
+
   let options = MailboxOptions::default();
-  assert_eq!(options.capacity.get(), 1000);
-  assert_eq!(options.overflow, OverflowStrategy::DropOldest);
-  assert_eq!(options.reserve_for_system, 10);
+  assert_eq!(options.capacity, QueueSize::limitless());
+  assert_eq!(options.priority_capacity, QueueSize::limitless());
+  assert_eq!(options.capacity_limit(), None);
+  assert_eq!(options.priority_capacity_limit(), None);
 }

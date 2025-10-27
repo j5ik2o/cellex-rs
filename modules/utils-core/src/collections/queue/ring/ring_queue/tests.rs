@@ -35,7 +35,7 @@ impl<E> QueueHandle<E> for RcStorageHandle<E> {
   }
 }
 
-impl<E> crate::sync::Shared<RefCell<RingBuffer<E>>> for RcStorageHandle<E> {}
+impl<E> crate::sync::shared::Shared<RefCell<RingBuffer<E>>> for RcStorageHandle<E> {}
 
 struct RcBackendHandle<E>(Rc<RingStorageBackend<RcStorageHandle<E>>>);
 
@@ -53,7 +53,7 @@ impl<E> core::ops::Deref for RcBackendHandle<E> {
   }
 }
 
-impl<E> crate::sync::Shared<RingStorageBackend<RcStorageHandle<E>>> for RcBackendHandle<E> {}
+impl<E> crate::sync::shared::Shared<RingStorageBackend<RcStorageHandle<E>>> for RcBackendHandle<E> {}
 
 impl<E> RingHandle<E> for RcBackendHandle<E> {
   type Backend = RingStorageBackend<RcStorageHandle<E>>;

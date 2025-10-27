@@ -15,9 +15,9 @@ use alloc_cortex_m::CortexMHeap;
 use cellex_actor_core_rs::{ActorSystem, Behaviors, Props};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cellex_actor_embedded_rs::ArcMailboxFactory;
+use cellex_utils_core_rs::sync::StateCell;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
-use cellex_utils_embedded_rs::sync::ArcCsStateCell;
-use cellex_utils_embedded_rs::StateCell;
+use cellex_utils_embedded_rs::sync::arc::ArcCsStateCell;
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]
 use cortex_m::{asm, interrupt};
 #[cfg(all(target_arch = "arm", target_os = "none", feature = "rp2350-board"))]

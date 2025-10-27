@@ -16,7 +16,12 @@ use std::{
 };
 
 use cellex_utils_core_rs::{
-  sync::ArcShared, v2::collections::queue::backend::OverflowPolicy, Element, QueueError, QueueSize, DEFAULT_PRIORITY,
+  collections::{
+    queue::{priority::DEFAULT_PRIORITY, QueueSize},
+    Element,
+  },
+  sync::ArcShared,
+  v2::collections::queue::backend::{OverflowPolicy, QueueError},
 };
 use futures::{
   executor::{block_on, LocalPool},
@@ -44,7 +49,7 @@ use crate::{
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
       queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
-      Mailbox, MailboxFactory, MailboxOptions, QueueMailboxProducer, ThreadSafe,
+      Mailbox, QueueMailboxProducer, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::{
@@ -55,7 +60,9 @@ use crate::{
     test_support::{TestMailboxFactory, TestSignal},
   },
   shared::{
-    mailbox::{factory::MailboxPair, handle::MailboxHandle, messages::PriorityEnvelope, producer::MailboxProducer},
+    mailbox::{
+      messages::PriorityEnvelope, MailboxFactory, MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer,
+    },
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
     supervision::FailureEventHandler,
   },
@@ -154,7 +161,7 @@ where
 {
   type Signal = TestSignal;
 
-  fn signal(&self) -> Self::Signal {
+  fn signal(&self) -> <Self as MailboxHandle<M>>::Signal {
     self.inner.signal().clone()
   }
 

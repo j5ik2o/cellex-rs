@@ -8,7 +8,7 @@ use cellex_actor_core_rs::api::{
   actor_runtime::GenericActorRuntime,
   actor_system::{GenericActorSystem, GenericActorSystemConfig},
 };
-use cellex_actor_std_rs::TokioMailboxFactory;
+use cellex_actor_std_rs::tokio_mailbox::TokioMailboxFactory;
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Clone, Debug)]

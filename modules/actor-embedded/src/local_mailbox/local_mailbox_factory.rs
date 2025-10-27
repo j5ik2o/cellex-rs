@@ -4,11 +4,14 @@ use core::marker::PhantomData;
 use cellex_actor_core_rs::api::mailbox::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
-use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
-  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer,
+use cellex_actor_core_rs::{
+  api::mailbox::{
+    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+    QueueMailboxProducer,
+  },
+  shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
-use cellex_utils_embedded_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use super::{local_mailbox_sender::LocalMailboxSender, local_mailbox_type::LocalMailbox, local_signal::LocalSignal};
 

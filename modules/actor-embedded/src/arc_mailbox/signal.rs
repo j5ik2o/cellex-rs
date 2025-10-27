@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
-use cellex_actor_core_rs::api::mailbox::MailboxSignal;
-use cellex_utils_embedded_rs::sync::ArcShared;
+use cellex_actor_core_rs::shared::mailbox::MailboxSignal;
+use cellex_utils_embedded_rs::sync::arc::ArcShared;
 use embassy_sync::{blocking_mutex::raw::RawMutex, signal::Signal};
 
 use super::signal_wait::ArcSignalWait;

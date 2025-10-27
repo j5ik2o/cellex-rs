@@ -10,8 +10,8 @@ use crate::{
   sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
   v2::{
     collections::stack::{
-      backend::{PushOutcome, StackError, SyncAdapterStackBackend, VecStackBackend},
-      StackOverflowPolicy, VecStackStorage,
+      backend::{PushOutcome, StackError, StackOverflowPolicy, SyncAdapterStackBackend, VecStackBackend},
+      storage::VecStackStorage,
     },
     sync::SharedError,
   },

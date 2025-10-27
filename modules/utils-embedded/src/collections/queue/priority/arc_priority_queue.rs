@@ -4,7 +4,12 @@ mod tests;
 use alloc::vec::Vec;
 
 use cellex_utils_core_rs::{
-  PriorityMessage, PriorityQueue, QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, PRIORITY_LEVELS,
+  collections::queue::{
+    priority::{PriorityMessage, PriorityQueue, PRIORITY_LEVELS},
+    traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+    QueueSize,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
 

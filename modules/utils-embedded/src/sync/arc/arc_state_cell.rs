@@ -2,7 +2,14 @@
 
 use alloc::sync::Arc;
 
-use cellex_utils_core_rs::{MpscBuffer, QueueStorage, RingBuffer, RingBufferStorage, StateCell};
+use cellex_utils_core_rs::{
+  collections::queue::{
+    mpsc::MpscBuffer,
+    ring::{RingBuffer, RingBufferStorage},
+    traits::QueueStorage,
+  },
+  sync::StateCell,
+};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex},
   mutex::{Mutex, MutexGuard},
@@ -25,7 +32,7 @@ use embassy_sync::{
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+/// use cellex_utils_embedded_rs::sync::arc::ArcLocalStateCell;
 ///
 /// let cell = ArcLocalStateCell::new(0);
 /// let clone = cell.clone();
@@ -61,7 +68,7 @@ where
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcLocalStateCell;
   ///
   /// let cell = ArcLocalStateCell::new(42);
   /// assert_eq!(*cell.borrow(), 42);
@@ -79,7 +86,7 @@ where
   /// ```
   /// use alloc::sync::Arc;
   ///
-  /// use cellex_utils_embedded_rs::sync::ArcStateCell;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcStateCell;
   /// use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
   ///
   /// let arc = Arc::new(Mutex::<NoopRawMutex, _>::new(42));
@@ -95,7 +102,7 @@ where
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcLocalStateCell;
   ///
   /// let cell = ArcLocalStateCell::new(42);
   /// let arc = cell.into_arc();

@@ -5,7 +5,10 @@ use cellex_actor_core_rs::api::{
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_std_rs::{Element, QueueError, QueueSize};
+use cellex_utils_core_rs::{
+  collections::{queue::QueueSize, Element},
+  v2::collections::queue::backend::QueueError,
+};
 
 use super::{
   notify_signal::NotifySignal, tokio_mailbox_factory::TokioMailboxFactory, tokio_mailbox_sender::TokioMailboxSender,

@@ -2,12 +2,16 @@
 mod tests;
 
 use cellex_utils_core_rs::{
-  QueueBase, QueueError, QueueReader, QueueRw, QueueSize, QueueWriter, RingBuffer, RingQueue, RingStorageBackend,
-  DEFAULT_CAPACITY,
+  collections::queue::{
+    ring::{RingBuffer, RingQueue, RingStorageBackend, DEFAULT_CAPACITY},
+    traits::{QueueBase, QueueReader, QueueRw, QueueWriter},
+    QueueSize,
+  },
+  v2::collections::queue::backend::QueueError,
 };
 use embassy_sync::blocking_mutex::raw::{NoopRawMutex, RawMutex};
 
-use crate::sync::{ArcShared, ArcStateCell};
+use crate::sync::arc::{ArcShared, ArcStateCell};
 
 /// `Arc`-based ring queue with configurable mutex backend
 ///

@@ -6,7 +6,7 @@ use crate::{
   v2::{
     collections::stack::{
       backend::{PushOutcome, StackError, StackOverflowPolicy, VecStackBackend},
-      VecStackStorage,
+      storage::VecStackStorage,
     },
     sync::SharedError,
   },

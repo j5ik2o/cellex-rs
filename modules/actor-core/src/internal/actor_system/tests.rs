@@ -22,7 +22,7 @@ use crate::{
     actor::ActorPath,
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     guardian::AlwaysRestart,
-    mailbox::{messages::SystemMessage, MailboxOptions},
+    mailbox::messages::SystemMessage,
     messaging::MessageMetadata,
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
@@ -33,7 +33,7 @@ use crate::{
   },
   internal::actor::InternalProps,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxOptions},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };

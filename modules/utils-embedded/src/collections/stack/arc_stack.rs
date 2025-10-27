@@ -1,9 +1,16 @@
 use cellex_utils_core_rs::{
-  QueueSize, Stack, StackBase, StackBuffer, StackError, StackMut, StackStorage, StackStorageBackend, StateCell,
+  collections::{
+    queue::QueueSize,
+    stack::{
+      traits::{StackBase, StackMut, StackStorage, StackStorageBackend},
+      Stack, StackBuffer, StackError,
+    },
+  },
+  sync::StateCell,
 };
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex};
 
-use crate::sync::{ArcShared, ArcStateCell};
+use crate::sync::arc::{ArcShared, ArcStateCell};
 
 #[cfg(test)]
 mod tests;

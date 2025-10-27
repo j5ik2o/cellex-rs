@@ -1,10 +1,13 @@
 use core::marker::PhantomData;
 
-use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox},
-  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer, ThreadSafe,
+use cellex_actor_core_rs::{
+  api::mailbox::{
+    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox},
+    QueueMailboxProducer, ThreadSafe,
+  },
+  shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
-use cellex_utils_embedded_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{

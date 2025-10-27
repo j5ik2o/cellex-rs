@@ -5,6 +5,7 @@ use core::num::NonZeroUsize;
 use super::OverflowStrategy;
 
 /// Mailbox configuration options
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct MailboxOptions {
   /// Maximum capacity (must be non-zero)

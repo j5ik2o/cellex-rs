@@ -10,12 +10,11 @@ use crate::{
   sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared},
   v2::{
     collections::queue::{
-      backend::{OfferOutcome, OverflowPolicy, SyncAdapterQueueBackend, VecRingBackend},
-      VecRingStorage,
+      backend::{OfferOutcome, OverflowPolicy, QueueError, SyncAdapterQueueBackend, VecRingBackend},
+      storage::VecRingStorage,
     },
     sync::SharedError,
   },
-  QueueError,
 };
 
 fn raw_waker() -> RawWaker {
