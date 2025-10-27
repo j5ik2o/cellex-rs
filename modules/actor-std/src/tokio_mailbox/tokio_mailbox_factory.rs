@@ -1,12 +1,16 @@
 use cellex_actor_core_rs::{
-  api::mailbox::queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+  api::mailbox::queue_mailbox::{
+    build_queue_driver, QueueDriverConfig, QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue,
+  },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
 use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 
 use super::{notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender};
 
-type TokioQueueDriver<M> = SyncQueueDriver<M>;
+type TokioQueueDriver<M> = SyncMailboxQueue<M>;
+type TokioMailboxInner<M> = SyncMailbox<M, NotifySignal>;
+type TokioMailboxProducer<M> = SyncMailboxProducer<M, NotifySignal>;
 
 /// Factory that creates Tokio mailboxes.
 ///
@@ -60,11 +64,11 @@ impl TokioMailboxFactory {
 impl MailboxFactory for TokioMailboxFactory {
   type Concurrency = cellex_actor_core_rs::api::mailbox::ThreadSafe;
   type Mailbox<M>
-    = QueueMailbox<Self::Queue<M>, Self::Signal>
+    = TokioMailboxInner<M>
   where
     M: Element;
   type Producer<M>
-    = cellex_actor_core_rs::api::mailbox::QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+    = TokioMailboxProducer<M>
   where
     M: Element;
   type Queue<M>

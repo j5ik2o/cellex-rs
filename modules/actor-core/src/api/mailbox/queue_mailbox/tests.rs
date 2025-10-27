@@ -22,7 +22,7 @@ use futures::task::noop_waker_ref;
 use super::{MailboxQueueDriver, QueueMailbox, QueuePollOutcome};
 use crate::{
   api::{
-    mailbox::{queue_mailbox::SyncQueueDriver, Mailbox, MailboxError, MailboxOverflowPolicy},
+    mailbox::{queue_mailbox::SyncMailboxQueue, Mailbox, MailboxError, MailboxOverflowPolicy},
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     test_support::TestSignal,
   },
@@ -123,7 +123,7 @@ fn queue_offer_error<T: Element>(message: T) -> QueueError<T> {
 
 #[test]
 fn sync_queue_drop_newest_returns_queue_full_with_policy() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
   let signal = TestSignal::default();
   let mailbox = QueueMailbox::new(driver, signal);
 
@@ -141,7 +141,7 @@ fn sync_queue_drop_newest_returns_queue_full_with_policy() {
 
 #[test]
 fn sync_queue_drop_oldest_keeps_mailbox_usable() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::DropOldest);
   let signal = TestSignal::default();
   let mailbox = QueueMailbox::new(driver, signal);
 
@@ -154,7 +154,7 @@ fn sync_queue_drop_oldest_keeps_mailbox_usable() {
 
 #[test]
 fn sync_queue_overflow_policy_propagates_through_queue_error_path() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::Block);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::Block);
   let signal = TestSignal::default();
   let mailbox = QueueMailbox::new(driver, signal);
 
@@ -229,7 +229,7 @@ fn queue_mailbox_internal_error_preserves_message() {
 
 #[test]
 fn producer_reports_dropped_oldest_outcome() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::DropOldest);
   let signal = TestSignal::default();
   let mailbox = QueueMailbox::new(driver, signal);
   let producer = mailbox.producer();
@@ -245,7 +245,7 @@ fn producer_reports_dropped_oldest_outcome() {
 
 #[test]
 fn producer_reports_enqueued_outcome() {
-  let driver = SyncQueueDriver::bounded(2, OverflowPolicy::Block);
+  let driver = SyncMailboxQueue::bounded(2, OverflowPolicy::Block);
   let signal = TestSignal::default();
   let mailbox = QueueMailbox::new(driver, signal);
   let producer = mailbox.producer();
@@ -258,7 +258,7 @@ fn producer_reports_enqueued_outcome() {
 #[test]
 fn receiver_pending_until_message_arrives() {
   let signal = TestSignal::default();
-  let mailbox = QueueMailbox::new(SyncQueueDriver::bounded(1, OverflowPolicy::Block), signal);
+  let mailbox = QueueMailbox::new(SyncMailboxQueue::bounded(1, OverflowPolicy::Block), signal);
   let mut recv_future = mailbox.recv();
 
   let waker = noop_waker_ref();
@@ -277,7 +277,7 @@ fn receiver_pending_until_message_arrives() {
 
 #[test]
 fn producer_records_drop_oldest_metric() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::DropOldest);
   let signal = TestSignal::default();
   let mut mailbox = QueueMailbox::new(driver, signal);
   let (sink, events) = make_metrics_sink();
@@ -297,7 +297,7 @@ fn producer_records_drop_oldest_metric() {
 
 #[test]
 fn producer_records_drop_newest_metric_and_error() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
   let signal = TestSignal::default();
   let mut mailbox = QueueMailbox::new(driver, signal);
   let (sink, events) = make_metrics_sink();
@@ -325,7 +325,7 @@ fn producer_records_drop_newest_metric_and_error() {
 
 #[test]
 fn producer_records_grow_metric() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::Grow);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::Grow);
   let signal = TestSignal::default();
   let mut mailbox = QueueMailbox::new(driver, signal);
   let (sink, events) = make_metrics_sink();

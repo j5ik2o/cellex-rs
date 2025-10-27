@@ -7,7 +7,7 @@ use cellex_utils_core_rs::{
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
 };
 
-use super::{QueuePollOutcome, SyncQueueDriver};
+use super::{QueuePollOutcome, SyncMailboxQueue};
 use crate::api::{
   mailbox::queue_mailbox::MailboxQueueDriver,
   metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
@@ -41,7 +41,7 @@ fn collected(events: &ArcShared<SpinSyncMutex<Vec<MetricsEvent>>>) -> Vec<Metric
 
 #[test]
 fn offer_drop_oldest_records_metric() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropOldest);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::DropOldest);
   let (metrics, events) = make_sink();
   driver.set_metrics_sink(Some(metrics));
 
@@ -54,7 +54,7 @@ fn offer_drop_oldest_records_metric() {
 
 #[test]
 fn offer_drop_newest_returns_full_error() {
-  let driver = SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest);
+  let driver = SyncMailboxQueue::bounded(1, OverflowPolicy::DropNewest);
   let (metrics, events) = make_sink();
   driver.set_metrics_sink(Some(metrics));
 
@@ -70,7 +70,7 @@ fn offer_drop_newest_returns_full_error() {
 
 #[test]
 fn offer_grow_records_metric() {
-  let driver = SyncQueueDriver::unbounded();
+  let driver = SyncMailboxQueue::unbounded();
   let (metrics, events) = make_sink();
   driver.set_metrics_sink(Some(metrics));
 
@@ -82,7 +82,7 @@ fn offer_grow_records_metric() {
 
 #[test]
 fn poll_yields_message_and_empty() {
-  let driver = SyncQueueDriver::bounded(2, OverflowPolicy::Block);
+  let driver = SyncMailboxQueue::bounded(2, OverflowPolicy::Block);
   driver.offer(42u32).expect("first offer succeeds");
 
   match driver.poll().expect("poll succeeds") {

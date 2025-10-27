@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use cellex_actor_core_rs::{
   api::{
     mailbox::{
-      queue_mailbox::{MailboxQueueDriver, QueuePollOutcome, SyncQueueDriver},
+      queue_mailbox::{MailboxQueueDriver, QueuePollOutcome, SyncMailboxQueue},
       MailboxOverflowPolicy,
     },
     metrics::MetricsSinkShared,
@@ -23,13 +23,13 @@ use cellex_utils_core_rs::collections::{
 #[cfg(test)]
 mod tests;
 
-/// Multiplexes multiple `SyncQueueDriver` instances and routes
+/// Multiplexes multiple `SyncMailboxQueue` instances and routes
 /// `PriorityEnvelope` messages to either control or regular lanes.
 pub struct PrioritySyncQueueDriver<M>
 where
   M: Element, {
-  control_lanes: Vec<SyncQueueDriver<PriorityEnvelope<M>>>,
-  regular_lane:  SyncQueueDriver<PriorityEnvelope<M>>,
+  control_lanes: Vec<SyncMailboxQueue<PriorityEnvelope<M>>>,
+  regular_lane:  SyncMailboxQueue<PriorityEnvelope<M>>,
 }
 
 impl<M> Clone for PrioritySyncQueueDriver<M>
@@ -178,11 +178,11 @@ where
   }
 }
 
-fn make_lane<M>(capacity: usize) -> SyncQueueDriver<PriorityEnvelope<M>>
+fn make_lane<M>(capacity: usize) -> SyncMailboxQueue<PriorityEnvelope<M>>
 where
   M: Element, {
   match capacity {
-    | 0 => SyncQueueDriver::unbounded(),
-    | limit => SyncQueueDriver::bounded(limit, OverflowPolicy::Block),
+    | 0 => SyncMailboxQueue::unbounded(),
+    | limit => SyncMailboxQueue::bounded(limit, OverflowPolicy::Block),
   }
 }

@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
+    queue_mailbox::{MailboxQueueDriver, QueueMailboxRecv, SyncMailbox, SyncMailboxQueue},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
@@ -14,7 +14,8 @@ use super::{
   notify_signal::NotifySignal, tokio_mailbox_factory::TokioMailboxFactory, tokio_mailbox_sender::TokioMailboxSender,
 };
 
-type TokioQueueDriver<M> = SyncQueueDriver<M>;
+type TokioQueueDriver<M> = SyncMailboxQueue<M>;
+type TokioMailboxInner<M> = SyncMailbox<M, NotifySignal>;
 
 /// Mailbox implementation for Tokio runtime
 ///
@@ -23,7 +24,7 @@ type TokioQueueDriver<M> = SyncQueueDriver<M>;
 pub struct TokioMailbox<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailbox<TokioQueueDriver<M>, NotifySignal>,
+  pub(super) inner: TokioMailboxInner<M>,
 }
 
 impl<M> TokioMailbox<M>
@@ -68,7 +69,7 @@ where
   /// # Returns
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<TokioQueueDriver<M>, NotifySignal> {
+  pub const fn inner(&self) -> &TokioMailboxInner<M> {
     &self.inner
   }
 }

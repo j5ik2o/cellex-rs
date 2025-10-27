@@ -6,7 +6,7 @@ use cellex_actor_core_rs::api::mailbox::SingleThread;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
+    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncMailboxQueue},
     QueueMailboxProducer,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
@@ -78,7 +78,7 @@ impl MailboxFactory for LocalMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = SyncQueueDriver<M>
+    = SyncMailboxQueue<M>
   where
     M: Element;
   type Signal = LocalSignal;

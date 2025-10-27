@@ -5,7 +5,7 @@ use core::{
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueDriver, QueuePollOutcome, SyncQueueDriver},
+    queue_mailbox::{MailboxQueueDriver, QueuePollOutcome, SyncMailboxQueue},
     MailboxOverflowPolicy,
   },
   metrics::MetricsSinkShared,
@@ -21,7 +21,7 @@ use cellex_utils_core_rs::collections::{
 pub struct ArcSyncQueueDriver<M, RM>
 where
   M: Element, {
-  inner:   SyncQueueDriver<M>,
+  inner:   SyncMailboxQueue<M>,
   _marker: PhantomData<RM>,
 }
 
@@ -29,7 +29,7 @@ impl<M, RM> ArcSyncQueueDriver<M, RM>
 where
   M: Element,
 {
-  pub fn from_driver(driver: SyncQueueDriver<M>) -> Self {
+  pub fn from_driver(driver: SyncMailboxQueue<M>) -> Self {
     Self { inner: driver, _marker: PhantomData }
   }
 }
@@ -47,7 +47,7 @@ impl<M, RM> Deref for ArcSyncQueueDriver<M, RM>
 where
   M: Element,
 {
-  type Target = SyncQueueDriver<M>;
+  type Target = SyncMailboxQueue<M>;
 
   fn deref(&self) -> &Self::Target {
     &self.inner

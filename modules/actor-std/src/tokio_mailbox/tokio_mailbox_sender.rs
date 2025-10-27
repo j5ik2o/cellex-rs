@@ -1,15 +1,12 @@
 use cellex_actor_core_rs::api::{
-  mailbox::{
-    queue_mailbox::{MailboxQueueDriver, SyncQueueDriver},
-    MailboxError, QueueMailboxProducer,
-  },
+  mailbox::{queue_mailbox::{MailboxQueueDriver, SyncMailboxQueue}, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
 use super::notify_signal::NotifySignal;
 
-type TokioQueueDriver<M> = SyncQueueDriver<M>;
+type TokioQueueDriver<M> = SyncMailboxQueue<M>;
 
 /// Sender handle for Tokio mailbox
 ///

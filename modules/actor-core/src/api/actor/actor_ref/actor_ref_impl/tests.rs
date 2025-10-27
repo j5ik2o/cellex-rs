@@ -15,7 +15,7 @@ use crate::{
     actor_runtime::GenericActorRuntime,
     mailbox::{
       messages::SystemMessage,
-      queue_mailbox::{QueueMailbox, SyncQueueDriver},
+      queue_mailbox::{QueueMailbox, SyncMailbox, SyncMailboxQueue},
     },
     process::{
       dead_letter::{DeadLetterListener, DeadLetterReason},
@@ -33,8 +33,8 @@ use crate::{
 fn actor_ref_routes_drop_newest_to_dead_letter() {
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
-  let mailbox: QueueMailbox<SyncQueueDriver<PriorityEnvelope<AnyMessage>>, TestSignal> =
-    QueueMailbox::new(SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest), TestSignal::default());
+  let mailbox: SyncMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::new(SyncMailboxQueue::bounded(1, OverflowPolicy::DropNewest), TestSignal::default());
   let priority_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(mailbox.producer());
 
   let registry: ArcShared<ActorProcessRegistry<TestRuntime>> =
@@ -78,8 +78,8 @@ fn actor_ref_routes_drop_newest_to_dead_letter() {
 fn actor_ref_tell_with_priority_rejects_and_routes_dead_letter() {
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
-  let mailbox: QueueMailbox<SyncQueueDriver<PriorityEnvelope<AnyMessage>>, TestSignal> =
-    QueueMailbox::new(SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest), TestSignal::default());
+  let mailbox: SyncMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::new(SyncMailboxQueue::bounded(1, OverflowPolicy::DropNewest), TestSignal::default());
   let priority_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(mailbox.producer());
 
   let registry: ArcShared<ActorProcessRegistry<TestRuntime>> =
@@ -123,8 +123,8 @@ fn actor_ref_tell_with_priority_rejects_and_routes_dead_letter() {
 fn actor_ref_send_system_routes_dead_letter_on_overflow() {
   type TestRuntime = GenericActorRuntime<TestMailboxFactory>;
 
-  let mailbox: QueueMailbox<SyncQueueDriver<PriorityEnvelope<AnyMessage>>, TestSignal> =
-    QueueMailbox::new(SyncQueueDriver::bounded(1, OverflowPolicy::DropNewest), TestSignal::default());
+  let mailbox: SyncMailbox<PriorityEnvelope<AnyMessage>, TestSignal> =
+    QueueMailbox::new(SyncMailboxQueue::bounded(1, OverflowPolicy::DropNewest), TestSignal::default());
   let priority_ref: PriorityActorRef<AnyMessage, TestMailboxFactory> = PriorityActorRef::new(mailbox.producer());
 
   let registry: ArcShared<ActorProcessRegistry<TestRuntime>> =

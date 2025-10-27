@@ -6,10 +6,7 @@
 extern crate std;
 
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use core::{
-  cell::{Cell, RefCell},
-  marker::PhantomData,
-};
+use core::cell::{Cell, RefCell};
 use std::{
   collections::VecDeque,
   sync::{Arc, Mutex},
@@ -51,8 +48,8 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
-      Mailbox, QueueMailboxProducer, ThreadSafe,
+      queue_mailbox::{QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue},
+      Mailbox, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::{
@@ -63,9 +60,7 @@ use crate::{
     test_support::{TestMailboxFactory, TestSignal},
   },
   shared::{
-    mailbox::{
-      messages::PriorityEnvelope, MailboxFactory, MailboxHandle, MailboxOptions, MailboxPair, MailboxProducer,
-    },
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxPair},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
     supervision::FailureEventHandler,
   },
@@ -131,118 +126,21 @@ impl SyncMailboxFactory {
   }
 }
 
-struct SyncMailbox<M> {
-  inner: QueueMailbox<SyncQueueDriver<M>, TestSignal>,
-}
-
-impl<M> Clone for SyncMailbox<M>
-where
-  M: Element,
-{
-  fn clone(&self) -> Self {
-    Self { inner: self.inner.clone() }
-  }
-}
-
-struct SyncMailboxProducer<M> {
-  inner: QueueMailboxProducer<SyncQueueDriver<M>, TestSignal>,
-  _pd:   PhantomData<M>,
-}
-
-impl<M> Clone for SyncMailboxProducer<M>
-where
-  M: Element,
-{
-  fn clone(&self) -> Self {
-    Self { inner: self.inner.clone(), _pd: PhantomData }
-  }
-}
-
-impl<M> MailboxHandle<M> for SyncMailbox<M>
-where
-  M: Element,
-{
-  type Signal = TestSignal;
-
-  fn signal(&self) -> <Self as MailboxHandle<M>>::Signal {
-    self.inner.signal().clone()
-  }
-
-  fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>> {
-    self.inner.try_dequeue()
-  }
-}
-
-impl<M> MailboxProducer<M> for SyncMailboxProducer<M>
-where
-  M: Element,
-{
-  fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
-    self.inner.try_send(message)
-  }
-
-  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.queue().set_metrics_sink(sink.clone());
-    self.inner.set_metrics_sink(sink);
-  }
-
-  fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
-    self.inner.set_scheduler_hook(hook);
-  }
-}
-
-impl<M> Mailbox<M> for SyncMailbox<M>
-where
-  M: Element,
-{
-  type RecvFuture<'a>
-    = QueueMailboxRecv<'a, SyncQueueDriver<M>, TestSignal, M>
-  where
-    Self: 'a;
-  type SendError = QueueError<M>;
-
-  fn try_send(&self, message: M) -> Result<(), Self::SendError> {
-    self.inner.try_send(message)
-  }
-
-  fn recv(&self) -> Self::RecvFuture<'_> {
-    self.inner.recv()
-  }
-
-  fn len(&self) -> QueueSize {
-    self.inner.len()
-  }
-
-  fn capacity(&self) -> QueueSize {
-    self.inner.capacity()
-  }
-
-  fn close(&self) {
-    self.inner.close();
-  }
-
-  fn is_closed(&self) -> bool {
-    self.inner.is_closed()
-  }
-
-  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.queue().set_metrics_sink(sink.clone());
-    self.inner.set_metrics_sink(sink);
-  }
-}
+type SchedulerMailbox<M> = SyncMailbox<M, TestSignal>;
+type SchedulerMailboxProducer<M> = SyncMailboxProducer<M, TestSignal>;
 
 impl MailboxFactory for SyncMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
-    = SyncMailbox<M>
+    = SchedulerMailbox<M>
   where
     M: Element;
   type Producer<M>
-    = SyncMailboxProducer<M>
+    = SchedulerMailboxProducer<M>
   where
     M: Element;
   type Queue<M>
-    = SyncQueueDriver<M>
+    = SyncMailboxQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -251,11 +149,11 @@ impl MailboxFactory for SyncMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = SyncQueueDriver::bounded(capacity, self.policy);
+    let queue = SyncMailboxQueue::bounded(capacity, self.policy);
     let signal = TestSignal::default();
-    let mailbox = QueueMailbox::new(queue, signal);
-    let producer = mailbox.producer();
-    (SyncMailbox { inner: mailbox }, SyncMailboxProducer { inner: producer, _pd: PhantomData })
+    let mailbox: SchedulerMailbox<M> = QueueMailbox::new(queue, signal);
+    let producer: SchedulerMailboxProducer<M> = mailbox.producer();
+    (mailbox, producer)
   }
 }
 
