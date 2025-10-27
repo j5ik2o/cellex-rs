@@ -37,11 +37,13 @@
 - Github Flowとする
 
 ## Domain Context
-- [protoactor-go](docs/sources/protoactor-go), pekkoをかなり参考にする
+- [protoactor-go](docs/sources/protoactor-go), [pekko](docs/sources/pekko)をかなり参考にする
 
 ## Important Constraints
 - `*-core`モジュールはno_std。ロジックの中心地。拡張ポイントを提供し`*-std`,`*-embedded`モジュールから利用できるようにすること
+- 細かい制約は`lints`の実装をみてください。`makers ci-check -- dylint`を実行するとコード上の制約に合致しているかチェックできます
 - no_std組み込みでも`alloc::sync::Arc`が使えない場合があるので、Arc抽象機構`ArcShared`を使うこと
+- `remote-*`はgRPCを前提としない。no_stdでは使えないため
 
 ## External Dependencies
 [Document key external services, APIs, or systems]
