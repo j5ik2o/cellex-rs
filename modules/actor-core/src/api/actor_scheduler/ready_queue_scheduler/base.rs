@@ -87,6 +87,11 @@ where
     shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<MF>)
   }
 
+  #[allow(dead_code)]
+  pub(crate) fn context_for_testing(&self) -> ArcShared<Mutex<ReadyQueueContext<MF, Strat>>> {
+    self.context.clone()
+  }
+
   fn make_ready_handle(&self, index: usize) -> ReadyQueueHandle {
     let state = self.state.clone();
     let notifier = ArcShared::new(ReadyNotifier::new(state, index));
@@ -316,8 +321,8 @@ where
     ReadyQueueScheduler::set_ready_queue_coordinator(self, coordinator);
   }
 
-  fn notify_resume_signal(&mut self, key: SignalKey) {
-    let _ = ReadyQueueScheduler::notify_resume_signal(self, key);
+  fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    ReadyQueueScheduler::notify_resume_signal(self, key)
   }
 
   fn set_parent_guardian(

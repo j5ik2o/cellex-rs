@@ -1225,7 +1225,9 @@ mod metrics_injection {
     ) {
     }
 
-    fn notify_resume_signal(&mut self, _key: crate::api::actor_scheduler::ready_queue_coordinator::SignalKey) {}
+    fn notify_resume_signal(&mut self, _key: crate::api::actor_scheduler::ready_queue_coordinator::SignalKey) -> bool {
+      false
+    }
 
     fn set_parent_guardian(
       &mut self,

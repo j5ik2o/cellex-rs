@@ -1,12 +1,8 @@
-use alloc::{
-  boxed::Box,
-  collections::{BTreeMap, BTreeSet},
-  vec,
-  vec::Vec,
-};
+use alloc::{boxed::Box, collections::BTreeMap, vec, vec::Vec};
 use core::{
   convert::{Infallible, TryFrom},
   marker::PhantomData,
+  time::Duration,
 };
 
 use cellex_utils_core_rs::{
@@ -64,8 +60,9 @@ where
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
   ready_coordinator: Option<Box<dyn ReadyQueueCoordinator>>,
-  suspended_indices: BTreeSet<usize>,
+  suspended_conditions: BTreeMap<usize, ResumeCondition>,
   suspended_signals: BTreeMap<SignalKey, usize>,
+  suspended_deadlines: BTreeMap<u64, Vec<usize>>,
 }
 
 #[allow(dead_code)]
@@ -95,8 +92,9 @@ where
       extensions,
       _strategy: PhantomData,
       ready_coordinator: None,
-      suspended_indices: BTreeSet::new(),
+      suspended_conditions: BTreeMap::new(),
       suspended_signals: BTreeMap::new(),
+      suspended_deadlines: BTreeMap::new(),
     }
   }
 }
@@ -358,6 +356,7 @@ where
   }
 
   fn drain_ready_cycle(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
+    self.process_deadlines();
     let mut new_children = Vec::new();
     let len = self.actors.len();
     let mut processed_any = false;
@@ -420,34 +419,68 @@ where
   fn update_suspend_registry(&mut self, index: usize, result: &InvokeResult) {
     match result {
       | InvokeResult::Suspended { resume_on, .. } => {
-        self.suspended_indices.insert(index);
-        if let ResumeCondition::ExternalSignal(key) = resume_on {
-          self.suspended_signals.insert(*key, index);
+        self.suspended_conditions.insert(index, resume_on.clone());
+        match resume_on {
+          | ResumeCondition::ExternalSignal(key) => {
+            self.suspended_signals.insert(*key, index);
+          },
+          | ResumeCondition::After(duration) => {
+            self.register_deadline(index, *duration);
+          },
+          | ResumeCondition::WhenCapacityAvailable => {
+            self.resume_actor(index);
+          },
         }
       },
       | _ => {
-        self.suspended_indices.remove(&index);
-        self.remove_signal_mapping(index);
+        self.clear_suspend_state(index);
       },
     }
   }
 
-  fn remove_signal_mapping(&mut self, index: usize) {
-    let mut remove_key: Option<SignalKey> = None;
-    for (key, mapped) in self.suspended_signals.iter() {
-      if *mapped == index {
-        remove_key = Some(*key);
+  fn register_deadline(&mut self, index: usize, duration: Duration) {
+    let Some(now) = self.suspension_clock.now() else {
+      self.resume_actor(index);
+      return;
+    };
+    let nanos = duration.as_nanos();
+    let delta = if nanos > u64::MAX as u128 { u64::MAX } else { nanos as u64 };
+    let due = now.saturating_add(delta);
+    self.suspended_deadlines.entry(due).or_default().push(index);
+  }
+
+  fn process_deadlines(&mut self) {
+    let Some(now) = self.suspension_clock.now() else {
+      return;
+    };
+    let mut due_entries: Vec<(u64, Vec<usize>)> = Vec::new();
+    while let Some((&due, _)) = self.suspended_deadlines.iter().next() {
+      if due > now {
         break;
       }
+      let indices = self.suspended_deadlines.remove(&due).unwrap_or_default();
+      due_entries.push((due, indices));
     }
-    if let Some(key) = remove_key {
-      self.suspended_signals.remove(&key);
+    for (_, indices) in due_entries {
+      for index in indices {
+        if matches!(self.suspended_conditions.get(&index), Some(ResumeCondition::After(_))) {
+          self.resume_actor(index);
+        }
+      }
     }
   }
 
-  pub fn notify_resume_signal(&mut self, key: SignalKey) -> Option<usize> {
-    let index = self.suspended_signals.remove(&key)?;
-    self.suspended_indices.remove(&index);
+  fn clear_suspend_state(&mut self, index: usize) {
+    self.suspended_conditions.remove(&index);
+    self.remove_signal_mapping(index);
+    self.remove_deadline_entry(index);
+  }
+
+  fn resume_actor(&mut self, index: usize) {
+    if !self.suspended_conditions.contains_key(&index) {
+      return;
+    }
+    self.clear_suspend_state(index);
     if let Some(actor) = self.actors.get_mut(index) {
       actor.enqueue_system_message(SystemMessage::Resume);
     }
@@ -455,7 +488,39 @@ where
       let slot = u32::try_from(index).unwrap_or(u32::MAX);
       coordinator.register_ready(MailboxIndex::new(slot, 0));
     }
+  }
+
+  fn remove_signal_mapping(&mut self, index: usize) {
+    if let Some((&key, _)) = self.suspended_signals.iter().find(|(_, mapped)| **mapped == index) {
+      self.suspended_signals.remove(&key);
+    }
+  }
+
+  fn remove_deadline_entry(&mut self, index: usize) {
+    let deadlines: Vec<u64> = self
+      .suspended_deadlines
+      .iter()
+      .filter_map(|(due, indices)| if indices.iter().any(|i| *i == index) { Some(*due) } else { None })
+      .collect();
+    for due in deadlines {
+      if let Some(mut indices) = self.suspended_deadlines.remove(&due) {
+        indices.retain(|i| *i != index);
+        if !indices.is_empty() {
+          self.suspended_deadlines.insert(due, indices);
+        }
+      }
+    }
+  }
+
+  pub fn notify_resume_signal(&mut self, key: SignalKey) -> Option<usize> {
+    let index = self.suspended_signals.remove(&key)?;
+    self.resume_actor(index);
     Some(index)
+  }
+
+  #[allow(dead_code)]
+  pub(crate) fn inject_invoke_result_for_testing(&mut self, index: usize, result: InvokeResult) {
+    self.update_suspend_registry(index, &result);
   }
 
   fn compose_invoke_result(

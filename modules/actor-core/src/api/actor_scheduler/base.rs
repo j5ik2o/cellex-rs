@@ -58,7 +58,7 @@ where
   fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>);
 
   /// Delivers an external resume signal to the scheduler.
-  fn notify_resume_signal(&mut self, key: SignalKey);
+  fn notify_resume_signal(&mut self, key: SignalKey) -> bool;
 
   /// Sets the listener receiving root-level failure events.
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>);

@@ -109,8 +109,8 @@ where
     ReadyQueueScheduler::set_ready_queue_coordinator(&mut self.inner, coordinator);
   }
 
-  fn notify_resume_signal(&mut self, key: SignalKey) {
-    let _ = ReadyQueueScheduler::notify_resume_signal(&mut self.inner, key);
+  fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    ReadyQueueScheduler::notify_resume_signal(&mut self.inner, key)
   }
 
   fn set_parent_guardian(

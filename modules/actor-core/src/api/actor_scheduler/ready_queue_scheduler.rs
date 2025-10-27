@@ -7,6 +7,8 @@ mod ready_queue_context;
 mod ready_queue_state;
 mod ready_queue_worker;
 mod ready_queue_worker_impl;
+#[cfg(test)]
+mod tests;
 
 pub use base::ReadyQueueScheduler;
 #[allow(unused_imports)]
