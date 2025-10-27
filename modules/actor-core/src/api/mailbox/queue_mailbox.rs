@@ -24,9 +24,6 @@ use crate::{
   shared::mailbox::MailboxSignal,
 };
 
-/// Default queue type that `QueueMailbox` uses when constructing mailboxes internally.
-pub type DefaultMailboxQueue<M> = SyncMailboxQueue<M>;
-
 /// Convenience alias for the standard mailbox backed by [`SyncMailboxQueue`].
 pub type SyncMailbox<M, S> = QueueMailbox<SyncMailboxQueue<M>, S>;
 
@@ -76,7 +73,7 @@ impl Default for MailboxQueueConfig {
 }
 
 /// Builds a mailbox queue according to the supplied configuration.
-pub fn build_mailbox_queue<M>(config: MailboxQueueConfig) -> DefaultMailboxQueue<M>
+pub fn build_mailbox_queue<M>(config: MailboxQueueConfig) -> SyncMailboxQueue<M>
 where
   M: Element, {
   use cellex_utils_core_rs::collections::queue::backend::OverflowPolicy;
