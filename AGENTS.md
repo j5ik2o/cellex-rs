@@ -27,7 +27,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - **テストの扱い**: 行うべきテストをコメントアウトしたり無視したりしないこと
 - **実装方針**:
     - 既存の多くの実装を参考にして、一貫性のあるコードを書くこと
-    - protoactor-go(@docs/sources/protoactor-go)の実装を参考にすること（Goの実装からRustイディオムに変換）
+    - [protoactor-go](docs/sources/protoactor-go), [pekko](docs/sources/pekko) の実装を参考にすること（Goの実装からRustイディオムに変換）
     - pekko/akkaもよく話題でるの、https://github.com/apache/pekko を参照すること
 - 旧実装は `docs/sources/nexus-actor-rs/` に参照用として退避済み。
 - ランタイム本体で `#[cfg(feature = "std")]` による機能分岐を入れないこと（テストコード内での使用は許容）
