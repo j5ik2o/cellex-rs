@@ -432,7 +432,7 @@
 - `LegacyQueueDriver` の利用箇所を検索し、`#[cfg(feature = "queue-v1")]` ガード配下（embedded_rc 等）のみで参照されていることを再確認。queue-v2 既定経路では新 `SyncMailboxQueue` のみが使用される状態を維持。
 - 2025-10-27: actor-core に `SyncMailbox` / `SyncMailboxProducer` エイリアスと `build_sync_mailbox_pair` ヘルパーを追加。標準メールボックス生成が直接 `SyncMailboxQueue` を指すようにし、後続の MailboxQueueBackend 撤廃作業の足場を整備。
 - 2025-10-27: Tokio / embedded ランタイムを `SyncMailboxQueue` ベースへ統一し、互換用の `SyncQueueDriver` 再エクスポートを削除。`cargo +nightly check -p cellex-actor-std-rs` および `cargo +nightly check -p cellex-actor-embedded-rs` でビルド整合性を確認（stable rustc は既知 ICE のため CI は保留）。
-- 2025-10-27: `MailboxQueueBackend`（旧 `MailboxQueueDriver`）は段階的に廃止予定。`QueueMailbox`／`QueueMailboxCore` を `SyncMailboxQueue` 直接保持へ移行しつつ、`ArcMailboxQueue` や `PriorityMailboxQueue` など名称が Driver に依存していたラッパも役割に合わせて再設計する計画をドキュメント化。完了後にトレイトと互換エイリアスを完全削除する。
+- 2025-10-27: `MailboxQueueBackend`（旧 `MailboxQueueDriver`）は段階的に廃止予定。`QueueMailbox`／`QueueMailboxCore` を `SyncMailboxQueue` 直接保持へ移行しつつ、Driver 由来の接頭辞を持つラッパ型を整理する計画をドキュメント化。完了後にトレイトと互換エイリアスを完全削除する。
 - 2025-10-27: `QueueMailboxCore` の API を再整理し、メッセージ型に関わるトレイト境界を impl ブロック単位へ集約。これにより `len` / `capacity` / `try_send_mailbox` などの呼び出し側はターボフィッシュ指定なしで利用でき、将来的に `MailboxQueueBackend` トレイト自体を差し替える際の影響範囲を縮小できることを確認。
 - 2025-10-27: priority mailbox 系モジュールのリネームを反映し、`modules/actor-std/src/tokio_priority_mailbox/priority_mailbox_queue.rs` を正式名称としてドキュメント化。利用者向けサンプルも新モジュール名に更新し、下記のように `PriorityMailboxQueue` を直接導入できることを追記。
 
@@ -446,10 +446,11 @@
   let priority_queue = PriorityMailboxQueue::<u32>::new(3, 32, 128);
   let mailbox = QueueMailbox::new(priority_queue, TestSignal::default());
   ```
+- 2025-10-27: embedded runtime に残っていた `ArcMailboxQueue`／`ArcPriorityMailboxQueue` ラッパを削除し、`SyncMailboxQueue` / `PriorityMailboxQueue` をそのまま保持する構造へ一本化。これにより RawMutex 型パラメータとキューの紐付けは `ArcSignal<RM>` 側に集約され、ファクトリー／sender 実装のジェネリクスが簡素化された。
 - 廃止までの手順メモ
   1. actor-core 内の `QueueMailbox`／`QueueMailboxProducer`／`QueueMailboxRecv` が露出する箇所を `SyncMailbox`／`SyncMailboxProducer` などの新エイリアスへ置換し、トレイト境界へ依存するコードを減らす。
   2. ランタイム（Tokio／embedded／priority）とテスト群は既に `SyncMailboxQueue` 前提となったため、この状態を活かして actor-core 側の残存依存を洗い替えし、互換レイヤやトレイト境界を削除しやすくする。
-  3. `ArcMailboxQueue` や `PriorityMailboxQueue` といったラッパを役割に沿った命名へ統一しつつ、最終的に `MailboxQueueBackend` トレイト自体を完全撤廃する。
+  3. `Arc`／`Rc` といった所有形態を名前に含むだけで追加機能を持たないラッパを削除し、最終的に `MailboxQueueBackend` トレイト自体を完全撤廃する。
 - **全体テスト・CI とドキュメント更新**  
   - 2025-10-25 時点の差分を含め `./scripts/ci-check.sh all` を再実行し、queue-v2 既定／queue-v1 互換（`cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v1`）双方が通ることを確認済み。  
   - 2025-10-25: embedded_rc + queue-v1 で RP2040 ターゲットのクロスビルド確認を実施  

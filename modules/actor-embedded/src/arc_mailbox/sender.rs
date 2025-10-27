@@ -1,13 +1,11 @@
 use cellex_actor_core_rs::api::{
-  mailbox::{MailboxError, QueueMailboxProducer},
+  mailbox::{queue_mailbox::SyncMailboxQueue, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{mailbox_queue_handle::ArcMailboxQueue, signal::ArcSignal};
-
-type ArcMailboxQueueHandle<M, RM> = ArcMailboxQueue<M, RM>;
+use super::signal::ArcSignal;
 
 /// Sending handle associated with [`super::arc_mailbox_impl::ArcMailbox`].
 #[derive(Clone)]
@@ -15,14 +13,13 @@ pub struct ArcMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalS
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<ArcMailboxQueueHandle<M, RM>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<SyncMailboxQueue<M>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcMailboxSender<M, RM>
 where
   M: Element,
   RM: RawMutex,
-  ArcMailboxQueueHandle<M, RM>: Clone,
 {
   /// Attempts to enqueue a message without blocking.
   pub fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
@@ -45,7 +42,7 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<ArcMailboxQueueHandle<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<SyncMailboxQueue<M>, ArcSignal<RM>> {
     &self.inner
   }
 

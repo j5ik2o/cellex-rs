@@ -15,12 +15,9 @@ use cellex_utils_core_rs::collections::{
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  factory::ArcPriorityMailboxFactory, priority_mailbox_queue_handle::ArcPriorityMailboxQueue,
-  sender::ArcPriorityMailboxSender,
+  factory::ArcPriorityMailboxFactory, priority_mailbox_queue::PriorityMailboxQueue, sender::ArcPriorityMailboxSender,
 };
 use crate::arc_mailbox::ArcSignal;
-
-type ArcPriorityMailboxQueueHandle<M, RM> = ArcPriorityMailboxQueue<M, RM>;
 
 /// Mailbox that stores priority envelopes using `ArcShared` storage.
 #[derive(Clone)]
@@ -28,7 +25,7 @@ pub struct ArcPriorityMailbox<M, RM = embassy_sync::blocking_mutex::raw::Critica
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailbox<ArcPriorityMailboxQueueHandle<M, RM>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailbox<PriorityMailboxQueue<M>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcPriorityMailbox<M, RM>
@@ -42,7 +39,7 @@ where
   }
 
   /// Returns the underlying queue mailbox.
-  pub fn inner(&self) -> &QueueMailbox<ArcPriorityMailboxQueueHandle<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailbox<PriorityMailboxQueue<M>, ArcSignal<RM>> {
     &self.inner
   }
 
@@ -58,7 +55,7 @@ where
   RM: RawMutex,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, ArcPriorityMailboxQueueHandle<M, RM>, ArcSignal<RM>, PriorityEnvelope<M>>
+    = QueueMailboxRecv<'a, PriorityMailboxQueue<M>, ArcSignal<RM>, PriorityEnvelope<M>>
   where
     Self: 'a;
   type SendError = QueueError<PriorityEnvelope<M>>;
@@ -103,9 +100,7 @@ where
   }
 
   /// Returns the receive future when operating with MailboxError semantics.
-  pub fn recv_mailbox(
-    &self,
-  ) -> QueueMailboxRecv<'_, ArcPriorityMailboxQueueHandle<M, RM>, ArcSignal<RM>, PriorityEnvelope<M>> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, PriorityMailboxQueue<M>, ArcSignal<RM>, PriorityEnvelope<M>> {
     self.inner.recv()
   }
 }

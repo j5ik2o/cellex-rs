@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox},
+    queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SyncMailboxQueue},
     QueueMailboxProducer, ThreadSafe,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
@@ -10,9 +10,7 @@ use cellex_actor_core_rs::{
 use cellex_utils_core_rs::collections::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{
-  arc_mailbox_impl::ArcMailbox, mailbox_queue_handle::ArcMailboxQueue, sender::ArcMailboxSender, signal::ArcSignal,
-};
+use super::{arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal};
 
 /// Factory for constructing [`ArcMailbox`] instances.
 pub struct ArcMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
@@ -78,7 +76,7 @@ where
   where
     M: Element;
   type Queue<M>
-    = ArcMailboxQueue<M, RM>
+    = SyncMailboxQueue<M>
   where
     M: Element;
   type Signal = ArcSignal<RM>;
@@ -86,7 +84,7 @@ where
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = ArcMailboxQueue::from_driver(build_mailbox_queue::<M>(MailboxQueueConfig::default()));
+    let queue = build_mailbox_queue::<M>(MailboxQueueConfig::default());
     let signal = ArcSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();
