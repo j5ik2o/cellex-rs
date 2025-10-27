@@ -10,6 +10,7 @@ use cellex_utils_core_rs::{
 };
 
 use super::actor_cell_state::ActorCellState;
+use super::invoke_result::ActorInvokeOutcome;
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
@@ -300,17 +301,22 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<usize, QueueError<PriorityEnvelope<AnyMessage>>> {
+  ) -> Result<(usize, ActorInvokeOutcome), QueueError<PriorityEnvelope<AnyMessage>>> {
+    let mut outcome = ActorInvokeOutcome::new();
     let mut processed = 0;
     for envelope in envelopes.into_iter() {
       if self.is_suspended() && envelope.system_message().is_none() {
         self.pending_user_envelopes.push_back(envelope);
         continue;
       }
+      if outcome.is_set() {
+        self.pending_user_envelopes.push_back(envelope);
+        continue;
+      }
       self.dispatch_envelope(envelope, guardian, new_children, escalations)?;
       processed += 1;
     }
-    Ok(processed)
+    Ok((processed, outcome))
   }
 
   pub(crate) fn process_pending(
@@ -318,13 +324,13 @@ where
     guardian: &mut Guardian<MF, Strat>,
     new_children: &mut Vec<ActorCell<MF, Strat>>,
     escalations: &mut Vec<FailureInfo>,
-  ) -> Result<usize, QueueError<PriorityEnvelope<AnyMessage>>> {
+  ) -> Result<(usize, ActorInvokeOutcome), QueueError<PriorityEnvelope<AnyMessage>>> {
     if self.stopped {
-      return Ok(0);
+      return Ok((0, ActorInvokeOutcome::new()));
     }
     let envelopes = self.collect_envelopes()?;
     if envelopes.is_empty() {
-      return Ok(0);
+      return Ok((0, ActorInvokeOutcome::new()));
     }
     self.process_envelopes(envelopes, guardian, new_children, escalations)
   }
