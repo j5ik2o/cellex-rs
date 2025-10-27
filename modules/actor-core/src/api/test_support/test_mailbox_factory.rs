@@ -3,7 +3,7 @@ use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 use crate::{
   api::{
     mailbox::{
-      queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncMailboxQueue},
+      queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SyncMailboxQueue},
       MailboxOverflowPolicy, QueueMailboxProducer, ThreadSafe,
     },
     test_support::test_signal::TestSignal,
@@ -69,8 +69,8 @@ impl MailboxFactory for TestMailboxFactory {
         | Some(0) | None => QueueSize::limitless(),
         | Some(limit) => QueueSize::limited(limit),
       };
-      let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
-      build_queue_driver::<M>(config)
+      let config = MailboxQueueConfig::new(capacity_size, MailboxOverflowPolicy::Block);
+      build_mailbox_queue::<M>(config)
     };
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);

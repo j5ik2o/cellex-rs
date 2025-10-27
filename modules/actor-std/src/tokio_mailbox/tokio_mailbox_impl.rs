@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueDriver, QueueMailboxRecv, SyncMailbox, SyncMailboxQueue},
+    queue_mailbox::{MailboxQueueBackend, QueueMailboxRecv, SyncMailbox, SyncMailboxQueue},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,

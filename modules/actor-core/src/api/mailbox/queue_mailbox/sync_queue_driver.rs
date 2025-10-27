@@ -11,7 +11,7 @@ use cellex_utils_core_rs::{
 };
 use spin::Mutex;
 
-use super::{MailboxQueueDriver, QueuePollOutcome};
+use super::{MailboxQueueBackend, QueuePollOutcome};
 use crate::api::{
   mailbox::MailboxOverflowPolicy,
   metrics::{MetricsEvent, MetricsSinkShared},
@@ -104,7 +104,7 @@ impl<M> SyncMailboxQueue<M> {
   }
 }
 
-impl<M> MailboxQueueDriver<M> for SyncMailboxQueue<M>
+impl<M> MailboxQueueBackend<M> for SyncMailboxQueue<M>
 where
   M: Element,
 {

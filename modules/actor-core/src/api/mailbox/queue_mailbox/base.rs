@@ -3,7 +3,7 @@ use cellex_utils_core_rs::collections::{
   Element,
 };
 
-use super::{core::MailboxQueueCore, driver::MailboxQueueDriver, recv::QueueMailboxRecv};
+use super::{backend::MailboxQueueBackend, core::MailboxQueueCore, recv::QueueMailboxRecv};
 use crate::{
   api::{
     actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
@@ -47,7 +47,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   /// Attempts to enqueue a message returning `MailboxError`.
   pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
   where
-    Q: MailboxQueueDriver<M>,
+    Q: MailboxQueueBackend<M>,
     S: MailboxSignal,
     M: Element, {
     self.core.try_send_mailbox(message).map(|_| ())
@@ -67,7 +67,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   #[must_use]
   pub fn len_usize<M>(&self) -> usize
   where
-    Q: MailboxQueueDriver<M>,
+    Q: MailboxQueueBackend<M>,
     M: Element, {
     self.core.len::<M>().to_usize()
   }
@@ -76,7 +76,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   #[must_use]
   pub fn capacity_usize<M>(&self) -> usize
   where
-    Q: MailboxQueueDriver<M>,
+    Q: MailboxQueueBackend<M>,
     M: Element, {
     self.core.capacity::<M>().to_usize()
   }
@@ -84,7 +84,7 @@ impl<Q, S> QueueMailbox<Q, S> {
   /// Returns the mailbox receive future that yields `MailboxError` on failure.
   pub fn recv_mailbox<'a, M>(&'a self) -> QueueMailboxRecv<'a, Q, S, M>
   where
-    Q: MailboxQueueDriver<M>,
+    Q: MailboxQueueBackend<M>,
     S: MailboxSignal,
     M: Element, {
     QueueMailboxRecv::new(self)
@@ -109,7 +109,7 @@ impl<Q, S> core::fmt::Debug for QueueMailbox<Q, S> {
 
 impl<M, Q, S> MailboxHandle<M> for QueueMailbox<Q, S>
 where
-  Q: MailboxQueueDriver<M> + Clone,
+  Q: MailboxQueueBackend<M> + Clone,
   S: MailboxSignal,
   M: Element,
 {
@@ -126,7 +126,7 @@ where
 
 impl<M, Q, S> MailboxProducer<M> for QueueMailboxProducer<Q, S>
 where
-  Q: MailboxQueueDriver<M> + Clone,
+  Q: MailboxQueueBackend<M> + Clone,
   S: MailboxSignal,
   M: Element,
 {
@@ -151,7 +151,7 @@ where
 
 impl<M, Q, S> Mailbox<M> for QueueMailbox<Q, S>
 where
-  Q: MailboxQueueDriver<M>,
+  Q: MailboxQueueBackend<M>,
   S: MailboxSignal,
   M: Element,
 {

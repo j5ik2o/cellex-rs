@@ -2,7 +2,7 @@ use cellex_utils_core_rs::collections::Element;
 
 use crate::{
   api::{
-    mailbox::{queue_mailbox::MailboxQueueDriver, MailboxConcurrency},
+    mailbox::{queue_mailbox::MailboxQueueBackend, MailboxConcurrency},
     messaging::MetadataStorageMode,
   },
   shared::mailbox::{handle::MailboxHandle, options::MailboxOptions, producer::MailboxProducer, signal::MailboxSignal},
@@ -23,7 +23,7 @@ pub trait MailboxFactory {
   type Signal: MailboxSignal;
 
   /// Type of message queue
-  type Queue<M>: MailboxQueueDriver<M> + Clone
+  type Queue<M>: MailboxQueueBackend<M> + Clone
   where
     M: Element;
 

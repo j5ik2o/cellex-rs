@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::{
   api::mailbox::queue_mailbox::{
-    build_queue_driver, QueueDriverConfig, QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue,
+    build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
@@ -86,8 +86,8 @@ impl MailboxFactory for TokioMailboxFactory {
         | QueueSize::Limited(capacity) => QueueSize::limited(capacity),
       };
       let config =
-        QueueDriverConfig::new(capacity_size, cellex_actor_core_rs::api::mailbox::MailboxOverflowPolicy::Block);
-      build_queue_driver::<M>(config)
+        MailboxQueueConfig::new(capacity_size, cellex_actor_core_rs::api::mailbox::MailboxOverflowPolicy::Block);
+      build_mailbox_queue::<M>(config)
     };
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);

@@ -19,7 +19,7 @@ use cellex_utils_core_rs::{
 };
 use futures::task::noop_waker_ref;
 
-use super::{MailboxQueueDriver, QueueMailbox, QueuePollOutcome};
+use super::{MailboxQueueBackend, QueueMailbox, QueuePollOutcome};
 use crate::{
   api::{
     mailbox::{queue_mailbox::SyncMailboxQueue, Mailbox, MailboxError, MailboxOverflowPolicy},
@@ -51,7 +51,7 @@ where
   }
 }
 
-impl<M> MailboxQueueDriver<M> for ErrorDriver<M>
+impl<M> MailboxQueueBackend<M> for ErrorDriver<M>
 where
   M: Element,
 {

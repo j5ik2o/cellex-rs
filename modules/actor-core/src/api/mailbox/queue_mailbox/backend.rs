@@ -10,7 +10,7 @@ use super::QueuePollOutcome;
 use crate::api::{mailbox::MailboxOverflowPolicy, metrics::MetricsSinkShared};
 
 /// Abstraction over queue backends used by `QueueMailbox`.
-pub trait MailboxQueueDriver<M>: Clone
+pub trait MailboxQueueBackend<M>: Clone
 where
   M: Element, {
   /// Returns the current queue length in abstract `QueueSize` units.

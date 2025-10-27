@@ -50,7 +50,7 @@
 - `MailboxQueueCore` は後続フェーズで "ドライバ" 抽象を介してキューへアクセスする。共通トレイト案:
 
   ```rust
-  pub trait MailboxQueueDriver<M: Element>: Clone {
+  pub trait MailboxQueueBackend<M: Element>: Clone {
     fn len(&self) -> QueueSize;
     fn capacity(&self) -> QueueSize;
     fn offer(&self, message: M) -> Result<OfferOutcome, QueueError<M>>;
@@ -71,7 +71,7 @@
 - `MailboxQueueCore::set_metrics_sink` はキューラッパへ委譲し、各実装が `QueueRwCompat::set_metrics_sink` または `SyncMailboxQueue` 内部の `ArcShared<SpinSyncMutex<Option<MetricsSinkShared>>>` を更新する。
   - `OfferOutcome::{DroppedOldest,DroppedNewest,GrewTo}` はドライバ側でメトリクスイベントへ変換し、`MailboxQueueCore` は `MailboxEnqueued` のみを記録する構造に簡素化できる。
 
-- `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` はジェネリクス境界を `Q: MailboxQueueDriver<M>` へ更新し、旧 `QueueRw` 境界を段階的に撤廃する。
+- `QueueMailbox` / `QueueMailboxProducer` / `QueueMailboxRecv` はジェネリクス境界を `Q: MailboxQueueBackend<M>` へ更新し、旧 `QueueRw` 境界を段階的に撤廃する。
 
 ## 2025-10-25 追加メモ: MailboxError 雛形
 

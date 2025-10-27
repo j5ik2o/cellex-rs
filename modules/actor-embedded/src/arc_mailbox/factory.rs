@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox},
+    queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox},
     QueueMailboxProducer, ThreadSafe,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
@@ -86,7 +86,7 @@ where
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = ArcSyncQueueDriver::from_driver(build_queue_driver::<M>(QueueDriverConfig::default()));
+    let queue = ArcSyncQueueDriver::from_driver(build_mailbox_queue::<M>(MailboxQueueConfig::default()));
     let signal = ArcSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

@@ -7,11 +7,8 @@ use cellex_utils_core_rs::{
   sync::{sync_mutex_like::SpinSyncMutex, ArcShared},
 };
 
-use super::{QueuePollOutcome, SyncMailboxQueue};
-use crate::api::{
-  mailbox::queue_mailbox::MailboxQueueDriver,
-  metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
-};
+use super::{MailboxQueueBackend, QueuePollOutcome, SyncMailboxQueue};
+use crate::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkShared};
 
 struct RecordingSink {
   events: ArcShared<SpinSyncMutex<Vec<MetricsEvent>>>,

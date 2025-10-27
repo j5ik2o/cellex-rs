@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use cellex_actor_core_rs::{
   api::{
     mailbox::{
-      queue_mailbox::{MailboxQueueDriver, QueuePollOutcome, SyncMailboxQueue},
+      queue_mailbox::{MailboxQueueBackend, QueuePollOutcome, SyncMailboxQueue},
       MailboxOverflowPolicy,
     },
     metrics::MetricsSinkShared,
@@ -105,7 +105,7 @@ where
   }
 }
 
-impl<M> MailboxQueueDriver<PriorityEnvelope<M>> for PrioritySyncQueueDriver<M>
+impl<M> MailboxQueueBackend<PriorityEnvelope<M>> for PrioritySyncQueueDriver<M>
 where
   M: Element,
 {

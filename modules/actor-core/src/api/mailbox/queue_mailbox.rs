@@ -1,15 +1,15 @@
+mod backend;
 mod base;
 mod core;
-mod driver;
 mod poll_outcome;
 mod recv;
 mod sync_queue_driver;
 
 pub use core::MailboxQueueCore;
 
+pub use backend::MailboxQueueBackend;
 pub use base::QueueMailbox;
 use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
-pub use driver::MailboxQueueDriver;
 pub use poll_outcome::QueuePollOutcome;
 pub use recv::QueueMailboxRecv;
 pub use sync_queue_driver::SyncMailboxQueue;
@@ -22,8 +22,8 @@ use crate::{
   shared::mailbox::MailboxSignal,
 };
 
-/// Default queue driver type that `QueueMailbox` uses when constructing drivers internally.
-pub type DefaultQueueDriver<M> = SyncMailboxQueue<M>;
+/// Default queue type that `QueueMailbox` uses when constructing mailboxes internally.
+pub type DefaultMailboxQueue<M> = SyncMailboxQueue<M>;
 
 /// Convenience alias for the standard mailbox backed by [`SyncMailboxQueue`].
 pub type SyncMailbox<M, S> = QueueMailbox<SyncMailboxQueue<M>, S>;
@@ -34,16 +34,16 @@ pub type SyncMailboxProducer<M, S> = QueueMailboxProducer<SyncMailboxQueue<M>, S
 /// Receive future alias associated with [`SyncMailbox`].
 pub type SyncMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, SyncMailboxQueue<M>, S, M>;
 
-/// Configuration for constructing a queue driver.
+/// Configuration for constructing a mailbox queue.
 #[derive(Clone, Copy, Debug)]
-pub struct QueueDriverConfig {
+pub struct MailboxQueueConfig {
   /// Queue capacity that governs how the driver allocates storage.
   pub capacity:        QueueSize,
   /// Overflow handling policy applied when the queue reaches capacity.
   pub overflow_policy: MailboxOverflowPolicy,
 }
 
-impl QueueDriverConfig {
+impl MailboxQueueConfig {
   #[must_use]
   /// Creates a new configuration using the supplied capacity and overflow policy.
   pub const fn new(capacity: QueueSize, overflow_policy: MailboxOverflowPolicy) -> Self {
@@ -55,26 +55,26 @@ impl QueueDriverConfig {
 /// configuration.
 pub fn build_sync_mailbox_pair<M, S>(
   signal: S,
-  config: QueueDriverConfig,
+  config: MailboxQueueConfig,
 ) -> (SyncMailbox<M, S>, SyncMailboxProducer<M, S>)
 where
   M: Element,
   S: MailboxSignal + Clone, {
-  let queue = build_queue_driver::<M>(config);
+  let queue = build_mailbox_queue::<M>(config);
   let mailbox = QueueMailbox::new(queue, signal);
   let producer = mailbox.producer();
   (mailbox, producer)
 }
 
-impl Default for QueueDriverConfig {
+impl Default for MailboxQueueConfig {
   /// Provides the default configuration matching unlimited capacity with growth.
   fn default() -> Self {
     Self { capacity: QueueSize::limitless(), overflow_policy: MailboxOverflowPolicy::Grow }
   }
 }
 
-/// Builds a queue driver according to the supplied configuration.
-pub fn build_queue_driver<M>(config: QueueDriverConfig) -> DefaultQueueDriver<M>
+/// Builds a mailbox queue according to the supplied configuration.
+pub fn build_mailbox_queue<M>(config: MailboxQueueConfig) -> DefaultMailboxQueue<M>
 where
   M: Element, {
   use cellex_utils_core_rs::collections::queue::backend::OverflowPolicy;

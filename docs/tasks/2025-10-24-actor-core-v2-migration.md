@@ -386,7 +386,7 @@
 - `./scripts/ci-check.sh all` を再実行し、メトリクス拡張後のワークスペースビルドと `dylint` チェックが完走することを確認。
 
 #### 進捗メモ（2025-10-25 作業ログ）
-- `QueueDriverConfig` / `build_queue_driver` を `queue_mailbox` モジュールに追加し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncMailboxQueue` を共有設定から生成するよう統一。`queue-v1` では既存のレガシードライバ経路を維持。
+- `MailboxQueueConfig` / `build_mailbox_queue` を `queue_mailbox` モジュールに追加し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncMailboxQueue` を共有設定から生成するよう統一。`queue-v1` では既存のレガシー構成を維持。
 - `queue_mailbox/tests.rs` に `ErrorDriver` を用いたユニットテストを追加し、`MailboxQueueCore::convert_queue_error` が `DropOldest` / `Backpressure` / `ResourceExhausted` / `Internal` を正しく `MailboxError` へ写像することを確認。従来の `DropNewest` / `Block` 観点と合わせてエラー網羅率を引き上げた。
 - `./scripts/ci-check.sh all`（2025-10-25 実行）でワークスペース全体のフォーマット・ビルド・テスト・dylint が完走したことを確認。コマンド出力は `target/` 配下に保持している。
 - 次フェーズでは `QueueMailbox::new` 呼び出し元（Tokio/embedded/test_support 等）へドライバ DI を広げつつ、`QueueMailboxProducer` / `QueueMailboxRecv` の `OfferOutcome` / `PollOutcome` 対応リライトとデッドレター挙動の回帰確認を優先する。
@@ -407,7 +407,7 @@
   - [x] `docs/design/queue_mailbox_v2_plan.md` を更新し、`QueueMailbox` v2 への差し替え案（OfferOutcome/PollOutcome ハンドリング、MailboxError 変換、メトリクス通知方針）を整理した。既存コード（`QueueMailboxInternal` / `QueueMailboxProducer` / `QueueMailboxRecv`）の依存状況とギャップ分析を追記済み。
   - [x] `QueueMailbox` の内部キューを v2 `SyncQueue` ベースへ差し替える際のレイヤ構成（共有所有権、同期プリミティブ、`ArcShared` 利用範囲）を明文化し、レビューを通す。
     - 2025-10-25: `MailboxQueueCore` のキュー保持形を `SyncQueue<EntryShared<M>, Backend<M>>`（`EntryShared<M> = ArcShared<Mutex<Option<M>>>`）とし、共有所有権は `ArcShared<SpinSyncMutex<Backend<M>>>` に集約する構成で整理。`queue-v2` 既定では `VecRingBackend<EntryShared<M>>` を `OverflowPolicy::{Grow,DropOldest,DropNewest}` と組み合わせた `SyncMailboxQueue` を直接採用し、queue-v1 互換は従来通り `LegacyQueueDriver` + 旧キュー実装を専用 `#[cfg(feature = "queue-v1")]` ブロックで維持する方針へ転換（2025-10-26 に互換レイヤー撤去済み）。
-    - 2025-10-25: ドライバ抽象（`MailboxQueueDriver<M>`）および `MailboxError` 雛形を設計メモへ追記し、`LegacyQueueDriver` と `SyncMailboxQueue` の併存戦略、queue-v1/queue-v2 切り替え時の構成案、共通テスト方針を文書化した。
+    - 2025-10-25: ドライバ抽象（当時の `MailboxQueueDriver<M>`）および `MailboxError` 雛形を設計メモへ追記し、`LegacyQueueDriver` と `SyncMailboxQueue` の併存戦略、queue-v1/queue-v2 切り替え時の構成案、共通テスト方針を文書化した。
   - [x] Producer/Receiver 層（`QueueMailboxProducer`, `QueueMailboxRecv` など）の `OfferOutcome` / `PollOutcome` 取り扱い方針と、デッドレター・メトリクス通知ルールを設計メモに記載。`QueueError` → `MailboxError` 変換表およびテスト計画をドラフト化した。
   - [x] バックプレッシャー / 優先度（`priority_capacity` 等）を v2 API で再現するパターン（DropOldest/Grow 等）と併存期間中の設定差異を整理したガイドを用意する。
     - 2025-10-25: `MailboxOptions::{capacity,priority_capacity}` の `QueueSize` 変換テーブルを作成。`capacity_limit = None` は `OverflowPolicy::Grow` を割り当て、有限値を持つ場合は既定で `OverflowPolicy::Block`（必要に応じて優先度付きメールボックスで DropOldest/DropNewest を選択）へマップする。優先度制御は `TokioPriorityQueues` から `PrioritySyncQueueDriver` への置換を前提に整理し、`priority_capacity_limit` が `Some` の場合は各レーンの容量を `total / levels` で割り当て、余りは高優先度側へ与える運用を明文化。キュー差し替え後も queue-v1 互換経路では従来通り `OverflowPolicy::Block` を使用し、queue-v2 では Dropped/Grew イベントがメトリクスへ流れることを確認するチェックリストを追加した。
@@ -420,18 +420,23 @@
 
 #### 進捗状況（2025-10-25 時点）
 - **QueueMailbox のコア差し替え本体**  
-- `QueueDriverConfig` / `build_queue_driver` を導入し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncMailboxQueue` を共通生成する構成へ移行済み。  
+- `MailboxQueueConfig` / `build_mailbox_queue` を導入し、`TestMailboxFactory` と `TokioMailboxFactory` が `queue-v2` 時に `SyncMailboxQueue` を共通生成する構成へ移行済み。  
 - embedded 系では `ArcMailboxFactory` / `LocalMailboxFactory` / `ArcMailboxSender` を `SyncMailboxQueue` ベースに差し替え、`queue-v1` ビルドのみ `LegacyQueueDriver` + 旧キュー実装を保持する二重化を維持。`ArcPriorityMailboxFactory` も新設の `PrioritySyncQueueDriver` を経由して制御／通常レーンを多重化できるようになったため、優先度メールボックス経路から互換レイヤー依存を排除済み。  
   - `cellex-actor-embedded-rs` のフィーチャーフラグを調整し、`embedded_rc` が自動的に `queue-v1` を有効化しないよう変更。これにより queue-v2 既定時でも CI が両キュー機能を同時有効にせずにビルド可能となった。
   - `embedded_arc` フィーチャーが Cargo features 経由で必ず `queue-v2` を伴うことを再確認し、ドキュメント上でも queue-v1 フォールバック対象外である旨を明文化。  
   - 現在のフェーズ5B進捗率（自己評価）: 100%（embedded_arc 系フォールバック整理・ドキュメント反映・最終 CI 実行まで完了）
 - **Producer/Receiver 層 OfferOutcome/PollOutcome 対応 & エラー網羅テスト**  
   - `QueueMailboxProducer::try_send_with_outcome` / `try_send_mailbox` を評価する新しいユニットテストを追加し、`DropOldest` / `DropNewest` / `Grow` で `MetricsEvent::{MailboxDroppedOldest, MailboxDroppedNewest, MailboxGrewTo}` が発火することを `RecordingSink` で検証。`MailboxError::QueueFull` がポリシーとメッセージを保持して戻る回帰もカバー。  
-  - `MailboxProducer::set_metrics_sink` / `Mailbox::set_metrics_sink` 実装を更新し、`MetricsSinkShared` が `MailboxQueueDriver` 側へ確実に伝播するよう統一。これにより embedded/Tokio 双方で OfferOutcome ベースのメトリクスが収集できるようになった。  
+  - `MailboxProducer::set_metrics_sink` / `Mailbox::set_metrics_sink` 実装を更新し、`MetricsSinkShared` が `MailboxQueueBackend` 側へ確実に伝播するよう統一。これにより embedded/Tokio 双方で OfferOutcome ベースのメトリクスが収集できるようになった。  
   - `QueueMailboxRecv` は従来どおり `PollOutcome::Pending` を待機する構造を維持（`MailboxDequeued` は ReadyQueueScheduler 側で記録）。デッドレター向けの `MailboxError` 変換は既存テストで回帰済み。
 - `LegacyQueueDriver` の利用箇所を検索し、`#[cfg(feature = "queue-v1")]` ガード配下（embedded_rc 等）のみで参照されていることを再確認。queue-v2 既定経路では新 `SyncMailboxQueue` のみが使用される状態を維持。
-- 2025-10-27: actor-core に `SyncMailbox` / `SyncMailboxProducer` エイリアスと `build_sync_mailbox_pair` ヘルパーを追加。標準メールボックス生成が直接 `SyncMailboxQueue` を指すようにし、後続の MailboxQueueDriver 撤廃作業の足場を整備。
+- 2025-10-27: actor-core に `SyncMailbox` / `SyncMailboxProducer` エイリアスと `build_sync_mailbox_pair` ヘルパーを追加。標準メールボックス生成が直接 `SyncMailboxQueue` を指すようにし、後続の MailboxQueueBackend 撤廃作業の足場を整備。
 - 2025-10-27: Tokio / embedded ランタイムを `SyncMailboxQueue` ベースへ統一し、互換用の `SyncQueueDriver` 再エクスポートを削除。`cargo +nightly check -p cellex-actor-std-rs` および `cargo +nightly check -p cellex-actor-embedded-rs` でビルド整合性を確認（stable rustc は既知 ICE のため CI は保留）。
+- 2025-10-27: `MailboxQueueBackend`（旧 `MailboxQueueDriver`）は段階的に廃止予定。`QueueMailbox`／`QueueMailboxCore` を `SyncMailboxQueue` 直接保持へ移行しつつ、`ArcSyncQueueDriver` や `PrioritySyncQueueDriver` など名称に Driver が残るラッパも役割に合わせて再設計する計画をドキュメント化。完了後にトレイトと互換エイリアスを完全削除する。
+- 廃止までの手順メモ
+  1. actor-core 内の `QueueMailbox`／`QueueMailboxProducer`／`QueueMailboxRecv` が露出する箇所を `SyncMailbox`／`SyncMailboxProducer` などの新エイリアスへ置換し、トレイト境界へ依存するコードを減らす。
+  2. ランタイム（Tokio／embedded／priority）とテスト群は既に `SyncMailboxQueue` 前提となったため、この状態を活かして actor-core 側の残存依存を洗い替えし、互換レイヤやトレイト境界を削除しやすくする。
+  3. `ArcSyncQueueDriver` や `PrioritySyncQueueDriver` など名称に Driver が残る構造体を役割に沿った命名へリファクタしつつ、最終的に `MailboxQueueBackend` トレイト自体を完全撤廃する。
 - **全体テスト・CI とドキュメント更新**  
   - 2025-10-25 時点の差分を含め `./scripts/ci-check.sh all` を再実行し、queue-v2 既定／queue-v1 互換（`cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v1`）双方が通ることを確認済み。  
   - 2025-10-25: embedded_rc + queue-v1 で RP2040 ターゲットのクロスビルド確認を実施  
@@ -471,8 +476,8 @@
     - 2025-10-25: queue-v2 ルートで `TestMailboxFactory` および Tokio mailbox 系のファクトリ／Sender／Mailbox 実装を `SyncMailboxQueue` ベースへ移行。queue-v1 ビルドのみ `LegacyQueueDriver` を利用し続ける構成に整理し、Backpressure/メトリクス処理を新ラッパへ委譲。
     - 2025-10-25: embedded 向け `ArcMailbox` / `ArcPriorityMailbox` を `SyncMailboxQueue` 経由で組み立てる実装へ更新し、`PrioritySyncQueueDriver` の `MailboxOverflowPolicy` 伝搬と制御レーン優先挙動をユニットテストで保証。加えて `modules/actor-core/src/api/mailbox/queue_mailbox/tests.rs` の受信フローを `Future` ベースで検証し、`queue-v2` 向けの `PollOutcome` 変換経路が pending → ready を正しく反映することを確認。
     - 2025-10-25: `./scripts/ci-check.sh all` を再実行し、`cellex-actor-embedded-rs` 既定フィーチャ（queue-v2 + embedded_rc）でも lint / test / dylint が通過することを再確認。併せて queue-v1 回帰は `cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_rc,queue-v1`、queue-v2 経路は `cargo check -p cellex-actor-embedded-rs --no-default-features --features alloc,embedded_arc` で個別確認済み。
-    - 2025-10-25: SyncQueue 本番差し替えに向けた段取りを整理。1) `MailboxQueueDriver` に `SyncMailboxQueue` 実装を追加し、今回のテストでカバーした `MailboxError` 変換がそのまま通ることを確認する。2) `QueueMailboxProducer`／`QueueMailboxRecv` のバックプレッシャー・リソース枯渇ハンドリングを新ラッパへ委譲するスイッチポイント（feature gate での切り替え）を設計。3) `queue-v1` fallback を維持したまま段階的に `SyncQueue` へ切り替えるため、`QueueMailbox` 構築時にラッパを DI できるようコンストラクタを調整する。次フェーズではこの段取りに沿って `SyncQueue` 本番差し替えを実施する。
-    - 2025-10-25: priority mailbox 用に `PrioritySyncQueueDriver` を実装。control レーンは `Vec<SyncMailboxQueue<_>>`、regular は単一ラッパで構成し、`MailboxQueueDriver` として `offer`/`poll`/`close` を集約。専用テスト（制御優先度・メトリクス連携・容量集計）を `modules/actor-std/src/tokio_priority_mailbox/priority_sync_driver/tests.rs` に追加し、`cargo test -p cellex-actor-std-rs tokio_priority_mailbox`（queue-v2 / queue-v1 双方）で検証。
+    - 2025-10-25: SyncQueue 本番差し替えに向けた段取りを整理。1) `MailboxQueueBackend` に `SyncMailboxQueue` 実装を追加し、今回のテストでカバーした `MailboxError` 変換がそのまま通ることを確認する。2) `QueueMailboxProducer`／`QueueMailboxRecv` のバックプレッシャー・リソース枯渇ハンドリングを新ラッパへ委譲するスイッチポイント（feature gate での切り替え）を設計。3) `queue-v1` fallback を維持したまま段階的に `SyncQueue` へ切り替えるため、`QueueMailbox` 構築時にラッパを DI できるようコンストラクタを調整する。次フェーズではこの段取りに沿って `SyncQueue` 本番差し替えを実施する。
+    - 2025-10-25: priority mailbox 用に `PrioritySyncQueueDriver` を実装。control レーンは `Vec<SyncMailboxQueue<_>>`、regular は単一ラッパで構成し、`MailboxQueueBackend` として `offer`/`poll`/`close` を集約。専用テスト（制御優先度・メトリクス連携・容量集計）を `modules/actor-std/src/tokio_priority_mailbox/priority_sync_driver/tests.rs` に追加し、`cargo test -p cellex-actor-std-rs tokio_priority_mailbox`（queue-v2 / queue-v1 双方）で検証。
     - 2025-10-25: `QueueRwCompat` 利用箇所を棚卸し。① プロダクションコードでは `tokio_priority_mailbox::queues` (control/regular レーン) のみが queue-v2 時に依存。② テストでは `actor_scheduler::tests` が queue-v2 専用の整合性確認として `LegacyQueueDriver<QueueRwCompat>` を利用。③ その他は設計ドキュメント参照用途。優先対応対象は①。
     - 2025-10-25: priority mailbox 向け `SyncMailboxQueue` 導入案を整理。`PrioritySyncQueueDriver<M>`（仮称）を新設し、control レーンは `Vec<SyncMailboxQueue<PriorityEnvelope<M>>>`、regular レーンは単一の `SyncMailboxQueue` を内包する構成とする。`offer` は優先度判定後に該当ラッパへ委譲し、`QueuePollOutcome` は control→regular の順に合成。`len`／`capacity` は `QueueSize` をサチュレート加算で集約し、`set_metrics_sink` は全レーンへブロードキャスト。`close` では各レーンの close 結果を最初の `Some` を優先して返す。
     - 2025-10-25: 移行ステップ案: (a) `PrioritySyncQueueDriver` 実装と単体テスト（制御レーン優先度・メトリクス通知・DropNewest/DropOldest/AllocError 等）を追加。 (b) `TokioPriorityQueues` を queue-v2 ビルド時には新ドライバで提供するようリファクタリングし、`TokioPriorityMailbox`／`TokioPriorityMailboxSender` を `QueueMailbox<PrioritySyncQueueDriver<_>, NotifySignal>` 化。 (c) queue-v1 フィーチャでは既存 `LegacyQueueDriver` + `ArcMpsc*` 実装を残し、`cfg` で排他制御。 (d) 既存の `QueueRwCompat` はテストサポート（`TestQueue` 等）に限定し、priority mailbox から除去。 (e) `cargo test -p cellex-actor-std-rs tokio_priority_mailbox`（新規追加予定）と `./scripts/ci-check.sh all` で回帰検証。

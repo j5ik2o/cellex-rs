@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{MailboxQueueDriver, QueuePollOutcome},
+    queue_mailbox::{MailboxQueueBackend, QueuePollOutcome},
     Mailbox,
   },
   shared::mailbox::MailboxOptions,
@@ -24,7 +24,7 @@ use cellex_actor_core_rs::api::metrics::{MetricsEvent, MetricsSink, MetricsSinkS
 fn dequeue_expected<M>(mailbox: &TokioPriorityMailbox<M>) -> Result<PriorityEnvelope<M>, String>
 where
   M: Element, {
-  match MailboxQueueDriver::poll(mailbox.inner().queue()).map_err(|err| format!("poll queue: {:?}", err))? {
+  match MailboxQueueBackend::poll(mailbox.inner().queue()).map_err(|err| format!("poll queue: {:?}", err))? {
     | QueuePollOutcome::Message(envelope) | QueuePollOutcome::Closed(envelope) => Ok(envelope),
     | QueuePollOutcome::Empty | QueuePollOutcome::Pending => Err("queue empty".to_string()),
     | QueuePollOutcome::Disconnected => Err("queue disconnected".to_string()),

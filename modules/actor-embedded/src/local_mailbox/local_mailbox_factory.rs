@@ -6,7 +6,7 @@ use cellex_actor_core_rs::api::mailbox::SingleThread;
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
 use cellex_actor_core_rs::{
   api::mailbox::{
-    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncMailboxQueue},
+    queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SyncMailboxQueue},
     QueueMailboxProducer,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
@@ -86,7 +86,7 @@ impl MailboxFactory for LocalMailboxFactory {
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = build_queue_driver::<M>(QueueDriverConfig::default());
+    let queue = build_mailbox_queue::<M>(MailboxQueueConfig::default());
     let signal = LocalSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

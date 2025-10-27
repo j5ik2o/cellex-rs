@@ -5,7 +5,7 @@ use core::{
 
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueDriver, QueuePollOutcome, SyncMailboxQueue},
+    queue_mailbox::{MailboxQueueBackend, QueuePollOutcome, SyncMailboxQueue},
     MailboxOverflowPolicy,
   },
   metrics::MetricsSinkShared,
@@ -63,7 +63,7 @@ where
   }
 }
 
-impl<M, RM> MailboxQueueDriver<M> for ArcSyncQueueDriver<M, RM>
+impl<M, RM> MailboxQueueBackend<M> for ArcSyncQueueDriver<M, RM>
 where
   M: Element,
 {

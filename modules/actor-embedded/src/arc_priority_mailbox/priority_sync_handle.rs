@@ -6,7 +6,7 @@ use core::{
 use cellex_actor_core_rs::{
   api::{
     mailbox::{
-      queue_mailbox::{MailboxQueueDriver, QueuePollOutcome},
+      queue_mailbox::{MailboxQueueBackend, QueuePollOutcome},
       MailboxOverflowPolicy,
     },
     metrics::MetricsSinkShared,
@@ -70,7 +70,7 @@ where
   }
 }
 
-impl<M, RM> MailboxQueueDriver<PriorityEnvelope<M>> for ArcPrioritySyncQueueDriver<M, RM>
+impl<M, RM> MailboxQueueBackend<PriorityEnvelope<M>> for ArcPrioritySyncQueueDriver<M, RM>
 where
   M: Element,
 {
