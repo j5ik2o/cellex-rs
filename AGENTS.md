@@ -50,6 +50,13 @@
 ## コーディングスタイルと命名規約
 ファイル と 関数 は snake_case、型 と トレイト は PascalCase、定数 は SCREAMING_SNAKE_CASE。非同期 処理 は `tokio` と `async-trait` を 前提 と し、`?` で 早期 戻り を 心掛けます。`cargo +nightly fmt` と `cargo clippy` を PR 前 の 必須 チェック と し、`tracing` ログ は デバッグ 範囲 に 留めて ください。
 
+### Mailbox 命名ポリシー（2025-10-27 更新）
+- embedded ランタイムで使用するメールボックスは用途に応じて以下の接頭辞を使用すること。
+  - 標準的な（`Send + Sync` を満たす）実装……`DefaultMailbox`, `DefaultMailboxFactory`, `DefaultMailboxSender`, `DefaultSignal`
+  - シングルスレッド/`!Send` 向けのローカル実装……`LocalMailbox`, `LocalMailboxFactory`, `LocalMailboxSender`, `LocalSignal`
+- 所有形態（`Arc` / `Rc` 等）を名前に含めない。実装の詳細は型内部とドキュメントで説明する。
+- 将来的に別の環境向け実装（例: `WasmMailbox` 等）を追加する場合も、環境・用途を表す接頭辞で揃える。
+
 ## テストガイドライン
 テスト フレームワーク は Rust 標準 + `#[tokio::test]`。関数 名 は `test_<対象>_<期待>` の snake_case を 推奨。共有 状態 は `Arc`、`AsyncBarrier`、`Notify` など を 使用 し データ 競合 を 回避。重要 シナリオ は 正常 系 と エラー 系 を 両方 カバー し、必要 に 応じて `cargo make coverage` の 成果 を PR に 添付。
 

@@ -11,29 +11,29 @@ use cellex_utils_core_rs::collections::{
 };
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal};
+use super::{factory::DefaultMailboxFactory, sender::DefaultMailboxSender, signal::DefaultSignal};
 
 /// Mailbox implementation backed by an `ArcShared` MPSC queue.
 #[derive(Clone)]
-pub struct ArcMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
+pub struct DefaultMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailbox<SyncMailboxQueue<M>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailbox<SyncMailboxQueue<M>, DefaultSignal<RM>>,
 }
 
-impl<M, RM> ArcMailbox<M, RM>
+impl<M, RM> DefaultMailbox<M, RM>
 where
   M: Element,
   RM: RawMutex,
 {
   /// Creates an unbounded mailbox and sender pair.
-  pub fn new() -> (Self, ArcMailboxSender<M, RM>) {
-    ArcMailboxFactory::<RM>::new().unbounded()
+  pub fn new() -> (Self, DefaultMailboxSender<M, RM>) {
+    DefaultMailboxFactory::<RM>::new().unbounded()
   }
 
   /// Returns the underlying queue mailbox.
-  pub fn inner(&self) -> &QueueMailbox<SyncMailboxQueue<M>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailbox<SyncMailboxQueue<M>, DefaultSignal<RM>> {
     &self.inner
   }
 
@@ -43,13 +43,13 @@ where
   }
 }
 
-impl<M, RM> Mailbox<M> for ArcMailbox<M, RM>
+impl<M, RM> Mailbox<M> for DefaultMailbox<M, RM>
 where
   M: Element,
   RM: RawMutex,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, SyncMailboxQueue<M>, ArcSignal<RM>, M>
+    = QueueMailboxRecv<'a, SyncMailboxQueue<M>, DefaultSignal<RM>, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -83,7 +83,7 @@ where
   }
 }
 
-impl<M, RM> ArcMailbox<M, RM>
+impl<M, RM> DefaultMailbox<M, RM>
 where
   M: Element,
   RM: RawMutex,
@@ -94,7 +94,7 @@ where
   }
 
   /// Returns the receive future when operating with MailboxError semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, SyncMailboxQueue<M>, ArcSignal<RM>, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, SyncMailboxQueue<M>, DefaultSignal<RM>, M> {
     self.inner.recv()
   }
 }

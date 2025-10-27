@@ -40,7 +40,7 @@ fn init_critical_section() {
 #[test]
 fn priority_mailbox_orders_messages_by_priority() {
   prepare();
-  let factory = ArcPriorityMailboxFactory::<CriticalSectionRawMutex>::default();
+  let factory = DefaultPriorityMailboxFactory::<CriticalSectionRawMutex>::default();
   let (mailbox, sender) = factory.mailbox::<u8>(MailboxOptions::default());
 
   sender.try_send_with_priority(10, DEFAULT_PRIORITY).expect("low priority");
@@ -59,7 +59,7 @@ fn priority_mailbox_orders_messages_by_priority() {
 #[test]
 fn priority_mailbox_capacity_split() {
   prepare();
-  let factory: ArcPriorityMailboxFactory<CriticalSectionRawMutex> = ArcPriorityMailboxFactory::default();
+  let factory: DefaultPriorityMailboxFactory<CriticalSectionRawMutex> = DefaultPriorityMailboxFactory::default();
   let options = MailboxOptions::with_capacities(QueueSize::limited(2), QueueSize::limited(2));
   let (mailbox, sender) = factory.mailbox::<u8>(options);
 
@@ -76,7 +76,7 @@ fn priority_mailbox_capacity_split() {
 #[test]
 fn control_queue_preempts_regular_messages() {
   prepare();
-  let factory: ArcPriorityMailboxFactory<CriticalSectionRawMutex> = ArcPriorityMailboxFactory::default();
+  let factory: DefaultPriorityMailboxFactory<CriticalSectionRawMutex> = DefaultPriorityMailboxFactory::default();
   let (mailbox, sender) = factory.mailbox::<u32>(MailboxOptions::default());
 
   sender.try_send_with_priority(1, DEFAULT_PRIORITY).expect("regular message");

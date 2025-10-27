@@ -56,9 +56,9 @@
 extern crate alloc;
 
 #[cfg(feature = "embedded_arc")]
-mod arc_mailbox;
+mod default_mailbox;
 #[cfg(feature = "embedded_arc")]
-mod arc_priority_mailbox;
+mod default_priority_mailbox;
 #[cfg(feature = "embassy_executor")]
 mod receive_timeout;
 /// Runtime driver for failure event handling in embedded environments.
@@ -69,9 +69,9 @@ mod spawn;
 mod timer;
 
 #[cfg(feature = "embedded_arc")]
-pub use arc_mailbox::{ArcMailbox, ArcMailboxFactory, ArcMailboxSender};
+pub use default_mailbox::{DefaultMailbox, DefaultMailboxFactory, DefaultMailboxSender};
 #[cfg(feature = "embedded_arc")]
-pub use arc_priority_mailbox::{ArcPriorityMailbox, ArcPriorityMailboxFactory, ArcPriorityMailboxSender};
+pub use default_priority_mailbox::{DefaultPriorityMailbox, DefaultPriorityMailboxFactory, DefaultPriorityMailboxSender};
 #[cfg(feature = "embassy_executor")]
 mod embassy_dispatcher;
 

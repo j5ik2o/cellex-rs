@@ -10,16 +10,16 @@ use cellex_actor_core_rs::{
 use cellex_utils_core_rs::collections::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::{arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal};
+use super::{default_mailbox_impl::DefaultMailbox, sender::DefaultMailboxSender, signal::DefaultSignal};
 
-/// Factory for constructing [`ArcMailbox`] instances.
-pub struct ArcMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
+/// Factory for constructing [`DefaultMailbox`] instances.
+pub struct DefaultMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   _marker: PhantomData<RM>,
 }
 
-impl<RM> Clone for ArcMailboxFactory<RM>
+impl<RM> Clone for DefaultMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -28,7 +28,7 @@ where
   }
 }
 
-impl<RM> Default for ArcMailboxFactory<RM>
+impl<RM> Default for DefaultMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -37,7 +37,7 @@ where
   }
 }
 
-impl<RM> ArcMailboxFactory<RM>
+impl<RM> DefaultMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -47,22 +47,22 @@ where
   }
 
   /// Builds a mailbox using the supplied options.
-  pub fn mailbox<M>(&self, options: MailboxOptions) -> (ArcMailbox<M, RM>, ArcMailboxSender<M, RM>)
+  pub fn mailbox<M>(&self, options: MailboxOptions) -> (DefaultMailbox<M, RM>, DefaultMailboxSender<M, RM>)
   where
     M: Element, {
     let (mailbox, sender) = self.build_mailbox::<M>(options);
-    (ArcMailbox { inner: mailbox }, ArcMailboxSender { inner: sender })
+    (DefaultMailbox { inner: mailbox }, DefaultMailboxSender { inner: sender })
   }
 
   /// Builds an unbounded mailbox.
-  pub fn unbounded<M>(&self) -> (ArcMailbox<M, RM>, ArcMailboxSender<M, RM>)
+  pub fn unbounded<M>(&self) -> (DefaultMailbox<M, RM>, DefaultMailboxSender<M, RM>)
   where
     M: Element, {
     self.mailbox(MailboxOptions::unbounded())
   }
 }
 
-impl<RM> MailboxFactory for ArcMailboxFactory<RM>
+impl<RM> MailboxFactory for DefaultMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -79,13 +79,13 @@ where
     = SyncMailboxQueue<M>
   where
     M: Element;
-  type Signal = ArcSignal<RM>;
+  type Signal = DefaultSignal<RM>;
 
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
     let queue = build_mailbox_queue::<M>(MailboxQueueConfig::default());
-    let signal = ArcSignal::new();
+    let signal = DefaultSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();
     (mailbox, sender)

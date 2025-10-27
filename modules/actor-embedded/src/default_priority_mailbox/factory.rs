@@ -11,13 +11,13 @@ const DEFAULT_CAPACITY: usize = 32;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  mailbox::ArcPriorityMailbox, priority_mailbox_queue::PriorityMailboxQueue, sender::ArcPriorityMailboxSender,
+  mailbox::DefaultPriorityMailbox, priority_mailbox_queue::PriorityMailboxQueue, sender::DefaultPriorityMailboxSender,
 };
-use crate::arc_mailbox::ArcSignal;
+use crate::default_mailbox::DefaultSignal;
 
-/// Factory for constructing [`ArcPriorityMailbox`] instances.
+/// Factory for constructing [`DefaultPriorityMailbox`] instances.
 #[derive(Debug)]
-pub struct ArcPriorityMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
+pub struct DefaultPriorityMailboxFactory<RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   RM: RawMutex, {
   control_capacity_per_level: usize,
@@ -26,7 +26,7 @@ where
   _marker:                    PhantomData<RM>,
 }
 
-impl<RM> Default for ArcPriorityMailboxFactory<RM>
+impl<RM> Default for DefaultPriorityMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -40,7 +40,7 @@ where
   }
 }
 
-impl<RM> ArcPriorityMailboxFactory<RM>
+impl<RM> DefaultPriorityMailboxFactory<RM>
 where
   RM: RawMutex,
 {
@@ -67,16 +67,16 @@ where
   }
 
   /// Builds a mailbox using the provided options.
-  pub fn mailbox<M>(&self, options: MailboxOptions) -> (ArcPriorityMailbox<M, RM>, ArcPriorityMailboxSender<M, RM>)
+  pub fn mailbox<M>(&self, options: MailboxOptions) -> (DefaultPriorityMailbox<M, RM>, DefaultPriorityMailboxSender<M, RM>)
   where
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);
     let regular_capacity = self.resolve_regular_capacity(options.capacity);
     let queue = PriorityMailboxQueue::new(self.levels, control_per_level, regular_capacity);
-    let signal = ArcSignal::default();
+    let signal = DefaultSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();
-    (ArcPriorityMailbox { inner: mailbox }, ArcPriorityMailboxSender { inner: sender })
+    (DefaultPriorityMailbox { inner: mailbox }, DefaultPriorityMailboxSender { inner: sender })
   }
 
   fn resolve_control_capacity(&self, requested: QueueSize) -> usize {
@@ -94,7 +94,7 @@ where
   }
 }
 
-impl<RM> Clone for ArcPriorityMailboxFactory<RM>
+impl<RM> Clone for DefaultPriorityMailboxFactory<RM>
 where
   RM: RawMutex,
 {

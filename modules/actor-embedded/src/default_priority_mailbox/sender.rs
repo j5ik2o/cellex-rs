@@ -9,18 +9,18 @@ use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::priority_mailbox_queue::PriorityMailboxQueue;
-use crate::arc_mailbox::ArcSignal;
+use crate::default_mailbox::DefaultSignal;
 
-/// Sending handle associated with [`super::mailbox::ArcPriorityMailbox`].
+/// Sending handle associated with [`super::mailbox::DefaultPriorityMailbox`].
 #[derive(Clone)]
-pub struct ArcPriorityMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
+pub struct DefaultPriorityMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<PriorityMailboxQueue<M>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<PriorityMailboxQueue<M>, DefaultSignal<RM>>,
 }
 
-impl<M, RM> ArcPriorityMailboxSender<M, RM>
+impl<M, RM> DefaultPriorityMailboxSender<M, RM>
 where
   M: Element,
   RM: RawMutex,
@@ -60,7 +60,7 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<PriorityMailboxQueue<M>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<PriorityMailboxQueue<M>, DefaultSignal<RM>> {
     &self.inner
   }
 

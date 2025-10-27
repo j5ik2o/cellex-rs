@@ -5,18 +5,18 @@ use cellex_actor_core_rs::api::{
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::signal::ArcSignal;
+use super::signal::DefaultSignal;
 
-/// Sending handle associated with [`super::arc_mailbox_impl::ArcMailbox`].
+/// Sending handle associated with [`super::default_mailbox_impl::DefaultMailbox`].
 #[derive(Clone)]
-pub struct ArcMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
+pub struct DefaultMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex>
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<SyncMailboxQueue<M>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<SyncMailboxQueue<M>, DefaultSignal<RM>>,
 }
 
-impl<M, RM> ArcMailboxSender<M, RM>
+impl<M, RM> DefaultMailboxSender<M, RM>
 where
   M: Element,
   RM: RawMutex,
@@ -42,7 +42,7 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<SyncMailboxQueue<M>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<SyncMailboxQueue<M>, DefaultSignal<RM>> {
     &self.inner
   }
 

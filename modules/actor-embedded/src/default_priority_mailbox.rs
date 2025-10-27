@@ -6,7 +6,7 @@ mod mailbox;
 mod priority_mailbox_queue;
 mod sender;
 
-pub use factory::ArcPriorityMailboxFactory;
-pub use mailbox::ArcPriorityMailbox;
+pub use factory::DefaultPriorityMailboxFactory;
+pub use mailbox::DefaultPriorityMailbox;
 pub use priority_mailbox_queue::PriorityMailboxQueue;
-pub use sender::ArcPriorityMailboxSender;
+pub use sender::DefaultPriorityMailboxSender;

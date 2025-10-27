@@ -5,16 +5,16 @@ use cellex_actor_core_rs::shared::mailbox::MailboxSignal;
 use cellex_utils_embedded_rs::sync::arc::ArcShared;
 use embassy_sync::{blocking_mutex::raw::RawMutex, signal::Signal};
 
-use super::signal_wait::ArcSignalWait;
+use super::signal_wait::DefaultSignalWait;
 
 /// Notification primitive used to wake mailbox waiters.
-pub struct ArcSignal<RM>
+pub struct DefaultSignal<RM>
 where
   RM: RawMutex, {
   signal: ArcShared<Signal<RM, ()>>,
 }
 
-impl<RM> Clone for ArcSignal<RM>
+impl<RM> Clone for DefaultSignal<RM>
 where
   RM: RawMutex,
 {
@@ -23,7 +23,7 @@ where
   }
 }
 
-impl<RM> Default for ArcSignal<RM>
+impl<RM> Default for DefaultSignal<RM>
 where
   RM: RawMutex,
 {
@@ -32,7 +32,7 @@ where
   }
 }
 
-impl<RM> ArcSignal<RM>
+impl<RM> DefaultSignal<RM>
 where
   RM: RawMutex,
 {
@@ -41,12 +41,12 @@ where
   }
 }
 
-impl<RM> MailboxSignal for ArcSignal<RM>
+impl<RM> MailboxSignal for DefaultSignal<RM>
 where
   RM: RawMutex,
 {
   type WaitFuture<'a>
-    = ArcSignalWait<'a, RM>
+    = DefaultSignalWait<'a, RM>
   where
     Self: 'a;
 
@@ -55,6 +55,6 @@ where
   }
 
   fn wait(&self) -> Self::WaitFuture<'_> {
-    ArcSignalWait { future: Box::pin(self.signal.wait()), _marker: PhantomData }
+    DefaultSignalWait { future: Box::pin(self.signal.wait()), _marker: PhantomData }
   }
 }
