@@ -23,7 +23,7 @@
 
 | 項目 | 現状 | 影響 |
 | --- | --- | --- |
-| Suspend/Resume | `SystemMessage::Suspend/Resume` は列挙されているが、`QueueMailbox` / `ActorCell` が処理を停止しない。 | Suspend 後もユーザーメッセージが処理され、制御不能。 |
+| Suspend/Resume | `ActorCell` がサスペンド状態と保留キューを保持するよう改修済み（2025-10-27）。 | 仕様どおり停止・再開できる。残課題はメトリクス／バックプレッシャ統合。 |
 | 状態管理 | サスペンド状態を保持する構造が存在しない。 | 停止/再開状態の追跡やメトリクス記録が不可能。 |
 | ReadyQueue連携 | Suspend 中も ReadyQueue に再登録され続ける。 | 無駄なスケジューリングとフェアネス低下。 |
 | テスト | `test_typed_actor_stateful_behavior_with_suspend_resume` などを Suspend ブロック仕様に合わせて更新する必要がある。 | リグレッション検知ができない。 |
@@ -43,38 +43,41 @@
 
 ## 4. 提案アーキテクチャ
 
-### 4.1 新規構造体
+### 4.1 新規構造体と状態遷移
 
 ```rust
-pub struct MailboxSuspension {
-  flag: Flag,                     // サスペンド状態
-  since: SharedMutex<Option<Instant>>,
-  resume_events: AtomicU64,
-  total_nanos: AtomicU64,
+pub(crate) enum ActorCellState {
+  Running,
+  Suspended,
+  Stopped,
+}
+
+pub struct ActorCell<MF, Strat> {
+  state: ActorCellState,
+  pending_user_envelopes: VecDeque<PriorityEnvelope<AnyMessage>>,
+  // 既存フィールド...
 }
 ```
 
-- `QueueMailboxCore` に `suspension: MailboxSuspension` を追加。  
-- `suspend()` / `resume()` / `is_suspended()` / `record_resume()` メソッドを提供。  
-- `Flag` は既存の `cellex_utils_core_rs::sync::Flag` を利用。  
-- `SharedMutex` は `SpinSyncMutex` / `CriticalSection` 等、ターゲット依存の抽象を使用。
+- Suspend 時は `ActorCellState::Suspended` へ遷移し、ユーザーメッセージを `pending_user_envelopes` に退避。  
+- Resume で `ActorCellState::Running` に戻し、退避済みメッセージを ReadyQueue へ戻す（`collect_envelopes` 内で drain）。
 
 ### 4.2 メールボックス処理の流れ
 
 1. `QueueMailboxCore::try_send_mailbox`  
    - Suspend 中も enqueue 自体は許可（Backpressure 制御は別途）。  
-   - ただし enqueue 後に ReadyQueue へ通知する際、すでに Suspend 状態なら再登録を抑制し、Resume まで保留。
+   - ReadyQueue 通知は既存どおり。実際の配送は `ActorCell` 側で抑制。
 
 2. `QueueMailboxRecv` / `QueueMailboxCore::try_dequeue_mailbox`  
-   - Suspend 中にユーザーメッセージを取り出さない。  
-   - System メッセージは常に取り出す（Suspend/Resume 評価用）。
+   - Suspend 中でも dequeuing は行うが、ユーザーメッセージは `ActorCell` によって保留キューへ移される。  
+   - System メッセージは常に処理対象。
 
 3. `ActorCell::dispatch_envelope`  
-   - SystemMessage::Suspend → `QueueMailboxCore::suspend()` を呼び出し、ReadyQueueCoordinator に `SuspendReason::UserDefined` を通知。  
-   - SystemMessage::Resume → `QueueMailboxCore::resume()` を呼び出し、ReadyQueueCoordinator に `InvokeResult::Suspended` 解消を通知。
+   - SystemMessage::Suspend → `transition_to_suspended()` を呼び出し、以降のユーザーメッセージを保留。  
+   - SystemMessage::Resume → `transition_to_running()` を呼び出し、保留分を順次再投入。
 
 4. `ReadyQueueCoordinator`  
-   - Suspend 通知を受け取ったら対象 index を除外。Resume で再登録。
+   - 現行 Phase 0 では既存挙動を維持。Suspend/Resume に伴う再登録判定は将来の `InvokeResult::Suspended` 統合で対応。
 
 ### 4.3 メトリクス
 
@@ -85,29 +88,29 @@ pub struct MailboxSuspension {
 
 ## 5. 実装ステップ
 
-1. **基盤整備**  
-   - `MailboxSuspension` 構造体を `modules/actor-core/src/api/mailbox/queue_mailbox` 配下に追加。  
-   - `QueueMailboxCore` にフィールド追加と suspend/resume メソッドを実装。
+1. **基盤整備（完了 2025-10-27）**  
+   - `ActorCellState` と `pending_user_envelopes` を導入し、`ActorCell` が Suspend/Resume を制御。  
+   - ReadyQueue とのインタラクションは既存 API を維持。
 
-2. **SystemMessage ハンドリング**  
-   - `ActorCell::dispatch_envelope` で Suspend/Resume の分岐を追加。  
-   - Suspend 時は `ReadyQueueCoordinator::unregister()`、Resume 時は `register_ready()` を呼び出す。
+2. **SystemMessage ハンドリング（完了）**  
+   - `ActorCell::dispatch_envelope` で Suspend/Resume の状態遷移を実装。  
+   - System メッセージの通知経路は従来どおり。
 
-3. **デキュー処理の更新**  
-   - Suspend 中はユーザーメッセージを `Pending` として扱い、System メッセージのみ処理。  
-   - Resume 時に保留分を再登録。
+3. **デキュー処理の更新（完了）**  
+   - `collect_envelopes` が保留キューとの drain を担当。  
+   - Resume 後に保留分が処理されることを保証。
 
-4. **メトリクス & イベント**  
-   - `MetricsEvent` に Suspend/Resume を追加。  
-   - 再開時間を `total_nanos` に積算。
+4. **メトリクス & イベント（進行中）**  
+   - `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、状態遷移を記録。  
+   - Suspend 期間の計測と no_std 環境向けクロックは今後の課題。
 
-5. **テスト追加**  
-   - Suspend 後にユーザーメッセージが処理されないことを確認するユニットテスト。  
-   - Resume 後に処理が再開されること、メトリクスが記録されることを確認。
+5. **テスト追加（完了 / 継続）**  
+   - Suspend ブロックと Resume 後の再開を確認するテストを整備済み。  
+   - 並行 Suspend/Resume、バックプレッシャなどの追加ケースを継続検討。
 
-6. **ドキュメント更新**  
-   - `docs/design/mailbox_expected_features.md` の Suspend/Resume 状態を更新。  
-   - `docs/design/actor_scheduler_refactor.md` の前提条件に「Suspend/Resume 実装済み」を明記。
+6. **ドキュメント更新（継続）**  
+   - 本ドキュメント、`mailbox_expected_features.md` などを最新構成へ更新。  
+   - 将来的に `InvokeResult::Suspended` 統合方針を追記。
 
 ---
 
@@ -115,12 +118,11 @@ pub struct MailboxSuspension {
 
 | 優先度 | タスク | 担当 | 備考 |
 | --- | --- | --- | --- |
-| P0 | `MailboxSuspension` 実装と `QueueMailboxCore` 組み込み |  | protoactor-go / nexus-actor-rs を参考。 |
-| P0 | `ActorCell` の SystemMessage ハンドリング更新 |  | Suspend/Resume 時の ReadyQueue 連携。 |
-| P0 | ReadyQueueCoordinator への通知 API 拡張 |  | Suspend index の管理。 |
-| P1 | メトリクスイベント追加とテレメトリ調整 |  | `MetricsEvent` の追加、MetricsSink テスト。 |
-| P1 | テストケース整備（単体 + 統合） |  | Suspend → Resume サイクル、保留メッセージの扱い。 |
-| P1 | ドキュメント更新 |  | 設計メモ／期待機能一覧の更新。 |
+| P0 | `ActorCellState` / 保留キュー導入 | ✅ | 実装済み（2025-10-27）。 |
+| P0 | Suspend/Resume のテスト整備 | ✅ | `test_suspend_accumulates_messages_until_resume` など更新。 |
+| P1 | メトリクスイベント追加とテレメトリ調整 | ✅ | イベント発火を実装済み。Suspend 期間計測は今後対応。 |
+| P1 | ReadyQueueCoordinator 連携の強化 | ⏳ | `InvokeResult::Suspended` を用いた再登録制御。 |
+| P1 | ドキュメント更新 | ✅ | 本ドキュメント含め主要資料を更新。 |
 
 ---
 

@@ -18,7 +18,7 @@ use crate::{
     failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
     mailbox::{messages::SystemMessage, Mailbox},
-    metrics::MetricsSinkShared,
+    metrics::{MetricsEvent, MetricsSinkShared},
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
     supervision::supervisor::Supervisor,
@@ -55,6 +55,7 @@ where
   stopped: bool,
   state: ActorCellState,
   pending_user_envelopes: VecDeque<PriorityEnvelope<AnyMessage>>,
+  metrics_sink: Option<MetricsSinkShared>,
   receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   receive_timeout_scheduler_opt: Option<RefCell<Box<dyn ReceiveTimeoutScheduler>>>,
   extensions: Extensions,
@@ -99,6 +100,7 @@ where
       stopped: false,
       state: ActorCellState::Running,
       pending_user_envelopes: VecDeque::new(),
+      metrics_sink: None,
       receive_timeout_scheduler_factory_shared_opt: None,
       receive_timeout_scheduler_opt: None,
       extensions,
@@ -114,9 +116,12 @@ where
     MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
     MF::Signal: Clone,
     MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
-    Mailbox::set_metrics_sink(&mut self.mailbox, sink.clone());
-    MailboxProducer::set_metrics_sink(&mut self.sender, sink.clone());
-    self.mailbox_spawner.set_metrics_sink(sink);
+    let queue_sink = sink.clone();
+    Mailbox::set_metrics_sink(&mut self.mailbox, queue_sink);
+    let producer_sink = sink.clone();
+    MailboxProducer::set_metrics_sink(&mut self.sender, producer_sink);
+    self.mailbox_spawner.set_metrics_sink(sink.clone());
+    self.metrics_sink = sink;
   }
 
   pub(crate) fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>)
@@ -178,12 +183,20 @@ where
   fn transition_to_suspended(&mut self) {
     if !self.is_suspended() {
       self.state = ActorCellState::Suspended;
+      self.record_metrics_event(MetricsEvent::MailboxSuspended);
     }
   }
 
   fn transition_to_running(&mut self) {
     if self.is_suspended() {
       self.state = ActorCellState::Running;
+      self.record_metrics_event(MetricsEvent::MailboxResumed);
+    }
+  }
+
+  fn record_metrics_event(&self, event: MetricsEvent) {
+    if let Some(sink) = &self.metrics_sink {
+      sink.with_ref(|sink| sink.record(event));
     }
   }
 
