@@ -43,7 +43,7 @@ use crate::{
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_scheduler::{
       actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
-      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator},
+      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator, ResumeCondition, SignalKey},
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueHandle, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerSpawnContext,
     },
@@ -577,29 +577,55 @@ fn scheduler_reports_suspend_result_to_coordinator() {
   let events: Arc<Mutex<Vec<(MailboxIndex, InvokeResult)>>> = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_ready_queue_coordinator(Some(Box::new(RecordingCoordinator::new(events.clone()))));
 
+  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
   let actor_ref = spawn_with_runtime(
     &mut scheduler,
     mailbox_factory,
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
-    handler_from_message(|_, _msg| {}),
+    handler_from_message(move |_, msg| {
+      if let Message::User(value) = msg {
+        log_clone.borrow_mut().push(Message::User(value));
+      }
+    }),
   )
   .unwrap();
 
   block_on(scheduler.dispatch_next()).unwrap();
-  events.lock().unwrap().clear();
 
   let suspend_envelope = PriorityEnvelope::from_system(SystemMessage::Suspend).map(dyn_system);
   actor_ref.try_send_envelope(suspend_envelope).expect("send suspend");
+  actor_ref.try_send_with_priority(dyn_user(7), DEFAULT_PRIORITY).unwrap();
+
   block_on(scheduler.dispatch_next()).unwrap();
 
-  let recordings = events.lock().unwrap();
-  assert!(
-    recordings.iter().any(|(idx, result)| idx.slot == 0 && matches!(result, InvokeResult::Suspended { .. })),
-    "expected suspended result, got {:?}",
-    *recordings
-  );
+  let resume_key = {
+    let recordings = events.lock().unwrap();
+    recordings
+      .iter()
+      .rev()
+      .find_map(|(_, result)| {
+        if let InvokeResult::Suspended { resume_on, .. } = result {
+          if let ResumeCondition::ExternalSignal(key) = resume_on {
+            return Some(*key);
+          }
+        }
+        None
+      })
+      .expect("suspend result should be recorded")
+  };
+
+  assert!(log.borrow().is_empty(), "suspended actor must not process user messages");
+
+  scheduler.notify_resume_signal(resume_key);
+
+  block_on(scheduler.dispatch_next()).unwrap();
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  assert_eq!(log.borrow().as_slice(), &[Message::User(7)]);
 }
 
 #[test]

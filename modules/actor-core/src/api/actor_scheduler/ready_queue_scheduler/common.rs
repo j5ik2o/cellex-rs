@@ -1,4 +1,9 @@
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::{
+  boxed::Box,
+  collections::{BTreeMap, BTreeSet},
+  vec,
+  vec::Vec,
+};
 use core::{
   convert::{Infallible, TryFrom},
   marker::PhantomData,
@@ -17,7 +22,7 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorId, ActorPath, SpawnError},
     actor_scheduler::{
-      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator},
+      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator, ResumeCondition, SignalKey},
       ActorSchedulerSpawnContext,
     },
     extensions::Extensions,
@@ -59,6 +64,8 @@ where
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
   ready_coordinator: Option<Box<dyn ReadyQueueCoordinator>>,
+  suspended_indices: BTreeSet<usize>,
+  suspended_signals: BTreeMap<SignalKey, usize>,
 }
 
 #[allow(dead_code)]
@@ -88,6 +95,8 @@ where
       extensions,
       _strategy: PhantomData,
       ready_coordinator: None,
+      suspended_indices: BTreeSet::new(),
+      suspended_signals: BTreeMap::new(),
     }
   }
 }
@@ -400,11 +409,53 @@ where
     let Some(result) = self.compose_invoke_result(index, processed, outcome) else {
       return;
     };
+    self.update_suspend_registry(index, &result);
     if let Some(coordinator) = self.ready_coordinator.as_mut() {
       let slot = u32::try_from(index).unwrap_or(u32::MAX);
       let mailbox_index = MailboxIndex::new(slot, 0);
       coordinator.handle_invoke_result(mailbox_index, result);
     }
+  }
+
+  fn update_suspend_registry(&mut self, index: usize, result: &InvokeResult) {
+    match result {
+      | InvokeResult::Suspended { resume_on, .. } => {
+        self.suspended_indices.insert(index);
+        if let ResumeCondition::ExternalSignal(key) = resume_on {
+          self.suspended_signals.insert(*key, index);
+        }
+      },
+      | _ => {
+        self.suspended_indices.remove(&index);
+        self.remove_signal_mapping(index);
+      },
+    }
+  }
+
+  fn remove_signal_mapping(&mut self, index: usize) {
+    let mut remove_key: Option<SignalKey> = None;
+    for (key, mapped) in self.suspended_signals.iter() {
+      if *mapped == index {
+        remove_key = Some(*key);
+        break;
+      }
+    }
+    if let Some(key) = remove_key {
+      self.suspended_signals.remove(&key);
+    }
+  }
+
+  pub fn notify_resume_signal(&mut self, key: SignalKey) -> Option<usize> {
+    let index = self.suspended_signals.remove(&key)?;
+    self.suspended_indices.remove(&index);
+    if let Some(actor) = self.actors.get_mut(index) {
+      actor.enqueue_system_message(SystemMessage::Resume);
+    }
+    if let Some(coordinator) = self.ready_coordinator.as_mut() {
+      let slot = u32::try_from(index).unwrap_or(u32::MAX);
+      coordinator.register_ready(MailboxIndex::new(slot, 0));
+    }
+    Some(index)
   }
 
   fn compose_invoke_result(

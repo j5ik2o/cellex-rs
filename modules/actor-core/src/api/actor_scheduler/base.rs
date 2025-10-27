@@ -3,7 +3,10 @@ use alloc::{boxed::Box, vec::Vec};
 use async_trait::async_trait;
 use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 
-use super::{ready_queue_coordinator::ReadyQueueCoordinator, ready_queue_scheduler::ReadyQueueWorker};
+use super::{
+  ready_queue_coordinator::{ReadyQueueCoordinator, SignalKey},
+  ready_queue_scheduler::ReadyQueueWorker,
+};
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
@@ -53,6 +56,9 @@ where
 
   /// Sets the ready-queue coordinator notified of invoke outcomes.
   fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>);
+
+  /// Delivers an external resume signal to the scheduler.
+  fn notify_resume_signal(&mut self, key: SignalKey);
 
   /// Sets the listener receiving root-level failure events.
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>);

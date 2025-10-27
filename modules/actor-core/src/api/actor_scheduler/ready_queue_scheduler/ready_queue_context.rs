@@ -8,7 +8,10 @@ use super::{common::ReadyQueueSchedulerCore, ready_queue_state::ReadyQueueState}
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::{ready_queue_coordinator::ReadyQueueCoordinator, ActorSchedulerSpawnContext},
+    actor_scheduler::{
+      ready_queue_coordinator::{ReadyQueueCoordinator, SignalKey},
+      ActorSchedulerSpawnContext,
+    },
     failure::{
       failure_event_stream::FailureEventListener,
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
@@ -137,6 +140,14 @@ where
 
   pub(crate) fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
     self.core.set_ready_queue_coordinator(coordinator);
+  }
+
+  pub(crate) fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    if let Some(index) = self.core.notify_resume_signal(key) {
+      self.enqueue_ready(index);
+      return true;
+    }
+    false
   }
 
   pub(crate) fn set_parent_guardian(

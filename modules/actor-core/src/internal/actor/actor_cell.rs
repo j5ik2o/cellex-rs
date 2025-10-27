@@ -292,6 +292,12 @@ where
     SignalKey(raw)
   }
 
+  pub(crate) fn enqueue_system_message(&mut self, message: SystemMessage) {
+    let map_system = self.map_system.clone();
+    let envelope = PriorityEnvelope::from_system(message).map(move |sys| map_system(sys));
+    let _ = self.sender.try_send(envelope);
+  }
+
   fn collect_envelopes(
     &mut self,
   ) -> Result<Vec<PriorityEnvelope<AnyMessage>>, QueueError<PriorityEnvelope<AnyMessage>>> {

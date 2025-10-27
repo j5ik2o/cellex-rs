@@ -17,8 +17,9 @@ use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{
-      ready_queue_coordinator::ReadyQueueCoordinator, ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler,
-      ActorSchedulerSpawnContext,
+      ready_queue_coordinator::{ReadyQueueCoordinator, SignalKey},
+      ready_queue_scheduler::ReadyQueueWorkerImpl,
+      ActorScheduler, ActorSchedulerSpawnContext,
     },
     extensions::Extensions,
     failure::{
@@ -143,6 +144,12 @@ where
   pub fn set_suspension_clock(&mut self, clock: SuspensionClockShared) {
     let mut ctx = self.context.lock();
     ctx.core.set_suspension_clock(clock);
+  }
+
+  /// Notifies the scheduler that an external resume signal was received.
+  pub fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    let mut ctx = self.context.lock();
+    ctx.notify_resume_signal(key)
   }
 
   /// Sets the listener that receives failures propagated to the root supervisor.
@@ -307,6 +314,10 @@ where
 
   fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
     ReadyQueueScheduler::set_ready_queue_coordinator(self, coordinator);
+  }
+
+  fn notify_resume_signal(&mut self, key: SignalKey) {
+    let _ = ReadyQueueScheduler::notify_resume_signal(self, key);
   }
 
   fn set_parent_guardian(

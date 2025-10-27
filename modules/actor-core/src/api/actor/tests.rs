@@ -1225,6 +1225,8 @@ mod metrics_injection {
     ) {
     }
 
+    fn notify_resume_signal(&mut self, _key: crate::api::actor_scheduler::ready_queue_coordinator::SignalKey) {}
+
     fn set_parent_guardian(
       &mut self,
       _control_ref: PriorityActorRef<AnyMessage, MF>,
