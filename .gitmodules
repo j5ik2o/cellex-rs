@@ -1,0 +1,6 @@
+[submodule "docs/sources/pekko"]
+	path = docs/sources/pekko
+	url = git@github.com:apache/pekko.git
+[submodule "docs/sources/protoactor-go"]
+	path = docs/sources/protoactor-go
+	url = git@github.com:asynkron/protoactor-go.git
