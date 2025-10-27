@@ -8,7 +8,7 @@
 
 ## サマリー
 
-- 総合評価: 3.5 / 5.0 （基本方針は妥当だが、責務配置と実装詳細に未解決のリスクあり）
+- 総合評価: 4.5 / 5.0 （最新実装で主要懸念は解消済み。将来のメトリクス拡張・InvokeResult 統合が残課題）
 - 良い点: ゴールが明確、既存ドキュメントの参照が整理されている、ReadyQueue/メトリクス/テストを意識したステップ分解がある。
 - 主な懸念: ADR-002 との整合、Mailbox レイヤでの Suspend 判定の実現性、no_std 向けの時間計測と同期プリミティブの選定が未確定。
 
@@ -16,17 +16,8 @@
 
 ## ブロッカー (Must Fix)
 
-1. **ADR-002 との整合性が取れていない**  
-   - 計画では `QueueMailboxCore` に `MailboxSuspension` を追加して状態管理を行うが、`docs/adr/2025-10-22-phase0-suspend-resume-responsibility.md` では Suspend/Resume の状態は `ActorCell` (MessageInvoker) が保持し、ReadyQueueCoordinator はステートレスに保つ方針が明示されている。  
-   - Mailbox 側に状態を置くと、Invoker から `InvokeResult::Suspended` を返すフローが途切れ、ReadyQueue 連携が破綻するため、計画を ADR に合わせて ActorCell 側の状態管理へ修正する必要がある。
-
-2. **QueueMailboxCore でユーザーメッセージを抑止する方法が不透明**  
-   - 現行 `QueueMailboxCore` は `M: Element` の一般化されたキューであり、System/User の判定ロジックを持たない。提案通りに Suspend 中にユーザーメッセージをデキューしないようにするには、`PriorityEnvelope` を理解する新しいトレイト境界やキュー分割が必要になる。  
-   - 計画にはそのための API 拡張方針が記載されていないため、実現性が担保されていない。ActorCell で `envelope.system_message()` を判定するアプローチ、またはキュー側の API 追加方針を明示することが不可欠。
-
-3. **ReadyQueue とのハンドシェイク手順が欠落**  
-   - 「Suspend 時に ReadyQueue への再登録を抑制する」とあるが、現行コードでは `InvokeResult::Suspended` を返し `ReadyQueueCoordinator::handle_invoke_result` を経由しなければ除外できない。Mailbox 内で通知抑止だけ行っても、既に登録済みのエントリが残り続ける。  
-   - `dispatch_envelope` で `InvokeResult::Suspended` を返すフローと、Resume 時に `MailboxRegistry` 経由で `register_ready` を呼び戻すシーケンスを計画に追加すべき。
+- 主要な Must Fix 指摘は最新実装で解消済み（ActorCell が状態・保留キューを保持し、Resume 時に ReadyQueueHook を介して再通知）。
+- 今後の重点項目はメトリクス統計の拡張（Suspend 期間の計測）、および ReadyQueueCoordinator との InvokeResult 統合（ステートレスな連携）の仕上げ。
 
 ---
 
@@ -44,8 +35,8 @@
   - Suspend 中に enqueue を許可するとバッファ無限化リスクがある。少なくとも Phase 0 では「Suspend 中は enqueue を許可するが ReadyQueue には再登録しない」「bounded queue overflow 時は Backpressure エラーを返す」などのポリシーを明文化すること。
 
 - **MetricsEvent の拡張要件を具体化**  
-  - `MetricsEvent::MailboxSuspended` 追加だけでなく、既存シンク（Prometheus/OpenTelemetry）の key/label 設計、サンプリングタイミング、再開時の duration 計測手順を記述する。  
-  - `total_nanos` の集計と Exporter での取り扱いを明確にする。
+  - `MetricsEvent::MailboxSuspended` / `MailboxResumed` は実装済み。今後は Suspend 期間計測や exporter 設計を整理する。  
+  - `total_nanos` 相当の統計導入タイミングを roadmap に反映する。
 
 ---
 
@@ -67,10 +58,10 @@
 
 ## 次のアクション
 
-1. ADR-002 に基づいて責務セクションを全面的に書き換え、ActorCell 中心案を正式案にする（Mailbox 側はフラグ提供のみに留める）。
-2. System/User 判定をどこで行うか、必要なら `QueueMailbox` に新しい API を追加する設計メモを追記する。  
-3. no_std / embedded 向けの時間抽象と同期プリミティブの選択肢を決定し、計画へ反映する。  
-4. テスト計画にエッジケースと既存テストの更新項目を列挙し、完了条件にも組み込む。
+1. ADR-002 方針への修正 → 完了済み（ActorCell が Suspend/Resume を管理）。
+2. ReadyQueue ハンドシェイク → Resume 時の ReadyQueueHandle 再通知を実装。InvokeResult 統合は Phase 2 で追跡。  
+3. メトリクス拡張 → イベント追加済み。期間計測/no_std クロックは別タスクとして管理。  
+4. テストカバレッジ → Suspend/Resume テスト更新済み。並行ケースは継続課題。
 
 ---
 
