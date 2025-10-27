@@ -27,9 +27,15 @@ pub enum MetricsEvent {
     capacity: usize,
   },
   /// An actor mailbox entered a suspended state.
-  MailboxSuspended,
+  MailboxSuspended {
+    /// Total number of observed suspend events for the mailbox.
+    suspend_count: u64,
+  },
   /// An actor mailbox resumed message processing.
-  MailboxResumed,
+  MailboxResumed {
+    /// Total number of observed resume events for the mailbox.
+    resume_count: u64,
+  },
   /// Telemetry handling logic was invoked.
   TelemetryInvoked,
   /// Duration, in nanoseconds, spent executing telemetry handlers.

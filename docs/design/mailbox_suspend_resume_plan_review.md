@@ -35,7 +35,7 @@
   - Suspend 中に enqueue を許可するとバッファ無限化リスクがある。少なくとも Phase 0 では「Suspend 中は enqueue を許可するが ReadyQueue には再登録しない」「bounded queue overflow 時は Backpressure エラーを返す」などのポリシーを明文化すること。
 
 - **MetricsEvent の拡張要件を具体化**  
-  - `MetricsEvent::MailboxSuspended` / `MailboxResumed` は実装済み。今後は Suspend 期間計測や exporter 設計を整理する。  
+  - `MetricsEvent::MailboxSuspended` / `MailboxResumed` は実装済み（Suspend/Resume 回数をカウント）。今後は Suspend 期間計測や exporter 設計を整理する。  
   - `total_nanos` 相当の統計導入タイミングを roadmap に反映する。
 
 ---

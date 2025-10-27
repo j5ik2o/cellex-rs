@@ -55,6 +55,8 @@ where
   stopped: bool,
   state: ActorCellState,
   pending_user_envelopes: VecDeque<PriorityEnvelope<AnyMessage>>,
+  suspend_count: u64,
+  resume_count: u64,
   scheduler_hook: Option<ReadyQueueHandle>,
   metrics_sink: Option<MetricsSinkShared>,
   receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
@@ -101,6 +103,8 @@ where
       stopped: false,
       state: ActorCellState::Running,
       pending_user_envelopes: VecDeque::new(),
+      suspend_count: 0,
+      resume_count: 0,
       scheduler_hook: None,
       metrics_sink: None,
       receive_timeout_scheduler_factory_shared_opt: None,
@@ -161,6 +165,8 @@ where
     self.state = ActorCellState::Stopped;
     self.pending_user_envelopes.clear();
     self.scheduler_hook = None;
+    self.suspend_count = 0;
+    self.resume_count = 0;
     if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
       cell.borrow_mut().cancel();
     }
@@ -187,14 +193,16 @@ where
   fn transition_to_suspended(&mut self) {
     if !self.is_suspended() {
       self.state = ActorCellState::Suspended;
-      self.record_metrics_event(MetricsEvent::MailboxSuspended);
+      self.suspend_count = self.suspend_count.saturating_add(1);
+      self.record_metrics_event(MetricsEvent::MailboxSuspended { suspend_count: self.suspend_count });
     }
   }
 
   fn transition_to_running(&mut self) {
     if self.is_suspended() {
       self.state = ActorCellState::Running;
-      self.record_metrics_event(MetricsEvent::MailboxResumed);
+      self.resume_count = self.resume_count.saturating_add(1);
+      self.record_metrics_event(MetricsEvent::MailboxResumed { resume_count: self.resume_count });
       if !self.pending_user_envelopes.is_empty() {
         if let Some(hook) = &self.scheduler_hook {
           hook.with_ref(|hook| hook.notify_ready());

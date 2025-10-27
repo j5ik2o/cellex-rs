@@ -101,7 +101,7 @@ pub struct ActorCell<MF, Strat> {
    - Resume 後に保留分が処理されることを保証。
 
 4. **メトリクス & イベント（進行中）**  
-   - `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、状態遷移を記録。  
+   - `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、Suspend/Resume 回数を記録。  
    - Suspend 期間の計測と no_std 環境向けクロックは今後の課題。
 
 5. **テスト追加（完了 / 継続）**  
