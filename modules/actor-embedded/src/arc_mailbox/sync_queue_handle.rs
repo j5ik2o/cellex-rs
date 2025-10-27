@@ -18,14 +18,14 @@ use cellex_utils_core_rs::collections::{
   Element,
 };
 
-pub struct ArcSyncQueueDriver<M, RM>
+pub struct ArcMailboxQueue<M, RM>
 where
   M: Element, {
   inner:   SyncMailboxQueue<M>,
   _marker: PhantomData<RM>,
 }
 
-impl<M, RM> ArcSyncQueueDriver<M, RM>
+impl<M, RM> ArcMailboxQueue<M, RM>
 where
   M: Element,
 {
@@ -34,7 +34,7 @@ where
   }
 }
 
-impl<M, RM> Clone for ArcSyncQueueDriver<M, RM>
+impl<M, RM> Clone for ArcMailboxQueue<M, RM>
 where
   M: Element,
 {
@@ -43,7 +43,7 @@ where
   }
 }
 
-impl<M, RM> Deref for ArcSyncQueueDriver<M, RM>
+impl<M, RM> Deref for ArcMailboxQueue<M, RM>
 where
   M: Element,
 {
@@ -54,7 +54,7 @@ where
   }
 }
 
-impl<M, RM> DerefMut for ArcSyncQueueDriver<M, RM>
+impl<M, RM> DerefMut for ArcMailboxQueue<M, RM>
 where
   M: Element,
 {
@@ -63,7 +63,7 @@ where
   }
 }
 
-impl<M, RM> MailboxQueueBackend<M> for ArcSyncQueueDriver<M, RM>
+impl<M, RM> MailboxQueueBackend<M> for ArcMailboxQueue<M, RM>
 where
   M: Element,
 {

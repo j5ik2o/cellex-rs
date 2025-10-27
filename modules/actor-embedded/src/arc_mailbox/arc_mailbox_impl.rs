@@ -12,10 +12,10 @@ use cellex_utils_core_rs::collections::{
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcSyncQueueDriver,
+  factory::ArcMailboxFactory, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcMailboxQueue,
 };
 
-type ArcMailboxQueue<M, RM> = ArcSyncQueueDriver<M, RM>;
+type ArcMailboxQueueHandle<M, RM> = ArcMailboxQueue<M, RM>;
 
 /// Mailbox implementation backed by an `ArcShared` MPSC queue.
 #[derive(Clone)]
@@ -23,7 +23,7 @@ pub struct ArcMailbox<M, RM = embassy_sync::blocking_mutex::raw::CriticalSection
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailbox<ArcMailboxQueue<M, RM>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailbox<ArcMailboxQueueHandle<M, RM>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcMailbox<M, RM>
@@ -37,7 +37,7 @@ where
   }
 
   /// Returns the underlying queue mailbox.
-  pub fn inner(&self) -> &QueueMailbox<ArcMailboxQueue<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailbox<ArcMailboxQueueHandle<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 
@@ -51,10 +51,10 @@ impl<M, RM> Mailbox<M> for ArcMailbox<M, RM>
 where
   M: Element,
   RM: RawMutex,
-  ArcMailboxQueue<M, RM>: Clone,
+  ArcMailboxQueueHandle<M, RM>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, ArcMailboxQueue<M, RM>, ArcSignal<RM>, M>
+    = QueueMailboxRecv<'a, ArcMailboxQueueHandle<M, RM>, ArcSignal<RM>, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -99,7 +99,7 @@ where
   }
 
   /// Returns the receive future when operating with MailboxError semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, ArcMailboxQueue<M, RM>, ArcSignal<RM>, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, ArcMailboxQueueHandle<M, RM>, ArcSignal<RM>, M> {
     self.inner.recv()
   }
 }

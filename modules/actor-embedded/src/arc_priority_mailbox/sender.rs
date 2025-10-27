@@ -8,10 +8,10 @@ use cellex_actor_core_rs::{
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
-use super::priority_sync_handle::ArcPrioritySyncQueueDriver;
+use super::priority_sync_handle::ArcPriorityMailboxQueue;
 use crate::arc_mailbox::ArcSignal;
 
-type ArcPriorityQueueDriver<M, RM> = ArcPrioritySyncQueueDriver<M, RM>;
+type ArcPriorityMailboxQueueHandle<M, RM> = ArcPriorityMailboxQueue<M, RM>;
 
 /// Sending handle associated with [`super::mailbox::ArcPriorityMailbox`].
 #[derive(Clone)]
@@ -19,7 +19,7 @@ pub struct ArcPriorityMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::C
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<ArcPriorityQueueDriver<M, RM>, ArcSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<ArcPriorityMailboxQueueHandle<M, RM>, ArcSignal<RM>>,
 }
 
 impl<M, RM> ArcPriorityMailboxSender<M, RM>
@@ -62,7 +62,7 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityQueueDriver<M, RM>, ArcSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<ArcPriorityMailboxQueueHandle<M, RM>, ArcSignal<RM>> {
     &self.inner
   }
 

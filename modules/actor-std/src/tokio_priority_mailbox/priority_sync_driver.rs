@@ -22,14 +22,14 @@ mod tests;
 
 /// Multiplexes multiple `SyncMailboxQueue` instances and routes
 /// `PriorityEnvelope` messages to either control or regular lanes.
-pub struct PrioritySyncQueueDriver<M>
+pub struct PriorityMailboxQueue<M>
 where
   M: Element, {
   control_lanes: Vec<SyncMailboxQueue<PriorityEnvelope<M>>>,
   regular_lane:  SyncMailboxQueue<PriorityEnvelope<M>>,
 }
 
-impl<M> Clone for PrioritySyncQueueDriver<M>
+impl<M> Clone for PriorityMailboxQueue<M>
 where
   M: Element,
 {
@@ -38,7 +38,7 @@ where
   }
 }
 
-impl<M> PrioritySyncQueueDriver<M>
+impl<M> PriorityMailboxQueue<M>
 where
   M: Element,
 {
@@ -102,7 +102,7 @@ where
   }
 }
 
-impl<M> MailboxQueueBackend<PriorityEnvelope<M>> for PrioritySyncQueueDriver<M>
+impl<M> MailboxQueueBackend<PriorityEnvelope<M>> for PriorityMailboxQueue<M>
 where
   M: Element,
 {
@@ -181,7 +181,7 @@ where
   }
 }
 
-pub fn configure_metrics<M>(driver: &PrioritySyncQueueDriver<M>, sink: Option<MetricsSinkShared>)
+pub fn configure_metrics<M>(driver: &PriorityMailboxQueue<M>, sink: Option<MetricsSinkShared>)
 where
   M: Element, {
   driver.set_metrics_sink(sink);

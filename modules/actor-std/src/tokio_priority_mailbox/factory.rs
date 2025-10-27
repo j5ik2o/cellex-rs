@@ -5,11 +5,11 @@ use cellex_utils_core_rs::collections::{
 };
 
 use super::{
-  mailbox::TokioPriorityMailbox, priority_sync_driver::PrioritySyncQueueDriver, sender::TokioPriorityMailboxSender,
+  mailbox::TokioPriorityMailbox, priority_sync_driver::PriorityMailboxQueue, sender::TokioPriorityMailboxSender,
   NotifySignal,
 };
 
-type QueueHandle<M> = PrioritySyncQueueDriver<M>;
+type QueueHandle<M> = PriorityMailboxQueue<M>;
 
 /// Default capacity for mailbox queues
 const DEFAULT_CAPACITY: usize = 32;
@@ -100,7 +100,7 @@ impl TokioPriorityMailboxFactory {
     M: Element, {
     let control_per_level = self.resolve_control_capacity(options.priority_capacity);
     let regular_capacity = self.resolve_regular_capacity(options.capacity);
-    let queue: QueueHandle<M> = PrioritySyncQueueDriver::new(self.levels, control_per_level, regular_capacity);
+    let queue: QueueHandle<M> = PriorityMailboxQueue::new(self.levels, control_per_level, regular_capacity);
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

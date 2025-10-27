@@ -8,11 +8,11 @@ use cellex_actor_core_rs::{
 use cellex_utils_core_rs::collections::Element;
 
 use super::{
-  priority_sync_driver::{configure_metrics, PrioritySyncQueueDriver},
+  priority_sync_driver::{configure_metrics, PriorityMailboxQueue},
   NotifySignal, PriorityQueueError,
 };
 
-type QueueHandle<M> = PrioritySyncQueueDriver<M>;
+type QueueHandle<M> = PriorityMailboxQueue<M>;
 
 /// Message sender handle for priority mailbox
 ///

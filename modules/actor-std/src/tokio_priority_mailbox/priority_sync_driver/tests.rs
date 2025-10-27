@@ -31,7 +31,7 @@ fn make_sink() -> (MetricsSinkShared, ArcShared<SpinSyncMutex<Vec<MetricsEvent>>
 
 #[test]
 fn control_lane_has_priority_over_regular() {
-  let driver = PrioritySyncQueueDriver::new(2, 1, 1);
+  let driver = PriorityMailboxQueue::new(2, 1, 1);
   driver.offer(PriorityEnvelope::new(1u32, 0)).expect("regular offer succeeds");
   driver.offer(PriorityEnvelope::control(10u32, 1)).expect("control offer succeeds");
 
@@ -46,7 +46,7 @@ fn control_lane_has_priority_over_regular() {
 
 #[test]
 fn metrics_sink_broadcasts_to_all_lanes() {
-  let driver = PrioritySyncQueueDriver::new(1, 0, 0);
+  let driver = PriorityMailboxQueue::new(1, 0, 0);
   let (sink, events) = make_sink();
   driver.set_metrics_sink(Some(sink));
 
@@ -61,7 +61,7 @@ fn metrics_sink_broadcasts_to_all_lanes() {
 
 #[test]
 fn len_and_capacity_aggregate_across_lanes() {
-  let driver = PrioritySyncQueueDriver::new(2, 2, 3);
+  let driver = PriorityMailboxQueue::new(2, 2, 3);
   assert_eq!(driver.capacity().to_usize(), 7);
 
   driver.offer(PriorityEnvelope::control(1u32, 1)).unwrap();

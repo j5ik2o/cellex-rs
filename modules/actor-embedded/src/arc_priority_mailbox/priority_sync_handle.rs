@@ -21,27 +21,27 @@ use cellex_utils_core_rs::collections::{
   Element,
 };
 
-use super::priority_sync_driver::PrioritySyncQueueDriver;
+use super::priority_sync_driver::PriorityMailboxQueue;
 
-/// Wrapper that associates a `PrioritySyncQueueDriver` with the raw mutex parameter used by
+/// Wrapper that associates a `PriorityMailboxQueue` with the raw mutex parameter used by
 /// embedded mailbox signals.
-pub struct ArcPrioritySyncQueueDriver<M, RM>
+pub struct ArcPriorityMailboxQueue<M, RM>
 where
   M: Element, {
-  inner:   PrioritySyncQueueDriver<M>,
+  inner:   PriorityMailboxQueue<M>,
   _marker: PhantomData<RM>,
 }
 
-impl<M, RM> ArcPrioritySyncQueueDriver<M, RM>
+impl<M, RM> ArcPriorityMailboxQueue<M, RM>
 where
   M: Element,
 {
-  pub fn from_driver(driver: PrioritySyncQueueDriver<M>) -> Self {
+  pub fn from_driver(driver: PriorityMailboxQueue<M>) -> Self {
     Self { inner: driver, _marker: PhantomData }
   }
 }
 
-impl<M, RM> Clone for ArcPrioritySyncQueueDriver<M, RM>
+impl<M, RM> Clone for ArcPriorityMailboxQueue<M, RM>
 where
   M: Element,
 {
@@ -50,18 +50,18 @@ where
   }
 }
 
-impl<M, RM> Deref for ArcPrioritySyncQueueDriver<M, RM>
+impl<M, RM> Deref for ArcPriorityMailboxQueue<M, RM>
 where
   M: Element,
 {
-  type Target = PrioritySyncQueueDriver<M>;
+  type Target = PriorityMailboxQueue<M>;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl<M, RM> DerefMut for ArcPrioritySyncQueueDriver<M, RM>
+impl<M, RM> DerefMut for ArcPriorityMailboxQueue<M, RM>
 where
   M: Element,
 {
@@ -70,7 +70,7 @@ where
   }
 }
 
-impl<M, RM> MailboxQueueBackend<PriorityEnvelope<M>> for ArcPrioritySyncQueueDriver<M, RM>
+impl<M, RM> MailboxQueueBackend<PriorityEnvelope<M>> for ArcPriorityMailboxQueue<M, RM>
 where
   M: Element,
 {

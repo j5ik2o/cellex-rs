@@ -11,7 +11,7 @@ use cellex_utils_core_rs::collections::Element;
 use embassy_sync::blocking_mutex::raw::RawMutex;
 
 use super::{
-  arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcSyncQueueDriver,
+  arc_mailbox_impl::ArcMailbox, sender::ArcMailboxSender, signal::ArcSignal, sync_queue_handle::ArcMailboxQueue,
 };
 
 /// Factory for constructing [`ArcMailbox`] instances.
@@ -78,7 +78,7 @@ where
   where
     M: Element;
   type Queue<M>
-    = ArcSyncQueueDriver<M, RM>
+    = ArcMailboxQueue<M, RM>
   where
     M: Element;
   type Signal = ArcSignal<RM>;
@@ -86,7 +86,7 @@ where
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = ArcSyncQueueDriver::from_driver(build_mailbox_queue::<M>(MailboxQueueConfig::default()));
+    let queue = ArcMailboxQueue::from_driver(build_mailbox_queue::<M>(MailboxQueueConfig::default()));
     let signal = ArcSignal::new();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();
