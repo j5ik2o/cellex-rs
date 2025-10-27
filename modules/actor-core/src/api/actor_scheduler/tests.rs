@@ -60,7 +60,7 @@ use crate::{
     test_support::{TestMailboxFactory, TestSignal},
   },
   shared::{
-    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxPair},
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxHandle, MailboxOptions, MailboxPair},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
     supervision::FailureEventHandler,
   },
