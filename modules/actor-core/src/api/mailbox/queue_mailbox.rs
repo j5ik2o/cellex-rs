@@ -5,6 +5,7 @@ mod poll_outcome;
 mod queue;
 mod recv;
 mod sync_mailbox_queue;
+mod system_mailbox_queue;
 
 pub use core::QueueMailboxCore;
 
@@ -15,6 +16,7 @@ pub use poll_outcome::QueuePollOutcome;
 pub(crate) use queue::MailboxQueue;
 pub use recv::QueueMailboxRecv;
 pub use sync_mailbox_queue::SyncMailboxQueue;
+pub use system_mailbox_queue::SystemMailboxQueue;
 
 #[cfg(test)]
 mod tests;
@@ -25,13 +27,13 @@ use crate::{
 };
 
 /// Convenience alias for the standard mailbox backed by [`SyncMailboxQueue`].
-pub type SyncMailbox<M, S> = QueueMailbox<SyncMailboxQueue<M>, S>;
+pub type SyncMailbox<M, S> = QueueMailbox<SystemMailboxQueue<M>, S>;
 
 /// Producer alias associated with [`SyncMailbox`].
-pub type SyncMailboxProducer<M, S> = QueueMailboxProducer<SyncMailboxQueue<M>, S>;
+pub type SyncMailboxProducer<M, S> = QueueMailboxProducer<SystemMailboxQueue<M>, S>;
 
 /// Receive future alias associated with [`SyncMailbox`].
-pub type SyncMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, SyncMailboxQueue<M>, S, M>;
+pub type SyncMailboxRecv<'a, S, M> = QueueMailboxRecv<'a, SystemMailboxQueue<M>, S, M>;
 
 /// Configuration for constructing a mailbox queue.
 #[derive(Clone, Copy, Debug)]
@@ -59,7 +61,8 @@ pub fn build_sync_mailbox_pair<M, S>(
 where
   M: Element,
   S: MailboxSignal + Clone, {
-  let queue = build_mailbox_queue::<M>(config);
+  let base = build_mailbox_queue::<M>(config);
+  let queue = SystemMailboxQueue::new(base, Some(crate::shared::mailbox::DEFAULT_SYSTEM_RESERVATION));
   let mailbox = QueueMailbox::new(queue, signal);
   let producer = mailbox.producer();
   (mailbox, producer)

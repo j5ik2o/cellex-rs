@@ -1,6 +1,6 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueBackend, QueueMailboxRecv, SyncMailbox, SyncMailboxQueue},
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SystemMailboxQueue},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
@@ -14,8 +14,8 @@ use super::{
   notify_signal::NotifySignal, tokio_mailbox_factory::TokioMailboxFactory, tokio_mailbox_sender::TokioMailboxSender,
 };
 
-type TokioQueueDriver<M> = SyncMailboxQueue<M>;
-type TokioMailboxInner<M> = SyncMailbox<M, NotifySignal>;
+type TokioQueueDriver<M> = SystemMailboxQueue<M>;
+type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, NotifySignal>;
 
 /// Mailbox implementation for Tokio runtime
 ///
@@ -110,8 +110,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.queue().set_metrics_sink(sink.clone());
-    self.inner.set_metrics_sink(sink);
+    <QueueMailbox<SystemMailboxQueue<M>, NotifySignal> as Mailbox<M>>::set_metrics_sink(&mut self.inner, sink);
   }
 }
 

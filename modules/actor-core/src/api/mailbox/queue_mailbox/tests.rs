@@ -19,14 +19,17 @@ use cellex_utils_core_rs::{
 };
 use futures::task::noop_waker_ref;
 
-use super::{MailboxQueueBackend, QueueMailbox, QueuePollOutcome};
+use super::{MailboxQueueBackend, QueueMailbox, QueuePollOutcome, SystemMailboxQueue};
 use crate::{
   api::{
-    mailbox::{queue_mailbox::SyncMailboxQueue, Mailbox, MailboxError, MailboxOverflowPolicy},
+    mailbox::{messages::SystemMessage, queue_mailbox::SyncMailboxQueue, Mailbox, MailboxError, MailboxOverflowPolicy},
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     test_support::TestSignal,
   },
-  shared::mailbox::MailboxProducer,
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxProducer},
+    messaging::AnyMessage,
+  },
 };
 
 struct ErrorDriver<M> {
@@ -241,6 +244,67 @@ fn producer_reports_dropped_oldest_outcome() {
     | OfferOutcome::DroppedOldest { count } => assert_eq!(count, 1),
     | other => panic!("unexpected outcome: {other:?}"),
   }
+}
+
+#[test]
+fn system_reservation_allows_control_enqueue_when_user_capacity_full() {
+  let base = SyncMailboxQueue::bounded(1, OverflowPolicy::Block);
+  let queue = SystemMailboxQueue::new(base, Some(1));
+  let signal = TestSignal::default();
+  let mailbox = QueueMailbox::new(queue, signal);
+  let producer = mailbox.producer();
+
+  // Fill regular capacity
+  producer
+    .try_send_mailbox(PriorityEnvelope::with_default_priority(AnyMessage::new(1u32)))
+    .expect("enqueue user message");
+
+  // Control message should still be accepted via reservation.
+  producer
+    .try_send_mailbox(PriorityEnvelope::from_system(SystemMessage::Suspend).map(AnyMessage::new))
+    .expect("system message uses reservation");
+
+  // Dequeue should yield system message first.
+  let mut recv = mailbox.recv_mailbox::<PriorityEnvelope<AnyMessage>>();
+  let waker = noop_waker_ref();
+  let mut cx = Context::from_waker(waker);
+  let envelope = match Pin::new(&mut recv).poll(&mut cx) {
+    | Poll::Ready(Ok(envelope)) => envelope,
+    | other => panic!("expected system message first, got {other:?}"),
+  };
+  assert!(matches!(envelope.system_message(), Some(SystemMessage::Suspend)));
+}
+
+#[test]
+fn system_reservation_reports_exhaustion() {
+  let base = SyncMailboxQueue::bounded(1, OverflowPolicy::Block);
+  let queue = SystemMailboxQueue::new(base, Some(1));
+  let signal = TestSignal::default();
+  let mut mailbox = QueueMailbox::new(queue, signal);
+  let (sink, events) = make_metrics_sink();
+  crate::api::mailbox::Mailbox::<PriorityEnvelope<AnyMessage>>::set_metrics_sink(&mut mailbox, Some(sink.clone()));
+  let producer = mailbox.producer();
+
+  producer
+    .try_send_mailbox(PriorityEnvelope::from_system(SystemMessage::Suspend).map(AnyMessage::new))
+    .expect("first system message uses reservation");
+
+  let err = producer
+    .try_send_mailbox(PriorityEnvelope::from_system(SystemMessage::Stop).map(AnyMessage::new))
+    .expect_err("reservation exhausted");
+  assert!(matches!(err, MailboxError::QueueFull { .. }));
+
+  let recorded = events.lock();
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxSystemReservationExhausted)),
+    "recorded events: {:?}",
+    &*recorded
+  );
+  assert!(
+    recorded.iter().any(|event| matches!(event, MetricsEvent::MailboxSystemReservedUsed { .. })),
+    "recorded events: {:?}",
+    &*recorded
+  );
 }
 
 #[test]

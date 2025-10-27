@@ -196,9 +196,11 @@ fn test_invoke_result_variants() {
 fn test_mailbox_options_default() {
   use cellex_utils_core_rs::collections::queue::QueueSize;
 
+  use crate::shared::mailbox::DEFAULT_SYSTEM_RESERVATION;
+
   let options = MailboxOptions::default();
   assert_eq!(options.capacity, QueueSize::limitless());
-  assert_eq!(options.priority_capacity, QueueSize::limitless());
+  assert_eq!(options.priority_capacity, QueueSize::limited(DEFAULT_SYSTEM_RESERVATION));
   assert_eq!(options.capacity_limit(), None);
-  assert_eq!(options.priority_capacity_limit(), None);
+  assert_eq!(options.priority_capacity_limit(), Some(DEFAULT_SYSTEM_RESERVATION));
 }

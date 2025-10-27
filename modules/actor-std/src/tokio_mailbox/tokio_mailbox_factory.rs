@@ -1,6 +1,7 @@
 use cellex_actor_core_rs::{
-  api::mailbox::queue_mailbox::{
-    build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue,
+  api::mailbox::{
+    queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
+    QueueMailboxProducer,
   },
   shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
@@ -8,9 +9,9 @@ use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 
 use super::{notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender};
 
-type TokioQueueDriver<M> = SyncMailboxQueue<M>;
-type TokioMailboxInner<M> = SyncMailbox<M, NotifySignal>;
-type TokioMailboxProducer<M> = SyncMailboxProducer<M, NotifySignal>;
+type TokioQueueDriver<M> = SystemMailboxQueue<M>;
+type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, NotifySignal>;
+type TokioMailboxProducer<M> = QueueMailboxProducer<SystemMailboxQueue<M>, NotifySignal>;
 
 /// Factory that creates Tokio mailboxes.
 ///
@@ -87,7 +88,8 @@ impl MailboxFactory for TokioMailboxFactory {
       };
       let config =
         MailboxQueueConfig::new(capacity_size, cellex_actor_core_rs::api::mailbox::MailboxOverflowPolicy::Block);
-      build_mailbox_queue::<M>(config)
+      let base = build_mailbox_queue::<M>(config);
+      SystemMailboxQueue::new(base, options.priority_capacity_limit())
     };
     let signal = NotifySignal::default();
     let mailbox = QueueMailbox::new(queue, signal);

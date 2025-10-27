@@ -52,7 +52,7 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue},
+      queue_mailbox::{QueueMailbox, SyncMailbox, SyncMailboxProducer, SyncMailboxQueue, SystemMailboxQueue},
       Mailbox, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
@@ -144,7 +144,7 @@ impl MailboxFactory for SyncMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = SyncMailboxQueue<M>
+    = SystemMailboxQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -153,7 +153,8 @@ impl MailboxFactory for SyncMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = SyncMailboxQueue::bounded(capacity, self.policy);
+    let base = SyncMailboxQueue::bounded(capacity, self.policy);
+    let queue = SystemMailboxQueue::new(base, None);
     let signal = TestSignal::default();
     let mailbox: SchedulerMailbox<M> = QueueMailbox::new(queue, signal);
     let producer: SchedulerMailboxProducer<M> = mailbox.producer();

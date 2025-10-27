@@ -1,14 +1,20 @@
+use core::any::TypeId;
+
 use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 
 use crate::{
   api::{
     mailbox::{
-      queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SyncMailboxQueue},
+      messages::SystemMessage,
+      queue_mailbox::{build_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue},
       MailboxOverflowPolicy, QueueMailboxProducer, ThreadSafe,
     },
     test_support::test_signal::TestSignal,
   },
-  shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxPair},
+    messaging::AnyMessage,
+  },
 };
 
 #[derive(Clone, Debug, Default)]
@@ -55,7 +61,7 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element;
   type Queue<M>
-    = SyncMailboxQueue<M>
+    = SystemMailboxQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -70,7 +76,20 @@ impl MailboxFactory for TestMailboxFactory {
         | Some(limit) => QueueSize::limited(limit),
       };
       let config = MailboxQueueConfig::new(capacity_size, MailboxOverflowPolicy::Block);
-      build_mailbox_queue::<M>(config)
+      let base = build_mailbox_queue::<M>(config);
+      let system_capacity = if TypeId::of::<M>() == TypeId::of::<PriorityEnvelope<AnyMessage>>()
+        || TypeId::of::<M>() == TypeId::of::<PriorityEnvelope<SystemMessage>>()
+      {
+        let capacity = options.priority_capacity_limit();
+        #[cfg(debug_assertions)]
+        {
+          debug_assert!(capacity.is_some(), "priority capacity not configured for priority mailbox");
+        }
+        capacity
+      } else {
+        None
+      };
+      SystemMailboxQueue::new(base, system_capacity)
     };
     let signal = TestSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);

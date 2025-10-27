@@ -1,6 +1,6 @@
 # メールボックス機能比較レポート
 
-**作成日**: 2025-10-27
+**作成日**: 2025-10-27（SystemMailboxQueue / Suspend-Resume 統合確認時点）
 **対象**: cellex-rs メールボックス実装
 **比較対象**: protoactor-go、nexus-actor-rs
 
@@ -8,11 +8,11 @@
 
 ## エグゼクティブサマリー
 
-cellex-rs のメールボックス実装は、参照実装（protoactor-go、nexus-actor-rs）の**主要機能を実装済み**です。2025-10-27 時点で ActorCell レベルの Suspend/Resume 制御が導入され、ユーザーメッセージの停止と Resume 後の再開が確認できました。一部の高度な機能（ミドルウェアチェイン、スループット制御、サスペンション統計）は**部分的実装または未実装**ですが、`actor_scheduler_refactor.md` のリファクタリングプランで**これらの機能が考慮されている**ことを確認しました。
+cellex-rs のメールボックス実装は、参照実装（protoactor-go、nexus-actor-rs）の**主要機能を実装済み**です。2025-10-27 時点で ActorCell レベルの Suspend/Resume 制御と System メールボックス予約枠（`SystemMailboxQueue`）が導入され、ユーザーメッセージ飽和時でも制御メッセージが即時処理されることを ReadyQueue 統合テストで確認しました。一部の高度な機能（ミドルウェアチェイン、スループット制御、サスペンション統計）は**部分的実装または未実装**ですが、`actor_scheduler_refactor.md` のリファクタリングプランと OpenSpec で**継続タスクとして管理**されています。
 
-**結論**: ✅ 基本機能は実装済み（Suspend/Resume 含む）。リファクタリングプランで不足機能の追加とメトリクス拡充が計画済み。
+**結論**: ✅ 基本機能は実装済み（System 専用レーン、Suspend/Resume、Duration 付きメトリクスを含む）。不足機能（MailboxMiddleware、詳細統計など）はリファクタリングプラン／OpenSpec にて継続管理中。
 
-**詳細**: Suspend/Resume 実装の背景と今後の改善項目は `mailbox_suspend_resume_plan.md` を参照。
+**詳細**: Suspend/Resume 実装の背景と最新テストシナリオは `docs/design/archive/mailbox_suspend_resume_plan.md` および `openspec/specs/mailbox-suspend-resume/spec.md` を参照。
 
 ---
 
@@ -87,13 +87,14 @@ pub struct MailboxSuspensionMetrics {
 
 | 機能 | 実装状況 | 実装箇所 | 参照実装との比較 |
 |-----|---------|---------|-----------------|
-| **User/System メッセージ分離** | ✅ 完全実装 | `PriorityEnvelope`, `SystemMessage` | protoactor-go と同等 |
+| **User/System メッセージ分離** | ✅ 完全実装 | `PriorityEnvelope`, `SystemMailboxQueue` | protoactor-go と同等（制御メッセージ予約枠を追加） |
 | **優先度付きキュー** | ✅ 完全実装 | `priority: i8` フィールド | nexus-actor-rs より柔軟（8段階 vs 2段階） |
 | **Mailbox トレイト** | ✅ 完全実装 | `modules/actor-core/src/api/mailbox.rs` | より汎用的な抽象化 |
 | **QueueMailbox** | ✅ 完全実装 | `QueueMailbox<Q, S>` | ジェネリックなキュー・シグナル抽象 |
 | **MailboxProducer** | ✅ 完全実装 | `QueueMailboxProducer` | protoactor-go の `PostUserMessage` 相当 |
 | **MailboxConsumer** | ✅ 完全実装 | `MailboxConsumer` trait | nexus-actor-rs の `MessageInvoker` 相当 |
-| **Suspend/Resume** | ✅ 実装済み | `ActorCell`, `SystemMessage::Suspend/Resume` | ユーザーメッセージの停止/再開を `ActorCell` で制御 |
+| **System 予約枠** | ✅ 完全実装 | `SystemMailboxQueue`（`MailboxOptions::default()` で 4 スロット予約、Options で可変） | 制御メッセージがユーザーバックログに阻害されない |
+| **Suspend/Resume** | ✅ 実装済み | `ActorCell`, `SystemMessage::Suspend/Resume` | ReadyQueueCoordinator と連携し、`InvokeResult::Suspended` → Resume 条件で再登録 (`multi_actor_suspend_resume_independent` 参照) |
 | **メトリクスシンク** | ✅ 完全実装 | `set_metrics_sink()` | nexus-actor-rs より簡潔 |
 | **スケジューラフック** | ✅ 完全実装 | `set_scheduler_hook()` | ReadyQueue 連携 |
 | **非同期受信** | ✅ 完全実装 | `recv()` → `Future<Output = Result<M, QueueError>>` | async/await 対応 |
@@ -105,7 +106,7 @@ pub struct MailboxSuspensionMetrics {
 | **MailboxMiddleware** | ⚠️ 未実装 | protoactor-go: 4つのフック | リファクタリングプランで計画済み（Phase 2B） |
 | **スループット制限** | ⚠️ 部分的 | protoactor-go: `Throughput()` | `throughput_hint()` がトレイトに存在（実装は未確認） |
 | **レイテンシヒストグラム** | ❌ 未実装 | nexus-actor-rs: 17バケット | メトリクスシンク経由で別途実装の可能性 |
-| **サスペンション統計** | ❌ 未実装 | nexus-actor-rs: `MailboxSuspensionMetrics` | リファクタリングプランで言及なし |
+| **サスペンション統計** | ⚠️ 部分実装 | nexus-actor-rs: `MailboxSuspensionMetrics` | `MetricsEvent::MailboxSuspended/Resumed` が回数＋Durationを出力。集計はシンク側課題 |
 | **バックログ感度** | ❌ 未実装 | nexus-actor-rs: `backlog_sensitivity` | リファクタリングプランで言及なし |
 
 ### 2.3 cellex-rs の独自拡張
@@ -122,9 +123,9 @@ pub struct MailboxSuspensionMetrics {
 
 ## 3. リファクタリングプランでの扱い
 
-### 3.1 明示的に計画されている機能
+### 3.1 明示的に計画されている機能（継続中）
 
-#### ✅ MailboxMiddleware（Phase 2B）
+#### ⚠️ MailboxMiddleware（Phase 2B, 未実装）
 
 **ドキュメント箇所**: セクション 4.4 「トレイトとインタフェース素案」
 

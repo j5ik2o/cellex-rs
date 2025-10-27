@@ -10,7 +10,7 @@ use core::{
 use std::sync::{Arc, Mutex};
 
 use cellex_utils_core_rs::{
-  collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY},
+  collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY, QueueSize},
   sync::ArcShared,
 };
 use spin::RwLock;
@@ -503,6 +503,62 @@ fn backpressure_resumes_pending_messages() {
   }
 
   assert_eq!(log.borrow().as_slice(), &[77]);
+}
+
+#[test]
+fn system_message_processed_under_user_saturation() {
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let mut scheduler: ReadyQueueScheduler<TestMailboxFactory, AlwaysRestart> =
+    ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
+
+  let log: Rc<core::cell::RefCell<Vec<Message>>> = Rc::new(core::cell::RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
+  let supervisor: Box<dyn Supervisor<AnyMessage>> = Box::new(NoopSupervisor);
+  let mailbox_factory_shared = ArcShared::new(mailbox_factory.clone());
+  let process_registry = ArcShared::new(ProcessRegistry::new(SystemId::new("reservation-test"), None));
+  let pid_slot = ArcShared::new(RwLock::new(None));
+  let context = ActorSchedulerSpawnContext {
+    mailbox_factory: mailbox_factory.clone(),
+    mailbox_factory_shared,
+    map_system: MapSystemShared::new(dyn_system),
+    mailbox_options: MailboxOptions::with_capacity(1).with_priority_capacity(QueueSize::limited(2)),
+    handler: handler_from_message(move |_, msg| {
+      log_clone.borrow_mut().push(msg);
+    }),
+    child_naming: ChildNaming::Auto,
+    process_registry,
+    actor_pid_slot: pid_slot,
+  };
+
+  let actor_ref = scheduler.spawn_actor(supervisor, context).expect("spawn actor");
+
+  actor_ref.try_send_with_priority(dyn_user(10), DEFAULT_PRIORITY).expect("first user message");
+  let _ = actor_ref.try_send_with_priority(dyn_user(20), DEFAULT_PRIORITY);
+
+  actor_ref
+    .try_send_envelope(PriorityEnvelope::from_system(SystemMessage::Suspend).map(dyn_system))
+    .expect("system message enqueued");
+
+  use futures::FutureExt;
+
+  let mut processed = false;
+  for _ in 0..4 {
+    match scheduler.dispatch_next().now_or_never() {
+      | Some(result) => {
+        result.expect("dispatch");
+        processed = true;
+        if !log.borrow().is_empty() {
+          break;
+        }
+      },
+      | None => break,
+    }
+  }
+  assert!(processed, "scheduler.dispatch_next() never completed during test");
+
+  let entries = log.borrow();
+  assert!(entries.first().is_some_and(|entry| matches!(entry, Message::System(SystemMessage::Suspend))));
 }
 
 #[derive(Clone, Debug)]

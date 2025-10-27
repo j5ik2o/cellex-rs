@@ -1,5 +1,5 @@
 use cellex_actor_core_rs::api::{
-  mailbox::{queue_mailbox::SyncMailboxQueue, MailboxError, QueueMailboxProducer},
+  mailbox::{queue_mailbox::SystemMailboxQueue, MailboxError, QueueMailboxProducer},
   metrics::MetricsSinkShared,
 };
 use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
@@ -13,7 +13,7 @@ pub struct DefaultMailboxSender<M, RM = embassy_sync::blocking_mutex::raw::Criti
 where
   M: Element,
   RM: RawMutex, {
-  pub(crate) inner: QueueMailboxProducer<SyncMailboxQueue<M>, DefaultSignal<RM>>,
+  pub(crate) inner: QueueMailboxProducer<SystemMailboxQueue<M>, DefaultSignal<RM>>,
 }
 
 impl<M, RM> DefaultMailboxSender<M, RM>
@@ -42,7 +42,7 @@ where
   }
 
   /// Returns the underlying queue mailbox producer.
-  pub fn inner(&self) -> &QueueMailboxProducer<SyncMailboxQueue<M>, DefaultSignal<RM>> {
+  pub fn inner(&self) -> &QueueMailboxProducer<SystemMailboxQueue<M>, DefaultSignal<RM>> {
     &self.inner
   }
 

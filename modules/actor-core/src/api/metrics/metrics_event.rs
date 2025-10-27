@@ -35,6 +35,13 @@ pub enum MetricsEvent {
     /// Cumulative suspension duration, if available.
     total_duration: Option<core::time::Duration>,
   },
+  /// A system-reserved slot was consumed by a control message.
+  MailboxSystemReservedUsed {
+    /// Remaining reserved slots after the enqueue.
+    remaining: usize,
+  },
+  /// A control message attempted to use a reservation but none were available.
+  MailboxSystemReservationExhausted,
   /// An actor mailbox resumed message processing.
   MailboxResumed {
     /// Total number of observed resume events for the mailbox.
