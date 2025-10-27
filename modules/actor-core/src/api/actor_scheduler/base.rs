@@ -3,7 +3,7 @@ use alloc::{boxed::Box, vec::Vec};
 use async_trait::async_trait;
 use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 
-use super::ready_queue_scheduler::ReadyQueueWorker;
+use super::{ready_queue_coordinator::ReadyQueueCoordinator, ready_queue_scheduler::ReadyQueueWorker};
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
@@ -50,6 +50,9 @@ where
 
   /// Registers a metrics sink that records scheduler queue statistics.
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>);
+
+  /// Sets the ready-queue coordinator notified of invoke outcomes.
+  fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>);
 
   /// Sets the listener receiving root-level failure events.
   fn set_root_event_listener(&mut self, listener: Option<FailureEventListener>);

@@ -1219,6 +1219,12 @@ mod metrics_injection {
       *slot = sink.map(|shared| shared.with_ref(|inner| inner as *const _ as *const () as usize));
     }
 
+    fn set_ready_queue_coordinator(
+      &mut self,
+      _coordinator: Option<Box<dyn crate::api::actor_scheduler::ready_queue_coordinator::ReadyQueueCoordinator>>,
+    ) {
+    }
+
     fn set_parent_guardian(
       &mut self,
       _control_ref: PriorityActorRef<AnyMessage, MF>,

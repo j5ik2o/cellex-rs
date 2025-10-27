@@ -12,7 +12,6 @@ impl ActorInvokeOutcome {
     Self { result: None }
   }
 
-  #[allow(dead_code)]
   pub fn set(&mut self, result: InvokeResult) {
     self.result = Some(result);
   }

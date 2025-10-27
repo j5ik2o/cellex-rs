@@ -2,7 +2,7 @@
 extern crate std;
 
 use alloc::{boxed::Box, collections::VecDeque, vec, vec::Vec};
-use core::{cell::RefCell, cmp::Reverse, marker::PhantomData, time::Duration};
+use core::{cell::RefCell, cmp::Reverse, convert::TryFrom, marker::PhantomData, time::Duration};
 
 use cellex_utils_core_rs::{
   collections::queue::backend::QueueError,
@@ -13,7 +13,10 @@ use super::{actor_cell_state::ActorCellState, invoke_result::ActorInvokeOutcome}
 use crate::{
   api::{
     actor::{actor_failure::ActorFailure, actor_ref::PriorityActorRef, ActorHandlerFn, ActorId, ActorPath, SpawnError},
-    actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
+    actor_scheduler::{
+      ready_queue_coordinator::{InvokeResult, ResumeCondition, SignalKey, SuspendReason},
+      ready_queue_scheduler::ReadyQueueHandle,
+    },
     extensions::Extensions,
     failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
@@ -210,7 +213,7 @@ where
     !self.mailbox.is_empty() || !self.pending_user_envelopes.is_empty()
   }
 
-  const fn is_suspended(&self) -> bool {
+  pub(crate) const fn is_suspended(&self) -> bool {
     matches!(self.state, ActorCellState::Suspended)
   }
 
@@ -272,6 +275,23 @@ where
     }
   }
 
+  fn make_suspend_outcome(&self) -> InvokeResult {
+    InvokeResult::Suspended { reason: SuspendReason::UserDefined, resume_on: self.compute_resume_condition() }
+  }
+
+  fn compute_resume_condition(&self) -> ResumeCondition {
+    if self.scheduler_hook.is_some() {
+      ResumeCondition::ExternalSignal(self.resume_signal_key())
+    } else {
+      ResumeCondition::WhenCapacityAvailable
+    }
+  }
+
+  fn resume_signal_key(&self) -> SignalKey {
+    let raw = u64::try_from(self.actor_id.0).unwrap_or(u64::MAX);
+    SignalKey(raw)
+  }
+
   fn collect_envelopes(
     &mut self,
   ) -> Result<Vec<PriorityEnvelope<AnyMessage>>, QueueError<PriorityEnvelope<AnyMessage>>> {
@@ -329,7 +349,11 @@ where
     }
     let envelopes = self.collect_envelopes()?;
     if envelopes.is_empty() {
-      return Ok((0, ActorInvokeOutcome::new()));
+      let mut outcome = ActorInvokeOutcome::new();
+      if self.is_suspended() {
+        outcome.set(self.make_suspend_outcome());
+      }
+      return Ok((0, outcome));
     }
     self.process_envelopes(envelopes, guardian, new_children, escalations)
   }
@@ -386,7 +410,12 @@ where
     }
 
     match envelope.system_message() {
-      | Some(SystemMessage::Suspend) => self.transition_to_suspended(),
+      | Some(SystemMessage::Suspend) => {
+        self.transition_to_suspended();
+        if !outcome.is_set() {
+          outcome.set(self.make_suspend_outcome());
+        }
+      },
       | Some(SystemMessage::Resume) => self.transition_to_running(),
       | _ => {},
     }
@@ -480,7 +509,6 @@ where
     escalations: &mut Vec<FailureInfo>,
     outcome: &mut ActorInvokeOutcome,
   ) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
-    let _ = outcome;
     match handler_result {
       | Ok(()) => {
         for spec in pending_specs.into_iter() {
@@ -494,6 +522,9 @@ where
         }
         if should_stop {
           self.mark_stopped(guardian);
+          if !outcome.is_set() {
+            outcome.set(InvokeResult::Stopped);
+          }
         }
         Ok(())
       },

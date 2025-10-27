@@ -6,7 +6,10 @@
 extern crate std;
 
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
-use core::cell::{Cell, RefCell};
+use core::{
+  cell::{Cell, RefCell},
+  task::{Context, Poll},
+};
 use std::{
   collections::VecDeque,
   sync::{Arc, Mutex},
@@ -40,6 +43,7 @@ use crate::{
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_scheduler::{
       actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
+      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator},
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueHandle, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerSpawnContext,
     },
@@ -158,6 +162,36 @@ impl MailboxFactory for SyncMailboxFactory {
 }
 
 type SchedulerTestRuntime<MF> = GenericActorRuntime<MF>;
+
+struct RecordingCoordinator {
+  events: Arc<Mutex<Vec<(MailboxIndex, InvokeResult)>>>,
+}
+
+impl RecordingCoordinator {
+  fn new(events: Arc<Mutex<Vec<(MailboxIndex, InvokeResult)>>>) -> Self {
+    Self { events }
+  }
+}
+
+impl ReadyQueueCoordinator for RecordingCoordinator {
+  fn register_ready(&mut self, _idx: MailboxIndex) {}
+
+  fn unregister(&mut self, _idx: MailboxIndex) {}
+
+  fn drain_ready_cycle(&mut self, _max_batch: usize, _out: &mut Vec<MailboxIndex>) {}
+
+  fn poll_wait_signal(&mut self, _cx: &mut Context<'_>) -> Poll<()> {
+    Poll::Pending
+  }
+
+  fn handle_invoke_result(&mut self, idx: MailboxIndex, result: InvokeResult) {
+    self.events.lock().unwrap().push((idx, result));
+  }
+
+  fn throughput_hint(&self) -> usize {
+    1
+  }
+}
 
 fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<AnyMessage, MF>>
 where
@@ -533,6 +567,39 @@ fn scheduler_prioritizes_system_messages() {
   block_on(scheduler.dispatch_next()).unwrap();
 
   assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Stop)]);
+}
+
+#[test]
+fn scheduler_reports_suspend_result_to_coordinator() {
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
+
+  let events: Arc<Mutex<Vec<(MailboxIndex, InvokeResult)>>> = Arc::new(Mutex::new(Vec::new()));
+  scheduler.set_ready_queue_coordinator(Some(Box::new(RecordingCoordinator::new(events.clone()))));
+
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    mailbox_factory,
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(dyn_system),
+    handler_from_message(|_, _msg| {}),
+  )
+  .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+  events.lock().unwrap().clear();
+
+  let suspend_envelope = PriorityEnvelope::from_system(SystemMessage::Suspend).map(dyn_system);
+  actor_ref.try_send_envelope(suspend_envelope).expect("send suspend");
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  let recordings = events.lock().unwrap();
+  assert!(
+    recordings.iter().any(|(idx, result)| idx.slot == 0 && matches!(result, InvokeResult::Suspended { .. })),
+    "expected suspended result, got {:?}",
+    *recordings
+  );
 }
 
 #[test]

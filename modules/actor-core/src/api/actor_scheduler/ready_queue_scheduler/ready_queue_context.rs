@@ -52,6 +52,10 @@ where
     self.core.actor_has_pending(index)
   }
 
+  pub(crate) fn actor_is_suspended(&self, index: usize) -> bool {
+    self.core.actor_is_suspended(index)
+  }
+
   pub(crate) fn spawn_actor(
     &mut self,
     supervisor: Box<dyn Supervisor<AnyMessage>>,
@@ -97,7 +101,8 @@ where
   pub(crate) fn process_ready_once(&mut self) -> Result<Option<bool>, QueueError<PriorityEnvelope<AnyMessage>>> {
     if let Some(index) = self.dequeue_ready() {
       let processed = self.core.process_actor_pending(index)?;
-      let has_pending = self.actor_has_pending(index);
+      let suspended = self.actor_is_suspended(index);
+      let has_pending = if suspended { false } else { self.actor_has_pending(index) };
       self.mark_idle(index, has_pending);
       return Ok(Some(processed));
     }

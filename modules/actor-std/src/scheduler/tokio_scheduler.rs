@@ -4,6 +4,7 @@ use cellex_actor_core_rs::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{
+      ready_queue_coordinator::ReadyQueueCoordinator,
       ready_queue_scheduler::{ReadyQueueScheduler, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext,
     },
@@ -102,6 +103,10 @@ where
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
+  }
+
+  fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    ReadyQueueScheduler::set_ready_queue_coordinator(&mut self.inner, coordinator);
   }
 
   fn set_parent_guardian(

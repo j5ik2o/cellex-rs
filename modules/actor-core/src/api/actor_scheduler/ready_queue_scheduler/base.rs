@@ -242,7 +242,8 @@ where
         let mut ctx = self.context.lock();
         if let Some(index) = ctx.dequeue_ready() {
           let processed = ctx.process_actor_pending(index)?;
-          let has_pending = ctx.actor_has_pending(index);
+          let suspended = ctx.actor_is_suspended(index);
+          let has_pending = if suspended { false } else { ctx.actor_has_pending(index) };
           ctx.mark_idle(index, has_pending);
           if processed {
             return Ok(());
@@ -302,6 +303,10 @@ where
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     ReadyQueueScheduler::set_metrics_sink(self, sink)
+  }
+
+  fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    ReadyQueueScheduler::set_ready_queue_coordinator(self, coordinator);
   }
 
   fn set_parent_guardian(

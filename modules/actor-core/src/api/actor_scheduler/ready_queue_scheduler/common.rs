@@ -229,6 +229,10 @@ where
     self.actors.get(index).map(|cell| cell.has_pending_messages()).unwrap_or(false)
   }
 
+  pub fn actor_is_suspended(&self, index: usize) -> bool {
+    self.actors.get(index).map(|cell| cell.is_suspended()).unwrap_or(false)
+  }
+
   pub fn take_escalations(&mut self) -> Vec<FailureInfo> {
     core::mem::take(&mut self.escalations)
   }
