@@ -10,7 +10,7 @@ use super::{backend::MailboxQueueBackend, QueuePollOutcome};
 use crate::api::{mailbox::MailboxOverflowPolicy, metrics::MetricsSinkShared};
 
 /// Abstraction over queue types consumed by [`QueueMailboxCore`](super::QueueMailboxCore).
-pub trait QueueMailboxQueue<M>: Clone
+pub trait MailboxQueue<M>: Clone
 where
   M: Element, {
   /// Returns the number of messages currently stored in the queue.
@@ -37,7 +37,7 @@ where
   }
 }
 
-impl<M, Q> QueueMailboxQueue<M> for Q
+impl<M, Q> MailboxQueue<M> for Q
 where
   M: Element,
   Q: MailboxQueueBackend<M>,

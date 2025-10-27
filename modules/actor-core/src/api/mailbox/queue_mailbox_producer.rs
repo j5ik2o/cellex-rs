@@ -10,7 +10,7 @@ use crate::{
   api::{
     actor_scheduler::ready_queue_scheduler::ReadyQueueHandle,
     mailbox::{
-      queue_mailbox::{QueueMailboxCore, QueueMailboxQueue},
+      queue_mailbox::{QueueMailboxCore, MailboxQueue},
       MailboxError,
     },
     metrics::MetricsSinkShared,
@@ -80,7 +80,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Attempts to send a message and returns the underlying queue outcome.
   pub fn try_send_with_outcome<M>(&self, message: M) -> Result<OfferOutcome, MailboxError<M>>
   where
-    Q: QueueMailboxQueue<M>,
+    Q: MailboxQueue<M>,
     S: MailboxSignal,
     M: Element, {
     self.core.try_send_mailbox(message)
@@ -89,7 +89,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Attempts to send a message (non-blocking) using the mailbox error model.
   pub fn try_send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
   where
-    Q: QueueMailboxQueue<M>,
+    Q: MailboxQueue<M>,
     S: MailboxSignal,
     M: Element, {
     self.try_send_with_outcome(message).map(|_| ())
@@ -100,7 +100,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Returns an error immediately if the queue is full.
   pub fn try_send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
-    Q: QueueMailboxQueue<M>,
+    Q: MailboxQueue<M>,
     S: MailboxSignal,
     M: Element, {
     match self.try_send_with_outcome(message) {
@@ -112,7 +112,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Sends a message using the mailbox queue.
   pub fn send<M>(&self, message: M) -> Result<(), QueueError<M>>
   where
-    Q: QueueMailboxQueue<M>,
+    Q: MailboxQueue<M>,
     S: MailboxSignal,
     M: Element, {
     self.try_send(message)
@@ -121,7 +121,7 @@ impl<Q, S> QueueMailboxProducer<Q, S> {
   /// Sends a message using the mailbox error model.
   pub fn send_mailbox<M>(&self, message: M) -> Result<(), MailboxError<M>>
   where
-    Q: QueueMailboxQueue<M>,
+    Q: MailboxQueue<M>,
     S: MailboxSignal,
     M: Element, {
     self.try_send_mailbox(message)
