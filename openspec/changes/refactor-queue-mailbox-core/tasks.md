@@ -1,0 +1,4 @@
+- [ ] 調査: 既存の `SystemMailboxQueue` 利用箇所と `QueueMailboxCore` の依存関係を洗い出し、System/User 責務の分離ポイントを整理する。
+- [ ] 設計/Spec: System/User キュー分離後の API と挙動を OpenSpec delta に反映し、テストシナリオを定義する。
+- [ ] 実装: `QueueMailboxCore` を新シグネチャへ移行し、`SystemMailboxQueue` を System 専用実装として再構成する。関連ファクトリ・エイリアス・テストを更新する。
+- [ ] 検証: `./scripts/ci-check.sh all` とターゲット別 `cargo check` を実行し、System/User キュー分離後も全て成功することを確認する。
