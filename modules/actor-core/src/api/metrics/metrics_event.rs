@@ -34,7 +34,11 @@ pub enum MetricsEvent {
   /// An actor mailbox resumed message processing.
   MailboxResumed {
     /// Total number of observed resume events for the mailbox.
-    resume_count: u64,
+    resume_count:   u64,
+    /// Duration of the most recent suspension, if available.
+    last_duration:  Option<core::time::Duration>,
+    /// Cumulative suspension duration, if available.
+    total_duration: Option<core::time::Duration>,
   },
   /// Telemetry handling logic was invoked.
   TelemetryInvoked,

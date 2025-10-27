@@ -22,7 +22,7 @@ use crate::{
     },
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
     mailbox::{messages::SystemMessage, Mailbox},
-    metrics::{MetricsEvent, MetricsSinkShared},
+    metrics::{MetricsEvent, MetricsSinkShared, SuspensionClockShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
@@ -45,6 +45,7 @@ where
   escalation_sink: CompositeEscalationSink<MF>,
   receive_timeout_scheduler_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   metrics_sink_opt: Option<MetricsSinkShared>,
+  suspension_clock: SuspensionClockShared,
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
 }
@@ -72,6 +73,7 @@ where
       escalation_sink: CompositeEscalationSink::default(),
       receive_timeout_scheduler_shared_opt: None,
       metrics_sink_opt: None,
+      suspension_clock: SuspensionClockShared::null(),
       extensions,
       _strategy: PhantomData,
     }
@@ -139,6 +141,7 @@ where
       process_registry,
     );
     cell.set_metrics_sink(self.metrics_sink_opt.clone());
+    cell.set_suspension_clock(self.suspension_clock.clone());
     self.actors.push(cell);
     self.record_metric(MetricsEvent::ActorRegistered);
     Ok(control_ref)
@@ -242,6 +245,14 @@ where
     self.metrics_sink_opt = sink.clone();
     for actor in &mut self.actors {
       actor.set_metrics_sink(sink.clone());
+    }
+  }
+
+  #[allow(clippy::needless_pass_by_value)]
+  pub fn set_suspension_clock(&mut self, clock: SuspensionClockShared) {
+    self.suspension_clock = clock.clone();
+    for actor in &mut self.actors {
+      actor.set_suspension_clock(clock.clone());
     }
   }
 

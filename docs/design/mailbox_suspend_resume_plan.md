@@ -55,12 +55,18 @@ pub(crate) enum ActorCellState {
 pub struct ActorCell<MF, Strat> {
   state: ActorCellState,
   pending_user_envelopes: VecDeque<PriorityEnvelope<AnyMessage>>,
+  suspension_clock: SuspensionClockShared,
+  suspend_started_at: Option<u64>,
+  last_suspend_nanos: Option<u64>,
+  total_suspend_nanos: u128,
+  suspend_count: u64,
+  resume_count: u64,
   // 既存フィールド...
 }
 ```
 
-- Suspend 時は `ActorCellState::Suspended` へ遷移し、ユーザーメッセージを `pending_user_envelopes` に退避。  
-- Resume で `ActorCellState::Running` に戻し、退避済みメッセージを ReadyQueue へ戻す（`collect_envelopes` 内で drain）。
+- Suspend 時は `ActorCellState::Suspended` へ遷移し、ユーザーメッセージを `pending_user_envelopes` に退避。`SuspensionClockShared` が提供されていれば、サスペンド開始時刻を記録。  
+- Resume で `ActorCellState::Running` に戻し、退避済みメッセージを ReadyQueue へ戻す（`collect_envelopes` 内で drain）。同時に、Suspend 期間を算出してメトリクスへ送出（クロック未設定の場合は `None`）。
 
 ### 4.2 メールボックス処理の流れ
 
@@ -81,8 +87,8 @@ pub struct ActorCell<MF, Strat> {
 
 ### 4.3 メトリクス
 
-- `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加。  
-- Resume 時に `duration` を計測し、合計時間を記録。
+- `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、Suspend/Resume 回数と最新／累積の Duration（計測可能な環境のみ）を記録。  
+- no_std 環境では `SuspensionClockShared::null()` を用いたフォールバックで回数のみを記録。
 
 ---
 
@@ -101,8 +107,8 @@ pub struct ActorCell<MF, Strat> {
    - Resume 後に保留分が処理されることを保証。
 
 4. **メトリクス & イベント（進行中）**  
-   - `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、Suspend/Resume 回数を記録。  
-   - Suspend 期間の計測と no_std 環境向けクロックは今後の課題。
+   - `MetricsEvent::MailboxSuspended` / `MailboxResumed` を追加し、Suspend/Resume 回数と（可能な場合は）Duration を記録。  
+   - no_std 環境向けに `SuspensionClockShared` の null 実装を提供し、期間計測が存在しなくても動作する構造を整備。
 
 5. **テスト追加（完了 / 継続）**  
    - Suspend ブロックと Resume 後の再開を確認するテストを整備済み。  

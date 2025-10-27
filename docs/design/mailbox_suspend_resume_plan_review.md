@@ -17,7 +17,7 @@
 ## ブロッカー (Must Fix)
 
 - 主要な Must Fix 指摘は最新実装で解消済み（ActorCell が状態・保留キューを保持し、Resume 時に ReadyQueueHook を介して再通知）。
-- 今後の重点項目はメトリクス統計の拡張（Suspend 期間の計測）、および ReadyQueueCoordinator との InvokeResult 統合（ステートレスな連携）の仕上げ。
+- 今後の重点項目はメトリクス統計の拡張（`SuspensionClockShared` を用いた期間計測の活用と exporter 設計）、および ReadyQueueCoordinator との InvokeResult 統合（ステートレスな連携）の仕上げ。
 
 ---
 
@@ -35,8 +35,8 @@
   - Suspend 中に enqueue を許可するとバッファ無限化リスクがある。少なくとも Phase 0 では「Suspend 中は enqueue を許可するが ReadyQueue には再登録しない」「bounded queue overflow 時は Backpressure エラーを返す」などのポリシーを明文化すること。
 
 - **MetricsEvent の拡張要件を具体化**  
-  - `MetricsEvent::MailboxSuspended` / `MailboxResumed` は実装済み（Suspend/Resume 回数をカウント）。今後は Suspend 期間計測や exporter 設計を整理する。  
-  - `total_nanos` 相当の統計導入タイミングを roadmap に反映する。
+  - `MetricsEvent::MailboxSuspended` / `MailboxResumed` は実装済み（Suspend/Resume 回数、およびクロック有効時の Duration をレポート）。今後は exporter 設計や no_std 向けクロック実装の整備が課題。  
+  - `total_nanos` 相当の統計導入・可視化タイミングを roadmap に反映する。
 
 ---
 

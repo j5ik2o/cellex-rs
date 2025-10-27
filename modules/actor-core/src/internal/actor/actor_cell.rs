@@ -2,7 +2,7 @@
 extern crate std;
 
 use alloc::{boxed::Box, collections::VecDeque, vec, vec::Vec};
-use core::{cell::RefCell, cmp::Reverse, marker::PhantomData};
+use core::{cell::RefCell, cmp::Reverse, marker::PhantomData, time::Duration};
 
 use cellex_utils_core_rs::{
   collections::queue::backend::QueueError,
@@ -18,7 +18,7 @@ use crate::{
     failure::FailureInfo,
     guardian::{Guardian, GuardianStrategy},
     mailbox::{messages::SystemMessage, Mailbox},
-    metrics::{MetricsEvent, MetricsSinkShared},
+    metrics::{MetricsEvent, MetricsSinkShared, SuspensionClockShared},
     process::{pid::Pid, process_registry::ProcessRegistry},
     receive_timeout::{ReceiveTimeoutScheduler, ReceiveTimeoutSchedulerFactoryShared},
     supervision::supervisor::Supervisor,
@@ -57,6 +57,10 @@ where
   pending_user_envelopes: VecDeque<PriorityEnvelope<AnyMessage>>,
   suspend_count: u64,
   resume_count: u64,
+  suspension_clock: SuspensionClockShared,
+  suspend_started_at: Option<u64>,
+  last_suspend_nanos: Option<u64>,
+  total_suspend_nanos: u128,
   scheduler_hook: Option<ReadyQueueHandle>,
   metrics_sink: Option<MetricsSinkShared>,
   receive_timeout_scheduler_factory_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
@@ -105,6 +109,10 @@ where
       pending_user_envelopes: VecDeque::new(),
       suspend_count: 0,
       resume_count: 0,
+      suspension_clock: SuspensionClockShared::null(),
+      suspend_started_at: None,
+      last_suspend_nanos: None,
+      total_suspend_nanos: 0,
       scheduler_hook: None,
       metrics_sink: None,
       receive_timeout_scheduler_factory_shared_opt: None,
@@ -141,6 +149,18 @@ where
     MailboxProducer::set_scheduler_hook(&mut self.sender, hook);
   }
 
+  pub(crate) fn set_suspension_clock(&mut self, clock: SuspensionClockShared)
+  where
+    MF: MailboxFactory + Clone + 'static,
+    MF::Queue<PriorityEnvelope<AnyMessage>>: Clone,
+    MF::Signal: Clone,
+    MF::Producer<PriorityEnvelope<AnyMessage>>: Clone, {
+    self.suspension_clock = clock;
+    self.suspend_started_at = None;
+    self.last_suspend_nanos = None;
+    self.total_suspend_nanos = 0;
+  }
+
   pub fn configure_receive_timeout_scheduler_factory_shared_opt(
     &mut self,
     factory: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
@@ -165,6 +185,10 @@ where
     self.state = ActorCellState::Stopped;
     self.pending_user_envelopes.clear();
     self.scheduler_hook = None;
+    self.suspension_clock = SuspensionClockShared::null();
+    self.suspend_started_at = None;
+    self.last_suspend_nanos = None;
+    self.total_suspend_nanos = 0;
     self.suspend_count = 0;
     self.resume_count = 0;
     if let Some(cell) = self.receive_timeout_scheduler_opt.as_ref() {
@@ -194,6 +218,9 @@ where
     if !self.is_suspended() {
       self.state = ActorCellState::Suspended;
       self.suspend_count = self.suspend_count.saturating_add(1);
+      if self.suspend_started_at.is_none() {
+        self.suspend_started_at = self.suspension_clock.now();
+      }
       self.record_metrics_event(MetricsEvent::MailboxSuspended { suspend_count: self.suspend_count });
     }
   }
@@ -201,8 +228,20 @@ where
   fn transition_to_running(&mut self) {
     if self.is_suspended() {
       self.state = ActorCellState::Running;
+      let last_duration_nanos = self
+        .suspend_started_at
+        .take()
+        .and_then(|start| self.suspension_clock.now().map(|end| end.saturating_sub(start)));
+      if let Some(nanos) = last_duration_nanos {
+        self.last_suspend_nanos = Some(nanos);
+        self.total_suspend_nanos = self.total_suspend_nanos.saturating_add(nanos as u128);
+      }
       self.resume_count = self.resume_count.saturating_add(1);
-      self.record_metrics_event(MetricsEvent::MailboxResumed { resume_count: self.resume_count });
+      self.record_metrics_event(MetricsEvent::MailboxResumed {
+        resume_count:   self.resume_count,
+        last_duration:  last_duration_nanos.map(Duration::from_nanos),
+        total_duration: self.total_suspend_duration(),
+      });
       if !self.pending_user_envelopes.is_empty() {
         if let Some(hook) = &self.scheduler_hook {
           hook.with_ref(|hook| hook.notify_ready());
@@ -214,6 +253,22 @@ where
   fn record_metrics_event(&self, event: MetricsEvent) {
     if let Some(sink) = &self.metrics_sink {
       sink.with_ref(|sink| sink.record(event));
+    }
+  }
+
+  fn total_suspend_duration(&self) -> Option<Duration> {
+    if self.total_suspend_nanos == 0 {
+      None
+    } else {
+      Some(Self::duration_from_nanos(self.total_suspend_nanos))
+    }
+  }
+
+  fn duration_from_nanos(nanos: u128) -> Duration {
+    if nanos > u64::MAX as u128 {
+      Duration::from_nanos(u64::MAX)
+    } else {
+      Duration::from_nanos(nanos as u64)
     }
   }
 

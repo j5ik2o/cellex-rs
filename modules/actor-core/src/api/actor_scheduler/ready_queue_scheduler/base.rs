@@ -24,7 +24,7 @@ use crate::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    metrics::MetricsSinkShared,
+    metrics::{MetricsSinkShared, SuspensionClockShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
@@ -128,6 +128,12 @@ where
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     let mut ctx = self.context.lock();
     ctx.set_metrics_sink(sink);
+  }
+
+  /// Configures the suspension clock used to measure suspend durations.
+  pub fn set_suspension_clock(&mut self, clock: SuspensionClockShared) {
+    let mut ctx = self.context.lock();
+    ctx.core.set_suspension_clock(clock);
   }
 
   /// Sets the listener that receives failures propagated to the root supervisor.
