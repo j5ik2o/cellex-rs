@@ -3,7 +3,7 @@ mod tests;
 
 use core::future::Future;
 
-use cellex_actor_core_rs::api::actor_system::Spawn;
+use cellex_actor_core_rs::api::actor::Spawn;
 
 /// A spawner that immediately drops futures.
 ///

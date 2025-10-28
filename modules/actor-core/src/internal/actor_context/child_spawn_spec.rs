@@ -7,13 +7,12 @@ use crate::{
   api::{
     actor::{ActorHandlerFn, ActorId, ActorPath, ChildNaming},
     extensions::Extensions,
-    mailbox::MailboxFactory,
     process::pid::Pid,
     supervision::supervisor::Supervisor,
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
   },
 };

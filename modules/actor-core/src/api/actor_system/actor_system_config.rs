@@ -1,6 +1,6 @@
 use core::num::NonZeroUsize;
 
-use cellex_utils_core_rs::ArcShared;
+use cellex_utils_core_rs::sync::ArcShared;
 
 use crate::{
   api::{

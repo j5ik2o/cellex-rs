@@ -1,0 +1,5 @@
+- [x] QueueMailbox に System メッセージ専用の予約スロット（またはサブキュー）を実装し、MailboxOptions で容量を設定できるようにする。
+- [x] QueueMailboxProducer/QueueMailboxCore の enqueue/dequeue ロジックを更新し、System メッセージが予約スロットを優先的に利用するようにする（メトリクス含め）。
+- [x] ReadyQueueScheduler および ActorCell 経路で、ユーザーメッセージ満杯時でも System メッセージが処理される統合テストを追加する。
+- [x] ドキュメント（mailbox_expected_features.md など）を更新し、System 専用キュー導入と予約枠設定について記載する。
+- [x] `cargo test -p cellex-actor-core-rs` および `./scripts/ci-check.sh all` を実行し、回帰がないことを確認する。

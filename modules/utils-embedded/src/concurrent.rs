@@ -19,41 +19,42 @@
 //!   - `ArcCs*`: `Arc` + `CsMutex`/`CsRwLock` (critical section-based)
 //!   - `Arc*`: `Arc` + standard Mutex/RwLock
 
-#[cfg(feature = "rc")]
-mod rc_synchronized;
-#[cfg(feature = "rc")]
-pub use rc_synchronized::{
-  RcMutexBackend, RcRwLockBackend, Synchronized as RcSynchronized, SynchronizedRw as RcSynchronizedRw,
-};
-#[cfg(feature = "rc")]
-mod rc_count_down_latch;
-#[cfg(feature = "rc")]
-pub use rc_count_down_latch::{CountDownLatch as RcCountDownLatch, RcCountDownLatchBackend};
-#[cfg(feature = "rc")]
-mod rc_wait_group;
-#[cfg(feature = "rc")]
-pub use rc_wait_group::{RcWaitGroupBackend, WaitGroup as RcWaitGroup};
+/// `Rc`-based async barrier implementation.
 #[cfg(feature = "rc")]
 mod rc_async_barrier;
+/// `Rc`-based countdown latch implementation.
 #[cfg(feature = "rc")]
-pub use rc_async_barrier::{AsyncBarrier as RcAsyncBarrier, RcAsyncBarrierBackend};
+mod rc_count_down_latch;
+/// `Rc`-based synchronized type implementations.
+#[cfg(feature = "rc")]
+pub mod rc_synchronized;
+/// `Rc`-based wait group implementation.
+#[cfg(feature = "rc")]
+mod rc_wait_group;
 
-#[cfg(feature = "arc")]
-mod arc_synchronized;
-#[cfg(feature = "arc")]
-pub use arc_synchronized::{
-  ArcCsSynchronized, ArcCsSynchronizedRw, ArcLocalSynchronized, ArcLocalSynchronizedRw, ArcMutexBackend,
-  ArcRwLockBackend, ArcSynchronized, ArcSynchronizedRw,
-};
-#[cfg(feature = "arc")]
-mod arc_count_down_latch;
-#[cfg(feature = "arc")]
-pub use arc_count_down_latch::{ArcCountDownLatchBackend, ArcCsCountDownLatch, ArcLocalCountDownLatch};
-#[cfg(feature = "arc")]
-mod arc_wait_group;
-#[cfg(feature = "arc")]
-pub use arc_wait_group::{ArcCsWaitGroup, ArcLocalWaitGroup, ArcWaitGroupBackend};
+#[cfg(feature = "rc")]
+pub use rc_async_barrier::*;
+#[cfg(feature = "rc")]
+pub use rc_count_down_latch::*;
+#[cfg(feature = "rc")]
+pub use rc_wait_group::*;
+
+/// `Arc`-based async barrier implementation.
 #[cfg(feature = "arc")]
 mod arc_async_barrier;
+/// `Arc`-based countdown latch implementation.
 #[cfg(feature = "arc")]
-pub use arc_async_barrier::{ArcAsyncBarrierBackend, ArcCsAsyncBarrier, ArcLocalAsyncBarrier};
+mod arc_count_down_latch;
+/// `Arc`-based synchronized type implementations.
+#[cfg(feature = "arc")]
+pub mod arc_synchronized;
+/// `Arc`-based wait group implementation.
+#[cfg(feature = "arc")]
+mod arc_wait_group;
+
+#[cfg(feature = "arc")]
+pub use arc_async_barrier::*;
+#[cfg(feature = "arc")]
+pub use arc_count_down_latch::*;
+#[cfg(feature = "arc")]
+pub use arc_wait_group::*;

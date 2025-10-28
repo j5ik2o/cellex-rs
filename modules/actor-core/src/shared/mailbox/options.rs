@@ -1,4 +1,7 @@
-use cellex_utils_core_rs::QueueSize;
+use cellex_utils_core_rs::collections::queue::QueueSize;
+
+/// Default number of reserved slots for control/system messages.
+pub const DEFAULT_SYSTEM_RESERVATION: usize = 4;
 
 /// Runtime-agnostic construction options for
 /// [`QueueMailbox`](crate::api::mailbox::queue_mailbox::QueueMailbox).
@@ -77,6 +80,9 @@ impl MailboxOptions {
 
 impl Default for MailboxOptions {
   fn default() -> Self {
-    Self::unbounded()
+    Self {
+      capacity:          QueueSize::limitless(),
+      priority_capacity: QueueSize::limited(DEFAULT_SYSTEM_RESERVATION),
+    }
   }
 }

@@ -1,5 +1,5 @@
 // allow:multi-types
-use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
+use cellex_utils_core_rs::sync::{shared::SharedBound, ArcShared};
 
 /// Hook invoked by mailboxes when new messages arrive.
 pub trait ReadyEventHook: SharedBound {

@@ -1,6 +1,8 @@
-//! Collection modules exposed by `cellex-utils-std-rs`.
+//! Collection adaptors for std environments.
 
-/// Queue implementations optimized for std environments.
-pub mod queue;
-/// Stack implementations backed by shared state.
-pub mod stack;
+pub mod async_queue;
+mod sync_queue;
+mod sync_stack;
+
+pub use sync_queue::*;
+pub use sync_stack::*;

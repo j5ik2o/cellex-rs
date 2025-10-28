@@ -1,6 +1,6 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use cellex_utils_core_rs::ArcShared;
+use cellex_utils_core_rs::sync::ArcShared;
 
 /// Token that controls shutdown of the actor system.
 ///

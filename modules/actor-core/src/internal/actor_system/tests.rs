@@ -8,7 +8,10 @@ extern crate std;
 use alloc::{rc::Rc, vec::Vec};
 use core::cell::RefCell;
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Shared, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{
+  collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY},
+  sync::{shared::Shared, ArcShared},
+};
 use futures::executor::block_on;
 use spin::RwLock;
 
@@ -18,7 +21,7 @@ use crate::{
     actor::ActorPath,
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     guardian::AlwaysRestart,
-    mailbox::{messages::SystemMessage, MailboxOptions},
+    mailbox::messages::SystemMessage,
     messaging::MessageMetadata,
     process::{
       dead_letter::{DeadLetter, DeadLetterListener, DeadLetterReason},
@@ -29,7 +32,7 @@ use crate::{
   },
   internal::actor::InternalProps,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxOptions},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };

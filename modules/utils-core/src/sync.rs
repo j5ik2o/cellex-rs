@@ -11,7 +11,10 @@ pub mod interrupt;
 #[cfg(feature = "alloc")]
 #[allow(clippy::disallowed_types)]
 mod rc_shared;
-mod shared;
+/// Shared ownership utilities.
+pub mod shared;
+mod shared_access;
+mod shared_error;
 mod state;
 mod static_ref_shared;
 /// Synchronous mutex abstractions shared across runtimes.
@@ -19,10 +22,9 @@ pub mod sync_mutex_like;
 
 pub use arc_shared::ArcShared;
 pub use flag::Flag;
-pub use function::{SharedFactory, SharedFn};
-pub use interrupt::{CriticalSectionInterruptPolicy, InterruptContextPolicy, NeverInterruptPolicy};
 #[cfg(feature = "alloc")]
 pub use rc_shared::RcShared;
-pub use shared::{SendBound, Shared, SharedBound, SharedDyn};
+pub use shared_access::SharedAccess;
+pub use shared_error::SharedError;
 pub use state::StateCell;
 pub use static_ref_shared::StaticRefShared;

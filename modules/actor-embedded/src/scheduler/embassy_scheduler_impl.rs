@@ -6,6 +6,7 @@ use cellex_actor_core_rs::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{
+      ready_queue_coordinator::{ReadyQueueCoordinator, SignalKey},
       ready_queue_scheduler::{ReadyQueueScheduler, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerSpawnContext,
     },
@@ -16,18 +17,17 @@ use cellex_actor_core_rs::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },
 };
-use cellex_utils_core_rs::sync::ArcShared;
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 use embassy_futures::yield_now;
 
 /// Embassy scheduler wrapper.
@@ -105,6 +105,14 @@ where
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
   }
 
+  fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    ReadyQueueScheduler::set_ready_queue_coordinator(&mut self.inner, coordinator);
+  }
+
+  fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    ReadyQueueScheduler::notify_resume_signal(&mut self.inner, key)
+  }
+
   fn set_parent_guardian(
     &mut self,
     control_ref: PriorityActorRef<AnyMessage, MF>,
@@ -115,10 +123,7 @@ where
 
   fn on_escalation(
     &mut self,
-    handler: Box<
-      dyn FnMut(&FailureInfo) -> Result<(), cellex_utils_embedded_rs::QueueError<PriorityEnvelope<AnyMessage>>>
-        + 'static,
-    >,
+    handler: Box<dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static>,
   ) {
     ReadyQueueScheduler::on_escalation(&mut self.inner, handler);
   }
@@ -131,11 +136,11 @@ where
     self.inner.actor_count()
   }
 
-  fn drain_ready(&mut self) -> Result<bool, cellex_utils_embedded_rs::QueueError<PriorityEnvelope<AnyMessage>>> {
+  fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.drain_ready()
   }
 
-  async fn dispatch_next(&mut self) -> Result<(), cellex_utils_embedded_rs::QueueError<PriorityEnvelope<AnyMessage>>> {
+  async fn dispatch_next(&mut self) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> {
     self.inner.dispatch_next().await?;
     yield_now().await;
     Ok(())

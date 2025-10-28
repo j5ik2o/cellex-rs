@@ -1,6 +1,6 @@
 //! Shared actor abstractions used across API and internal layers.
 
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use crate::{
   api::{

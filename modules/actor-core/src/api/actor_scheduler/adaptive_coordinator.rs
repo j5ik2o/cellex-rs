@@ -12,7 +12,10 @@
 use alloc::vec::Vec;
 use core::task::{Context, Poll};
 
-use super::{DefaultReadyQueueCoordinatorV2, InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
+use super::{
+  ready_queue_coordinator::{InvokeResult, MailboxIndex},
+  DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2,
+};
 
 #[cfg(test)]
 mod tests;

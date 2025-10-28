@@ -8,7 +8,7 @@ use core::{
 };
 
 use super::*;
-use crate::api::mailbox::{Mailbox, MailboxFactory};
+use crate::{api::mailbox::Mailbox, shared::mailbox::MailboxFactory};
 
 #[test]
 fn test_mailbox_factory_delivers_fifo() {

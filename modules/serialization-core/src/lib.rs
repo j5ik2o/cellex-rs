@@ -7,20 +7,16 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-mod error;
+pub mod error;
 mod id;
-mod message;
+pub mod message;
 mod registry;
 #[cfg(feature = "alloc")]
-mod routing;
+pub mod routing;
 mod serializer;
 mod type_key;
 
-pub use error::{DeserializationError, RegistryError, SerializationError};
-pub use id::{SerializerId, TEST_ECHO_SERIALIZER_ID, USER_DEFINED_START};
-pub use message::{MessageHeader, SerializedMessage};
-pub use registry::InMemorySerializerRegistry;
-#[cfg(feature = "alloc")]
-pub use routing::{BindingError, SerializationRouter, TypeBindingRegistry};
-pub use serializer::Serializer;
-pub use type_key::TypeKey;
+pub use id::*;
+pub use registry::*;
+pub use serializer::*;
+pub use type_key::*;

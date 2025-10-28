@@ -2,7 +2,7 @@
 use alloc::{boxed::Box, rc::Rc};
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::SynchronizedRwBackend;
+use cellex_utils_core_rs::concurrent::synchronized::SynchronizedRwBackend;
 use embassy_sync::{
   blocking_mutex::raw::NoopRawMutex,
   rwlock::{RwLock, RwLockReadGuard, RwLockWriteGuard},

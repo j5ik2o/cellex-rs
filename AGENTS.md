@@ -1,3 +1,22 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # Repository Guidelines
 
 ## 重要な注意事項
@@ -8,19 +27,19 @@
 - **テストの扱い**: 行うべきテストをコメントアウトしたり無視したりしないこと
 - **実装方針**:
     - 既存の多くの実装を参考にして、一貫性のあるコードを書くこと
-    - protoactor-go(@docs/sources/protoactor-go)の実装を参考にすること（Goの実装からRustイディオムに変換）
+    - [protoactor-go](docs/sources/protoactor-go), [pekko](docs/sources/pekko) の実装を参考にすること（Goの実装からRustイディオムに変換）
     - pekko/akkaもよく話題でるの、https://github.com/apache/pekko を参照すること
 - 旧実装は `docs/sources/nexus-actor-rs/` に参照用として退避済み。
 - ランタイム本体で `#[cfg(feature = "std")]` による機能分岐を入れないこと（テストコード内での使用は許容）
 - **後方互換性**: 後方互換は不要（破壊的変更を恐れずに最適な設計を追求すること）
 - **リリース状況**: まだ正式リリース前の開発フェーズ。必要であれば破壊的変更を歓迎し、最適な設計を優先すること。
-- CLAUDE.md, GEMINI.mdも参照すること。
 - serena mcpを有効活用すること
 - 当該ディレクトリ以外を読まないこと
 - mod.rs禁止。2018モジュールを使え
 - 単体テストは hoge.rs に対して hoge/tests.rs に記述すること
 - 1ファイルに複数構造体、複数traitを記述しないこと
 - 作業後に`./scripts/ci-check.sh all`を実行し、エラーがないことを確認すること
+- 設計は単一責務を重視すること。複数の目的を1つの実装に混ぜて、変更理由が複数になることは避ける
 
 ## [RULE] 再エクスポート規約
 
@@ -30,11 +49,10 @@
 
 ## プロジェクト構成とモジュール
 本 リポジトリ は Cargo ワークスペース。主要 ディレクトリ は 以下 の 通り。
-- `core/` アクター ランタイム と メッセージ 処理。テスト は モジュール 直下 の `tests.rs`。
-- `cluster/` メンバーシップ と Gossip。生成 物 は `cluster/generated/`。
-- `remote/` gRPC ベース の リモート メッセージング。
-- `message-derive/` メッセージ 派生 マクロ 定義。
-- `utils/` 共通 ヘルパー と キュー 構造。
+- `actor-*/` アクター ランタイム と メッセージ 処理。テスト は モジュール 直下 の `tests.rs`。
+- `cluster-*/` メンバーシップ と Gossip。生成 物 は `cluster/generated/`。
+- `remote-*/` gRPC ベース の リモート メッセージング。
+- `utils-*/` 共通 ヘルパー と キュー 構造。
 共有 設定 は ルート `Cargo.toml` と `rust-toolchain.toml`。ビルド 自動化 は `Makefile.toml`、カバレッジ は `coverage.sh` を 使用。
 
 ## ビルド・テスト・開発コマンド
@@ -49,6 +67,18 @@
 
 ## コーディングスタイルと命名規約
 ファイル と 関数 は snake_case、型 と トレイト は PascalCase、定数 は SCREAMING_SNAKE_CASE。非同期 処理 は `tokio` と `async-trait` を 前提 と し、`?` で 早期 戻り を 心掛けます。`cargo +nightly fmt` と `cargo clippy` を PR 前 の 必須 チェック と し、`tracing` ログ は デバッグ 範囲 に 留めて ください。
+
+### Mailbox 命名ポリシー（2025-10-27 更新）
+- embedded ランタイムで使用するメールボックスは用途に応じて以下の接頭辞を使用すること。
+  - 標準的な（`Send + Sync` を満たす）実装……`DefaultMailbox`, `DefaultMailboxFactory`, `DefaultMailboxSender`, `DefaultSignal`
+  - シングルスレッド/`!Send` 向けのローカル実装……`LocalMailbox`, `LocalMailboxFactory`, `LocalMailboxSender`, `LocalSignal`
+- 所有形態（`Arc` / `Rc` 等）を名前に含めない。実装の詳細は型内部とドキュメントで説明する。
+- 将来的に別の環境向け実装（例: `WasmMailbox` 等）を追加する場合も、環境・用途を表す接頭辞で揃える。
+
+### 共有参照命名ポリシー（2025-10-27 追記）
+- `Handle` や `Manager` のような抽象的な名称は使用しないこと。共有所有権を表す型・変数は `*Shared` など責務が伝わる名前に統一する（例: `MailboxConsumerShared`, `registry_shared`）。
+- `Arc`／`Rc`／`StaticRef` など具体的な所有形態は公開 API 名に含めない。`Shared` 抽象を介して利用者からは環境差異を隠蔽する。
+- 変数名も `_shared` サフィックスで揃え、共有参照であることが一目で分かるようにする。
 
 ## テストガイドライン
 テスト フレームワーク は Rust 標準 + `#[tokio::test]`。関数 名 は `test_<対象>_<期待>` の snake_case を 推奨。共有 状態 は `Arc`、`AsyncBarrier`、`Notify` など を 使用 し データ 競合 を 回避。重要 シナリオ は 正常 系 と エラー 系 を 両方 カバー し、必要 に 応じて `cargo make coverage` の 成果 を PR に 添付。

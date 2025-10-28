@@ -1,9 +1,12 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 use futures::future::{select, Either, LocalBoxFuture};
 
 use crate::{
-  api::{actor::ShutdownToken, mailbox::MailboxFactory},
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  api::actor::ShutdownToken,
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+  },
 };
 
 /// Worker interface exposing ReadyQueue operations for driver-level scheduling.

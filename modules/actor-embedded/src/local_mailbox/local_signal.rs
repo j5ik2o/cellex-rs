@@ -1,4 +1,4 @@
-use cellex_actor_core_rs::api::mailbox::MailboxSignal;
+use cellex_actor_core_rs::shared::mailbox::MailboxSignal;
 
 use super::{
   local_signal_wait::LocalSignalWait,

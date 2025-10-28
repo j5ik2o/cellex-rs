@@ -9,7 +9,7 @@ extern crate std;
 use alloc::rc::Rc as Arc;
 #[cfg(target_has_atomic = "ptr")]
 use alloc::sync::Arc;
-use alloc::{format, rc::Rc, string::String, vec::Vec};
+use alloc::{format, rc::Rc, string::String, vec, vec::Vec};
 use core::{
   cell::RefCell,
   future::Future,
@@ -23,7 +23,7 @@ use std::{
   sync::{Arc as StdArc, Mutex},
 };
 
-use cellex_utils_core_rs::{collections::queue::QueueError, Element};
+use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 #[cfg(feature = "json")]
 use {
   crate::api::extensions::{serializer_extension_id, SerializerRegistryExtension},
@@ -39,10 +39,11 @@ use super::{
 use crate::{
   api::{
     actor::{
-      actor_context::{ActorContext, MessageAdapterRef},
+      actor_context::ActorContext,
       actor_ref::ActorRef,
       ask::{ask_with_timeout, AskError},
       behavior::{Behavior, Behaviors},
+      message_adapter_ref::MessageAdapterRef,
       props::Props,
       signal::Signal,
       ActorId,
@@ -50,13 +51,13 @@ use crate::{
     actor_runtime::{ActorRuntime, GenericActorRuntime, MailboxQueueOf, MailboxSignalOf},
     actor_system::{GenericActorSystem, GenericActorSystemConfig},
     extensions::{next_extension_id, Extension, ExtensionId},
-    mailbox::{messages::SystemMessage, MailboxFactory},
+    mailbox::messages::SystemMessage,
     messaging::{MessageMetadata, MessageSender},
     test_support::TestMailboxFactory,
   },
   internal::message::InternalMessageSender,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };
@@ -705,8 +706,9 @@ fn test_typed_actor_handles_watch_unwatch() {
   assert_eq!(after_unwatch_count, initial_count, "Watcher count should return to initial");
 }
 
+#[allow(deprecated)]
 #[test]
-fn test_typed_actor_stateful_behavior_with_system_message() {
+fn test_typed_actor_stateful_behavior_with_suspend_resume() {
   let mailbox_factory = TestMailboxFactory::unbounded();
   let actor_runtime = GenericActorRuntime::new(mailbox_factory);
   let mut system: GenericActorSystem<u32, _, AlwaysRestart> =
@@ -742,18 +744,28 @@ fn test_typed_actor_stateful_behavior_with_system_message() {
 
   // Send user messages
   actor_ref.tell(10).expect("tell 10");
-  block_on(root.dispatch_next()).expect("dispatch user 1");
+  root.dispatch_all().expect("dispatch user 1");
 
   actor_ref.tell(5).expect("tell 5");
-  block_on(root.dispatch_next()).expect("dispatch user 2");
+  root.dispatch_all().expect("dispatch user 2");
 
-  // Send system message (Suspend doesn't stop the actor)
+  // Send system message (Suspend stops subsequent user messages)
   actor_ref.send_system(SystemMessage::Suspend).expect("send suspend");
-  block_on(root.dispatch_next()).expect("dispatch system");
+  root.dispatch_all().expect("dispatch suspend");
 
-  // Verify stateful behavior updated correctly
-  assert_eq!(*count.borrow(), 15, "State should accumulate user messages");
-  assert_eq!(*failures.borrow(), 1, "State should track system messages");
+  // User message after suspend must be deferred
+  actor_ref.tell(20).expect("tell after suspend");
+  root.dispatch_all().expect("drain suspended user message");
+  assert_eq!(*count.borrow(), 15, "User message must be blocked while suspended");
+  assert_eq!(*failures.borrow(), 1, "Suspend system handler should run once");
+
+  // Resume enables delivery of deferred user messages
+  actor_ref.send_system(SystemMessage::Resume).expect("send resume");
+  root.dispatch_all().expect("dispatch resume");
+  root.dispatch_all().expect("dispatch deferred message");
+
+  assert_eq!(*count.borrow(), 35, "Deferred user message should run after resume");
+  assert_eq!(*failures.borrow(), 1, "Suspend handler count remains unchanged");
 }
 
 #[test]
@@ -788,6 +800,44 @@ fn test_behaviors_receive_self_loop() {
   block_on(root.dispatch_next()).expect("process 2");
 
   assert_eq!(log.borrow().as_slice(), &[0, 1, 2]);
+}
+
+#[allow(deprecated)]
+#[test]
+fn test_suspend_accumulates_messages_until_resume() {
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let actor_runtime = GenericActorRuntime::new(mailbox_factory);
+  let mut system: GenericActorSystem<u32, _, AlwaysRestart> =
+    GenericActorSystem::new_with_actor_runtime(actor_runtime, GenericActorSystemConfig::default());
+
+  let log: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
+  let props = Props::with_behavior(move || {
+    let sink = log_clone.clone();
+    Behavior::stateless(move |_ctx: &mut ActorContext<'_, '_, u32, _>, msg: u32| {
+      sink.borrow_mut().push(msg);
+      Ok(())
+    })
+  });
+
+  let mut root = system.root_context();
+  let actor_ref = root.spawn(props).expect("spawn actor");
+
+  actor_ref.send_system(SystemMessage::Suspend).expect("send suspend");
+  root.dispatch_all().expect("dispatch suspend");
+
+  actor_ref.tell(1).expect("tell first while suspended");
+  root.dispatch_all().expect("drain first suspended message");
+  actor_ref.tell(2).expect("tell second while suspended");
+  root.dispatch_all().expect("drain second suspended message");
+  assert!(log.borrow().is_empty(), "No user messages should be processed while suspended");
+
+  actor_ref.send_system(SystemMessage::Resume).expect("send resume");
+  root.dispatch_all().expect("dispatch resume");
+  root.dispatch_all().expect("dispatch first deferred message");
+  root.dispatch_all().expect("dispatch second deferred message");
+  assert_eq!(*log.borrow(), vec![1, 2], "Deferred messages should preserve order after resume");
 }
 
 #[test]
@@ -1100,12 +1150,11 @@ mod metrics_injection {
       actor_scheduler::{ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext},
       actor_system::{GenericActorSystem, GenericActorSystemConfig},
       failure::failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
-      mailbox::MailboxFactory,
       metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
       supervision::supervisor::Supervisor,
       test_support::TestMailboxFactory,
     },
-    shared::{messaging::AnyMessage, supervision::FailureEventHandler},
+    shared::{mailbox::MailboxFactory, messaging::AnyMessage, supervision::FailureEventHandler},
   };
 
   #[derive(Clone)]
@@ -1168,6 +1217,16 @@ mod metrics_injection {
     fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
       let mut slot = self.metrics.lock().unwrap();
       *slot = sink.map(|shared| shared.with_ref(|inner| inner as *const _ as *const () as usize));
+    }
+
+    fn set_ready_queue_coordinator(
+      &mut self,
+      _coordinator: Option<Box<dyn crate::api::actor_scheduler::ready_queue_coordinator::ReadyQueueCoordinator>>,
+    ) {
+    }
+
+    fn notify_resume_signal(&mut self, _key: crate::api::actor_scheduler::ready_queue_coordinator::SignalKey) -> bool {
+      false
     }
 
     fn set_parent_guardian(

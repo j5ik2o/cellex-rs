@@ -21,7 +21,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_core_rs::Flag;
+/// use cellex_utils_core_rs::sync::Flag;
 ///
 /// let flag = Flag::new(false);
 /// assert!(!flag.get());
@@ -52,7 +52,7 @@ impl Flag {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::Flag;
+  /// use cellex_utils_core_rs::sync::Flag;
   ///
   /// let flag = Flag::new(true);
   /// assert!(flag.get());
@@ -84,7 +84,7 @@ impl Flag {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::Flag;
+  /// use cellex_utils_core_rs::sync::Flag;
   ///
   /// let flag = Flag::new(false);
   /// flag.set(true);
@@ -116,7 +116,7 @@ impl Flag {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::Flag;
+  /// use cellex_utils_core_rs::sync::Flag;
   ///
   /// let flag = Flag::new(true);
   /// assert!(flag.get());
@@ -146,7 +146,7 @@ impl Flag {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_core_rs::Flag;
+  /// use cellex_utils_core_rs::sync::Flag;
   ///
   /// let flag = Flag::new(true);
   /// flag.clear();

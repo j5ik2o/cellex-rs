@@ -1,6 +1,6 @@
 use core::cell::UnsafeCell;
 
-use cellex_utils_core_rs::collections::queue::QueueError;
+use cellex_utils_core_rs::collections::queue::backend::QueueError;
 use portable_atomic::{AtomicU8, Ordering};
 
 use crate::shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage};

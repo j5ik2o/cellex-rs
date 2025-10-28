@@ -1,17 +1,21 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
+    queue_mailbox::{QueueMailbox, QueueMailboxRecv, SystemMailboxQueue, UserMailboxQueue},
     Mailbox, MailboxError,
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_std_rs::{Element, QueueError, QueueSize};
+use cellex_utils_core_rs::collections::{
+  queue::{backend::QueueError, QueueSize},
+  Element,
+};
 
 use super::{
   notify_signal::NotifySignal, tokio_mailbox_factory::TokioMailboxFactory, tokio_mailbox_sender::TokioMailboxSender,
 };
 
-type TokioQueueDriver<M> = SyncQueueDriver<M>;
+type TokioQueueDriver<M> = SystemMailboxQueue<M>;
+type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, UserMailboxQueue<M>, NotifySignal>;
 
 /// Mailbox implementation for Tokio runtime
 ///
@@ -20,7 +24,7 @@ type TokioQueueDriver<M> = SyncQueueDriver<M>;
 pub struct TokioMailbox<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailbox<TokioQueueDriver<M>, NotifySignal>,
+  pub(super) inner: TokioMailboxInner<M>,
 }
 
 impl<M> TokioMailbox<M>
@@ -65,7 +69,7 @@ where
   /// # Returns
   /// An immutable reference to the internal mailbox
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailbox<TokioQueueDriver<M>, NotifySignal> {
+  pub const fn inner(&self) -> &TokioMailboxInner<M> {
     &self.inner
   }
 }
@@ -76,7 +80,7 @@ where
   TokioQueueDriver<M>: Clone,
 {
   type RecvFuture<'a>
-    = QueueMailboxRecv<'a, TokioQueueDriver<M>, NotifySignal, M>
+    = QueueMailboxRecv<'a, TokioQueueDriver<M>, UserMailboxQueue<M>, NotifySignal, M>
   where
     Self: 'a;
   type SendError = QueueError<M>;
@@ -106,8 +110,7 @@ where
   }
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.queue().set_metrics_sink(sink.clone());
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }
 
@@ -122,7 +125,7 @@ where
   }
 
   /// Returns the receive future when working with MailboxError-based semantics.
-  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, TokioQueueDriver<M>, NotifySignal, M> {
+  pub fn recv_mailbox(&self) -> QueueMailboxRecv<'_, TokioQueueDriver<M>, UserMailboxQueue<M>, NotifySignal, M> {
     self.inner.recv()
   }
 }

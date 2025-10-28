@@ -20,7 +20,9 @@ use alloc_cortex_m::CortexMHeap;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cellex_actor_core_rs::{actor_loop, Mailbox};
 #[cfg(all(target_arch = "arm", target_os = "none"))]
-use cellex_actor_embedded_rs::prelude::{ImmediateTimer, LocalMailbox, RcShared};
+use cellex_actor_embedded_rs::{ImmediateTimer, LocalMailbox};
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+use cellex_utils_embedded_rs::sync::rc::RcShared;
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 use cortex_m::{asm, interrupt};
 #[cfg(all(target_arch = "arm", target_os = "none"))]

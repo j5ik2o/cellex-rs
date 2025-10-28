@@ -1,15 +1,16 @@
 use cellex_actor_core_rs::api::{
   mailbox::{
-    queue_mailbox::{MailboxQueueDriver, SyncQueueDriver},
+    queue_mailbox::{SystemMailboxQueue, UserMailboxQueue},
     MailboxError, QueueMailboxProducer,
   },
   metrics::MetricsSinkShared,
 };
-use cellex_utils_std_rs::{Element, QueueError};
+use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
 use super::notify_signal::NotifySignal;
 
-type TokioQueueDriver<M> = SyncQueueDriver<M>;
+type TokioQueueDriver<M> = SystemMailboxQueue<M>;
+type TokioUserQueue<M> = UserMailboxQueue<M>;
 
 /// Sender handle for Tokio mailbox
 ///
@@ -18,7 +19,7 @@ type TokioQueueDriver<M> = SyncQueueDriver<M>;
 pub struct TokioMailboxSender<M>
 where
   M: Element, {
-  pub(super) inner: QueueMailboxProducer<TokioQueueDriver<M>, NotifySignal>,
+  pub(super) inner: QueueMailboxProducer<TokioQueueDriver<M>, TokioUserQueue<M>, NotifySignal>,
 }
 
 impl<M> TokioMailboxSender<M>
@@ -69,13 +70,12 @@ where
   /// # Returns
   /// An immutable reference to the internal producer
   #[must_use]
-  pub const fn inner(&self) -> &QueueMailboxProducer<TokioQueueDriver<M>, NotifySignal> {
+  pub const fn inner(&self) -> &QueueMailboxProducer<TokioQueueDriver<M>, TokioUserQueue<M>, NotifySignal> {
     &self.inner
   }
 
   /// Assigns a metrics sink to the underlying producer.
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.queue().set_metrics_sink(sink.clone());
-    self.inner.set_metrics_sink(sink);
+    self.inner.set_metrics_sink::<M>(sink);
   }
 }

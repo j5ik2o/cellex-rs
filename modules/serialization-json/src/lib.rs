@@ -6,7 +6,9 @@
 mod json_type_key;
 
 use cellex_serialization_core_rs::{
-  DeserializationError, SerializationError, SerializedMessage, Serializer, SerializerId,
+  error::{DeserializationError, SerializationError},
+  message::SerializedMessage,
+  Serializer, SerializerId,
 };
 use cellex_utils_core_rs::sync::ArcShared;
 pub use json_type_key::JsonTypeKey;

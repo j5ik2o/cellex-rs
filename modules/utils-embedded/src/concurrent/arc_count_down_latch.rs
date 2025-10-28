@@ -7,7 +7,7 @@ mod tests;
 use alloc::{boxed::Box, sync::Arc};
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
+use cellex_utils_core_rs::concurrent::count_down_latch::{CountDownLatch as CoreCountDownLatch, CountDownLatchBackend};
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex},
   mutex::Mutex,

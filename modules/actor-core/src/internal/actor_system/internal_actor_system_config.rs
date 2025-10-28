@@ -8,12 +8,15 @@ use crate::{
         default_failure_telemetry_shared, FailureTelemetryObservationConfig, FailureTelemetryShared,
       },
     },
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     process::pid::{NodeId, SystemId},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage, supervision::FailureEventHandler},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+    supervision::FailureEventHandler,
+  },
 };
 
 /// Internal configuration used while assembling [`InternalActorSystem`].

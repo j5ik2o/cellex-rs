@@ -2,7 +2,7 @@
 
 use alloc::sync::Arc;
 
-use cellex_utils_core_rs::{MpscBuffer, QueueStorage, RingBuffer, RingBufferStorage, StateCell};
+use cellex_utils_core_rs::sync::StateCell;
 use embassy_sync::{
   blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex, RawMutex},
   mutex::{Mutex, MutexGuard},
@@ -25,7 +25,7 @@ use embassy_sync::{
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+/// use cellex_utils_embedded_rs::sync::arc::ArcLocalStateCell;
 ///
 /// let cell = ArcLocalStateCell::new(0);
 /// let clone = cell.clone();
@@ -61,7 +61,7 @@ where
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcLocalStateCell;
   ///
   /// let cell = ArcLocalStateCell::new(42);
   /// assert_eq!(*cell.borrow(), 42);
@@ -79,7 +79,7 @@ where
   /// ```
   /// use alloc::sync::Arc;
   ///
-  /// use cellex_utils_embedded_rs::sync::ArcStateCell;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcStateCell;
   /// use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
   ///
   /// let arc = Arc::new(Mutex::<NoopRawMutex, _>::new(42));
@@ -95,7 +95,7 @@ where
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcLocalStateCell;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcLocalStateCell;
   ///
   /// let cell = ArcLocalStateCell::new(42);
   /// let arc = cell.into_arc();
@@ -146,35 +146,5 @@ where
 
   fn borrow_mut(&self) -> Self::RefMut<'_> {
     self.lock()
-  }
-}
-
-impl<T, RM> RingBufferStorage<T> for ArcStateCell<MpscBuffer<T>, RM>
-where
-  RM: RawMutex,
-{
-  fn with_read<R>(&self, f: impl FnOnce(&MpscBuffer<T>) -> R) -> R {
-    let guard = self.borrow();
-    f(&guard)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut MpscBuffer<T>) -> R) -> R {
-    let mut guard = self.borrow_mut();
-    f(&mut guard)
-  }
-}
-
-impl<E, RM> QueueStorage<E> for ArcStateCell<RingBuffer<E>, RM>
-where
-  RM: RawMutex,
-{
-  fn with_read<R>(&self, f: impl FnOnce(&RingBuffer<E>) -> R) -> R {
-    let guard = self.lock();
-    f(&guard)
-  }
-
-  fn with_write<R>(&self, f: impl FnOnce(&mut RingBuffer<E>) -> R) -> R {
-    let mut guard = self.lock();
-    f(&mut guard)
   }
 }

@@ -4,7 +4,7 @@
 //! `Send + Sync` on pointer-atomic platforms and imposes no additional bound on single-threaded
 //! targets.
 
-use cellex_utils_core_rs::sync::SharedBound;
+use cellex_utils_core_rs::sync::shared::SharedBound;
 
 /// Factory objects must implement this trait to be accepted by the scheduler.
 pub trait ActorSchedulerFactoryBound: SharedBound {}

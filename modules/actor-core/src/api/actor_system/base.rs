@@ -1,7 +1,10 @@
 use alloc::boxed::Box;
 use core::{convert::Infallible, future::Future, pin::Pin};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element};
+use cellex_utils_core_rs::{
+  collections::{queue::backend::QueueError, Element},
+  sync::ArcShared,
+};
 
 use crate::{
   api::{

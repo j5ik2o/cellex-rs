@@ -2,7 +2,7 @@ mod failure_event_listener_shared;
 #[cfg(all(test, feature = "test-support"))]
 pub(crate) mod tests;
 
-use cellex_utils_core_rs::sync::{SendBound, SharedBound};
+use cellex_utils_core_rs::sync::shared::{SendBound, SharedBound};
 pub use failure_event_listener_shared::*;
 
 /// Listener for receiving failure events as a stream.

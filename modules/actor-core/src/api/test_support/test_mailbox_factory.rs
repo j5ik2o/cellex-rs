@@ -1,11 +1,22 @@
-use cellex_utils_core_rs::{Element, QueueSize};
+use core::any::TypeId;
 
-use crate::api::{
-  mailbox::{
-    queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
-    MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair, QueueMailboxProducer, ThreadSafe,
+use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
+
+use crate::{
+  api::{
+    mailbox::{
+      messages::SystemMessage,
+      queue_mailbox::{
+        build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue, UserMailboxQueue,
+      },
+      MailboxOverflowPolicy, QueueMailboxProducer, ThreadSafe,
+    },
+    test_support::test_signal::TestSignal,
   },
-  test_support::test_signal::TestSignal,
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxOptions, MailboxPair},
+    messaging::AnyMessage,
+  },
 };
 
 #[derive(Clone, Debug, Default)]
@@ -44,15 +55,15 @@ impl TestMailboxFactory {
 impl MailboxFactory for TestMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
-    = QueueMailbox<Self::Queue<M>, Self::Signal>
+    = QueueMailbox<Self::Queue<M>, UserMailboxQueue<M>, Self::Signal>
   where
     M: Element;
   type Producer<M>
-    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+    = QueueMailboxProducer<Self::Queue<M>, UserMailboxQueue<M>, Self::Signal>
   where
     M: Element;
   type Queue<M>
-    = SyncQueueDriver<M>
+    = SystemMailboxQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -61,16 +72,29 @@ impl MailboxFactory for TestMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = {
+    let (system_queue, user_queue) = {
       let capacity_size = match capacity {
         | Some(0) | None => QueueSize::limitless(),
         | Some(limit) => QueueSize::limited(limit),
       };
-      let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
-      build_queue_driver::<M>(config)
+      let config = MailboxQueueConfig::new(capacity_size, MailboxOverflowPolicy::Block);
+      let user_queue = build_user_mailbox_queue::<M>(config);
+      let system_capacity = if TypeId::of::<M>() == TypeId::of::<PriorityEnvelope<AnyMessage>>()
+        || TypeId::of::<M>() == TypeId::of::<PriorityEnvelope<SystemMessage>>()
+      {
+        let capacity = options.priority_capacity_limit();
+        #[cfg(debug_assertions)]
+        {
+          debug_assert!(capacity.is_some(), "priority capacity not configured for priority mailbox");
+        }
+        capacity
+      } else {
+        None
+      };
+      (SystemMailboxQueue::new(system_capacity), user_queue)
     };
     let signal = TestSignal::default();
-    let mailbox = QueueMailbox::new(queue, signal);
+    let mailbox = QueueMailbox::with_system_queue(system_queue, user_queue, signal);
     let sender = mailbox.producer();
     (mailbox, sender)
   }

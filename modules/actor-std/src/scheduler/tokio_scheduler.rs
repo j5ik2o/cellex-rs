@@ -4,6 +4,7 @@ use cellex_actor_core_rs::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
     actor_scheduler::{
+      ready_queue_coordinator::{ReadyQueueCoordinator, SignalKey},
       ready_queue_scheduler::{ReadyQueueScheduler, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerHandleBuilder, ActorSchedulerSpawnContext,
     },
@@ -14,18 +15,17 @@ use cellex_actor_core_rs::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },
 };
-use cellex_utils_core_rs::{sync::ArcShared, QueueError};
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 use tokio::task::yield_now;
 
 /// Tokio scheduler wrapper.
@@ -103,6 +103,14 @@ where
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     ReadyQueueScheduler::set_metrics_sink(&mut self.inner, sink);
+  }
+
+  fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    ReadyQueueScheduler::set_ready_queue_coordinator(&mut self.inner, coordinator);
+  }
+
+  fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    ReadyQueueScheduler::notify_resume_signal(&mut self.inner, key)
   }
 
   fn set_parent_guardian(

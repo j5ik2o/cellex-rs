@@ -8,7 +8,7 @@ extern crate std;
 use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use core::{
   cell::{Cell, RefCell},
-  marker::PhantomData,
+  task::{Context, Poll},
 };
 use std::{
   collections::VecDeque,
@@ -16,8 +16,15 @@ use std::{
 };
 
 use cellex_utils_core_rs::{
-  collections::queue::QueueError, sync::ArcShared, v2::collections::queue::backend::OverflowPolicy, Element, QueueSize,
-  DEFAULT_PRIORITY,
+  collections::{
+    queue::{
+      backend::{OverflowPolicy, QueueError},
+      priority::DEFAULT_PRIORITY,
+      QueueSize,
+    },
+    Element,
+  },
+  sync::ArcShared,
 };
 use futures::{
   executor::{block_on, LocalPool},
@@ -36,6 +43,7 @@ use crate::{
     actor_runtime::{GenericActorRuntime, MailboxConcurrencyOf},
     actor_scheduler::{
       actor_scheduler_handle_builder::ActorSchedulerHandleBuilder,
+      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator, ResumeCondition, SignalKey},
       ready_queue_scheduler::{drive_ready_queue_worker, ReadyQueueHandle, ReadyQueueWorker},
       ActorScheduler, ActorSchedulerSpawnContext,
     },
@@ -44,8 +52,8 @@ use crate::{
     guardian::{AlwaysRestart, GuardianStrategy},
     mailbox::{
       messages::{PriorityChannel, SystemMessage},
-      queue_mailbox::{MailboxQueueDriver, QueueMailbox, QueueMailboxRecv, SyncQueueDriver},
-      Mailbox, MailboxFactory, MailboxOptions, QueueMailboxProducer, ThreadSafe,
+      queue_mailbox::{DefaultMailbox, DefaultMailboxProducer, QueueMailbox, SystemMailboxQueue, UserMailboxQueue},
+      Mailbox, ThreadSafe,
     },
     metrics::{MetricsEvent, MetricsSink, MetricsSinkShared},
     process::{
@@ -56,7 +64,7 @@ use crate::{
     test_support::{TestMailboxFactory, TestSignal},
   },
   shared::{
-    mailbox::{factory::MailboxPair, handle::MailboxHandle, messages::PriorityEnvelope, producer::MailboxProducer},
+    mailbox::{messages::PriorityEnvelope, MailboxConsumer, MailboxFactory, MailboxOptions, MailboxPair},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
     supervision::FailureEventHandler,
   },
@@ -107,12 +115,12 @@ impl MetricsSink for EventRecordingSink {
 }
 
 #[derive(Clone, Copy)]
-struct SyncMailboxFactory {
+struct SystemMailboxFactory {
   capacity: usize,
   policy:   OverflowPolicy,
 }
 
-impl SyncMailboxFactory {
+impl SystemMailboxFactory {
   const fn bounded(capacity: usize, policy: OverflowPolicy) -> Self {
     Self { capacity, policy }
   }
@@ -122,118 +130,21 @@ impl SyncMailboxFactory {
   }
 }
 
-struct SyncMailbox<M> {
-  inner: QueueMailbox<SyncQueueDriver<M>, TestSignal>,
-}
+type SchedulerMailbox<M> = DefaultMailbox<M, TestSignal>;
+type SchedulerMailboxProducer<M> = DefaultMailboxProducer<M, TestSignal>;
 
-impl<M> Clone for SyncMailbox<M>
-where
-  M: Element,
-{
-  fn clone(&self) -> Self {
-    Self { inner: self.inner.clone() }
-  }
-}
-
-struct SyncMailboxProducer<M> {
-  inner: QueueMailboxProducer<SyncQueueDriver<M>, TestSignal>,
-  _pd:   PhantomData<M>,
-}
-
-impl<M> Clone for SyncMailboxProducer<M>
-where
-  M: Element,
-{
-  fn clone(&self) -> Self {
-    Self { inner: self.inner.clone(), _pd: PhantomData }
-  }
-}
-
-impl<M> MailboxHandle<M> for SyncMailbox<M>
-where
-  M: Element,
-{
-  type Signal = TestSignal;
-
-  fn signal(&self) -> Self::Signal {
-    self.inner.signal().clone()
-  }
-
-  fn try_dequeue(&self) -> Result<Option<M>, QueueError<M>> {
-    self.inner.try_dequeue()
-  }
-}
-
-impl<M> MailboxProducer<M> for SyncMailboxProducer<M>
-where
-  M: Element,
-{
-  fn try_send(&self, message: M) -> Result<(), QueueError<M>> {
-    self.inner.try_send(message)
-  }
-
-  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.queue().set_metrics_sink(sink.clone());
-    self.inner.set_metrics_sink(sink);
-  }
-
-  fn set_scheduler_hook(&mut self, hook: Option<ReadyQueueHandle>) {
-    self.inner.set_scheduler_hook(hook);
-  }
-}
-
-impl<M> Mailbox<M> for SyncMailbox<M>
-where
-  M: Element,
-{
-  type RecvFuture<'a>
-    = QueueMailboxRecv<'a, SyncQueueDriver<M>, TestSignal, M>
-  where
-    Self: 'a;
-  type SendError = QueueError<M>;
-
-  fn try_send(&self, message: M) -> Result<(), Self::SendError> {
-    self.inner.try_send(message)
-  }
-
-  fn recv(&self) -> Self::RecvFuture<'_> {
-    self.inner.recv()
-  }
-
-  fn len(&self) -> QueueSize {
-    self.inner.len()
-  }
-
-  fn capacity(&self) -> QueueSize {
-    self.inner.capacity()
-  }
-
-  fn close(&self) {
-    self.inner.close();
-  }
-
-  fn is_closed(&self) -> bool {
-    self.inner.is_closed()
-  }
-
-  fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
-    self.inner.queue().set_metrics_sink(sink.clone());
-    self.inner.set_metrics_sink(sink);
-  }
-}
-
-impl MailboxFactory for SyncMailboxFactory {
+impl MailboxFactory for SystemMailboxFactory {
   type Concurrency = ThreadSafe;
   type Mailbox<M>
-    = SyncMailbox<M>
+    = SchedulerMailbox<M>
   where
     M: Element;
   type Producer<M>
-    = SyncMailboxProducer<M>
+    = SchedulerMailboxProducer<M>
   where
     M: Element;
   type Queue<M>
-    = SyncQueueDriver<M>
+    = SystemMailboxQueue<M>
   where
     M: Element;
   type Signal = TestSignal;
@@ -242,15 +153,46 @@ impl MailboxFactory for SyncMailboxFactory {
   where
     M: Element, {
     let capacity = self.resolve_capacity(options);
-    let queue = SyncQueueDriver::bounded(capacity, self.policy);
+    let user_queue = UserMailboxQueue::bounded(capacity, self.policy);
+    let system_queue = SystemMailboxQueue::new(None);
     let signal = TestSignal::default();
-    let mailbox = QueueMailbox::new(queue, signal);
-    let producer = mailbox.producer();
-    (SyncMailbox { inner: mailbox }, SyncMailboxProducer { inner: producer, _pd: PhantomData })
+    let mailbox: SchedulerMailbox<M> = QueueMailbox::with_system_queue(system_queue, user_queue, signal);
+    let producer: SchedulerMailboxProducer<M> = mailbox.producer();
+    (mailbox, producer)
   }
 }
 
 type SchedulerTestRuntime<MF> = GenericActorRuntime<MF>;
+
+struct RecordingCoordinator {
+  events: Arc<Mutex<Vec<(MailboxIndex, InvokeResult)>>>,
+}
+
+impl RecordingCoordinator {
+  fn new(events: Arc<Mutex<Vec<(MailboxIndex, InvokeResult)>>>) -> Self {
+    Self { events }
+  }
+}
+
+impl ReadyQueueCoordinator for RecordingCoordinator {
+  fn register_ready(&mut self, _idx: MailboxIndex) {}
+
+  fn unregister(&mut self, _idx: MailboxIndex) {}
+
+  fn drain_ready_cycle(&mut self, _max_batch: usize, _out: &mut Vec<MailboxIndex>) {}
+
+  fn poll_wait_signal(&mut self, _cx: &mut Context<'_>) -> Poll<()> {
+    Poll::Pending
+  }
+
+  fn handle_invoke_result(&mut self, idx: MailboxIndex, result: InvokeResult) {
+    self.events.lock().unwrap().push((idx, result));
+  }
+
+  fn throughput_hint(&self) -> usize {
+    1
+  }
+}
 
 fn handler_from_fn<M, MF, F>(mut f: F) -> Box<ActorHandlerFn<AnyMessage, MF>>
 where
@@ -455,7 +397,7 @@ fn priority_scheduler_emits_actor_lifecycle_metrics() {
 
 #[test]
 fn scheduler_records_drop_oldest_metric() {
-  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
+  let mailbox_factory = SystemMailboxFactory::bounded(1, OverflowPolicy::DropOldest);
   let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
   let events = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
@@ -466,7 +408,7 @@ fn scheduler_records_drop_oldest_metric() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
-    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
+    handler_from_message::<SystemMailboxFactory, _>(|_, _| {}),
   )
   .unwrap();
 
@@ -484,7 +426,7 @@ fn scheduler_records_drop_oldest_metric() {
 
 #[test]
 fn scheduler_records_drop_newest_metric() {
-  let mailbox_factory = SyncMailboxFactory::bounded(1, OverflowPolicy::DropNewest);
+  let mailbox_factory = SystemMailboxFactory::bounded(1, OverflowPolicy::DropNewest);
   let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
   let events = Arc::new(Mutex::new(Vec::new()));
   scheduler.set_metrics_sink(Some(MetricsSinkShared::new(EventRecordingSink::new(events.clone()))));
@@ -495,7 +437,7 @@ fn scheduler_records_drop_newest_metric() {
     Box::new(NoopSupervisor),
     MailboxOptions::default(),
     MapSystemShared::new(dyn_system),
-    handler_from_message::<SyncMailboxFactory, _>(|_, _| {}),
+    handler_from_message::<SystemMailboxFactory, _>(|_, _| {}),
   )
   .unwrap();
 
@@ -626,6 +568,65 @@ fn scheduler_prioritizes_system_messages() {
   block_on(scheduler.dispatch_next()).unwrap();
 
   assert_eq!(log.borrow().as_slice(), &[Message::System(SystemMessage::Stop)]);
+}
+
+#[test]
+fn scheduler_reports_suspend_result_to_coordinator() {
+  let mailbox_factory = TestMailboxFactory::unbounded();
+  let mut scheduler = ReadyQueueScheduler::new(mailbox_factory.clone(), Extensions::new());
+
+  let events: Arc<Mutex<Vec<(MailboxIndex, InvokeResult)>>> = Arc::new(Mutex::new(Vec::new()));
+  scheduler.set_ready_queue_coordinator(Some(Box::new(RecordingCoordinator::new(events.clone()))));
+
+  let log: Rc<RefCell<Vec<Message>>> = Rc::new(RefCell::new(Vec::new()));
+  let log_clone = log.clone();
+
+  let actor_ref = spawn_with_runtime(
+    &mut scheduler,
+    mailbox_factory,
+    Box::new(NoopSupervisor),
+    MailboxOptions::default(),
+    MapSystemShared::new(dyn_system),
+    handler_from_message(move |_, msg| {
+      if let Message::User(value) = msg {
+        log_clone.borrow_mut().push(Message::User(value));
+      }
+    }),
+  )
+  .unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  let suspend_envelope = PriorityEnvelope::from_system(SystemMessage::Suspend).map(dyn_system);
+  actor_ref.try_send_envelope(suspend_envelope).expect("send suspend");
+  actor_ref.try_send_with_priority(dyn_user(7), DEFAULT_PRIORITY).unwrap();
+
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  let resume_key = {
+    let recordings = events.lock().unwrap();
+    recordings
+      .iter()
+      .rev()
+      .find_map(|(_, result)| {
+        if let InvokeResult::Suspended { resume_on, .. } = result {
+          if let ResumeCondition::ExternalSignal(key) = resume_on {
+            return Some(*key);
+          }
+        }
+        None
+      })
+      .expect("suspend result should be recorded")
+  };
+
+  assert!(log.borrow().is_empty(), "suspended actor must not process user messages");
+
+  scheduler.notify_resume_signal(resume_key);
+
+  block_on(scheduler.dispatch_next()).unwrap();
+  block_on(scheduler.dispatch_next()).unwrap();
+
+  assert_eq!(log.borrow().as_slice(), &[Message::User(7)]);
 }
 
 #[test]

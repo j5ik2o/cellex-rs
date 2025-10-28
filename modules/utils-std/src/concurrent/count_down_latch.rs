@@ -3,7 +3,7 @@ mod tokio_count_down_latch_backend;
 #[cfg(test)]
 mod tests;
 
-use cellex_utils_core_rs::CountDownLatch as CoreCountDownLatch;
+use cellex_utils_core_rs::concurrent::count_down_latch::CountDownLatch as CoreCountDownLatch;
 pub use tokio_count_down_latch_backend::TokioCountDownLatchBackend;
 
 /// Countdown latch using Tokio runtime

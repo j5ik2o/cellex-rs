@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 use futures::future::LocalBoxFuture;
 use spin::Mutex;
 
@@ -8,21 +8,23 @@ use super::{common::ReadyQueueSchedulerCore, ready_queue_state::ReadyQueueState}
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::ActorSchedulerSpawnContext,
+    actor_scheduler::{
+      ready_queue_coordinator::{ReadyQueueCoordinator, SignalKey},
+      ActorSchedulerSpawnContext,
+    },
     failure::{
       failure_event_stream::FailureEventListener,
       failure_telemetry::{FailureTelemetryObservationConfig, FailureTelemetryShared},
       FailureInfo,
     },
     guardian::GuardianStrategy,
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   internal::actor::ActorCell,
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },
@@ -51,6 +53,10 @@ where
 
   pub(crate) fn actor_has_pending(&self, index: usize) -> bool {
     self.core.actor_has_pending(index)
+  }
+
+  pub(crate) fn actor_is_suspended(&self, index: usize) -> bool {
+    self.core.actor_is_suspended(index)
   }
 
   pub(crate) fn spawn_actor(
@@ -98,7 +104,8 @@ where
   pub(crate) fn process_ready_once(&mut self) -> Result<Option<bool>, QueueError<PriorityEnvelope<AnyMessage>>> {
     if let Some(index) = self.dequeue_ready() {
       let processed = self.core.process_actor_pending(index)?;
-      let has_pending = self.actor_has_pending(index);
+      let suspended = self.actor_is_suspended(index);
+      let has_pending = if suspended { false } else { self.actor_has_pending(index) };
       self.mark_idle(index, has_pending);
       return Ok(Some(processed));
     }
@@ -129,6 +136,18 @@ where
 
   pub(crate) fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     self.core.set_metrics_sink(sink)
+  }
+
+  pub(crate) fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    self.core.set_ready_queue_coordinator(coordinator);
+  }
+
+  pub(crate) fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    if let Some(index) = self.core.notify_resume_signal(key) {
+      self.enqueue_ready(index);
+      return true;
+    }
+    false
   }
 
   pub(crate) fn set_parent_guardian(

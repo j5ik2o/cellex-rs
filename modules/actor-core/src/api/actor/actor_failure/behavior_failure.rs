@@ -1,7 +1,7 @@
 use alloc::{borrow::Cow, format};
 use core::{any::Any, fmt};
 
-use cellex_utils_core_rs::sync::SharedBound;
+use cellex_utils_core_rs::sync::shared::SharedBound;
 
 /// Abstraction exposed to supervisors when a behavior fails.
 pub trait BehaviorFailure: fmt::Debug + SharedBound + 'static {

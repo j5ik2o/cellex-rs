@@ -1,7 +1,14 @@
-use alloc::{boxed::Box, vec, vec::Vec};
-use core::{convert::Infallible, marker::PhantomData};
+use alloc::{boxed::Box, collections::BTreeMap, vec, vec::Vec};
+use core::{
+  convert::{Infallible, TryFrom},
+  marker::PhantomData,
+  time::Duration,
+};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Shared};
+use cellex_utils_core_rs::{
+  collections::queue::backend::QueueError,
+  sync::{shared::Shared, ArcShared},
+};
 use futures::{
   future::{select_all, LocalBoxFuture},
   FutureExt,
@@ -10,7 +17,10 @@ use futures::{
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, ActorId, ActorPath, SpawnError},
-    actor_scheduler::ActorSchedulerSpawnContext,
+    actor_scheduler::{
+      ready_queue_coordinator::{InvokeResult, MailboxIndex, ReadyQueueCoordinator, ResumeCondition, SignalKey},
+      ActorSchedulerSpawnContext,
+    },
     extensions::Extensions,
     failure::{
       failure_event_stream::FailureEventListener,
@@ -18,14 +28,18 @@ use crate::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, Guardian, GuardianStrategy},
-    mailbox::{messages::SystemMessage, Mailbox, MailboxFactory, MailboxProducer, MailboxSignal},
-    metrics::{MetricsEvent, MetricsSinkShared},
+    mailbox::{messages::SystemMessage, Mailbox},
+    metrics::{MetricsEvent, MetricsSinkShared, SuspensionClockShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
-  internal::{actor::ActorCell, mailbox::PriorityMailboxSpawnerHandle, supervision::CompositeEscalationSink},
+  internal::{
+    actor::{ActorCell, ActorInvokeOutcome},
+    mailbox::PriorityMailboxSpawnerHandle,
+    supervision::CompositeEscalationSink,
+  },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory, MailboxProducer, MailboxSignal},
     messaging::{AnyMessage, MapSystemShared},
     supervision::EscalationSink,
   },
@@ -42,8 +56,13 @@ where
   escalation_sink: CompositeEscalationSink<MF>,
   receive_timeout_scheduler_shared_opt: Option<ReceiveTimeoutSchedulerFactoryShared<AnyMessage, MF>>,
   metrics_sink_opt: Option<MetricsSinkShared>,
+  suspension_clock: SuspensionClockShared,
   extensions: Extensions,
   _strategy: PhantomData<Strat>,
+  ready_coordinator: Option<Box<dyn ReadyQueueCoordinator>>,
+  suspended_conditions: BTreeMap<usize, ResumeCondition>,
+  suspended_signals: BTreeMap<SignalKey, usize>,
+  suspended_deadlines: BTreeMap<u64, Vec<usize>>,
 }
 
 #[allow(dead_code)]
@@ -69,8 +88,13 @@ where
       escalation_sink: CompositeEscalationSink::default(),
       receive_timeout_scheduler_shared_opt: None,
       metrics_sink_opt: None,
+      suspension_clock: SuspensionClockShared::null(),
       extensions,
       _strategy: PhantomData,
+      ready_coordinator: None,
+      suspended_conditions: BTreeMap::new(),
+      suspended_signals: BTreeMap::new(),
+      suspended_deadlines: BTreeMap::new(),
     }
   }
 }
@@ -136,6 +160,7 @@ where
       process_registry,
     );
     cell.set_metrics_sink(self.metrics_sink_opt.clone());
+    cell.set_suspension_clock(self.suspension_clock.clone());
     self.actors.push(cell);
     self.record_metric(MetricsEvent::ActorRegistered);
     Ok(control_ref)
@@ -211,6 +236,10 @@ where
     self.actors.get(index).map(|cell| cell.has_pending_messages()).unwrap_or(false)
   }
 
+  pub fn actor_is_suspended(&self, index: usize) -> bool {
+    self.actors.get(index).map(|cell| cell.is_suspended()).unwrap_or(false)
+  }
+
   pub fn take_escalations(&mut self) -> Vec<FailureInfo> {
     core::mem::take(&mut self.escalations)
   }
@@ -221,6 +250,10 @@ where
   /// Returns [`QueueError`] when queue operations fail.
   pub fn drain_ready(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
     self.drain_ready_cycle()
+  }
+
+  pub fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    self.ready_coordinator = coordinator;
   }
 
   #[allow(clippy::needless_pass_by_value)]
@@ -239,6 +272,14 @@ where
     self.metrics_sink_opt = sink.clone();
     for actor in &mut self.actors {
       actor.set_metrics_sink(sink.clone());
+    }
+  }
+
+  #[allow(clippy::needless_pass_by_value)]
+  pub fn set_suspension_clock(&mut self, clock: SuspensionClockShared) {
+    self.suspension_clock = clock.clone();
+    for actor in &mut self.actors {
+      actor.set_suspension_clock(clock.clone());
     }
   }
 
@@ -315,12 +356,14 @@ where
   }
 
   fn drain_ready_cycle(&mut self) -> Result<bool, QueueError<PriorityEnvelope<AnyMessage>>> {
+    self.process_deadlines();
     let mut new_children = Vec::new();
     let len = self.actors.len();
     let mut processed_any = false;
     for idx in 0..len {
       let cell = &mut self.actors[idx];
-      let processed = cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+      let (processed, outcome) = cell.process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+      self.handle_invoke_outcome(idx, processed, outcome);
       if processed > 0 {
         self.record_messages_dequeued(processed);
         processed_any = true;
@@ -335,8 +378,9 @@ where
     }
 
     let mut new_children = Vec::new();
-    let processed_count =
+    let (processed_count, outcome) =
       self.actors[index].wait_and_process(&mut self.guardian, &mut new_children, &mut self.escalations).await?;
+    self.handle_invoke_outcome(index, processed_count, outcome);
     if processed_count > 0 {
       self.record_messages_dequeued(processed_count);
     }
@@ -350,13 +394,154 @@ where
     }
 
     let mut new_children = Vec::new();
-    let processed_count =
+    let (processed_count, outcome) =
       self.actors[index].process_pending(&mut self.guardian, &mut new_children, &mut self.escalations)?;
+    self.handle_invoke_outcome(index, processed_count, outcome);
     if processed_count > 0 {
       self.record_messages_dequeued(processed_count);
     }
 
     Ok(self.finish_cycle(new_children, processed_count > 0))
+  }
+
+  fn handle_invoke_outcome(&mut self, index: usize, processed: usize, outcome: ActorInvokeOutcome) {
+    let Some(result) = self.compose_invoke_result(index, processed, outcome) else {
+      return;
+    };
+    self.update_suspend_registry(index, &result);
+    if let Some(coordinator) = self.ready_coordinator.as_mut() {
+      let slot = u32::try_from(index).unwrap_or(u32::MAX);
+      let mailbox_index = MailboxIndex::new(slot, 0);
+      coordinator.handle_invoke_result(mailbox_index, result);
+    }
+  }
+
+  fn update_suspend_registry(&mut self, index: usize, result: &InvokeResult) {
+    match result {
+      | InvokeResult::Suspended { resume_on, .. } => {
+        self.suspended_conditions.insert(index, resume_on.clone());
+        match resume_on {
+          | ResumeCondition::ExternalSignal(key) => {
+            self.suspended_signals.insert(*key, index);
+          },
+          | ResumeCondition::After(duration) => {
+            self.register_deadline(index, *duration);
+          },
+          | ResumeCondition::WhenCapacityAvailable => {
+            self.resume_actor(index);
+          },
+        }
+      },
+      | _ => {
+        self.clear_suspend_state(index);
+      },
+    }
+  }
+
+  fn register_deadline(&mut self, index: usize, duration: Duration) {
+    let Some(now) = self.suspension_clock.now() else {
+      self.resume_actor(index);
+      return;
+    };
+    let nanos = duration.as_nanos();
+    let delta = if nanos > u64::MAX as u128 { u64::MAX } else { nanos as u64 };
+    let due = now.saturating_add(delta);
+    self.suspended_deadlines.entry(due).or_default().push(index);
+  }
+
+  fn process_deadlines(&mut self) {
+    let Some(now) = self.suspension_clock.now() else {
+      return;
+    };
+    let mut due_entries: Vec<(u64, Vec<usize>)> = Vec::new();
+    while let Some((&due, _)) = self.suspended_deadlines.iter().next() {
+      if due > now {
+        break;
+      }
+      let indices = self.suspended_deadlines.remove(&due).unwrap_or_default();
+      due_entries.push((due, indices));
+    }
+    for (_, indices) in due_entries {
+      for index in indices {
+        if matches!(self.suspended_conditions.get(&index), Some(ResumeCondition::After(_))) {
+          self.resume_actor(index);
+        }
+      }
+    }
+  }
+
+  fn clear_suspend_state(&mut self, index: usize) {
+    self.suspended_conditions.remove(&index);
+    self.remove_signal_mapping(index);
+    self.remove_deadline_entry(index);
+  }
+
+  fn resume_actor(&mut self, index: usize) {
+    if !self.suspended_conditions.contains_key(&index) {
+      return;
+    }
+    self.clear_suspend_state(index);
+    if let Some(actor) = self.actors.get_mut(index) {
+      actor.enqueue_system_message(SystemMessage::Resume);
+    }
+    if let Some(coordinator) = self.ready_coordinator.as_mut() {
+      let slot = u32::try_from(index).unwrap_or(u32::MAX);
+      coordinator.register_ready(MailboxIndex::new(slot, 0));
+    }
+  }
+
+  fn remove_signal_mapping(&mut self, index: usize) {
+    if let Some((&key, _)) = self.suspended_signals.iter().find(|(_, mapped)| **mapped == index) {
+      self.suspended_signals.remove(&key);
+    }
+  }
+
+  fn remove_deadline_entry(&mut self, index: usize) {
+    let deadlines: Vec<u64> = self
+      .suspended_deadlines
+      .iter()
+      .filter_map(|(due, indices)| if indices.iter().any(|i| *i == index) { Some(*due) } else { None })
+      .collect();
+    for due in deadlines {
+      if let Some(mut indices) = self.suspended_deadlines.remove(&due) {
+        indices.retain(|i| *i != index);
+        if !indices.is_empty() {
+          self.suspended_deadlines.insert(due, indices);
+        }
+      }
+    }
+  }
+
+  pub fn notify_resume_signal(&mut self, key: SignalKey) -> Option<usize> {
+    let index = self.suspended_signals.remove(&key)?;
+    self.resume_actor(index);
+    Some(index)
+  }
+
+  #[allow(dead_code)]
+  pub(crate) fn inject_invoke_result_for_testing(&mut self, index: usize, result: InvokeResult) {
+    self.update_suspend_registry(index, &result);
+  }
+
+  fn compose_invoke_result(
+    &mut self,
+    index: usize,
+    processed: usize,
+    outcome: ActorInvokeOutcome,
+  ) -> Option<InvokeResult> {
+    if let Some(result) = outcome.into_result() {
+      return Some(result);
+    }
+    if processed == 0 {
+      return None;
+    }
+    let result = if self.actors.get(index).map(|cell| cell.is_stopped()).unwrap_or(false) {
+      InvokeResult::Stopped
+    } else {
+      let ready_hint = self.actors.get(index).map(|cell| cell.has_pending_messages()).unwrap_or(false);
+      InvokeResult::Completed { ready_hint }
+    };
+    Some(result)
   }
 
   fn finish_cycle(&mut self, new_children: Vec<ActorCell<MF, Strat>>, processed_any: bool) -> bool {

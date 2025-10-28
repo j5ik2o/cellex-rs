@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-use cellex_utils_core_rs::{sync::ArcShared, Element};
+use cellex_utils_core_rs::{collections::Element, sync::ArcShared};
 
 use super::{actor_context::ActorContext, actor_failure::ActorFailure, signal::Signal};
 use crate::{

@@ -1,5 +1,5 @@
-use cellex_utils_core_rs::collections::queue::QueueError as AsyncQueueError;
-use cellex_utils_std_rs::v2::collections::make_tokio_mpsc_queue;
+use cellex_utils_core_rs::collections::queue::backend::QueueError as AsyncQueueError;
+use cellex_utils_std_rs::collections::async_queue::make_tokio_mpsc_queue;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn async_queue_roundtrip() {
@@ -40,16 +40,12 @@ async fn async_queue_blocking_behavior() {
 #[tokio::test(flavor = "multi_thread")]
 async fn async_queue_would_block_on_full_policy() {
   use cellex_utils_core_rs::{
-    sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy},
-    v2::{
-      collections::queue::{
-        backend::{OverflowPolicy, SyncAdapterQueueBackend, VecRingBackend},
-        type_keys::MpscKey,
-        AsyncQueue,
-      },
-      sync::SharedError,
+    collections::queue::{
+      backend::{OverflowPolicy, SyncAdapterQueueBackend, VecRingBackend},
+      type_keys::MpscKey,
+      AsyncQueue,
     },
-    ArcShared,
+    sync::{async_mutex_like::SpinAsyncMutex, interrupt::InterruptContextPolicy, ArcShared, SharedError},
   };
 
   struct DenyPolicy;
@@ -61,7 +57,7 @@ async fn async_queue_would_block_on_full_policy() {
 
   type DenyMutex<T> = SpinAsyncMutex<T, DenyPolicy>;
 
-  let storage = cellex_utils_core_rs::v2::collections::queue::VecRingStorage::with_capacity(1);
+  let storage = cellex_utils_core_rs::collections::queue::storage::VecRingStorage::with_capacity(1);
   let backend = VecRingBackend::new_with_storage(storage, OverflowPolicy::Block);
   let shared = ArcShared::new(DenyMutex::new(SyncAdapterQueueBackend::new(backend)));
   let queue: AsyncQueue<i32, MpscKey, _, _> = AsyncQueue::new_mpsc(shared);

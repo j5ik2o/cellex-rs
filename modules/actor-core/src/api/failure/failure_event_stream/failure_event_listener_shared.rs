@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::sync::{ArcShared, SharedBound};
+use cellex_utils_core_rs::sync::{shared::SharedBound, ArcShared};
 
 use crate::api::failure::FailureEvent;
 

@@ -1,0 +1,23 @@
+warning: 再エクスポートは末端モジュールの直属親以外では禁止です
+  --> $DIR/allow_comment_disabled.rs:11:1
+   |
+LL | pub use self::child::Thing;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: ルール: 原則ルール: 再エクスポート禁止
+   = note: 詳細: 特殊パス（self / super / crate）を経由した再エクスポートは禁止されています
+   = help: 末端モジュールの直属親からのみ再エクスポートしてください
+   = note: `#[warn(no_parent_reexport)]` on by default
+
+warning: 再エクスポートは末端モジュールの直属親以外では禁止です
+  --> $DIR/allow_comment_disabled.rs:13:1
+   |
+LL | pub use self::child::Other; // allow module_wiring::no_parent_reexport
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: ルール: 原則ルール: 再エクスポート禁止
+   = note: 詳細: 特殊パス（self / super / crate）を経由した再エクスポートは禁止されています
+   = help: 末端モジュールの直属親からのみ再エクスポートしてください
+
+warning: 2 warnings emitted
+

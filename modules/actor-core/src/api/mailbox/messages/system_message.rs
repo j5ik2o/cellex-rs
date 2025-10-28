@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::DEFAULT_PRIORITY;
+use cellex_utils_core_rs::collections::queue::priority::DEFAULT_PRIORITY;
 
 use crate::api::{actor::ActorId, failure::FailureInfo};
 

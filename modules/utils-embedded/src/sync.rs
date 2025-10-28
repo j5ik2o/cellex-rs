@@ -16,12 +16,14 @@
 //!   - `ArcCs*`: Critical section-based implementation
 //!   - `Arc*`: Standard implementation
 
+/// `Arc`-based shared state implementations.
 #[cfg(feature = "arc")]
-mod arc;
+pub mod arc;
+#[cfg(feature = "embassy")]
+mod embassy_support;
+/// `Rc`-based shared state implementations.
 #[cfg(feature = "rc")]
-mod rc;
+pub mod rc;
 
-#[cfg(feature = "arc")]
-pub use arc::{ArcCsStateCell, ArcLocalStateCell, ArcShared, ArcStateCell};
-#[cfg(feature = "rc")]
-pub use rc::{RcShared, RcStateCell};
+#[cfg(feature = "embassy")]
+pub use embassy_support::{EmbassyAsyncMutex, EmbassyAsyncMutexGuard};

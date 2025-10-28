@@ -2,7 +2,10 @@ use cellex_actor_core_rs::api::{
   actor_runtime::GenericActorRuntime, receive_timeout::ReceiveTimeoutSchedulerFactoryProviderShared,
 };
 
-use crate::{scheduler::tokio_scheduler::tokio_scheduler_builder, TokioMailboxFactory, TokioReceiveTimeoutDriver};
+use crate::{
+  receive_timeout::TokioReceiveTimeoutDriver, scheduler::tokio_scheduler::tokio_scheduler_builder,
+  tokio_mailbox::TokioMailboxFactory,
+};
 
 /// Extension trait that installs Tokio-specific scheduler and timeout settings on
 /// [`GenericActorRuntime`].

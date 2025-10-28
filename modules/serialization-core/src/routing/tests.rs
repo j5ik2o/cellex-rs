@@ -7,7 +7,8 @@ use crate::{
   error::{DeserializationError, SerializationError},
   message::SerializedMessage,
   registry::InMemorySerializerRegistry,
-  BindingError, Serializer, SerializerId,
+  routing::BindingError,
+  Serializer, SerializerId,
 };
 
 #[derive(Clone, Debug)]

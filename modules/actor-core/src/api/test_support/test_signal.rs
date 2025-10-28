@@ -1,10 +1,10 @@
 use core::{cell::RefCell, marker::PhantomData};
 
-use cellex_utils_core_rs::ArcShared;
+use cellex_utils_core_rs::sync::ArcShared;
 
-use crate::api::{
-  mailbox::MailboxSignal,
-  test_support::{test_signal_state::TestSignalState, test_signal_wait::TestSignalWait},
+use crate::{
+  api::test_support::{test_signal_state::TestSignalState, test_signal_wait::TestSignalWait},
+  shared::mailbox::MailboxSignal,
 };
 
 #[derive(Clone)]

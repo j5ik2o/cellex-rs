@@ -56,49 +56,35 @@
 /// A failure event bridge module utilizing Tokio's broadcast channel.
 #[cfg(any(feature = "rt-multi-thread", feature = "rt-current-thread"))]
 mod failure_event_bridge;
-mod failure_event_hub;
-mod receive_timeout;
+/// Failure event hub implementation for Tokio environments.
+pub mod failure_event_hub;
+/// Receive timeout implementation for Tokio environments.
+pub mod receive_timeout;
 mod runtime_driver;
-mod scheduler;
+/// Scheduler implementation for Tokio environments.
+pub mod scheduler;
 mod spawn;
 mod timer;
-mod tokio_mailbox;
-mod tokio_priority_mailbox;
+/// Tokio mailbox implementation.
+pub mod tokio_mailbox;
+/// Tokio priority mailbox implementation.
+pub mod tokio_priority_mailbox;
 
 #[cfg(test)]
 mod tests;
 
 use cellex_actor_core_rs::api::actor_runtime::GenericActorRuntime;
-pub use cellex_utils_std_rs::{
-  sync::{ArcShared, ArcStateCell},
-  Shared, SharedFactory, SharedFn,
-};
-pub use failure_event_hub::{FailureEventHub, FailureEventSubscription};
-pub use receive_timeout::{TokioReceiveTimeoutDriver, TokioReceiveTimeoutSchedulerFactory};
 pub use runtime_driver::TokioSystemHandle;
-pub use scheduler::{tokio_scheduler_builder, TokioActorRuntimeExt, TokioScheduler};
 pub use spawn::TokioSpawner;
 pub use timer::TokioTimer;
-pub use tokio_mailbox::{TokioMailbox, TokioMailboxFactory, TokioMailboxSender};
-pub use tokio_priority_mailbox::{TokioPriorityMailbox, TokioPriorityMailboxFactory, TokioPriorityMailboxSender};
 
-/// A prelude module that provides commonly used re-exported types and traits.
-pub mod prelude {
-  pub use cellex_actor_core_rs::actor_loop;
-
-  pub use super::{
-    ArcShared, ArcStateCell, Shared, SharedFactory, SharedFn, TokioMailbox, TokioMailboxFactory, TokioMailboxSender,
-    TokioPriorityMailbox, TokioPriorityMailboxFactory, TokioPriorityMailboxSender, TokioScheduler, TokioSpawner,
-    TokioSystemHandle, TokioTimer,
-  };
-}
 /// Default actor runtime preset for Tokio environments.
-pub type TokioActorRuntime = GenericActorRuntime<TokioMailboxFactory>;
+pub type TokioActorRuntime = GenericActorRuntime<tokio_mailbox::TokioMailboxFactory>;
 
 /// Builds the default Tokio-oriented actor runtime preset.
 #[must_use]
 pub fn tokio_actor_runtime() -> TokioActorRuntime {
   use scheduler::TokioActorRuntimeExt;
 
-  GenericActorRuntime::new(TokioMailboxFactory).with_tokio_scheduler()
+  GenericActorRuntime::new(tokio_mailbox::TokioMailboxFactory).with_tokio_scheduler()
 }

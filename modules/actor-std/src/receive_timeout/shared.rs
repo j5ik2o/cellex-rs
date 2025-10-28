@@ -2,17 +2,18 @@
 
 use core::time::Duration;
 
-use cellex_actor_core_rs::{
-  api::mailbox::MailboxFactory,
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+use cellex_actor_core_rs::shared::{
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
+  messaging::AnyMessage,
 };
-use cellex_utils_std_rs::{
-  timing::TokioDeadlineTimer, DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,
+use cellex_utils_core_rs::timing::deadline_timer::{
+  DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, TimerDeadline,
 };
+use cellex_utils_std_rs::timing::TokioDeadlineTimer;
 use futures::future::poll_fn;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use crate::TokioMailboxFactory;
+use crate::tokio_mailbox::TokioMailboxFactory;
 
 /// Producer for sending `PriorityEnvelope<AnyMessage>` to Tokio mailbox.
 pub(super) type TokioSender = <TokioMailboxFactory as MailboxFactory>::Producer<PriorityEnvelope<AnyMessage>>;

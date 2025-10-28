@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use cellex_actor_core_rs::api::mailbox::MailboxSignal;
+use cellex_actor_core_rs::shared::mailbox::MailboxSignal;
 use tokio::sync::{futures::Notified, Notify};
 
 /// A signal implementation using Tokio's `Notify` primitive

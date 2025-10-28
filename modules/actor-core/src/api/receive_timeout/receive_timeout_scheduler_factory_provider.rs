@@ -1,8 +1,11 @@
-use cellex_utils_core_rs::SharedBound;
+use cellex_utils_core_rs::sync::shared::SharedBound;
 
 use crate::{
-  api::{mailbox::MailboxFactory, receive_timeout::ReceiveTimeoutSchedulerFactoryShared},
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  api::receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+  },
 };
 
 /// Trait representing a runtime-specific provider for receive-timeout scheduler factories.

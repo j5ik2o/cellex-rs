@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use cellex_utils_core_rs::{collections::queue::QueueError, Element};
+use cellex_utils_core_rs::collections::{queue::backend::QueueError, Element};
 
 use crate::shared::mailbox::messages::PriorityEnvelope;
 

@@ -1,11 +1,15 @@
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::collections::queue::QueueError;
+use cellex_utils_core_rs::collections::queue::backend::QueueError;
 
 use crate::{
-  api::{failure::FailureInfo, mailbox::MailboxFactory},
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage, supervision::EscalationSink},
+  api::failure::FailureInfo,
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+    supervision::EscalationSink,
+  },
 };
 
 type FailureHandler = dyn FnMut(&FailureInfo) -> Result<(), QueueError<PriorityEnvelope<AnyMessage>>> + 'static;

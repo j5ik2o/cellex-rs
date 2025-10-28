@@ -7,7 +7,7 @@ use std::sync::{
 };
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::WaitGroupBackend;
+use cellex_utils_core_rs::concurrent::wait_group::WaitGroupBackend;
 use tokio::sync::Notify;
 
 struct Inner {

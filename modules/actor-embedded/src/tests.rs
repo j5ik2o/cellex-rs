@@ -18,7 +18,7 @@ use cellex_actor_core_rs::api::{
 };
 use futures::task::{waker, ArcWake};
 
-use super::LocalMailboxFactory;
+use crate::local_mailbox::LocalMailboxFactory;
 
 type TestResult<T = ()> = Result<T, String>;
 

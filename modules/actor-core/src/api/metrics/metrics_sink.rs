@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::sync::SharedBound;
+use cellex_utils_core_rs::sync::shared::SharedBound;
 
 use super::metrics_event::MetricsEvent;
 

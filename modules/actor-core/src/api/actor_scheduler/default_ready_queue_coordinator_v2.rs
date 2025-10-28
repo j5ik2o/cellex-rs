@@ -25,10 +25,13 @@ use alloc::{
 };
 use core::task::{Context, Poll};
 
-use cellex_utils_core_rs::ArcShared;
+use cellex_utils_core_rs::sync::ArcShared;
 use spin::Mutex;
 
-use super::{InvokeResult, MailboxIndex, ReadyQueueCoordinatorV2};
+use super::{
+  ready_queue_coordinator::{InvokeResult, MailboxIndex},
+  ReadyQueueCoordinatorV2,
+};
 
 #[cfg(test)]
 mod tests;
@@ -52,9 +55,9 @@ struct CoordinatorState {
 /// ```rust,no_run
 /// # extern crate alloc;
 /// # use cellex_actor_core_rs::api::actor_scheduler::{
-/// #   DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex
+/// #   ready_queue_coordinator::MailboxIndex, DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2
 /// # };
-/// # use cellex_utils_core_rs::ArcShared;
+/// # use cellex_utils_core_rs::sync::ArcShared;
 /// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
 ///
 /// // Thread 1
@@ -90,7 +93,7 @@ impl DefaultReadyQueueCoordinatorV2 {
   /// ```rust,no_run
   /// # extern crate alloc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::DefaultReadyQueueCoordinatorV2;
-  /// # use cellex_utils_core_rs::ArcShared;
+  /// # use cellex_utils_core_rs::sync::ArcShared;
   /// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
   /// // Can be shared across threads without additional Mutex!
   /// #
@@ -113,7 +116,7 @@ impl DefaultReadyQueueCoordinatorV2 {
   /// ```rust,no_run
   /// # extern crate alloc;
   /// # use cellex_actor_core_rs::api::actor_scheduler::DefaultReadyQueueCoordinatorV2;
-  /// # use cellex_utils_core_rs::ArcShared;
+  /// # use cellex_utils_core_rs::sync::ArcShared;
   /// # use futures::executor::block_on;
   /// # async fn example() {
   /// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));

@@ -1,4 +1,10 @@
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element, Shared, SharedBound};
+use cellex_utils_core_rs::{
+  collections::{queue::backend::QueueError, Element},
+  sync::{
+    shared::{Shared, SharedBound},
+    ArcShared,
+  },
+};
 
 use crate::{
   api::{
@@ -7,7 +13,6 @@ use crate::{
       ask::{AskError, AskResult},
     },
     actor_runtime::{ActorRuntime, MailboxConcurrencyOf, MailboxOf, MailboxQueueOf, MailboxSignalOf},
-    mailbox::MailboxFactory,
     messaging::{MessageMetadata, MetadataStorageMode},
     process::{
       dead_letter::{DeadLetter, DeadLetterReason},
@@ -15,7 +20,7 @@ use crate::{
     },
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MessageEnvelope},
   },
 };

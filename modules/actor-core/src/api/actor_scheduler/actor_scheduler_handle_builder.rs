@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 
-use cellex_utils_core_rs::{
-  sync::{ArcShared, Shared},
-  SharedBound,
+use cellex_utils_core_rs::sync::{
+  shared::{Shared, SharedBound},
+  ArcShared,
 };
 
 use crate::{
@@ -13,9 +13,11 @@ use crate::{
     },
     extensions::Extensions,
     guardian::GuardianStrategy,
-    mailbox::MailboxFactory,
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+  },
 };
 
 /// Factory wrapper used to construct scheduler instances with consistent runtime configuration.

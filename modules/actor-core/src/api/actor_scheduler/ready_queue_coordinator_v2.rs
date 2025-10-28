@@ -17,7 +17,7 @@
 use alloc::vec::Vec;
 use core::task::{Context, Poll};
 
-use super::{InvokeResult, MailboxIndex};
+use super::ready_queue_coordinator::{InvokeResult, MailboxIndex};
 
 /// V2 trait for ready queue coordination with interior mutability
 ///
@@ -37,8 +37,10 @@ use super::{InvokeResult, MailboxIndex};
 ///
 /// ```rust
 /// # extern crate alloc;
-/// # use cellex_actor_core_rs::api::actor_scheduler::{DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2, MailboxIndex};
-/// # use cellex_utils_core_rs::ArcShared;
+/// # use cellex_actor_core_rs::api::actor_scheduler::{
+/// #   ready_queue_coordinator::MailboxIndex, DefaultReadyQueueCoordinatorV2, ReadyQueueCoordinatorV2
+/// # };
+/// # use cellex_utils_core_rs::sync::ArcShared;
 /// let coord = ArcShared::new(DefaultReadyQueueCoordinatorV2::new(32));
 /// let idx = MailboxIndex::new(0, 0);
 /// coord.register_ready(idx);

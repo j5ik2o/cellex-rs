@@ -17,6 +17,7 @@ use super::{InvokeResult, MailboxIndex};
 ///
 /// Implementations must be `Send + Sync` to allow concurrent access
 /// from multiple worker threads.
+#[allow(dead_code)]
 pub trait ReadyQueueCoordinator: Send + Sync {
   /// Register a mailbox as ready for processing
   fn register_ready(&mut self, idx: MailboxIndex);

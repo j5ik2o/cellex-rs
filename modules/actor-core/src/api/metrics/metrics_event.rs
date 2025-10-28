@@ -26,6 +26,31 @@ pub enum MetricsEvent {
     /// New capacity after growth.
     capacity: usize,
   },
+  /// An actor mailbox entered a suspended state.
+  MailboxSuspended {
+    /// Total number of observed suspend events for the mailbox.
+    suspend_count:  u64,
+    /// Duration of the most recent completed suspension, if available.
+    last_duration:  Option<core::time::Duration>,
+    /// Cumulative suspension duration, if available.
+    total_duration: Option<core::time::Duration>,
+  },
+  /// A system-reserved slot was consumed by a control message.
+  MailboxSystemReservedUsed {
+    /// Remaining reserved slots after the enqueue.
+    remaining: usize,
+  },
+  /// A control message attempted to use a reservation but none were available.
+  MailboxSystemReservationExhausted,
+  /// An actor mailbox resumed message processing.
+  MailboxResumed {
+    /// Total number of observed resume events for the mailbox.
+    resume_count:   u64,
+    /// Duration of the most recent suspension, if available.
+    last_duration:  Option<core::time::Duration>,
+    /// Cumulative suspension duration, if available.
+    total_duration: Option<core::time::Duration>,
+  },
   /// Telemetry handling logic was invoked.
   TelemetryInvoked,
   /// Duration, in nanoseconds, spent executing telemetry handlers.

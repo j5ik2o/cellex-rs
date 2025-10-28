@@ -6,9 +6,7 @@ mod tests;
 use alloc::sync::Arc;
 
 pub use arc_state_cell::{ArcCsStateCell, ArcLocalStateCell, ArcStateCell};
-use cellex_utils_core_rs::{
-  MpscBackend, MpscHandle, QueueHandle, QueueStorage, RingBackend, RingHandle, Shared, StackBackend, StackHandle,
-};
+use cellex_utils_core_rs::sync::shared::Shared;
 
 /// `Arc`-based shared reference type for embedded environments.
 ///
@@ -19,7 +17,7 @@ use cellex_utils_core_rs::{
 /// # Examples
 ///
 /// ```
-/// use cellex_utils_embedded_rs::sync::ArcShared;
+/// use cellex_utils_embedded_rs::sync::arc::ArcShared;
 ///
 /// let shared = ArcShared::new(42);
 /// let clone = shared.clone();
@@ -43,7 +41,7 @@ where
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcShared;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcShared;
   ///
   /// let shared = ArcShared::new(42);
   /// assert_eq!(*shared, 42);
@@ -63,7 +61,7 @@ impl<T: ?Sized> ArcShared<T> {
   /// ```
   /// use alloc::sync::Arc;
   ///
-  /// use cellex_utils_embedded_rs::sync::ArcShared;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcShared;
   ///
   /// let arc = Arc::new(42);
   /// let shared = ArcShared::from_arc(arc);
@@ -78,7 +76,7 @@ impl<T: ?Sized> ArcShared<T> {
   /// # Examples
   ///
   /// ```
-  /// use cellex_utils_embedded_rs::sync::ArcShared;
+  /// use cellex_utils_embedded_rs::sync::arc::ArcShared;
   ///
   /// let shared = ArcShared::new(42);
   /// let arc = shared.into_arc();
@@ -108,49 +106,5 @@ impl<T: ?Sized> Shared<T> for ArcShared<T> {
   where
     T: Sized, {
     Arc::try_unwrap(self.0).map_err(ArcShared)
-  }
-}
-
-impl<T, E> QueueHandle<E> for ArcShared<T>
-where
-  T: QueueStorage<E>,
-{
-  type Storage = T;
-
-  fn storage(&self) -> &Self::Storage {
-    &self.0
-  }
-}
-
-impl<T, B> MpscHandle<T> for ArcShared<B>
-where
-  B: MpscBackend<T>,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<E, B> RingHandle<E> for ArcShared<B>
-where
-  B: RingBackend<E> + ?Sized,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
-  }
-}
-
-impl<T, B> StackHandle<T> for ArcShared<B>
-where
-  B: StackBackend<T> + ?Sized,
-{
-  type Backend = B;
-
-  fn backend(&self) -> &Self::Backend {
-    &self.0
   }
 }

@@ -20,14 +20,3 @@ critical-section = { workspace = true, optional = false }
 spin = { workspace = true, default-features = false, features = ["mutex", "spin_mutex", "rwlock", "portable_atomic"] }
 portable-atomic = { workspace = true, default-features = false, features = ["critical-section"] }
 cortex-m = { workspace = true, optional = true }
-
-[dev-dependencies]
-criterion = { workspace = true }
-
-[[bench]]
-name = "ring_queue_shared"
-harness = false
-
-[[bench]]
-name = "stack_compare"
-harness = false

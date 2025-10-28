@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use super::{Behavior, SupervisorStrategyConfig};
 use crate::{

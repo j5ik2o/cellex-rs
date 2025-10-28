@@ -1,4 +1,4 @@
-use cellex_utils_core_rs::SharedBound;
+use cellex_utils_core_rs::sync::shared::SharedBound;
 
 use crate::api::failure::failure_telemetry::failure_snapshot::FailureSnapshot;
 

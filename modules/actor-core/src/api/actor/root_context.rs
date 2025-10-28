@@ -1,7 +1,10 @@
 use alloc::{borrow::ToOwned, boxed::Box};
 use core::{future::Future, marker::PhantomData};
 
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared, Element};
+use cellex_utils_core_rs::{
+  collections::{queue::backend::QueueError, Element},
+  sync::ArcShared,
+};
 use spin::RwLock;
 
 use super::ask::{ask_with_timeout, AskFuture, AskResult, AskTimeoutFuture};

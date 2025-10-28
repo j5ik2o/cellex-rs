@@ -1,6 +1,6 @@
 //! Overflow policy abstractions shared by mailbox errors.
 
-use cellex_utils_core_rs::v2::collections::queue::backend::OverflowPolicy;
+use cellex_utils_core_rs::collections::queue::backend::OverflowPolicy;
 
 /// Policies describing how a mailbox reacts when it reaches capacity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

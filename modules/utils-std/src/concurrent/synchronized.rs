@@ -4,7 +4,9 @@ mod tokio_rw_lock_backend;
 #[cfg(test)]
 mod tests;
 
-use cellex_utils_core_rs::{Synchronized as CoreSynchronized, SynchronizedRw as CoreSynchronizedRw};
+use cellex_utils_core_rs::concurrent::synchronized::{
+  Synchronized as CoreSynchronized, SynchronizedRw as CoreSynchronizedRw,
+};
 pub use tokio_mutex_backend::TokioMutexBackend;
 pub use tokio_rw_lock_backend::TokioRwLockBackend;
 

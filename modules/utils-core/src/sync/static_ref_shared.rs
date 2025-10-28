@@ -1,6 +1,6 @@
 use core::ops::Deref;
 
-use super::{Shared, SharedDyn};
+use super::shared::{Shared, SharedDyn};
 
 #[cfg(test)]
 mod tests;

@@ -1,13 +1,19 @@
 use core::marker::PhantomData;
 
-use cellex_utils_core_rs::{collections::queue::QueueError, ArcShared, SharedBound, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::{
+  collections::queue::{backend::QueueError, priority::DEFAULT_PRIORITY},
+  sync::{shared::SharedBound, ArcShared},
+};
 
 use crate::{
   api::{
     actor::actor_ref::PriorityActorRef,
-    mailbox::{MailboxConcurrency, MailboxFactory, ThreadSafe},
+    mailbox::{MailboxConcurrency, ThreadSafe},
   },
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+  },
 };
 
 #[cfg(target_has_atomic = "ptr")]

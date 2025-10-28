@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 
 use cellex_utils_core_rs::{
-  sync::{ArcShared, Shared},
-  QueueError,
+  collections::queue::backend::QueueError,
+  sync::{shared::Shared, ArcShared},
 };
 use spin::RwLock;
 
@@ -14,12 +14,14 @@ use crate::{
     actor_scheduler::ActorSchedulerSpawnContext,
     extensions::Extensions,
     guardian::GuardianStrategy,
-    mailbox::MailboxFactory,
     process::{pid::Pid, process_registry::ProcessRegistry},
     supervision::supervisor::{NoopSupervisor, Supervisor},
   },
   internal::actor::InternalProps,
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+  },
 };
 
 type RootProcessRegistryShared<AR> =

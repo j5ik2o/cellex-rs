@@ -56,7 +56,7 @@
 //! timers. The structure is primarily based on re-exports to avoid circular dependencies with the
 //! core layer, and `TokioDeadlineTimer` is also provided from here.
 
-/// Collection data structures tailored for std environments.
+/// Collection adaptors for std environments.
 pub mod collections;
 /// Concurrency primitives backed by Tokio synchronization types.
 pub mod concurrent;
@@ -64,45 +64,3 @@ pub mod concurrent;
 pub mod sync;
 /// Tokio-specific timing utilities.
 pub mod timing;
-/// Adaptors exposing v2 abstractions with std backends.
-pub mod v2;
-
-#[allow(deprecated)]
-pub use cellex_utils_core_rs::{
-  DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
-  MpscHandle, PriorityMessage, QueueBase, QueueError, QueueHandle, QueueReader, QueueRw, QueueRwHandle, QueueSize,
-  QueueStorage, QueueWriter, RingBackend, RingBuffer, RingQueue, RingStorageBackend, Shared, SharedFactory, SharedFn,
-  Stack, StackBackend, StackHandle, StackStorage, StackStorageBackend, StateCell, TimerDeadline, DEFAULT_CAPACITY,
-  DEFAULT_PRIORITY, PRIORITY_LEVELS,
-};
-pub use v2::collections::{SyncStdFifoQueue, SyncStdMpscQueue, SyncStdSpscQueue, SyncStdVecStack};
-
-/// Prelude module that re-exports commonly used types and traits.
-pub mod prelude {
-  #[allow(deprecated)]
-  pub use cellex_utils_core_rs::{
-    DeadlineTimer, DeadlineTimerError, DeadlineTimerExpired, DeadlineTimerKey, DeadlineTimerKeyAllocator, Element,
-    MpscHandle, PriorityMessage, QueueBase, QueueError, QueueReader, QueueRw, QueueRwHandle, QueueSize, QueueStorage,
-    QueueWriter, RingBackend, RingBuffer, RingStorageBackend, Shared, SharedFactory, SharedFn, Stack, StackBackend,
-    StackHandle, StackStorage, StackStorageBackend, StateCell, TimerDeadline, DEFAULT_CAPACITY, DEFAULT_PRIORITY,
-    PRIORITY_LEVELS,
-  };
-
-  #[allow(deprecated)]
-  pub use crate::{
-    collections::{
-      queue::{
-        mpsc::{ArcMpscBoundedQueue, ArcMpscUnboundedQueue},
-        priority::ArcPriorityQueue,
-        ring::ArcRingQueue,
-      },
-      stack::ArcStack,
-    },
-    concurrent::{
-      AsyncBarrier, CountDownLatch, Synchronized, SynchronizedRw, TokioAsyncBarrierBackend, TokioCountDownLatchBackend,
-      TokioMutexBackend, TokioRwLockBackend, TokioWaitGroupBackend, WaitGroup,
-    },
-    sync::{ArcShared, ArcStateCell},
-    timing::TokioDeadlineTimer,
-  };
-}

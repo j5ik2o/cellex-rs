@@ -2,7 +2,7 @@
 
 use core::future::Future;
 
-use cellex_utils_core_rs::{collections::queue::QueueError, QueueSize};
+use cellex_utils_core_rs::collections::queue::{backend::QueueError, QueueSize};
 
 use crate::api::metrics::MetricsSinkShared;
 
@@ -28,14 +28,6 @@ pub use single_thread::*;
 pub use thread_safe::*;
 
 use crate::api::actor_scheduler::ready_queue_scheduler::ReadyQueueHandle;
-// Re-export shared mailbox types
-pub use crate::shared::mailbox::{
-  factory::{MailboxFactory, MailboxPair},
-  handle::MailboxHandle,
-  options::MailboxOptions,
-  producer::MailboxProducer,
-  signal::MailboxSignal,
-};
 
 /// Mailbox abstraction that decouples message queue implementations from core logic.
 ///

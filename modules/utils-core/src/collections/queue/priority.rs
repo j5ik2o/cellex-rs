@@ -1,11 +1,6 @@
 mod priority_message;
-mod priority_queue;
 
 pub use priority_message::PriorityMessage;
-pub use priority_queue::PriorityQueue;
-
-#[cfg(test)]
-mod tests;
 
 /// Number of priority queue levels
 ///

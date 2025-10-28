@@ -1,18 +1,21 @@
 use cellex_utils_core_rs::{
+  collections::Element,
   sync::{async_mutex_like::AsyncMutexLike, sync_mutex_like::SyncMutexLike, ArcShared},
-  Element,
 };
 
 use crate::{
   api::{
     actor_scheduler::ActorSchedulerHandleBuilder,
     failure::failure_event_stream::FailureEventListener,
-    mailbox::MailboxFactory,
     metrics::MetricsSinkShared,
     receive_timeout::{ReceiveTimeoutSchedulerFactoryProviderShared, ReceiveTimeoutSchedulerFactoryShared},
   },
   internal::mailbox::PriorityMailboxSpawnerHandle,
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage, supervision::FailureEventHandler},
+  shared::{
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
+    messaging::AnyMessage,
+    supervision::FailureEventHandler,
+  },
 };
 
 /// Helper alias mapping an actor runtime to its associated [`MailboxFactory`].

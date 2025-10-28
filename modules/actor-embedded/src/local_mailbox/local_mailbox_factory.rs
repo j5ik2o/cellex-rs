@@ -4,11 +4,14 @@ use core::marker::PhantomData;
 use cellex_actor_core_rs::api::mailbox::SingleThread;
 #[cfg(not(feature = "embedded_rc"))]
 use cellex_actor_core_rs::api::mailbox::ThreadSafe;
-use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
-  MailboxFactory, MailboxOptions, MailboxPair, QueueMailboxProducer,
+use cellex_actor_core_rs::{
+  api::mailbox::{
+    queue_mailbox::{build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, UserMailboxQueue},
+    QueueMailboxProducer,
+  },
+  shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
-use cellex_utils_embedded_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use super::{local_mailbox_sender::LocalMailboxSender, local_mailbox_type::LocalMailbox, local_signal::LocalSignal};
 
@@ -67,15 +70,15 @@ impl MailboxFactory for LocalMailboxFactory {
   #[cfg(not(feature = "embedded_rc"))]
   type Concurrency = ThreadSafe;
   type Mailbox<M>
-    = QueueMailbox<Self::Queue<M>, Self::Signal>
+    = QueueMailbox<(), Self::Queue<M>, Self::Signal>
   where
     M: Element;
   type Producer<M>
-    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+    = QueueMailboxProducer<(), Self::Queue<M>, Self::Signal>
   where
     M: Element;
   type Queue<M>
-    = SyncQueueDriver<M>
+    = UserMailboxQueue<M>
   where
     M: Element;
   type Signal = LocalSignal;
@@ -83,7 +86,7 @@ impl MailboxFactory for LocalMailboxFactory {
   fn build_mailbox<M>(&self, _options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = build_queue_driver::<M>(QueueDriverConfig::default());
+    let queue = build_user_mailbox_queue::<M>(MailboxQueueConfig::default());
     let signal = LocalSignal::default();
     let mailbox = QueueMailbox::new(queue, signal);
     let sender = mailbox.producer();

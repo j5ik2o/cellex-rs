@@ -28,7 +28,7 @@
 - SystemMessage（Restart/Start/Stop/Watch/Unwatch/Terminate）を actor-core の `core_types::system_message` に集約し、std 層では ProtoBuf 変換ヘルパーと runtime 実装のみを保持する構成へ移行。
 - ProcessRegistry を `CoreProcessRegistry` として trait 化し、core 層がインターフェース、actor-std が tokio/DashMap 実装を提供する構造に更新。
 - Mailbox の最小操作を `CoreMailbox` トレイトとして切り出し、actor-std の `MailboxHandle` が core 抽象を実装するように整備。
-- Mailbox queue ハンドルを `CoreMailboxQueueHandle` でラップし、`SyncMailboxQueueHandles` から core 抽象を取得できるアダプタを追加。
+- Mailbox queue ハンドルを `CoreMailboxQueueHandle` でラップし、`UserMailboxQueueHandles` から core 抽象を取得できるアダプタを追加。
 - メトリクス側で `core_queue_handles()` を利用し、キュー長を CoreMailboxQueue 経由で観測するように更新。
 - RingQueue を `RingBuffer` ベースへ移行し、std 層は `Mutex` 包装のみを担当する構造に整理。
 - DefaultMailbox 内のキュー長取得も CoreMailboxQueue ベースに切り替え、dispatch ループでの統計取得を core 抽象へ統一。
@@ -37,7 +37,7 @@
 - ContextExtensions を core 抽象 (`CoreContextExtensions`) として再実装し、std 層は Tokio RwLock を注入する薄いアダプタのみとした（2025-10-03）。
 - 2025-10-01 に `cargo check -p nexus-actor-core-rs --no-default-features --features alloc`、`cargo test --workspace`、`cargo bench -p nexus-actor-std-rs` を実行し、actor-core/no_std 経路と actor-std ベンチの回帰が無いことを確認。併せて docs 配下の役割整理とリリースノート草案を更新。
 - EndpointSupervisor で EndpointManager の既存 `WatchRegistry` を再利用し、再起動時も監視スナップショットを維持するよう更新。`RemoteProcess` / `EndpointManager` 間で `WatchRegistry` を参照して重複 watch/unwatch を抑制し、イベント／テレメトリとワーカーメッセージ送信を整合。
-- CoreMailboxQueue を trait object 化し、MPSC／Ring／Priority ベースキューを `CoreMailboxQueue` に直結するアダプタを導入して、SyncMailboxQueueHandles から共通取得できるよう統一。
+- CoreMailboxQueue を trait object 化し、MPSC／Ring／Priority ベースキューを `CoreMailboxQueue` に直結するアダプタを導入して、UserMailboxQueueHandles から共通取得できるよう統一。
 - Supervisor 向けに `ErrorReasonCore`・`CoreSupervisor*` トレイト族を actor-core へ追加し、tokio 依存を std 層アダプタへ閉じ込める準備（設計メモ `docs/design/2025-10-01-supervisor-trait-refactor.md` 作成）。
 - dispatch ベンチマークを CoreSchedulerDispatcher ベースへ更新し、TokioRuntimeContextDispatcher の残存依存を除去。Props → CoreMailbox 経路の CoreMailboxRuntime 利用をユニットテストで検証し、CoreMailbox 契約を破綻なく再確認。
 - ActorContext／Guardian の障害処理を CoreSupervisorStrategy / CoreSupervisor 経由に統合し、RestartStatistics のクロック情報を保持したままコアトラッカーと往復させるアダプタを整備。ガーディアン経路・ルート監督でも CoreRuntime 依存に揃え、再起動閾値の判定が tokio 非依存で成立することを確認。

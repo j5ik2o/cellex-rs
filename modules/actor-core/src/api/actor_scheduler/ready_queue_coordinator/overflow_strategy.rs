@@ -1,6 +1,7 @@
 //! OverflowStrategy - Mailbox capacity overflow handling
 
 /// Overflow strategy for mailbox capacity limits
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OverflowStrategy {
   /// Drop the oldest message when full

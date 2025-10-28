@@ -1,12 +1,12 @@
-use cellex_utils_core_rs::{sync::ArcShared, Shared};
+use cellex_utils_core_rs::sync::{shared::Shared, ArcShared};
 
 use super::{
   receive_timeout_scheduler_factory_provider::ReceiveTimeoutSchedulerFactoryProvider,
   receive_timeout_scheduler_factory_shared::ReceiveTimeoutSchedulerFactoryShared,
 };
-use crate::{
-  api::mailbox::MailboxFactory,
-  shared::{mailbox::messages::PriorityEnvelope, messaging::AnyMessage},
+use crate::shared::{
+  mailbox::{messages::PriorityEnvelope, MailboxFactory},
+  messaging::AnyMessage,
 };
 
 /// Shared wrapper around a [`ReceiveTimeoutSchedulerFactoryProvider`] implementation.

@@ -1,6 +1,9 @@
 //! Priority-aware envelope shared between API and internal code.
 
-use cellex_utils_core_rs::{Element, PriorityMessage, DEFAULT_PRIORITY};
+use cellex_utils_core_rs::collections::{
+  queue::priority::{PriorityMessage, DEFAULT_PRIORITY},
+  Element,
+};
 
 use crate::api::mailbox::messages::{PriorityChannel, SystemMessage};
 

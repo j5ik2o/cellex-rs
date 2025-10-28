@@ -8,7 +8,7 @@ use alloc::{
   vec::Vec,
 };
 
-use cellex_utils_core_rs::DEFAULT_PRIORITY;
+use cellex_utils_core_rs::collections::queue::priority::DEFAULT_PRIORITY;
 use spin::Mutex;
 
 use super::*;
@@ -19,15 +19,12 @@ use crate::{
       actor_ref::PriorityActorRef,
       ActorId, ActorPath, ChildNaming, SpawnError,
     },
-    mailbox::{
-      messages::{PriorityChannel, SystemMessage},
-      MailboxFactory,
-    },
+    mailbox::messages::{PriorityChannel, SystemMessage},
     supervision::supervisor::SupervisorDirective,
     test_support::TestMailboxFactory,
   },
   shared::{
-    mailbox::{handle::MailboxHandle, messages::PriorityEnvelope},
+    mailbox::{messages::PriorityEnvelope, MailboxConsumer, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared, MessageEnvelope},
   },
 };

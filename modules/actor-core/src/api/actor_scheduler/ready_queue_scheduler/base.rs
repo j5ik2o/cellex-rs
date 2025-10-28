@@ -2,7 +2,7 @@ use alloc::{boxed::Box, vec::Vec};
 use core::convert::Infallible;
 
 use async_trait::async_trait;
-use cellex_utils_core_rs::{collections::queue::QueueError, sync::ArcShared};
+use cellex_utils_core_rs::{collections::queue::backend::QueueError, sync::ArcShared};
 use spin::Mutex;
 
 use super::{
@@ -16,7 +16,11 @@ use super::{
 use crate::{
   api::{
     actor::{actor_ref::PriorityActorRef, SpawnError},
-    actor_scheduler::{ready_queue_scheduler::ReadyQueueWorkerImpl, ActorScheduler, ActorSchedulerSpawnContext},
+    actor_scheduler::{
+      ready_queue_coordinator::{ReadyQueueCoordinator, SignalKey},
+      ready_queue_scheduler::ReadyQueueWorkerImpl,
+      ActorScheduler, ActorSchedulerSpawnContext,
+    },
     extensions::Extensions,
     failure::{
       failure_event_stream::FailureEventListener,
@@ -24,13 +28,12 @@ use crate::{
       FailureInfo,
     },
     guardian::{AlwaysRestart, GuardianStrategy},
-    mailbox::MailboxFactory,
-    metrics::MetricsSinkShared,
+    metrics::{MetricsSinkShared, SuspensionClockShared},
     receive_timeout::ReceiveTimeoutSchedulerFactoryShared,
     supervision::supervisor::Supervisor,
   },
   shared::{
-    mailbox::messages::PriorityEnvelope,
+    mailbox::{messages::PriorityEnvelope, MailboxFactory},
     messaging::{AnyMessage, MapSystemShared},
     supervision::FailureEventHandler,
   },
@@ -84,6 +87,11 @@ where
     shared.into_dyn(|inner| inner as &dyn ReadyQueueWorker<MF>)
   }
 
+  #[allow(dead_code)]
+  pub(crate) fn context_for_testing(&self) -> ArcShared<Mutex<ReadyQueueContext<MF, Strat>>> {
+    self.context.clone()
+  }
+
   fn make_ready_handle(&self, index: usize) -> ReadyQueueHandle {
     let state = self.state.clone();
     let notifier = ArcShared::new(ReadyNotifier::new(state, index));
@@ -129,6 +137,24 @@ where
   pub fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     let mut ctx = self.context.lock();
     ctx.set_metrics_sink(sink);
+  }
+
+  /// Sets the ReadyQueueCoordinator that receives invoke outcomes.
+  pub fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    let mut ctx = self.context.lock();
+    ctx.set_ready_queue_coordinator(coordinator);
+  }
+
+  /// Configures the suspension clock used to measure suspend durations.
+  pub fn set_suspension_clock(&mut self, clock: SuspensionClockShared) {
+    let mut ctx = self.context.lock();
+    ctx.core.set_suspension_clock(clock);
+  }
+
+  /// Notifies the scheduler that an external resume signal was received.
+  pub fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    let mut ctx = self.context.lock();
+    ctx.notify_resume_signal(key)
   }
 
   /// Sets the listener that receives failures propagated to the root supervisor.
@@ -228,7 +254,8 @@ where
         let mut ctx = self.context.lock();
         if let Some(index) = ctx.dequeue_ready() {
           let processed = ctx.process_actor_pending(index)?;
-          let has_pending = ctx.actor_has_pending(index);
+          let suspended = ctx.actor_is_suspended(index);
+          let has_pending = if suspended { false } else { ctx.actor_has_pending(index) };
           ctx.mark_idle(index, has_pending);
           if processed {
             return Ok(());
@@ -288,6 +315,14 @@ where
 
   fn set_metrics_sink(&mut self, sink: Option<MetricsSinkShared>) {
     ReadyQueueScheduler::set_metrics_sink(self, sink)
+  }
+
+  fn set_ready_queue_coordinator(&mut self, coordinator: Option<Box<dyn ReadyQueueCoordinator>>) {
+    ReadyQueueScheduler::set_ready_queue_coordinator(self, coordinator);
+  }
+
+  fn notify_resume_signal(&mut self, key: SignalKey) -> bool {
+    ReadyQueueScheduler::notify_resume_signal(self, key)
   }
 
   fn set_parent_guardian(

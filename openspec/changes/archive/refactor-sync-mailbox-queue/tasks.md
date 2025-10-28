@@ -1,0 +1,3 @@
+- [x] 調査: `SyncMailboxQueue` 周辺の型・別名・ドキュメント参照を洗い出し、API 影響を整理する。
+- [x] 実装: 型・モジュール・別名を `UserMailboxQueue` ベースの命名へリネームし、責務コメント/ドキュメントを更新する。
+- [x] 確認: 関連テスト・CI (`cargo test -p cellex-actor-core-rs`, `./scripts/ci-check.sh all`) を実行し、命名変更による回帰がないことを確認する。

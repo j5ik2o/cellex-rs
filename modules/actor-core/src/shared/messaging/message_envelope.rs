@@ -1,6 +1,6 @@
 //! Message envelope shared between API and internal code.
 
-use cellex_utils_core_rs::Element;
+use cellex_utils_core_rs::collections::Element;
 
 use crate::{
   api::{

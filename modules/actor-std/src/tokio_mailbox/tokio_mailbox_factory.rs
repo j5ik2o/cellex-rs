@@ -1,12 +1,17 @@
-use cellex_actor_core_rs::api::mailbox::{
-  queue_mailbox::{build_queue_driver, QueueDriverConfig, QueueMailbox, SyncQueueDriver},
-  MailboxFactory, MailboxOptions, MailboxOverflowPolicy, MailboxPair, QueueMailboxProducer, ThreadSafe,
+use cellex_actor_core_rs::{
+  api::mailbox::{
+    queue_mailbox::{build_user_mailbox_queue, MailboxQueueConfig, QueueMailbox, SystemMailboxQueue, UserMailboxQueue},
+    QueueMailboxProducer,
+  },
+  shared::mailbox::{MailboxFactory, MailboxOptions, MailboxPair},
 };
-use cellex_utils_std_rs::{Element, QueueSize};
+use cellex_utils_core_rs::collections::{queue::QueueSize, Element};
 
 use super::{notify_signal::NotifySignal, tokio_mailbox_impl::TokioMailbox, tokio_mailbox_sender::TokioMailboxSender};
 
-type TokioQueueDriver<M> = SyncQueueDriver<M>;
+type TokioQueueDriver<M> = SystemMailboxQueue<M>;
+type TokioMailboxInner<M> = QueueMailbox<SystemMailboxQueue<M>, UserMailboxQueue<M>, NotifySignal>;
+type TokioMailboxProducer<M> = QueueMailboxProducer<SystemMailboxQueue<M>, UserMailboxQueue<M>, NotifySignal>;
 
 /// Factory that creates Tokio mailboxes.
 ///
@@ -58,13 +63,13 @@ impl TokioMailboxFactory {
 }
 
 impl MailboxFactory for TokioMailboxFactory {
-  type Concurrency = ThreadSafe;
+  type Concurrency = cellex_actor_core_rs::api::mailbox::ThreadSafe;
   type Mailbox<M>
-    = QueueMailbox<Self::Queue<M>, Self::Signal>
+    = TokioMailboxInner<M>
   where
     M: Element;
   type Producer<M>
-    = QueueMailboxProducer<Self::Queue<M>, Self::Signal>
+    = TokioMailboxProducer<M>
   where
     M: Element;
   type Queue<M>
@@ -76,16 +81,19 @@ impl MailboxFactory for TokioMailboxFactory {
   fn build_mailbox<M>(&self, options: MailboxOptions) -> MailboxPair<Self::Mailbox<M>, Self::Producer<M>>
   where
     M: Element, {
-    let queue = {
+    let (system_queue, user_queue) = {
       let capacity_size = match options.capacity {
         | QueueSize::Limitless | QueueSize::Limited(0) => QueueSize::limitless(),
         | QueueSize::Limited(capacity) => QueueSize::limited(capacity),
       };
-      let config = QueueDriverConfig::new(capacity_size, MailboxOverflowPolicy::Block);
-      build_queue_driver::<M>(config)
+      let config =
+        MailboxQueueConfig::new(capacity_size, cellex_actor_core_rs::api::mailbox::MailboxOverflowPolicy::Block);
+      let user_queue = build_user_mailbox_queue::<M>(config);
+      let system_queue = SystemMailboxQueue::new(options.priority_capacity_limit());
+      (system_queue, user_queue)
     };
     let signal = NotifySignal::default();
-    let mailbox = QueueMailbox::new(queue, signal);
+    let mailbox = QueueMailbox::with_system_queue(system_queue, user_queue, signal);
     let sender = mailbox.producer();
     (mailbox, sender)
   }
