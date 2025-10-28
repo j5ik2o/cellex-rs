@@ -39,6 +39,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - 単体テストは hoge.rs に対して hoge/tests.rs に記述すること
 - 1ファイルに複数構造体、複数traitを記述しないこと
 - 作業後に`./scripts/ci-check.sh all`を実行し、エラーがないことを確認すること
+- 設計は単一責務を重視すること。複数の目的を1つの実装に混ぜて、変更理由が複数になることは避ける
 
 ## [RULE] 再エクスポート規約
 
@@ -48,11 +49,10 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 ## プロジェクト構成とモジュール
 本 リポジトリ は Cargo ワークスペース。主要 ディレクトリ は 以下 の 通り。
-- `core/` アクター ランタイム と メッセージ 処理。テスト は モジュール 直下 の `tests.rs`。
-- `cluster/` メンバーシップ と Gossip。生成 物 は `cluster/generated/`。
-- `remote/` gRPC ベース の リモート メッセージング。
-- `message-derive/` メッセージ 派生 マクロ 定義。
-- `utils/` 共通 ヘルパー と キュー 構造。
+- `actor-*/` アクター ランタイム と メッセージ 処理。テスト は モジュール 直下 の `tests.rs`。
+- `cluster-*/` メンバーシップ と Gossip。生成 物 は `cluster/generated/`。
+- `remote-*/` gRPC ベース の リモート メッセージング。
+- `utils-*/` 共通 ヘルパー と キュー 構造。
 共有 設定 は ルート `Cargo.toml` と `rust-toolchain.toml`。ビルド 自動化 は `Makefile.toml`、カバレッジ は `coverage.sh` を 使用。
 
 ## ビルド・テスト・開発コマンド
